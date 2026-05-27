@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Sharp Scout — May 26 2026</title>
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+  body { font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom, 16px); }
+
+  /* ── HEADER ── */
+  .header { background: linear-gradient(135deg, #0d1b3e 0%, #1a2f5e 100%); padding: 16px 16px 14px; border-bottom: 3px solid #f4820a; }
+  .header h1 { font-size: 18px; font-weight: 700; color: #fff; line-height: 1.3; }
+  .header p { color: #94a3b8; font-size: 12px; margin-top: 5px; line-height: 1.5; }
+  .header .result-pill { display: inline-block; background: #0d2a1a; border: 1px solid #4ade80; color: #4ade80; font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
+
+  /* ── TABS — sticky, full-width, scrollable ── */
+  .tabs { position: sticky; top: 0; z-index: 100; display: flex; background: #161b22; border-bottom: 1px solid #30363d; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 1; min-width: 80px; padding: 14px 12px; cursor: pointer; font-size: 13px; font-weight: 500; color: #8b949e; border-bottom: 3px solid transparent; transition: color 0.2s, border-color 0.2s; text-align: center; white-space: nowrap; -webkit-tap-highlight-color: transparent; user-select: none; }
+  .tab.active { color: #f4820a; border-bottom-color: #f4820a; font-weight: 700; }
+
+  /* ── CONTENT ── */
+  .content { display: none; padding: 14px 14px 24px; }
+  .content.active { display: block; }
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #f4820a; text-transform: uppercase; margin: 20px 0 10px; }
+  .section-label:first-child { margin-top: 4px; }
+
+  /* ── PLAY CARDS ── */
+  .play-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px 14px 12px; margin-bottom: 10px; position: relative; overflow: hidden; }
+  .play-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; }
+  .play-card.sharp-play::before  { background: #f4820a; }
+  .play-card.sharp-lean::before  { background: #facc15; }
+  .play-card.diamond::before     { background: #60a5fa; }
+  .play-card.double-diamond::before { background: #a78bfa; }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .card-left { flex: 1; min-width: 0; }
+  .tier-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; white-space: nowrap; margin-bottom: 4px; }
+  .badge-play  { background: #f4820a; color: #fff; }
+  .badge-lean  { background: #facc15; color: #000; }
+  .badge-diamond { background: #60a5fa; color: #fff; }
+  .badge-dd    { background: #a78bfa; color: #fff; }
+  .play-title  { font-size: 18px; font-weight: 800; color: #fff; line-height: 1.2; }
+  .play-subtitle { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .units-badge { background: #0d1b3e; border: 1px solid #f4820a; color: #f4820a; padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
+
+  /* ── RESULT OVERLAY on card ── */
+  .card-result { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-top: 6px; }
+  .card-result.win  { background: #0d2a1a; border: 1px solid #4ade80; color: #4ade80; }
+  .card-result.loss { background: #2a0d0d; border: 1px solid #f87171; color: #f87171; }
+
+  /* ── META GRID ── */
+  .play-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 10px; }
+  .meta-item { font-size: 12px; }
+  .meta-label { color: #8b949e; }
+  .meta-val   { color: #e6edf3; font-weight: 600; }
+
+  /* ── CONF BAR ── */
+  .conf-bar   { margin-top: 10px; }
+  .conf-track { background: #21262d; border-radius: 4px; height: 5px; }
+  .conf-fill  { height: 5px; border-radius: 4px; }
+  .conf-label { font-size: 11px; color: #8b949e; margin-top: 3px; }
+
+  /* ── RATIONALE (collapsible) ── */
+  .rationale-toggle { display: flex; align-items: center; gap: 6px; margin-top: 10px; cursor: pointer; color: #8b949e; font-size: 12px; -webkit-tap-highlight-color: transparent; user-select: none; }
+  .rationale-toggle .arrow { font-size: 10px; transition: transform 0.2s; }
+  .rationale-toggle.open .arrow { transform: rotate(90deg); }
+  .rationale-body { display: none; font-size: 12px; color: #94a3b8; margin-top: 8px; line-height: 1.6; padding-top: 8px; border-top: 1px solid #21262d; }
+  .rationale-body.open { display: block; }
+
+  /* ── FLAGS ── */
+  .flags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .flag { font-size: 11px; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+  .flag.ok   { background: #1e2a1e; border: 1px solid #2d4a2d; color: #4ade80; }
+  .flag.warn { background: #2a1e1e; border: 1px solid #4a2d2d; color: #f87171; }
+  .flag.info { background: #1e2040; border: 1px solid #2d3a5c; color: #93c5fd; }
+
+  /* ── WATCH CARDS ── */
+  .watch-card { background: #0d1117; border: 1px dashed #374151; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+  .watch-title { font-size: 13px; font-weight: 600; color: #9ca3af; }
+  .watch-condition { font-size: 12px; color: #6b7280; margin-top: 4px; line-height: 1.5; }
+
+  /* ── TABLES — horizontal scroll on mobile ── */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 420px; }
+  th { background: #161b22; color: #8b949e; font-weight: 600; padding: 10px 10px; text-align: left; border-bottom: 1px solid #30363d; white-space: nowrap; }
+  td { padding: 9px 10px; border-bottom: 1px solid #21262d; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .win  { color: #4ade80; font-weight: 700; }
+  .loss { color: #f87171; font-weight: 700; }
+  .pending { color: #94a3b8; font-style: italic; }
+  .pos { color: #4ade80; font-weight: 600; }
+  .neg { color: #f87171; font-weight: 600; }
+
+  /* ── STAT GRID ── */
+  .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px 10px; text-align: center; }
+  .stat-val   { font-size: 20px; font-weight: 800; color: #fff; }
+  .stat-label { font-size: 10px; color: #8b949e; margin-top: 3px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* ── DAY HEADER ── */
+  .day-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; margin: 24px 0 10px; }
+  .day-header .day-title { font-size: 13px; font-weight: 700; color: #e6edf3; }
+  .day-pnl { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .day-pnl.pos { background: #0d2a1a; border: 1px solid #4ade80; color: #4ade80; }
+  .day-pnl.neg { background: #2a0d0d; border: 1px solid #f87171; color: #f87171; }
+
+  /* ── BANKROLL BOX ── */
+  .bankroll-box { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px 14px; margin: 12px 0 0; }
+  .bankroll-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #21262d; font-size: 13px; }
+  .bankroll-row:last-child { border-bottom: none; font-weight: 700; font-size: 15px; padding-top: 8px; }
+  .bankroll-label { color: #8b949e; }
+
+  /* ── MODEL NOTES ── */
+  .notes-box { background: #161b22; border: 1px solid #30363d; border-radius: 10px; overflow: hidden; }
+  .note-item { padding: 12px 14px; border-bottom: 1px solid #21262d; font-size: 12px; color: #94a3b8; line-height: 1.7; }
+  .note-item:last-child { border-bottom: none; }
+  .note-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+  .note-tag.warn { background: #2a2200; border: 1px solid #facc15; color: #facc15; }
+  .note-tag.bad  { background: #2a0d0d; border: 1px solid #f87171; color: #f87171; }
+  .note-tag.good { background: #0d2a1a; border: 1px solid #4ade80; color: #4ade80; }
+
+  /* ── AGENT LOG ── */
+  .log-entry { font-size: 11px; font-family: 'Menlo', 'Courier New', monospace; color: #8b949e; padding: 6px 0; border-bottom: 1px solid #21262d; line-height: 1.5; }
+  .log-ok   { color: #4ade80; }
+  .log-warn { color: #facc15; }
+  .log-info { color: #60a5fa; }
+
+  /* ── FOOTER ── */
+  .footer-note { color: #4b5563; font-size: 11px; margin-top: 16px; line-height: 1.6; }
+  .footer-note code { background: #161b22; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+  /* ── DIVIDER ── */
+  hr.divider { border: none; border-top: 1px solid #21262d; margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎯 Sharp Scout — Evening Pass</h1>
+  <p>May 26, 2026 &nbsp;·&nbsp; 15 Games &nbsp;·&nbsp; 6 Plays &nbsp;·&nbsp; 7.5u Deployed</p>
+  <span class="result-pill">✅ EVALUATED &nbsp;·&nbsp; 4W–2L &nbsp;·&nbsp; +2.97u</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('summary',this)">Summary</div>
+  <div class="tab" onclick="showTab('drill',this)">Drill-Down</div>
+  <div class="tab" onclick="showTab('ledger',this)">Ledger</div>
+  <div class="tab" onclick="showTab('log',this)">Log</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DAILY SUMMARY TAB
+════════════════════════════════════════════ -->
+<div id="tab-summary" class="content active">
+
+  <div class="section-label">⚾ Splits Plays — 4 Plays</div>
+
+  <!-- TOR -1.5 -->
+  <div class="play-card sharp-play">
+    <div class="card-top">
+      <div class="card-left">
+        <span class="tier-badge badge-play">Sharp Play</span>
+        <div class="play-title">TOR -1.5 (+178)</div>
+        <div class="play-subtitle">MIA @ TOR · 7:07 PM ET · Rogers Centre (Indoor)</div>
+      </div>
+      <div class="units-badge">1.5u</div>
+    </div>
+    <span class="card-result win">✅ WIN · TOR 8, MIA 1 · +2.67u</span>
+    <div class="play-meta">
+      <div class="meta-item"><span class="meta-label">Sharp Δ </span><span class="meta-val">+28pts 🔴</span></div>
+      <div class="meta-item"><span class="meta-label">Money/Bets </span><span class="meta-val">92% / 64%</span></div>
+      <div class="meta-item"><span class="meta-label">Conf </span><span class="meta-val">68</span></div>
+      <div class="meta-item"><span class="meta-label">MIA SP </span><span class="meta-val">Alcantara 4.00 ERA</span></div>
+    </div>
+    <div class="conf-bar">
+      <div class="conf-track"><div class="conf-fill" style="width:68%;background:#f4820a;"></div></div>
+      <div class="conf-label">Confidence: 68 / 100</div>
+    </div>
+    <div class="rationale-toggle" onclick="toggleRationale(this)">
+      <span class="arrow">▶</span><span>Rationale</span>
+    </div>
+    <div class="rationale-body">Largest sharp Δ on slate (+28pts). Alcantara lit up last start (6 R vs ATL in 6 IP). TOR at home indoors, sharp hammering plus-money run line (+178). Records even — sharp signal is the key driver.</div>
+    <div class="flags">
+      <span class="flag warn">⚠️ Flag G watch: Fisher opener for TOR</span>
+    </div>
+  </div>
+
+  <!-- MIN -1.5 -->
+  <div class="play-card sharp-play">
+    <div class="card-top">
+      <div class="card-left">
+        <span class="tier-badge badge-play">Sharp Play</span>
+        <div class="play-title">MIN -1.5 (+156)</div>
+        <div class="play-subtitle">MIN @ CWS · 7:40 PM ET · Rate Field</div>
+      </div>
+      <div class="units-badge">1.5u</div>
+    </div>
+    <span class="card-result win">✅ WIN · MIN 5, CWS 3 (11 inn) · +2.34u</span>
+    <div class="play-meta">
+      <div class="meta-item"><span class="meta-label">Sharp Δ </span><span class="meta-val">+25pts 🔴</span></div>
+      <div class="meta-item"><span class="meta-label">Money/Bets </span><span class="meta-val">79% / 54%</span></div>
+      <div class="meta-item"><span class="meta-label">Conf </span><span class="meta-val">66</span></div>
+      <div class="meta-item"><span class="meta-label">MIN SP </span><span class="meta-val">Joe Ryan · L4: ≤1 ER</span></div>
+    </div>
+    <div class="conf-bar">
+      <div class="conf-track"><div class="conf-fill" style="width:66%;background:#f4820a;"></div></div>
+      <div class="conf-label">Confidence: 66 / 100</div>
+    </div>
+    <div class="rationale-toggle" onclick="toggleRationale(this)">
+      <span class="arrow">▶</span><span>Rationale</span>
+    </div>
+    <div class="rationale-body">Joe Ryan on a 4-start hot streak (≤1 ER each). Burke's ERA and xERA aligned at 4.08 — no inflation. Sharp crushing road dog MIN at +156. ERA gap only 0.31 run — Ryan's form is the secondary driver.</div>
+    <div class="flags">
+      <span class="flag ok">✅ Ryan L4: 1.48 ERA</span>
+    </div>
+  </div>
+
+  <!-- PIT -1.5 -->
+  <div class="play-card sharp-lean">
+    <div class="card-top">
+      <div class="card-left">
+        <span class="tier-badge badge-lean">Sharp Lean</span>
+        <div class="play-title">PIT -1.5 (+164)</div>
+        <div class="play-subtitle">CHC @ PIT · 6:40 PM ET · PNC Park</div>
+      </div>
+      <div class="units-badge">1u</div>
+    </div>
+    <span class="card-result win">✅ WIN · PIT 12, CHC 1 · +1.64u</span>
+    <div class="play-meta">
+      <div class="meta-item"><span class="meta-label">Sharp Δ </span><span class="meta-val">+23pts 🟡</span></div>
+      <div class="meta-item"><span class="meta-label">Money/Bets </span><span class="meta-val">93% / 70%</span></div>
+      <div class="meta-item"><span class="meta-label">Conf </span><span class="meta-val">64</span></div>
+      <div class="meta-item"><span class="meta-label">PIT SP </span><span class="meta-val">Ashcraft · 9K last start</span></div>
+    </div>
+    <div class="conf-bar">
+      <div class="conf-track"><div class="conf-fill" style="width:64%;background:#facc15;"></div></div>
+      <div class="conf-label">Confidence: 64 / 100</div>
+    </div>
+    <div class="rationale-toggle" onclick="toggleRationale(this)">
+      <span class="arrow">▶</span><span>Rationale</span>
+    </div>
+    <div class="rationale-body">Lean elevated by two confirming signals: Ashcraft's 9K form + CHC opener structure (Wicks ≤2 IP). Opener on CHC disrupts their offensive rhythm. Lean at plus odds (+164) adds value.</div>
+    <div class="flags">
+      <span class="flag warn">⚠️ opener_game CHC (Jordan Wicks)</span>
+      <span class="flag ok">✅ Ashcraft 6.5K/gm + PNC 0.98</span>
+    </div>
+  </div>
+
+  <!-- ATL -1.5 -->
+  <div class="play-card sharp-lean">
+    <div class="card-top">
+      <div class="card-left">
+        <span class="tier-badge badge-lean">Sharp Lean</span>
+        <div class="play-title">ATL -1.5 (+158)</div>
+        <div class="play-subtitle">ATL @ BOS · 6:45 PM ET · Fenway Park</div>
+      </div>
+      <div class="units-badge">1u</div>
+    </div>
+    <span class="card-result loss">❌ LOSS · ATL 7, BOS 6 (margin 1) · -1.00u</span>
+    <div class="play-meta">
+      <div class="meta-item"><span class="meta-label">Sharp Δ </span><span class="meta-val">+20pts 🟡</span></div>
+      <div class="meta-item"><span class="meta-label">Money/Bets </span><span class="meta-val">96% / 76%</span></div>
+      <div class="meta-item"><span class="meta-label">Conf </span><span class="meta-val">63</span></div>
+      <div class="meta-item"><span class="meta-label">ATL SP </span><span class="meta-val">Strider 3.00 ERA</span></div>
+    </div>
+    <div class="conf-bar">
+      <div class="conf-track"><div class="conf-fill" style="width:63%;background:#facc15;"></div></div>
+      <div class="conf-label">Confidence: 63 / 100</div>
+    </div>
+    <div class="rationale-toggle" onclick="toggleRationale(this)">
+      <span class="arrow">▶</span><span>Rationale</span>
+    </div>
+    <div class="rationale-body">ATL 36-18 (best in baseball) vs BOS 22-30. Record differential (+14 games) as confirming signal. Suarez risk flagged pre-game — 1 ER in L4 starts. ATL won the game but by 1, not 2. Correct sizing at 1u.</div>
+    <div class="flags">
+      <span class="flag warn">⚠️ Suarez 2.40 ERA L4 — elite form flagged</span>
+      <span class="flag ok">✅ ATL +14 record gap</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-label">⚾ Props Plays — 2 Plays</div>
+
+  <!-- Hancock -->
+  <div class="play-card diamond">
+    <div class="card-top">
+      <div class="card-left">
+        <span class="tier-badge badge-diamond">💎 Diamond</span>
+        <div class="play-title">Hancock O4.5K (-110)</div>
+        <div class="play-subtitle">SEA @ OAK · 9:40 PM ET · Sutter Health Park</div>
+      </div>
+      <div class="units-badge">3u</div>
+    </div>
+    <span class="card-result loss">❌ LOSS · 3 Ks (needed 5+) · -3.00u</span>
+    <div class="play-meta">
+      <div class="meta-item"><span class="meta-label">Season Avg </span><span class="meta-val">6.0 K/gm</span></div>
+      <div class="meta-item"><span class="meta-label">Model Prob </span><span class="meta-val">67%</span></div>
+      <div class="meta-item"><span class="meta-label">Edge </span><span class="meta-val">+14.6%</span></div>
+      <div class="meta-item"><span class="meta-label">Composite </span><span class="meta-val">94</span></div>
+    </div>
+    <div class="conf-bar">
+      <div class="conf-track"><div class="conf-fill" style="width:94%;background:#60a5fa;"></div></div>
+      <div class="conf-label">Composite: 94 / 100</div>
+    </div>
+    <div class="rationale-toggle" onclick="toggleRationale(this)">
+      <span class="arrow">▶</span><span>Rationale + Model Note</span>
+    </div>
+    <div class="rationale-body">FD line 1.5 Ks below season mean (6.0 avg vs 4.5 line). Model 67% to hit 5+, implied only 52.4%. Structural underpricing. Outcome: 6 IP / 1 H / 3 K / 2 BB — command fine, no whiffs. K/gm mean likely inflated by outlier starts. Flag for model: weight K median vs mean; add dispersion penalty for high-variance K profiles.</div>
+    <div class="flags">
+      <span class="flag warn">⚠️ Model review: K mean ≠ K floor</span>
+    </div>
+  </div>
+
+  <!-- Schlittler -->
+  <div class="play-card double-diamond">
+    <div class="card-top">
+      <div class="card-left">
+        <span class="tier-badge badge-dd">💎💎 Double Diamond</span>
+        <div class="play-title">Schlittler O5.5K (-154)</div>
+        <div class="play-subtitle">NYY @ KC · 7:40 PM ET · Kauffman Stadium</div>
+      </div>
+      <div class="units-badge">0.5u ⚠️</div>
+    </div>
+    <span class="card-result win">✅ WIN · NYY 15, KC 1 · +0.32u</span>
+    <div class="play-meta">
+      <div class="meta-item"><span class="meta-label">Season Avg </span><span class="meta-val">6.8 K/gm</span></div>
+      <div class="meta-item"><span class="meta-label">Model Prob </span><span class="meta-val">72%</span></div>
+      <div class="meta-item"><span class="meta-label">Edge </span><span class="meta-val">+11.4%</span></div>
+      <div class="meta-item"><span class="meta-label">Composite </span><span class="meta-val">100 → juice cap</span></div>
+    </div>
+    <div class="conf-bar">
+      <div class="conf-track"><div class="conf-fill" style="width:100%;background:#a78bfa;"></div></div>
+      <div class="conf-label">Composite: 100 (juice cap -154 → 0.5u max)</div>
+    </div>
+    <div class="rationale-toggle" onclick="toggleRationale(this)">
+      <span class="arrow">▶</span><span>Rationale</span>
+    </div>
+    <div class="rationale-body">MLB's hottest pitcher (1.50 ERA, 6.8 K/gm). Falter opener for KC — disrupted lineup. Model 72% vs implied 60.6%. Juice cap at -154 limits to 0.5u. NYY won 15-1 in a dominant Schlittler outing.</div>
+    <div class="flags">
+      <span class="flag warn">⚠️ Juice cap -154 → 0.5u max</span>
+      <span class="flag ok">✅ No correlation (NYY Splits excluded Δ+4)</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-label">👁 Watch List</div>
+  <div class="watch-card">
+    <div class="watch-title">Jack Leiter O5.5K (-104) · HOU @ TEX · 8:05 PM</div>
+    <div class="watch-condition">Composite 55.5 — below 85 threshold. Edge +4.0% but sim score too low. Watch if line drops to O5.0 or -120.</div>
+  </div>
+
+  <hr class="divider">
+  <div class="section-label">💰 Day Summary</div>
+  <div class="bankroll-box">
+    <div class="bankroll-row"><span class="bankroll-label">Splits Risked</span><span>5.0u (4 plays)</span></div>
+    <div class="bankroll-row"><span class="bankroll-label">Props Risked</span><span>3.5u (2 plays)</span></div>
+    <div class="bankroll-row"><span class="bankroll-label">Total Deployed</span><span>7.5u</span></div>
+    <div class="bankroll-row"><span class="bankroll-label">Result</span><span class="pos">4W – 2L · +2.97u</span></div>
+  </div>
+
+</div><!-- /summary -->
+
+
+<!-- ══════════════════════════════════════════
+     DRILL-DOWN TAB
+════════════════════════════════════════════ -->
+<div id="tab-drill" class="content">
+
+  <div class="section-label">All 15 Games — Splits Scored</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Game</th><th>Time</th><th>Sharp Side</th><th>Δ</th><th>Tier</th><th>Conf</th><th>Call</th></tr></thead>
+      <tbody>
+        <tr><td>MIA@TOR</td><td>7:07</td><td>TOR -1.5</td><td>+28 🔴</td><td>Sharp Play</td><td>68</td><td class="pos">✅ 1.5u</td></tr>
+        <tr><td>MIN@CWS</td><td>7:40</td><td>MIN -1.5</td><td>+25 🔴</td><td>Sharp Play</td><td>66</td><td class="pos">✅ 1.5u</td></tr>
+        <tr><td>CHC@PIT</td><td>6:40</td><td>PIT -1.5</td><td>+23 🟡</td><td>Sharp Lean</td><td>64</td><td class="pos">✅ 1u</td></tr>
+        <tr><td>ATL@BOS</td><td>6:45</td><td>ATL -1.5</td><td>+20 🟡</td><td>Sharp Lean</td><td>63</td><td class="pos">✅ 1u</td></tr>
+        <tr><td>LAA@DET</td><td>6:40</td><td>DET -1.5</td><td>+16 ⚪</td><td>Watch</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>CIN@NYM</td><td>7:10</td><td>CIN -1.5</td><td>+16 ⚪</td><td>Watch</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>TB@BAL</td><td>6:35</td><td>TB -1.5</td><td>+15 ⚪</td><td>Watch</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>ARI@SF</td><td>9:45</td><td>ARI -1.5</td><td>+15 ⚪</td><td>Watch</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>HOU@TEX</td><td>8:05</td><td>TEX -1.5</td><td>+12 ⚪</td><td>Watch</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>STL@MIL</td><td>7:40</td><td>MIL -1.5</td><td>+6 ⚪</td><td>Neutral</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>SEA@OAK</td><td>9:40</td><td>SEA -1.5</td><td>+8 ⚪</td><td>Neutral</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>PHI@SD</td><td>9:40</td><td>SD -1.5</td><td>+8 ⚪</td><td>Neutral</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>WSH@CLE</td><td>6:10</td><td>CLE -1.5</td><td>+5 ⚪</td><td>Neutral</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>NYY@KC</td><td>7:40</td><td>NYY -1.5</td><td>+4 ⚪</td><td>Neutral</td><td>—</td><td class="pending">—</td></tr>
+        <tr><td>COL@LAD</td><td>10:10</td><td>LAD -1.5</td><td>+3 ⚪</td><td>Neutral</td><td>—</td><td class="pending">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-label" style="margin-top:20px;">All Props Scored</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Pitcher</th><th>Line</th><th>Avg</th><th>Prob</th><th>Edge</th><th>Comp</th><th>Call</th></tr></thead>
+      <tbody>
+        <tr><td>Hancock</td><td>O4.5 -110</td><td>6.0</td><td>67%</td><td>+14.6%</td><td>94</td><td class="neg">❌ 3K</td></tr>
+        <tr><td>Schlittler</td><td>O5.5 -154</td><td>6.8</td><td>72%</td><td>+11.4%</td><td>100*</td><td class="pos">✅ WIN</td></tr>
+        <tr><td>Leiter</td><td>O5.5 -104</td><td>6.0</td><td>55%</td><td>+4.0%</td><td>55.5</td><td class="pending">Watch</td></tr>
+        <tr><td>Strider</td><td>O6.5 +118</td><td>6.8</td><td>45%</td><td>-0.9%</td><td>—</td><td class="pending">Excl.</td></tr>
+        <tr><td>Ashcraft</td><td>O5.5 -122</td><td>6.5</td><td>55%</td><td>+0.1%</td><td>—</td><td class="pending">Excl.</td></tr>
+        <tr><td>Cavalli</td><td>O4.5 -146</td><td>5.5</td><td>51%</td><td>-8.3%</td><td>—</td><td class="pending">Excl.</td></tr>
+        <tr><td>Harrison</td><td>O6.5 +102</td><td>6.6</td><td>42%</td><td>-7.5%</td><td>—</td><td class="pending">Excl.</td></tr>
+        <tr><td>Burns</td><td>O6.5 -114</td><td>6.4</td><td>46%</td><td>-7.3%</td><td>—</td><td class="pending">Excl.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /drill -->
+
+
+<!-- ══════════════════════════════════════════
+     LEDGER TAB
+════════════════════════════════════════════ -->
+<div id="tab-ledger" class="content">
+
+  <div class="section-label">Lifetime — Through May 26, 2026</div>
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-val">54-25</div><div class="stat-label">Record</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#4ade80;">+16.91u</div><div class="stat-label">Net P&L</div></div>
+    <div class="stat-card"><div class="stat-val">79</div><div class="stat-label">Total Plays</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#4ade80;">~19.4%</div><div class="stat-label">ROI</div></div>
+  </div>
+
+  <!-- MAY 26 -->
+  <div class="day-header">
+    <span class="day-title">📅 May 26, 2026 · EVALUATED ✅</span>
+    <span class="day-pnl pos">4W–2L · +2.97u</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Play</th><th>Track</th><th>Units</th><th>Odds</th><th>Score</th><th>Result</th><th>P&L</th></tr></thead>
+      <tbody>
+        <tr><td>TOR -1.5</td><td>Splits</td><td>1.5u</td><td>+178</td><td>TOR 8, MIA 1</td><td class="win">WIN</td><td class="pos">+2.67u</td></tr>
+        <tr><td>MIN -1.5</td><td>Splits</td><td>1.5u</td><td>+156</td><td>MIN 5, CWS 3</td><td class="win">WIN</td><td class="pos">+2.34u</td></tr>
+        <tr><td>PIT -1.5</td><td>Splits</td><td>1u</td><td>+164</td><td>PIT 12, CHC 1</td><td class="win">WIN</td><td class="pos">+1.64u</td></tr>
+        <tr><td>ATL -1.5</td><td>Splits</td><td>1u</td><td>+158</td><td>ATL 7, BOS 6 (1)</td><td class="loss">LOSS</td><td class="neg">-1.00u</td></tr>
+        <tr><td>Hancock O4.5K</td><td>Props</td><td>3u</td><td>-110</td><td>3 Ks (need 5+)</td><td class="loss">LOSS</td><td class="neg">-3.00u</td></tr>
+        <tr><td>Schlittler O5.5K</td><td>Props</td><td>0.5u</td><td>-154</td><td>NYY 15, KC 1</td><td class="win">WIN</td><td class="pos">+0.32u</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="bankroll-box">
+    <div class="bankroll-row"><span class="bankroll-label">Wins</span><span class="pos">+6.97u</span></div>
+    <div class="bankroll-row"><span class="bankroll-label">Losses</span><span class="neg">-4.00u</span></div>
+    <div class="bankroll-row"><span class="bankroll-label">Day Net</span><span class="pos">+2.97u</span></div>
+  </div>
+
+  <!-- MAY 25 -->
+  <div class="day-header">
+    <span class="day-title">📅 May 25, 2026 · EVALUATED ✅</span>
+    <span class="day-pnl neg">2W–3L · -4.50u</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Play</th><th>Track</th><th>Units</th><th>Result</th><th>P&L</th></tr></thead>
+      <tbody>
+        <tr><td>MIL/STL U7.5 + Miz O8.5K</td><td>Splits+Props</td><td>—</td><td class="win">WIN</td><td class="pos">+1.46u</td></tr>
+        <tr><td>Yesavage O5.5K</td><td>Props</td><td>1u</td><td class="win">WIN</td><td class="pos">+0.54u</td></tr>
+        <tr><td>CLE -1.5</td><td>Splits</td><td>2u</td><td class="loss">LOSS</td><td class="neg">-2.00u</td></tr>
+        <tr><td>TOR -1.5</td><td>Splits</td><td>2u</td><td class="loss">LOSS</td><td class="neg">-2.00u</td></tr>
+        <tr><td>HOU@TEX Under</td><td>Splits</td><td>1.5u</td><td class="loss">LOSS</td><td class="neg">-1.50u</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MAY 24 -->
+  <div class="day-header">
+    <span class="day-title">📅 May 24, 2026 · EVALUATED ✅</span>
+    <span class="day-pnl pos">2W–1L · +1.44u</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Play</th><th>Track</th><th>Units</th><th>Result</th><th>P&L</th></tr></thead>
+      <tbody>
+        <tr><td>ATH/SD Under 7.5</td><td>Splits</td><td>1.5u</td><td class="win">WIN</td><td class="pos">+1.96u</td></tr>
+        <tr><td>Messick O5.5K</td><td>Props</td><td>1u</td><td class="win">WIN</td><td class="pos">+0.98u</td></tr>
+        <tr><td>TEX ML</td><td>Splits</td><td>1.5u</td><td class="loss">LOSS</td><td class="neg">-1.50u</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODEL NOTES -->
+  <div class="section-label" style="margin-top:28px;">🧠 Model Learning Notes</div>
+  <div class="notes-box">
+    <div class="note-item">
+      <span class="note-tag warn">May 26 — ATL -1.5</span><br>
+      ATL won 7-6 — by 1, needed 2. Suarez's elite form (1 ER in L4 starts) was the pre-game risk flag. Lean plays (Conf 63) against elite opposing SPs carry real variance. 1u sizing was correct. No model change — confirms lean tier sizing discipline.
+    </div>
+    <div class="note-item">
+      <span class="note-tag bad">May 26 — Hancock O4.5K Miss</span><br>
+      Season avg 6.0, line 4.5, result 3 Ks. Command fine (6 IP / 1 H / 2 BB) — just no whiffs. <strong style="color:#e6edf3;">Flag for review:</strong> K/gm mean likely inflated by outlier starts. K mean ≠ K floor. Pending improvement: weight K median vs mean in Poisson λ; add high-dispersion variance penalty. OAK contact profile also likely underweighted.
+    </div>
+    <div class="note-item">
+      <span class="note-tag good">May 26 — Splits 3-1</span><br>
+      TOR (+178), MIN (+156), PIT (+164) all covered. All three Δ≥25pts. ATL (Δ+20) the lone miss. Confirms: strong signal tier (Δ≥25) converts reliably. Lean tier (Δ20-24) has meaningfully higher variance — especially vs. elite opposing SP.
+    </div>
+    <div class="note-item">
+      <span class="note-tag bad">May 25 — 3-loss day</span><br>
+      CLE -1.5, TOR -1.5, and HOU@TEX Under all lost. Sharp signal held on game direction, but margins didn't cooperate. No systemic issue — variance. Watch for clustering risk: 3+ run-line plays on same slate compounds variance exposure.
+    </div>
+  </div>
+
+  <p class="footer-note">Ledger updated May 27, 2026 · Newest day first · <code>/sharp-scout evaluate [date]</code> to add prior days.</p>
+
+</div><!-- /ledger -->
+
+
+<!-- ══════════════════════════════════════════
+     AGENT LOG TAB
+════════════════════════════════════════════ -->
+<div id="tab-log" class="content">
+  <div class="section-label">Pipeline Execution Log — May 26 Evening</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 1 — Data Scout complete. 15 games. Sources: MLB.com, FantasyData, DKNetwork, FanDuel Research, Breakaway Stats.</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 1 — All lineups confirmed. WSH partial. CLE confirmed.</div>
+  <div class="log-entry"><span class="log-warn">[WARN]</span> opener_game CHC — Wicks confirmed ≤2 IP. -0.05 DQ applied to CHC splits.</div>
+  <div class="log-entry"><span class="log-warn">[WARN]</span> opener_game MIA@TOR — Fisher opener TOR side. Flag G watch tag. No penalty (needs 2nd validation).</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 2S — 15 games processed. Strong: 2. Lean: 2. Watch: 5. Neutral: 6.</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 2P — 8 pitchers evaluated. 2 qualify for quant engine.</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 2B — No batter props above 85 composite on this pass.</div>
+  <div class="log-entry"><span class="log-info">[INFO]</span> Agent 3 — Edge: Schlittler +11.4%, Hancock +14.6%. Verified vs FD implied probs.</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 4S — MC sims: TOR 68, MIN 66, PIT 64, ATL 63. All ≥62.</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 4P — Poisson: Hancock P(K≥5)=67%. Schlittler P(K≥6)=72%.</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 5 — No correlation conflicts. 4 Splits + 2 Props. No re-audit triggered.</div>
+  <div class="log-entry"><span class="log-info">[INFO]</span> Rule E: Strider ERA 3.00 > 2.6 threshold — NOT triggered.</div>
+  <div class="log-entry"><span class="log-info">[INFO]</span> Rule H: No ERA >5.50 + BB/9 >4.0 situation — NOT triggered.</div>
+  <div class="log-entry"><span class="log-warn">[WARN]</span> Juice cap: Schlittler -154 > -140 → capped 0.5u.</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Weather: Cleveland 74°F / 10% rain — clear. Boston 82°F / 10% rain — clear.</div>
+  <div class="log-entry"><span class="log-info">[INFO]</span> Excluded props: Burns -7.3%, Harrison -7.5%, Cavalli -8.3%, Strider -0.9%, Ashcraft +0.1% (too thin).</div>
+  <div class="log-entry"><span class="log-ok">[OK]</span> Agent 6 — Report generated. Drive export saved.</div>
+</div><!-- /log -->
+
+<script>
+function showTab(name, el) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+  // scroll tab into view on mobile
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function toggleRationale(toggle) {
+  toggle.classList.toggle('open');
+  const body = toggle.nextElementSibling;
+  body.classList.toggle('open');
+}
+</script>
+</body>
+</html>

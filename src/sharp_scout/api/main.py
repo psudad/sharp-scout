@@ -1,0 +1,89 @@
+"""FastAPI signal server for Sharp Scout dashboard."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from sharp_scout.config import ARTIFACTS_DIR, ROOT, get_settings
+from sharp_scout.pipeline.run import load_latest_artifacts, run_pipeline
+
+app = FastAPI(title="Sharp Scout", version="0.1.0", description="NFL hybrid model signal API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/api/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/api/signals")
+def get_signals() -> dict[str, Any]:
+    data = load_latest_artifacts()
+    if not data:
+        raise HTTPException(404, "No signals yet — POST /api/run or run scripts/run_pipeline.py")
+    return data
+
+
+@app.get("/api/plays")
+def get_plays() -> list[dict[str, Any]]:
+    data = load_latest_artifacts()
+    return data.get("plays") or []
+
+
+@app.get("/api/ratings")
+def get_ratings() -> list[dict[str, Any]]:
+    data = load_latest_artifacts()
+    return data.get("ratings") or []
+
+
+@app.post("/api/run")
+def trigger_run(
+    demo: bool = Query(False, description="Use mock odds/splits"),
+    skip_pbp: bool = Query(False, description="Skip nflverse download; neutral/demo ratings"),
+) -> dict[str, Any]:
+    settings = get_settings()
+    use_demo = demo or not settings.odds_api_key
+    payload = run_pipeline(demo=use_demo, skip_pbp=skip_pbp or use_demo)
+    return {
+        "ok": True,
+        "n_games": payload["n_games"],
+        "n_validated": payload["n_validated"],
+        "generated_at": payload["generated_at"],
+        "demo": payload["demo"],
+    }
+
+
+# Serve existing Sharp Scout UI from repo root
+INDEX = ROOT / "index.html"
+if INDEX.exists():
+    @app.get("/")
+    def index() -> FileResponse:
+        return FileResponse(INDEX)
+
+
+def main() -> None:
+    import uvicorn
+
+    settings = get_settings()
+    uvicorn.run(
+        "sharp_scout.api.main:app",
+        host=settings.api_host,
+        port=settings.api_port,
+        reload=False,
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -65,6 +65,50 @@ class OddsClient:
         )
         return [self._normalize_event(ev) for ev in raw]
 
+    def fetch_events(self) -> list[dict[str, Any]]:
+        """Upcoming NFL events (no odds) — used by pregame scheduler."""
+        raw = self._get(f"/sports/{SPORT}/events", {"dateFormat": "iso"})
+        out = []
+        for ev in raw or []:
+            commence = ev.get("commence_time")
+            commence_dt = (
+                datetime.fromisoformat(commence.replace("Z", "+00:00"))
+                if isinstance(commence, str)
+                else None
+            )
+            out.append(
+                {
+                    "event_id": ev.get("id"),
+                    "commence_time": commence_dt,
+                    "home_team": normalize_team(ev.get("home_team", "")),
+                    "away_team": normalize_team(ev.get("away_team", "")),
+                    "home_team_raw": ev.get("home_team"),
+                    "away_team_raw": ev.get("away_team"),
+                }
+            )
+        return out
+
+    def fetch_event_props(
+        self,
+        event_id: str,
+        markets: str | None = None,
+        regions: str = "us,us2",
+        odds_format: str = "american",
+    ) -> dict[str, Any]:
+        """Player props are per-event on The Odds API."""
+        settings = get_settings()
+        markets = markets or settings.prop_markets
+        raw = self._get(
+            f"/sports/{SPORT}/events/{event_id}/odds",
+            {
+                "regions": regions,
+                "markets": markets,
+                "oddsFormat": odds_format,
+                "dateFormat": "iso",
+            },
+        )
+        return self._normalize_event(raw)
+
     def _normalize_event(self, ev: dict[str, Any]) -> dict[str, Any]:
         home = normalize_team(ev.get("home_team", ""))
         away = normalize_team(ev.get("away_team", ""))
@@ -89,6 +133,7 @@ class OddsClient:
                 for o in mkt.get("outcomes", []) or []:
                     name = o.get("name", "")
                     side = name
+                    description = o.get("description")
                     if mkey == "h2h":
                         side = "home" if normalize_team(name) == home else "away"
                         if normalize_team(name) not in (home, away):
@@ -98,10 +143,14 @@ class OddsClient:
                         side = "home" if team == home else "away"
                     elif mkey == "totals":
                         side = name.lower()  # over / under
+                    elif mkey and str(mkey).startswith("player_"):
+                        side = name.lower()
                     outcomes.append(
                         {
                             "side": side,
                             "name": name,
+                            "description": description,
+                            "player": description,
                             "price": o.get("price"),
                             "point": o.get("point"),
                         }

@@ -33,6 +33,11 @@ def _price(p: Any) -> str:
 
 
 def _side_label(p: dict[str, Any]) -> str:
+    if p.get("player_name") or str(p.get("market") or "").startswith("player_"):
+        line = p.get("line")
+        line_s = f" {line}" if line is not None else ""
+        mkt = str(p.get("market") or "").replace("player_", "").replace("_", " ")
+        return f"{p.get('player_name')} {str(p.get('side', '')).upper()}{line_s} ({mkt}) {_price(p.get('price'))}"
     line = p.get("line")
     line_s = ""
     if line is not None:
@@ -133,7 +138,11 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
             status_html = _status_badge(p.get("status") or "pending")
             title = _side_label(p)
             sub = f"{p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
-            if p.get("home_score") is not None:
+            if p.get("window"):
+                sub += f" · T-{p.get('window')}h"
+            if p.get("play_type") == "prop" or p.get("player_name"):
+                sub = f"PROP · {sub}"
+            if p.get("home_score") is not None and not p.get("player_name"):
                 sub += f" · Final {p.get('away_team')} {p.get('away_score')}, {p.get('home_team')} {p.get('home_score')}"
             edge = p.get("edge")
             units = p.get("units") or 1

@@ -51,10 +51,12 @@ def _play_key(play: dict[str, Any]) -> str:
     return "|".join(
         [
             str(play.get("event_id") or ""),
+            str(play.get("player_name") or ""),
             str(play.get("market") or ""),
             str(play.get("side") or ""),
             str(play.get("line") if play.get("line") is not None else ""),
             str(play.get("book") or ""),
+            str(play.get("window") or play.get("pregame_window") or ""),
         ]
     )
 
@@ -96,6 +98,8 @@ def append_signals(
             "kickoff": s.get("kickoff") or s.get("commence_time"),
             "away_team": s.get("away_team"),
             "home_team": s.get("home_team"),
+            "play_type": s.get("play_type") or ("prop" if s.get("player_name") else "side"),
+            "player_name": s.get("player_name"),
             "market": s.get("market"),
             "side": s.get("side"),
             "line": s.get("line"),
@@ -108,10 +112,14 @@ def append_signals(
             "p_mkt": s.get("p_mkt"),
             "model_spread": s.get("model_spread"),
             "model_total": s.get("model_total"),
+            "model_mean": s.get("model_mean"),
+            "is_alternate": s.get("is_alternate", False),
+            "window": s.get("window") or s.get("pregame_window"),
             "rationale": s.get("rationale") or "",
             "status": "pending",
             "home_score": None,
             "away_score": None,
+            "prop_result": None,
             "pnl_units": None,
             "settled_at": None,
         }
@@ -131,13 +139,44 @@ def settle_play(
     play: dict[str, Any],
     home_score: int,
     away_score: int,
+    *,
+    prop_value: float | None = None,
 ) -> dict[str, Any]:
-    """Grade a single play from final scores. Mutates and returns play."""
+    """Grade a single play from final scores (sides) or prop_value (player props)."""
     market = play.get("market")
     side = play.get("side")
     line = play.get("line")
     price = float(play.get("price") or -110)
     units = float(play.get("units") or 1.0)
+
+    # Player props: require observed prop_value
+    if str(market or "").startswith("player_") or play.get("play_type") == "prop":
+        if prop_value is None:
+            return play  # leave pending
+        play["prop_result"] = prop_value
+        if line is None:
+            # anytime TD style
+            status = "win" if prop_value >= 1 else "loss"
+        else:
+            diff = float(prop_value) - float(line)
+            if abs(diff) < 1e-9:
+                status = "push"
+            elif side == "over":
+                status = "win" if diff > 0 else "loss"
+            else:
+                status = "win" if diff < 0 else "loss"
+        if status == "win":
+            pnl = american_profit(units, price)
+        elif status == "loss":
+            pnl = -units
+        else:
+            pnl = 0.0
+        play["status"] = status
+        play["pnl_units"] = round(pnl, 4)
+        play["settled_at"] = _now()
+        play["home_score"] = home_score
+        play["away_score"] = away_score
+        return play
 
     status = "void"
     if market == "h2h":
@@ -152,11 +191,9 @@ def settle_play(
         if line is None:
             status = "void"
         else:
-            # side home with line L: home covers if home + L > away
             if side == "home":
                 margin = home_score + float(line) - away_score
             else:
-                # away line is the points on away team
                 margin = away_score + float(line) - home_score
             if abs(margin) < 1e-9:
                 status = "push"

@@ -36,6 +36,29 @@ python scripts/settle_plays.py --manual KC BUF 24 20 --build-site
 uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000
 ```
 
+## Player props
+
+Props reuse the same ledger/Pages board with a separate engine:
+
+1. **Usage** — route/target/air-yards/snap/RZ shares + TPRR/YPRR/CPOE from nflverse PBP  
+2. **Non-normal MC** — Negative Binomial (receptions/TDs), Gamma (yards)  
+3. **Cross-market EV** — Odds API player props + alternate/tail lines  
+4. **News/weather filter** — inactive reallocation (`INACTIVE_PLAYERS`) + wind ≥ 15 mph downgrade  
+
+```bash
+python scripts/run_props.py --demo --build-site
+```
+
+## Pregame schedule (T-12h / T-3h / T-1h)
+
+`scripts/run_pregame.py` checks upcoming kickoffs and fires **sides + props** when a game is within ±25 minutes of 12h, 3h, or 1h before kickoff. Fired windows are recorded in `data/schedule_state.json` so each window runs once.
+
+GitHub Action **Pregame Windows** runs every 30 minutes on `main`.
+
+```bash
+python scripts/run_pregame.py --demo
+```
+
 ## GitHub Pages (weekly public board)
 
 ### One-time repo setup
@@ -52,7 +75,8 @@ uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000
 
 | Workflow | When | Does |
 |---|---|---|
-| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon schedule + manual | Settle prior plays → run pipeline → update `data/ledger.json` + `docs/` → deploy Pages |
+| `Pregame Windows` | Every 30 min | Fire T-12h / T-3h / T-1h side+prop runs for due games → update ledger + Pages |
+| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full slate refresh / settle / site |
 | `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
 
 The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**, and **weekly ledger**.
@@ -65,7 +89,10 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 | `ACTION_NETWORK_COOKIE` | Browser session cookie for money/handle % (ticket % often public) |
 | `EV_THRESHOLD` | Minimum EV to flag (default `0.02`) |
 | `MONEY_TICKET_GAP` | Handle % − ticket % confirmation (default `0.20`) |
-| `MONTE_CARLO_SIMS` | Sims per game (default `10000`) |
+| `PROP_EV_THRESHOLD` | Min EV for player props (default `0.02`) |
+| `PREGAME_WINDOWS_HOURS` | Hours before kickoff to fire (default `12,3,1`) |
+| `PREGAME_WINDOW_TOLERANCE_MINUTES` | Window match tolerance (default `25`) |
+| `INACTIVE_PLAYERS` | Comma-separated names for target reallocation |
 
 **Circa note:** The Odds API exposes Pinnacle reliably (`eu`). Circa is included in sharp preference order when the aggregator returns it; otherwise Pinnacle is the sharp benchmark.
 

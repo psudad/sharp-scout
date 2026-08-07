@@ -1,0 +1,204 @@
+"""End-to-end pipeline: ratings → MC → market EV → split filter."""
+
+from __future__ import annotations
+
+import json
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from sharp_scout.config import ARTIFACTS_DIR, get_settings
+from sharp_scout.data.action_network import ActionNetworkClient, mock_splits
+from sharp_scout.data.odds_api import OddsClient, mock_odds_events
+from sharp_scout.data.situational import situational_spread_adj
+from sharp_scout.db.models import Signal, TeamRating, get_session, init_db
+from sharp_scout.phase1.ratings import build_power_ratings, matchup_means, ratings_as_of_now
+from sharp_scout.phase2.monte_carlo import simulate_game
+from sharp_scout.phase3.market import discover_edges
+from sharp_scout.phase4.filters import attach_filters
+from sharp_scout.utils.odds import setup_logging
+
+logger = logging.getLogger(__name__)
+
+
+def run_pipeline(
+    *,
+    demo: bool = False,
+    persist: bool = True,
+    skip_pbp: bool = False,
+) -> dict[str, Any]:
+    """Execute the four-phase signal pipeline.
+
+    demo=True uses mock odds/splits and skips live API calls.
+    skip_pbp=True uses neutral ratings (fast CI / no nflverse download).
+    """
+    settings = get_settings()
+    setup_logging(settings.log_level)
+    init_db()
+
+    # ── Phase 1 ──────────────────────────────────────────────
+    if skip_pbp:
+        from sharp_scout.phase1.ratings import _neutral_ratings
+
+        ratings = _neutral_ratings()
+        # Inject a slight edge so demo MC ≠ coin flip vs market
+        from sharp_scout.phase1.ratings import TeamPower
+
+        ratings["KC"] = TeamPower("KC", 0.08, 0.04, 0.02, 0.01, 0.4, 0.2, 0.12, 0.0, 0.12)
+        ratings["BUF"] = TeamPower("BUF", 0.06, 0.05, 0.02, 0.02, 0.3, 0.25, 0.10, 0.02, 0.11)
+    else:
+        ratings = build_power_ratings()
+
+    rating_rows = ratings_as_of_now(ratings)
+
+    # ── Market + splits inputs ───────────────────────────────
+    if demo or not settings.odds_api_key:
+        if not settings.odds_api_key and not demo:
+            logger.warning("ODDS_API_KEY missing — falling back to demo odds")
+        events = mock_odds_events()
+    else:
+        try:
+            events = OddsClient().fetch_odds()
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Odds fetch failed (%s); using demo events", exc)
+            events = mock_odds_events()
+
+    if demo or not events:
+        splits = mock_splits()
+    else:
+        try:
+            splits = ActionNetworkClient().fetch_scoreboard()
+            if not splits:
+                logger.warning("Action Network returned no games — using mock splits overlay where possible")
+                splits = mock_splits()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Action Network failed: %s", exc)
+            splits = mock_splits()
+
+    # ── Phases 2–4 per event ─────────────────────────────────
+    game_results: list[dict[str, Any]] = []
+    all_signals: list[dict[str, Any]] = []
+
+    for ev in events:
+        home, away = ev["home_team"], ev["away_team"]
+        situ = situational_spread_adj(home, away)
+        means = matchup_means(
+            home,
+            away,
+            ratings,
+            home_boost=situ["home_points_boost"],
+            total_adj=situ["total_adj"],
+        )
+        # Collect offered lines to refine cover grid
+        spread_keys = _collect_points(ev, "spreads")
+        total_keys = _collect_points(ev, "totals")
+
+        sim = simulate_game(
+            home,
+            away,
+            means["mu_home"],
+            means["mu_away"],
+            spread_keys=spread_keys or None,
+            total_keys=total_keys or None,
+        )
+        edges = discover_edges(ev, sim)
+        filtered = attach_filters(edges, splits)
+
+        game_results.append(
+            {
+                "event_id": ev.get("event_id"),
+                "home_team": home,
+                "away_team": away,
+                "commence_time": ev.get("commence_time").isoformat()
+                if hasattr(ev.get("commence_time"), "isoformat")
+                else ev.get("commence_time"),
+                "mu_home": means["mu_home"],
+                "mu_away": means["mu_away"],
+                "model_spread": sim.model_spread,
+                "model_total": sim.model_total,
+                "p_home_win": sim.p_home_win,
+                "situational": situ,
+                "edge_count": len(edges),
+                "validated": sum(1 for s in filtered if s["filter_passed"]),
+            }
+        )
+        all_signals.extend(filtered)
+
+    validated = [s for s in all_signals if s["filter_passed"]]
+    validated.sort(key=lambda s: s["edge"], reverse=True)
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "demo": demo or not settings.odds_api_key,
+        "n_games": len(game_results),
+        "n_candidates": len(all_signals),
+        "n_validated": len(validated),
+        "ratings": [
+            {"team": r["team"], "power": round(r["power"], 4), "off_epa": round(r["off_epa"], 4), "def_epa": round(r["def_epa"], 4)}
+            for r in sorted(rating_rows, key=lambda x: -x["power"])
+        ],
+        "games": game_results,
+        "signals": all_signals,
+        "plays": validated,
+    }
+
+    out_path = ARTIFACTS_DIR / "latest_signals.json"
+    out_path.write_text(json.dumps(payload, indent=2, default=str))
+    logger.info("Wrote %s (%d validated plays)", out_path, len(validated))
+
+    if persist:
+        _persist(rating_rows, validated)
+
+    return payload
+
+
+def _collect_points(event: dict[str, Any], market: str) -> list[float]:
+    pts: set[float] = set()
+    for bm in event.get("bookmakers", {}).values():
+        for o in bm.get("markets", {}).get(market, []) or []:
+            if o.get("point") is not None:
+                pts.add(float(o["point"]))
+                pts.add(-float(o["point"]))
+    # Always include defaults around offered lines
+    return sorted(pts) if pts else []
+
+
+def _persist(rating_rows: list[dict], signals: list[dict]) -> None:
+    session = get_session()
+    try:
+        for r in rating_rows:
+            session.add(TeamRating(**r))
+        now = datetime.now(timezone.utc)
+        for s in signals:
+            session.add(
+                Signal(
+                    created_at=now,
+                    event_id=s["event_id"],
+                    market=s["market"],
+                    side=s["side"],
+                    line=s.get("line"),
+                    book=s["book"],
+                    price=s["price"],
+                    p_true=s["p_true"],
+                    p_mkt=s.get("p_mkt"),
+                    edge=s["edge"],
+                    filter_passed=s["filter_passed"],
+                    filter_notes=" | ".join(s.get("filter_notes") or []),
+                    tier=s.get("tier") or "candidate",
+                    rationale=s.get("rationale") or "",
+                )
+            )
+        session.commit()
+    except Exception as exc:  # noqa: BLE001
+        session.rollback()
+        logger.error("DB persist failed: %s", exc)
+    finally:
+        session.close()
+
+
+def load_latest_artifacts() -> dict[str, Any]:
+    path = ARTIFACTS_DIR / "latest_signals.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text())

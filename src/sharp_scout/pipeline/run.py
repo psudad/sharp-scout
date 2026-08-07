@@ -27,11 +27,17 @@ def run_pipeline(
     demo: bool = False,
     persist: bool = True,
     skip_pbp: bool = False,
+    update_ledger: bool = True,
+    build_pages: bool = False,
+    season: int | None = None,
+    week: int | None = None,
 ) -> dict[str, Any]:
     """Execute the four-phase signal pipeline.
 
     demo=True uses mock odds/splits and skips live API calls.
     skip_pbp=True uses neutral ratings (fast CI / no nflverse download).
+    update_ledger=True appends validated plays to data/ledger.json.
+    build_pages=True regenerates the docs/ GitHub Pages site.
     """
     settings = get_settings()
     setup_logging(settings.log_level)
@@ -123,6 +129,14 @@ def run_pipeline(
                 "validated": sum(1 for s in filtered if s["filter_passed"]),
             }
         )
+        kickoff = (
+            ev.get("commence_time").isoformat()
+            if hasattr(ev.get("commence_time"), "isoformat")
+            else ev.get("commence_time")
+        )
+        for s in filtered:
+            s["kickoff"] = kickoff
+            s["commence_time"] = kickoff
         all_signals.extend(filtered)
 
     validated = [s for s in all_signals if s["filter_passed"]]
@@ -149,6 +163,19 @@ def run_pipeline(
 
     if persist:
         _persist(rating_rows, validated)
+
+    if update_ledger and validated:
+        from sharp_scout.ledger.tracker import append_signals, compute_record
+
+        ledger = append_signals(validated, season=season, week=week)
+        payload["record"] = compute_record(ledger)
+
+    if build_pages:
+        from sharp_scout.site.build import build_site
+
+        site_path = build_site()
+        payload["site"] = str(site_path)
+        logger.info("Built GitHub Pages site at %s", site_path)
 
     return payload
 

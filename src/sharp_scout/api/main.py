@@ -52,17 +52,30 @@ def get_ratings() -> list[dict[str, Any]]:
 def trigger_run(
     demo: bool = Query(False, description="Use mock odds/splits"),
     skip_pbp: bool = Query(False, description="Skip nflverse download; neutral/demo ratings"),
+    build_site: bool = Query(False, description="Rebuild docs/ GitHub Pages site"),
 ) -> dict[str, Any]:
     settings = get_settings()
     use_demo = demo or not settings.odds_api_key
-    payload = run_pipeline(demo=use_demo, skip_pbp=skip_pbp or use_demo)
+    payload = run_pipeline(
+        demo=use_demo,
+        skip_pbp=skip_pbp or use_demo,
+        build_pages=build_site,
+    )
     return {
         "ok": True,
         "n_games": payload["n_games"],
         "n_validated": payload["n_validated"],
         "generated_at": payload["generated_at"],
         "demo": payload["demo"],
+        "record": payload.get("record"),
     }
+
+
+@app.get("/api/record")
+def get_record() -> dict[str, Any]:
+    from sharp_scout.ledger.tracker import compute_record
+
+    return compute_record()
 
 
 # Serve existing Sharp Scout UI from repo root

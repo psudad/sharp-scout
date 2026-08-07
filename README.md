@@ -9,6 +9,8 @@ Architecture runs bottom-up first so market data filters model edges instead of 
 3. **Market model** — Pinnacle (and Circa when present) no-vig odds via [The Odds API](https://the-odds-api.com) → EV
 4. **Split filter** — Action Network ticket/money % + reverse line movement confirmation
 
+Validated plays are stored in [`data/ledger.json`](data/ledger.json) and published to **GitHub Pages** under [`docs/`](docs/).
+
 ## Quick start
 
 ```bash
@@ -19,16 +21,41 @@ cp .env.example .env
 # Add ODDS_API_KEY (required for live odds)
 # Optional: ACTION_NETWORK_COOKIE for money/% handle splits
 
-# Demo run (mock odds + splits, no keys)
-python scripts/run_pipeline.py --demo
+# Demo run + rebuild Pages site
+python scripts/run_pipeline.py --demo --build-site
 
 # Live run
-python scripts/run_pipeline.py
+python scripts/run_pipeline.py --build-site
 
-# API + dashboard
+# Settle completed games (nflverse scores) and refresh site
+python scripts/settle_plays.py --build-site
+# Or one game manually:
+python scripts/settle_plays.py --manual KC BUF 24 20 --build-site
+
+# Local API (optional)
 uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000
-# open http://localhost:8000
 ```
+
+## GitHub Pages (weekly public board)
+
+### One-time repo setup
+
+1. **Settings → Pages → Build and deployment**
+   - Source: **GitHub Actions**
+2. **Settings → Secrets and variables → Actions** — add:
+   - `ODDS_API_KEY` (required for live odds)
+   - `ACTION_NETWORK_COOKIE` (optional; money/handle %)
+3. Merge this branch to `main`, then run **Actions → NFL Pipeline + Ledger → Run workflow**
+4. Site URL: `https://<user>.github.io/sharp-scout/`
+
+### What runs automatically
+
+| Workflow | When | Does |
+|---|---|---|
+| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon schedule + manual | Settle prior plays → run pipeline → update `data/ledger.json` + `docs/` → deploy Pages |
+| `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
+
+The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**, and **weekly ledger**.
 
 ## Configuration
 
@@ -50,8 +77,8 @@ uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000
 | 2 Monte Carlo | `S_mod`, `T_mod`, `P_true` | Fair cover / win probs |
 | 3 Market | `EV = P_true × decimal − 1` | Candidates with EV ≥ 2% and ≠ sharp consensus |
 | 4 Filter | RLM **or** money/ticket gap ≥ 20% | Validated play / lean signal |
-
-Artifacts land in `artifacts/latest_signals.json`. SQLite history: `data/sharp_scout.db`.
+| Ledger | `data/ledger.json` | Deduped play history + settlement |
+| Pages | `docs/` | Public board + record |
 
 ## API
 

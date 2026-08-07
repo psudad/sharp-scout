@@ -1,7 +1,11 @@
 """Action Network public betting splits client.
 
-Uses Action Network's web scoreboard endpoints. Ticket % is often public;
-money/handle % may require an authenticated session cookie (ACTION_NETWORK_COOKIE).
+Primary source: scoreboard `markets[bookId].event.{spread,total,moneyline}`
+outcomes, each with `bet_info.tickets.percent` and `bet_info.money.percent`.
+
+Ticket + money % often appear without auth on books that publish them.
+An `ACTION_NETWORK_COOKIE` from a logged-in Pro/EDGE session can unlock
+additional books, richer `bet_info`, and line history when AN gates them.
 """
 
 from __future__ import annotations
@@ -18,8 +22,10 @@ from sharp_scout.utils.odds import normalize_team
 
 logger = logging.getLogger(__name__)
 
-BASE = "https://api.actionnetwork.com/web/v1"
 SCOREBOARD = "https://api.actionnetwork.com/web/v2/scoreboard/nfl"
+
+# Books that commonly include public betting bet_info (DK, FanDuel, Caesars, etc.)
+DEFAULT_BOOK_IDS = "15,30,68,75,69,71,123,19"
 
 
 class ActionNetworkClient:
@@ -45,97 +51,251 @@ class ActionNetworkClient:
     def fetch_scoreboard(self, date: str | None = None) -> list[dict[str, Any]]:
         """Fetch NFL scoreboard with odds + public betting when available.
 
-        `date` format: YYYYMMDD. Defaults to today UTC.
+        `date` format: YYYYMMDD. Defaults to AN's current slate.
         """
-        params: dict[str, Any] = {"bookIds": "15,30,68,75,69,71,123"}  # major US books + consensus-ish
+        params: dict[str, Any] = {"bookIds": DEFAULT_BOOK_IDS}
         if date:
             params["date"] = date
         try:
             with httpx.Client(timeout=30.0, headers=self._headers(), follow_redirects=True) as client:
                 resp = client.get(SCOREBOARD, params=params)
                 if resp.status_code >= 400:
-                    logger.warning("Action Network scoreboard %s: %s", resp.status_code, resp.text[:200])
+                    logger.warning(
+                        "Action Network scoreboard %s: %s", resp.status_code, resp.text[:200]
+                    )
                     return []
                 payload = resp.json()
         except Exception as exc:  # noqa: BLE001
             logger.warning("Action Network fetch failed: %s", exc)
             return []
 
-        games = payload.get("games") or payload.get("scoreboard") or []
+        games = payload.get("games") or []
         if isinstance(games, dict):
             games = list(games.values())
         return [self._normalize_game(g) for g in games if isinstance(g, dict)]
 
+    def diagnose(self) -> dict[str, Any]:
+        """Check cookie + whether money/ticket % are present."""
+        games = self.fetch_scoreboard()
+        with_money = 0
+        with_tickets = 0
+        samples: list[dict[str, Any]] = []
+        for g in games:
+            spread = (g.get("markets") or {}).get("spread") or {}
+            if spread.get("home_money_pct") is not None or spread.get("away_money_pct") is not None:
+                with_money += 1
+            if spread.get("home_bet_pct") is not None or spread.get("away_bet_pct") is not None:
+                with_tickets += 1
+            if len(samples) < 3:
+                samples.append(
+                    {
+                        "matchup": f"{g.get('away_team')}@{g.get('home_team')}",
+                        "spread": spread,
+                        "num_bets": g.get("raw_num_bets"),
+                        "auth_mode": "cookie" if self.cookie else "anonymous",
+                    }
+                )
+        return {
+            "cookie_configured": bool(self.cookie),
+            "cookie_length": len(self.cookie or ""),
+            "n_games": len(games),
+            "games_with_ticket_pct": with_tickets,
+            "games_with_money_pct": with_money,
+            "pro_splits_ready": with_money > 0 and with_tickets > 0,
+            "samples": samples,
+            "hint": (
+                "Money + ticket % found — Phase 4 filter can run."
+                if with_money and with_tickets
+                else (
+                    "No money % in response. Log into Action Network Pro/EDGE in a browser, "
+                    "copy the Cookie header from a scoreboard/public-betting request, "
+                    "set ACTION_NETWORK_COOKIE (local .env + GitHub Actions secret)."
+                )
+            ),
+        }
+
     def _normalize_game(self, g: dict[str, Any]) -> dict[str, Any]:
         teams = g.get("teams") or []
-        home = away = None
+        by_id: dict[Any, dict] = {}
         for t in teams:
-            abbr = normalize_team(str(t.get("abbr") or t.get("abbreviation") or t.get("name") or ""))
-            is_home = t.get("is_home") or t.get("home") or (t.get("side") == "home")
-            if is_home:
-                home = abbr
-            else:
-                away = abbr
-        # Fallback ordering used by some payloads: teams[0]=away, teams[1]=home
-        if home is None and len(teams) >= 2:
-            away = normalize_team(str(teams[0].get("abbr") or teams[0].get("name") or ""))
-            home = normalize_team(str(teams[1].get("abbr") or teams[1].get("name") or ""))
+            by_id[t.get("id")] = t
 
-        markets = self._extract_markets(g)
+        home_id = g.get("home_team_id")
+        away_id = g.get("away_team_id")
+        home_t = by_id.get(home_id) or {}
+        away_t = by_id.get(away_id) or {}
+
+        # Fallback: some payloads omit home_team_id; teams[0]=away, teams[1]=home
+        if not home_t and len(teams) >= 2:
+            away_t, home_t = teams[0], teams[1]
+        if not home_t and teams:
+            for t in teams:
+                if t.get("is_home"):
+                    home_t = t
+                else:
+                    away_t = away_t or t
+
+        home = normalize_team(str(home_t.get("abbr") or home_t.get("abbreviation") or home_t.get("name") or ""))
+        away = normalize_team(str(away_t.get("abbr") or away_t.get("abbreviation") or away_t.get("name") or ""))
+
+        markets = self._extract_markets(g, home_id=home_id, away_id=away_id)
         return {
             "game_id": str(g.get("id") or g.get("game_id") or ""),
             "start_time": g.get("start_time") or g.get("start"),
             "home_team": home,
             "away_team": away,
-            "status": g.get("status"),
+            "status": g.get("status") or g.get("real_status"),
             "markets": markets,
             "captured_at": datetime.now(timezone.utc),
             "raw_num_bets": g.get("num_bets") or g.get("bet_count"),
+            "week": g.get("week"),
+            "season": (g.get("season") or {}).get("season") if isinstance(g.get("season"), dict) else g.get("season"),
         }
 
-    def _extract_markets(self, g: dict[str, Any]) -> dict[str, Any]:
-        """Pull ticket/money % and line history from nested odds / consensus blocks."""
+    def _extract_markets(
+        self,
+        g: dict[str, Any],
+        *,
+        home_id: Any = None,
+        away_id: Any = None,
+    ) -> dict[str, Any]:
+        """Pull ticket/money % from markets[book].event.{spread,total,moneyline}."""
         out: dict[str, Any] = {
             "spread": {},
             "total": {},
             "moneyline": {},
             "line_history": [],
+            "source_book_id": None,
         }
 
-        # Consensus / public betting block (shape varies by AN version)
-        consensus = g.get("consensus") or g.get("public_betting") or {}
-        odds_list = g.get("odds") or []
+        markets = g.get("markets") or {}
+        if not isinstance(markets, dict):
+            return out
 
-        # Prefer explicit public betting fields when present
-        for market_key, dest in (("spread", "spread"), ("total", "total"), ("ml", "moneyline"), ("moneyline", "moneyline")):
-            block = consensus.get(market_key) or {}
-            if not block and isinstance(odds_list, list):
-                for o in odds_list:
-                    if (o.get("type") or o.get("market") or "").lower() in {market_key, dest}:
-                        block = o
-                        break
-            if not block:
-                continue
-            out[dest] = {
-                "home_bet_pct": _pct(block.get("home_bet_percentage") or block.get("home_tickets") or block.get("bet_home")),
-                "away_bet_pct": _pct(block.get("away_bet_percentage") or block.get("away_tickets") or block.get("bet_away")),
-                "home_money_pct": _pct(block.get("home_money_percentage") or block.get("home_money") or block.get("money_home")),
-                "away_money_pct": _pct(block.get("away_money_percentage") or block.get("away_money") or block.get("money_away")),
-                "over_bet_pct": _pct(block.get("over_bet_percentage") or block.get("bet_over")),
-                "under_bet_pct": _pct(block.get("under_bet_percentage") or block.get("bet_under")),
-                "over_money_pct": _pct(block.get("over_money_percentage") or block.get("money_over")),
-                "under_money_pct": _pct(block.get("under_money_percentage") or block.get("money_under")),
-                "num_bets": block.get("num_bets") or block.get("bet_count") or g.get("num_bets"),
-                "open_line": block.get("open") or block.get("open_line"),
-                "current_line": block.get("line") or block.get("current_line"),
-            }
+        # Prefer a book that actually has bet_info populated
+        best_book = None
+        best_score = -1
+        for book_id, book in markets.items():
+            event = (book or {}).get("event") or {}
+            score = 0
+            for mtype in ("spread", "total", "moneyline"):
+                for o in event.get(mtype) or []:
+                    bi = o.get("bet_info") or {}
+                    if isinstance(bi, dict) and bi.get("tickets") and bi.get("money"):
+                        score += 1
+            if score > best_score:
+                best_score = score
+                best_book = book_id
 
-        # Line history if present
+        if best_book is None and markets:
+            best_book = next(iter(markets))
+
+        if best_book is None:
+            return out
+
+        out["source_book_id"] = str(best_book)
+        event = (markets.get(best_book) or {}).get("event") or {}
+
+        out["spread"] = self._from_sides(
+            event.get("spread") or [],
+            kind="spread",
+            home_id=home_id,
+            away_id=away_id,
+        )
+        out["moneyline"] = self._from_sides(
+            event.get("moneyline") or [],
+            kind="moneyline",
+            home_id=home_id,
+            away_id=away_id,
+        )
+        out["total"] = self._from_totals(event.get("total") or [])
+
+        # Open vs current: AN sometimes embeds open in edge/meta; keep current line
+        if out["spread"].get("current_line") is None:
+            # home spread value is the conventional line
+            for o in event.get("spread") or []:
+                if (o.get("side") or "").lower() == "home" and o.get("value") is not None:
+                    out["spread"]["current_line"] = float(o["value"])
+                    break
+
         hist = g.get("line_history") or g.get("history") or []
         if isinstance(hist, list):
             out["line_history"] = hist
 
         return out
+
+    def _from_sides(
+        self,
+        outcomes: list[dict[str, Any]],
+        *,
+        kind: str,
+        home_id: Any,
+        away_id: Any,
+    ) -> dict[str, Any]:
+        block: dict[str, Any] = {
+            "home_bet_pct": None,
+            "away_bet_pct": None,
+            "home_money_pct": None,
+            "away_money_pct": None,
+            "num_bets": None,
+            "open_line": None,
+            "current_line": None,
+        }
+        home_line = away_line = None
+        for o in outcomes:
+            side = (o.get("side") or "").lower()
+            team_id = o.get("team_id")
+            if side not in ("home", "away"):
+                if team_id is not None and team_id == home_id:
+                    side = "home"
+                elif team_id is not None and team_id == away_id:
+                    side = "away"
+                else:
+                    continue
+            tickets, money = _bet_info_pcts(o.get("bet_info"))
+            block[f"{side}_bet_pct"] = tickets
+            block[f"{side}_money_pct"] = money
+            if o.get("value") is not None and kind == "spread":
+                if side == "home":
+                    home_line = float(o["value"])
+                else:
+                    away_line = float(o["value"])
+        if home_line is not None:
+            block["current_line"] = home_line
+        elif away_line is not None:
+            block["current_line"] = -away_line
+        return block
+
+    def _from_totals(self, outcomes: list[dict[str, Any]]) -> dict[str, Any]:
+        block: dict[str, Any] = {
+            "over_bet_pct": None,
+            "under_bet_pct": None,
+            "over_money_pct": None,
+            "under_money_pct": None,
+            "num_bets": None,
+            "open_line": None,
+            "current_line": None,
+        }
+        for o in outcomes:
+            side = (o.get("side") or "").lower()
+            if side not in ("over", "under"):
+                continue
+            tickets, money = _bet_info_pcts(o.get("bet_info"))
+            block[f"{side}_bet_pct"] = tickets
+            block[f"{side}_money_pct"] = money
+            if o.get("value") is not None:
+                block["current_line"] = float(o["value"])
+        return block
+
+
+def _bet_info_pcts(bet_info: Any) -> tuple[float | None, float | None]:
+    if not isinstance(bet_info, dict):
+        return None, None
+    tickets = bet_info.get("tickets") or {}
+    money = bet_info.get("money") or {}
+    t = _pct(tickets.get("percent") if isinstance(tickets, dict) else None)
+    m = _pct(money.get("percent") if isinstance(money, dict) else None)
+    return t, m
 
 
 def _pct(v: Any) -> float | None:
@@ -145,7 +305,6 @@ def _pct(v: Any) -> float | None:
         x = float(v)
     except (TypeError, ValueError):
         return None
-    # Action sometimes returns 0-1, sometimes 0-100
     if x <= 1.0:
         return x
     return x / 100.0

@@ -19,7 +19,8 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env
 # Add ODDS_API_KEY (required for live odds)
-# Optional: ACTION_NETWORK_COOKIE for money/% handle splits
+# Optional: ACTION_NETWORK_COOKIE (Pro/EDGE session) for richer splits
+python scripts/diagnose_action_network.py   # verify money/ticket %
 
 # Demo run + rebuild Pages site
 python scripts/run_pipeline.py --demo --build-site
@@ -86,7 +87,7 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 | Env var | Purpose |
 |---|---|
 | `ODDS_API_KEY` | The Odds API key (`regions=us,us2,eu` → Pinnacle + US retail) |
-| `ACTION_NETWORK_COOKIE` | Browser session cookie for money/handle % (ticket % often public) |
+| `ACTION_NETWORK_COOKIE` | Action Network Pro/EDGE session Cookie header (see below) |
 | `EV_THRESHOLD` | Minimum EV to flag (default `0.02`) |
 | `MONEY_TICKET_GAP` | Handle % − ticket % confirmation (default `0.20`) |
 | `PROP_EV_THRESHOLD` | Min EV for player props (default `0.02`) |
@@ -95,6 +96,33 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 | `INACTIVE_PLAYERS` | Comma-separated names for target reallocation |
 
 **Circa note:** The Odds API exposes Pinnacle reliably (`eu`). Circa is included in sharp preference order when the aggregator returns it; otherwise Pinnacle is the sharp benchmark.
+
+## Action Network Pro / cookie
+
+Phase 4 uses Action Network public-betting splits (ticket % vs money %).
+
+Many books already expose both percentages on the public scoreboard API (`markets.*.bet_info`). A logged-in **Pro/EDGE** cookie can unlock more books / richer fields when AN gates them.
+
+```bash
+# Without cookie (anonymous)
+python scripts/diagnose_action_network.py
+
+# With cookie pasted from browser
+python scripts/diagnose_action_network.py --cookie 'YOUR_COOKIE_STRING'
+```
+
+**Grab the cookie**
+
+1. Log into [actionnetwork.com](https://www.actionnetwork.com) with Pro/EDGE  
+2. Open **NFL → Public Betting** and confirm money % is visible (not locked)  
+3. DevTools → **Network** → click a `scoreboard` / `api.actionnetwork.com` request  
+4. Request Headers → copy the full **Cookie** value  
+5. Local: set `ACTION_NETWORK_COOKIE=...` in `.env`  
+6. GitHub Actions: **Settings → Secrets → Actions →** `ACTION_NETWORK_COOKIE`  
+
+Cookies expire (often days–weeks). Re-run `diagnose_action_network.py` when money % disappears; refresh the secret when needed.
+
+`pro_splits_ready: true` means the Phase 4 money/ticket filter has the data it needs.
 
 ## Pipeline trigger logic
 

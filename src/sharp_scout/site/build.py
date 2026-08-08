@@ -93,6 +93,13 @@ def build_site(
     week_rows = _render_week_rows(record.get("by_week") or {})
     ratings_rows = _render_ratings(signals.get("ratings") or [])
 
+    stage_cards = signals.get("stage_picks") or ledger.get("stage_cards") or []
+    stage_rows = _render_stage_rows(stage_cards)
+    stage_record_rows = _render_stage_record_rows(record.get("stage_records") or {})
+    stage_summary = signals.get("stage_summary") or {}
+    fade_n = stage_summary.get("fade_public_games", "—")
+    rlm_n = stage_summary.get("rlm_games", "—")
+
     html = SITE_TEMPLATE.format(
         generated=generated,
         record=record["record"],
@@ -106,6 +113,10 @@ def build_site(
         ledger_rows=ledger_rows,
         week_rows=week_rows,
         ratings_rows=ratings_rows,
+        stage_rows=stage_rows,
+        stage_record_rows=stage_record_rows,
+        fade_n=fade_n,
+        rlm_n=rlm_n,
         demo_note="DEMO data" if signals.get("demo") else "Live pipeline",
     )
     (out / "index.html").write_text(html)
@@ -247,6 +258,71 @@ def _render_ratings(ratings: list[dict]) -> str:
     )
 
 
+def _pick_cell(pick: dict | None) -> str:
+    if not pick or not pick.get("available") or not pick.get("team"):
+        return "<span class='pending'>—</span>"
+    return f"<b>{_esc(pick.get('team'))}</b>"
+
+
+def _render_stage_rows(cards: list[dict]) -> str:
+    if not cards:
+        return "<tr><td colspan='8'>No stage picks yet. Run the pipeline.</td></tr>"
+    rows = []
+    for c in cards:
+        picks = c.get("picks") or {}
+        hybrid = picks.get("hybrid") or {}
+        agrees = ", ".join(c.get("hybrid_agrees_with") or []) or "—"
+        flag = ""
+        svp = (c.get("agreement") or {}).get("sharp_vs_public") or {}
+        if svp.get("fade_public"):
+            flag = "fade pub"
+        if (c.get("agreement") or {}).get("rlm_active"):
+            flag = (flag + " · RLM").strip(" ·")
+        rows.append(
+            "<tr>"
+            f"<td>{_esc(c.get('away_team'))} @ {_esc(c.get('home_team'))}</td>"
+            f"<td>{_pick_cell(picks.get('model'))}</td>"
+            f"<td>{_pick_cell(picks.get('sharp'))}</td>"
+            f"<td>{_pick_cell(picks.get('public'))}</td>"
+            f"<td>{_pick_cell(picks.get('money'))}</td>"
+            f"<td>{_pick_cell(picks.get('rlm'))}</td>"
+            f"<td class='pos'>{_pick_cell(hybrid)}</td>"
+            f"<td>{_esc(flag or agrees)}</td>"
+            "</tr>"
+        )
+    return "\n".join(rows)
+
+
+def _render_stage_record_rows(stage_records: dict) -> str:
+    if not stage_records:
+        return "<tr><td colspan='4'>Stage records appear after games settle.</td></tr>"
+    order = ["hybrid", "model", "sharp", "money", "rlm", "public"]
+    rows = []
+    for stage in order:
+        b = stage_records.get(stage)
+        if not b:
+            continue
+        wp = f"{b['win_pct']*100:.0f}%" if b.get("win_pct") is not None else "—"
+        rows.append(
+            f"<tr><td><b>{_esc(stage)}</b></td>"
+            f"<td>{_esc(b.get('record'))}</td>"
+            f"<td>{wp}</td>"
+            f"<td>{b.get('pending', 0)}</td></tr>"
+        )
+    # any extra stages
+    for stage, b in stage_records.items():
+        if stage in order:
+            continue
+        wp = f"{b['win_pct']*100:.0f}%" if b.get("win_pct") is not None else "—"
+        rows.append(
+            f"<tr><td><b>{_esc(stage)}</b></td>"
+            f"<td>{_esc(b.get('record'))}</td>"
+            f"<td>{wp}</td>"
+            f"<td>{b.get('pending', 0)}</td></tr>"
+        )
+    return "\n".join(rows) if rows else "<tr><td colspan='4'>No stage records.</td></tr>"
+
+
 SITE_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -320,6 +396,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">Plays</div>
+  <div class="tab" onclick="showTab('stages', this)">Stages</div>
   <div class="tab" onclick="showTab('ledger', this)">Ledger</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
 </div>
@@ -333,6 +410,26 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </div>
   <div class="section-label">Open / Latest Plays · {pending} pending · {n_plays} total</div>
   {plays_html}
+</div>
+
+<div id="tab-stages" class="content">
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-val">{fade_n}</div><div class="stat-label">Sharp vs Public</div></div>
+    <div class="stat-card"><div class="stat-val">{rlm_n}</div><div class="stat-label">RLM Games</div></div>
+  </div>
+  <div class="section-label">Stage Records (settled)</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
+    <tbody>{stage_record_rows}</tbody>
+  </table></div>
+  <div class="section-label">Per-Game Stage Winners</div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
+    </tr></thead>
+    <tbody>{stage_rows}</tbody>
+  </table></div>
+  <p class="footer" style="padding:12px 0">Each column is an independent pick. Hybrid is the full system; compare it to model / sharp / public / money / RLM.</p>
 </div>
 
 <div id="tab-ledger" class="content">

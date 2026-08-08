@@ -26,6 +26,7 @@ def empty_ledger() -> dict[str, Any]:
         "updated_at": _now(),
         "starting_units": 100.0,
         "plays": [],
+        "stage_cards": [],
     }
 
 
@@ -35,6 +36,7 @@ def load_ledger(path: Path | None = None) -> dict[str, Any]:
         return empty_ledger()
     data = json.loads(p.read_text())
     data.setdefault("plays", [])
+    data.setdefault("stage_cards", [])
     data.setdefault("starting_units", 100.0)
     return data
 
@@ -228,11 +230,53 @@ def settle_play(
     return play
 
 
+def append_stage_cards(
+    cards: list[dict[str, Any]],
+    *,
+    season: int | None = None,
+    week: int | None = None,
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Upsert per-game stage pick cards (one row per event+market)."""
+    ledger = load_ledger(path)
+    existing = {
+        f"{c.get('event_id')}|{c.get('market')}": i
+        for i, c in enumerate(ledger.get("stage_cards") or [])
+    }
+    for card in cards:
+        key = f"{card.get('event_id')}|{card.get('market')}"
+        row = {
+            **card,
+            "season": season,
+            "week": week,
+            "created_at": _now(),
+            "status": "pending",
+            "results": {},  # stage -> win/loss/push
+            "home_score": None,
+            "away_score": None,
+            "settled_at": None,
+        }
+        if key in existing:
+            # Keep settlement if already graded
+            old = ledger["stage_cards"][existing[key]]
+            if old.get("status") not in (None, "pending"):
+                continue
+            row["created_at"] = old.get("created_at") or row["created_at"]
+            ledger["stage_cards"][existing[key]] = row
+        else:
+            ledger.setdefault("stage_cards", []).append(row)
+            existing[key] = len(ledger["stage_cards"]) - 1
+    save_ledger(ledger, path)
+    return ledger
+
+
 def settle_from_scores(
     scores: list[dict[str, Any]],
     path: Path | None = None,
 ) -> dict[str, Any]:
     """scores: [{home_team, away_team, home_score, away_score, event_id?}, ...]"""
+    from sharp_scout.stage_picks import settle_stage_pick
+
     ledger = load_ledger(path)
     index: dict[str, dict[str, Any]] = {}
     for g in scores:
@@ -257,8 +301,47 @@ def settle_from_scores(
         settle_play(play, int(g["home_score"]), int(g["away_score"]))
         settled += 1
 
+    # Grade stage cards (ATS / ML by stage side)
+    stage_settled = 0
+    for card in ledger.get("stage_cards") or []:
+        if card.get("status") not in (None, "pending"):
+            continue
+        g = None
+        if card.get("event_id") and str(card["event_id"]) in index:
+            g = index[str(card["event_id"])]
+        else:
+            g = index.get(f"{card.get('away_team')}@{card.get('home_team')}")
+        if not g or g.get("home_score") is None or g.get("away_score") is None:
+            continue
+        hs, as_ = int(g["home_score"]), int(g["away_score"])
+        results = {}
+        for stage, pick in (card.get("picks") or {}).items():
+            if not pick.get("available") or not pick.get("side"):
+                continue
+            # Prefer home current_line from money/public/rlm for ATS grading
+            line = pick.get("line")
+            if card.get("market") == "spread" and line is None:
+                for alt in ("money", "public", "rlm", "sharp"):
+                    alt_line = ((card.get("picks") or {}).get(alt) or {}).get("line")
+                    if alt_line is not None:
+                        line = alt_line
+                        break
+            results[stage] = settle_stage_pick(
+                pick.get("side"),
+                home_score=hs,
+                away_score=as_,
+                market=card.get("market") or "spread",
+                line=line if card.get("market") == "spread" else None,
+            )
+        card["results"] = results
+        card["home_score"] = hs
+        card["away_score"] = as_
+        card["status"] = "settled"
+        card["settled_at"] = _now()
+        stage_settled += 1
+
     save_ledger(ledger, path)
-    logger.info("Settled %d plays", settled)
+    logger.info("Settled %d plays, %d stage cards", settled, stage_settled)
     return ledger
 
 
@@ -302,6 +385,36 @@ def compute_record(ledger: dict[str, Any] | None = None) -> dict[str, Any]:
     decided = wins + losses
     win_pct = (wins / decided) if decided else None
     starting = float(ledger.get("starting_units") or 100)
+
+    # Per-stage ATS/ML records from stage_cards
+    stage_records: dict[str, dict[str, Any]] = {}
+    for card in ledger.get("stage_cards") or []:
+        for stage, result in (card.get("results") or {}).items():
+            bucket = stage_records.setdefault(
+                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+            )
+            if result == "win":
+                bucket["wins"] += 1
+            elif result == "loss":
+                bucket["losses"] += 1
+            elif result == "push":
+                bucket["pushes"] += 1
+            else:
+                bucket["pending"] += 1
+        if card.get("status") in (None, "pending"):
+            for stage, pick in (card.get("picks") or {}).items():
+                if pick.get("available") and pick.get("side"):
+                    bucket = stage_records.setdefault(
+                        stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+                    )
+                    if stage not in (card.get("results") or {}):
+                        bucket["pending"] += 1
+
+    for stage, b in stage_records.items():
+        d = b["wins"] + b["losses"]
+        b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
+        b["win_pct"] = (b["wins"] / d) if d else None
+
     return {
         "wins": wins,
         "losses": losses,
@@ -315,6 +428,7 @@ def compute_record(ledger: dict[str, Any] | None = None) -> dict[str, Any]:
         "starting_units": starting,
         "n_plays": len(plays),
         "by_week": by_week,
+        "stage_records": stage_records,
     }
 
 

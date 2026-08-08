@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-07T03:47:11.652688+00:00",
+  "generated_at": "2026-08-08T04:42:43.834377+00:00",
   "demo": true,
   "n_games": 1,
   "n_candidates": 6,
@@ -203,7 +203,7 @@
       "event_id": "demo-kc-buf",
       "home_team": "BUF",
       "away_team": "KC",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00",
       "mu_home": 24.33151726762177,
       "mu_away": 22.06848273237823,
       "model_spread": -2.2630345352435413,
@@ -217,7 +217,88 @@
         "hfa": 2.2
       },
       "edge_count": 6,
-      "validated": 2
+      "validated": 2,
+      "stage_picks": {
+        "model": {
+          "stage": "model",
+          "market": "spread",
+          "side": "home",
+          "team": "BUF",
+          "line": -2.2630345352435413,
+          "confidence": 0.5749,
+          "reason": "S_mod=-2.3 (home perspective)",
+          "available": true
+        },
+        "sharp": {
+          "stage": "sharp",
+          "market": "spread",
+          "side": "away",
+          "team": "KC",
+          "line": -2.5,
+          "confidence": 0.5,
+          "reason": "pinnacle no-vig 50.0% @ -110",
+          "available": true
+        },
+        "public": {
+          "stage": "public",
+          "market": "spread",
+          "side": "home",
+          "team": "BUF",
+          "line": -2.5,
+          "confidence": 0.72,
+          "reason": "tickets home=72% away=28%",
+          "available": true
+        },
+        "money": {
+          "stage": "money",
+          "market": "spread",
+          "side": "away",
+          "team": "KC",
+          "line": -2.5,
+          "confidence": 0.59,
+          "reason": "money home=41% away=59% (gap vs tickets +31% on away)",
+          "available": true
+        },
+        "rlm": {
+          "stage": "rlm",
+          "market": "spread",
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no RLM (public=home, line -1.5\u2192-2.5)",
+          "available": false
+        },
+        "hybrid": {
+          "stage": "hybrid",
+          "market": "spread",
+          "side": "home",
+          "team": "BUF",
+          "line": -2.2630345352435413,
+          "confidence": 0.4599,
+          "reason": "model lean only \u2014 no confirming market stage",
+          "available": true
+        }
+      },
+      "stage_agreement": {
+        "n_available": 5,
+        "home_votes": 2,
+        "away_votes": 2,
+        "unanimous": false,
+        "sharp_vs_public": {
+          "sharp": "KC",
+          "public": "BUF",
+          "fade_public": true
+        },
+        "money_vs_public": {
+          "aligned": false,
+          "money": "KC",
+          "public": "BUF"
+        },
+        "rlm_active": false
+      },
+      "consensus_team": null,
+      "hybrid_team": "BUF"
     }
   ],
   "signals": [
@@ -252,8 +333,8 @@
         "edge lacks RLM or money/ticket confirmation"
       ],
       "rationale": "EV=35.97% at pinnacle -110; money-ticket gap only -31% on home (need \u226520%); no RLM (public=home, line -1.5\u2192-2.5); edge lacks RLM or money/ticket confirmation",
-      "kickoff": "2026-08-07T03:47:11.643381+00:00",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00"
+      "kickoff": "2026-08-08T04:42:43.823974+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00"
     },
     {
       "event_id": "demo-kc-buf",
@@ -286,8 +367,8 @@
         "edge lacks RLM or money/ticket confirmation"
       ],
       "rationale": "EV=33.15% at draftkings -115; money-ticket gap only -31% on home (need \u226520%); no RLM (public=home, line -1.5\u2192-2.5); edge lacks RLM or money/ticket confirmation",
-      "kickoff": "2026-08-07T03:47:11.643381+00:00",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00"
+      "kickoff": "2026-08-08T04:42:43.823974+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00"
     },
     {
       "event_id": "demo-kc-buf",
@@ -315,13 +396,13 @@
       },
       "filter_notes": [
         "EV=25.47% at pinnacle +110",
-        "splits incomplete (money % locked or missing \u2014 set ACTION_NETWORK_COOKIE?)",
+        "splits incomplete (money/ticket % missing \u2014 run scripts/diagnose_action_network.py)",
         "no open/current line for RLM",
         "edge lacks RLM or money/ticket confirmation"
       ],
-      "rationale": "EV=25.47% at pinnacle +110; splits incomplete (money % locked or missing \u2014 set ACTION_NETWORK_COOKIE?); no open/current line for RLM; edge lacks RLM or money/ticket confirmation",
-      "kickoff": "2026-08-07T03:47:11.643381+00:00",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00"
+      "rationale": "EV=25.47% at pinnacle +110; splits incomplete (money/ticket % missing \u2014 run scripts/diagnose_action_network.py); no open/current line for RLM; edge lacks RLM or money/ticket confirmation",
+      "kickoff": "2026-08-08T04:42:43.823974+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00"
     },
     {
       "event_id": "demo-kc-buf",
@@ -349,13 +430,13 @@
       },
       "filter_notes": [
         "EV=22.49% at draftkings +105",
-        "splits incomplete (money % locked or missing \u2014 set ACTION_NETWORK_COOKIE?)",
+        "splits incomplete (money/ticket % missing \u2014 run scripts/diagnose_action_network.py)",
         "no open/current line for RLM",
         "edge lacks RLM or money/ticket confirmation"
       ],
-      "rationale": "EV=22.49% at draftkings +105; splits incomplete (money % locked or missing \u2014 set ACTION_NETWORK_COOKIE?); no open/current line for RLM; edge lacks RLM or money/ticket confirmation",
-      "kickoff": "2026-08-07T03:47:11.643381+00:00",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00"
+      "rationale": "EV=22.49% at draftkings +105; splits incomplete (money/ticket % missing \u2014 run scripts/diagnose_action_network.py); no open/current line for RLM; edge lacks RLM or money/ticket confirmation",
+      "kickoff": "2026-08-08T04:42:43.823974+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00"
     },
     {
       "event_id": "demo-kc-buf",
@@ -387,8 +468,8 @@
         "RLM: public over but total 48.5\u219247.5"
       ],
       "rationale": "EV=7.67% at draftkings -110; money-ticket gap only 6% on under (need \u226520%); RLM: public over but total 48.5\u219247.5",
-      "kickoff": "2026-08-07T03:47:11.643381+00:00",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00"
+      "kickoff": "2026-08-08T04:42:43.823974+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00"
     },
     {
       "event_id": "demo-kc-buf",
@@ -420,8 +501,8 @@
         "RLM: public over but total 48.5\u219247.5"
       ],
       "rationale": "EV=6.76% at pinnacle -112; money-ticket gap only 6% on under (need \u226520%); RLM: public over but total 48.5\u219247.5",
-      "kickoff": "2026-08-07T03:47:11.643381+00:00",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00"
+      "kickoff": "2026-08-08T04:42:43.823974+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00"
     }
   ],
   "plays": [
@@ -455,8 +536,8 @@
         "RLM: public over but total 48.5\u219247.5"
       ],
       "rationale": "EV=7.67% at draftkings -110; money-ticket gap only 6% on under (need \u226520%); RLM: public over but total 48.5\u219247.5",
-      "kickoff": "2026-08-07T03:47:11.643381+00:00",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00"
+      "kickoff": "2026-08-08T04:42:43.823974+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00"
     },
     {
       "event_id": "demo-kc-buf",
@@ -488,889 +569,117 @@
         "RLM: public over but total 48.5\u219247.5"
       ],
       "rationale": "EV=6.76% at pinnacle -112; money-ticket gap only 6% on under (need \u226520%); RLM: public over but total 48.5\u219247.5",
-      "kickoff": "2026-08-07T03:47:11.643381+00:00",
-      "commence_time": "2026-08-07T03:47:11.643381+00:00"
-    },
-    {
-      "event_id": "demo-kc-buf",
-      "home_team": "BUF",
-      "away_team": "KC",
-      "player_name": "Josh Allen",
-      "team": "BUF",
-      "market": "player_pass_yds",
-      "side": "over",
-      "line": 300.5,
-      "book": "pinnacle",
-      "price": 240.0,
-      "p_true": 0.3275,
-      "p_mkt": 0.2785,
-      "edge": 0.1135,
-      "model_mean": 265.93,
-      "model_median": 250.21,
-      "is_alternate": false,
-      "filter_passed": true,
-      "tier": "play",
-      "flags": {
-        "ev_ok": true,
-        "weather_ok": true,
-        "active": true,
-        "news_ok": true,
-        "alternate": false
-      },
-      "filter_notes": [
-        "EV=11.35% mean=265.9 vs line=300.5"
-      ],
-      "rationale": "EV=11.35% mean=265.9 vs line=300.5",
-      "play_type": "prop",
-      "kickoff": "2026-08-07T03:47:11.662603+00:00",
-      "commence_time": "2026-08-07T03:47:11.662603+00:00",
-      "window": null
-    },
-    {
-      "event_id": "demo-kc-buf",
-      "home_team": "BUF",
-      "away_team": "KC",
-      "player_name": "Josh Allen",
-      "team": "BUF",
-      "market": "player_pass_yds",
-      "side": "over",
-      "line": 300.5,
-      "book": "draftkings",
-      "price": 240.0,
-      "p_true": 0.3275,
-      "p_mkt": 0.2785,
-      "edge": 0.1135,
-      "model_mean": 265.93,
-      "model_median": 250.21,
-      "is_alternate": false,
-      "filter_passed": true,
-      "tier": "play",
-      "flags": {
-        "ev_ok": true,
-        "weather_ok": true,
-        "active": true,
-        "news_ok": true,
-        "alternate": false
-      },
-      "filter_notes": [
-        "EV=11.35% mean=265.9 vs line=300.5"
-      ],
-      "rationale": "EV=11.35% mean=265.9 vs line=300.5",
-      "play_type": "prop",
-      "kickoff": "2026-08-07T03:47:11.662603+00:00",
-      "commence_time": "2026-08-07T03:47:11.662603+00:00",
-      "window": null
-    },
-    {
-      "event_id": "demo-kc-buf",
-      "home_team": "BUF",
-      "away_team": "KC",
-      "player_name": "Patrick Mahomes",
-      "team": "KC",
-      "market": "player_pass_yds",
-      "side": "under",
-      "line": 274.5,
-      "book": "pinnacle",
-      "price": -110.0,
-      "p_true": 0.5528,
-      "p_mkt": 0.5,
-      "edge": 0.0553,
-      "model_mean": 275.96,
-      "model_median": 259.65,
-      "is_alternate": false,
-      "filter_passed": true,
-      "tier": "play",
-      "flags": {
-        "ev_ok": true,
-        "weather_ok": true,
-        "active": true,
-        "news_ok": true,
-        "alternate": false
-      },
-      "filter_notes": [
-        "EV=5.53% mean=276.0 vs line=274.5"
-      ],
-      "rationale": "EV=5.53% mean=276.0 vs line=274.5",
-      "play_type": "prop",
-      "kickoff": "2026-08-07T03:47:11.662603+00:00",
-      "commence_time": "2026-08-07T03:47:11.662603+00:00",
-      "window": null
-    },
-    {
-      "event_id": "demo-kc-buf",
-      "home_team": "BUF",
-      "away_team": "KC",
-      "player_name": "Patrick Mahomes",
-      "team": "KC",
-      "market": "player_pass_yds",
-      "side": "under",
-      "line": 274.5,
-      "book": "draftkings",
-      "price": -110.0,
-      "p_true": 0.5528,
-      "p_mkt": 0.5,
-      "edge": 0.0553,
-      "model_mean": 275.96,
-      "model_median": 259.65,
-      "is_alternate": false,
-      "filter_passed": true,
-      "tier": "play",
-      "flags": {
-        "ev_ok": true,
-        "weather_ok": true,
-        "active": true,
-        "news_ok": true,
-        "alternate": false
-      },
-      "filter_notes": [
-        "EV=5.53% mean=276.0 vs line=274.5"
-      ],
-      "rationale": "EV=5.53% mean=276.0 vs line=274.5",
-      "play_type": "prop",
-      "kickoff": "2026-08-07T03:47:11.662603+00:00",
-      "commence_time": "2026-08-07T03:47:11.662603+00:00",
-      "window": null
-    },
-    {
-      "event_id": "demo-kc-buf",
-      "home_team": "BUF",
-      "away_team": "KC",
-      "player_name": "Stefon Diggs",
-      "team": "BUF",
-      "market": "player_reception_yds",
-      "side": "under",
-      "line": 74.5,
-      "book": "pinnacle",
-      "price": -110.0,
-      "p_true": 0.5477,
-      "p_mkt": 0.5,
-      "edge": 0.0456,
-      "model_mean": 78.47,
-      "model_median": 69.11,
-      "is_alternate": true,
-      "filter_passed": true,
-      "tier": "play",
-      "flags": {
-        "ev_ok": true,
-        "weather_ok": true,
-        "active": true,
-        "news_ok": true,
-        "alternate": true
-      },
-      "filter_notes": [
-        "EV=4.56% mean=78.5 vs line=74.5",
-        "alternate/tail line edge"
-      ],
-      "rationale": "EV=4.56% mean=78.5 vs line=74.5; alternate/tail line edge",
-      "play_type": "prop",
-      "kickoff": "2026-08-07T03:47:11.662603+00:00",
-      "commence_time": "2026-08-07T03:47:11.662603+00:00",
-      "window": null
-    },
-    {
-      "event_id": "demo-kc-buf",
-      "home_team": "BUF",
-      "away_team": "KC",
-      "player_name": "Stefon Diggs",
-      "team": "BUF",
-      "market": "player_reception_yds",
-      "side": "under",
-      "line": 74.5,
-      "book": "draftkings",
-      "price": -110.0,
-      "p_true": 0.5477,
-      "p_mkt": 0.5,
-      "edge": 0.0456,
-      "model_mean": 78.47,
-      "model_median": 69.11,
-      "is_alternate": true,
-      "filter_passed": true,
-      "tier": "play",
-      "flags": {
-        "ev_ok": true,
-        "weather_ok": true,
-        "active": true,
-        "news_ok": true,
-        "alternate": true
-      },
-      "filter_notes": [
-        "EV=4.56% mean=78.5 vs line=74.5",
-        "alternate/tail line edge"
-      ],
-      "rationale": "EV=4.56% mean=78.5 vs line=74.5; alternate/tail line edge",
-      "play_type": "prop",
-      "kickoff": "2026-08-07T03:47:11.662603+00:00",
-      "commence_time": "2026-08-07T03:47:11.662603+00:00",
-      "window": null
-    },
-    {
-      "event_id": "demo-kc-buf",
-      "home_team": "BUF",
-      "away_team": "KC",
-      "player_name": "Josh Allen",
-      "team": "BUF",
-      "market": "player_pass_yds",
-      "side": "under",
-      "line": 259.5,
-      "book": "pinnacle",
-      "price": -105.0,
-      "p_true": 0.5351,
-      "p_mkt": 0.4892,
-      "edge": 0.0447,
-      "model_mean": 265.93,
-      "model_median": 250.21,
-      "is_alternate": true,
-      "filter_passed": true,
-      "tier": "play",
-      "flags": {
-        "ev_ok": true,
-        "weather_ok": true,
-        "active": true,
-        "news_ok": true,
-        "alternate": true
-      },
-      "filter_notes": [
-        "EV=4.47% mean=265.9 vs line=259.5",
-        "alternate/tail line edge"
-      ],
-      "rationale": "EV=4.47% mean=265.9 vs line=259.5; alternate/tail line edge",
-      "play_type": "prop",
-      "kickoff": "2026-08-07T03:47:11.662603+00:00",
-      "commence_time": "2026-08-07T03:47:11.662603+00:00",
-      "window": null
-    },
-    {
-      "event_id": "demo-kc-buf",
-      "home_team": "BUF",
-      "away_team": "KC",
-      "player_name": "Josh Allen",
-      "team": "BUF",
-      "market": "player_pass_yds",
-      "side": "under",
-      "line": 259.5,
-      "book": "draftkings",
-      "price": -105.0,
-      "p_true": 0.5351,
-      "p_mkt": 0.4892,
-      "edge": 0.0447,
-      "model_mean": 265.93,
-      "model_median": 250.21,
-      "is_alternate": true,
-      "filter_passed": true,
-      "tier": "play",
-      "flags": {
-        "ev_ok": true,
-        "weather_ok": true,
-        "active": true,
-        "news_ok": true,
-        "alternate": true
-      },
-      "filter_notes": [
-        "EV=4.47% mean=265.9 vs line=259.5",
-        "alternate/tail line edge"
-      ],
-      "rationale": "EV=4.47% mean=265.9 vs line=259.5; alternate/tail line edge",
-      "play_type": "prop",
-      "kickoff": "2026-08-07T03:47:11.662603+00:00",
-      "commence_time": "2026-08-07T03:47:11.662603+00:00",
-      "window": null
+      "kickoff": "2026-08-08T04:42:43.823974+00:00",
+      "commence_time": "2026-08-08T04:42:43.823974+00:00"
     }
   ],
-  "props": {
-    "generated_at": "2026-08-07T03:47:11.672890+00:00",
-    "demo": true,
-    "play_type": "prop",
-    "n_events": 1,
-    "n_candidates": 8,
-    "n_validated": 8,
-    "events": [
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "n_sims_players": 5,
-        "n_edges": 8,
-        "n_validated": 8,
-        "script": {
-          "home_spread": -2.5,
-          "total": 47.5,
-          "home_mu": 24.0,
-          "away_mu": 22.0
+  "stage_picks": [
+    {
+      "event_id": "demo-kc-buf",
+      "home_team": "BUF",
+      "away_team": "KC",
+      "market": "spread",
+      "picks": {
+        "model": {
+          "stage": "model",
+          "market": "spread",
+          "side": "home",
+          "team": "BUF",
+          "line": -2.2630345352435413,
+          "confidence": 0.5749,
+          "reason": "S_mod=-2.3 (home perspective)",
+          "available": true
+        },
+        "sharp": {
+          "stage": "sharp",
+          "market": "spread",
+          "side": "away",
+          "team": "KC",
+          "line": -2.5,
+          "confidence": 0.5,
+          "reason": "pinnacle no-vig 50.0% @ -110",
+          "available": true
+        },
+        "public": {
+          "stage": "public",
+          "market": "spread",
+          "side": "home",
+          "team": "BUF",
+          "line": -2.5,
+          "confidence": 0.72,
+          "reason": "tickets home=72% away=28%",
+          "available": true
+        },
+        "money": {
+          "stage": "money",
+          "market": "spread",
+          "side": "away",
+          "team": "KC",
+          "line": -2.5,
+          "confidence": 0.59,
+          "reason": "money home=41% away=59% (gap vs tickets +31% on away)",
+          "available": true
+        },
+        "rlm": {
+          "stage": "rlm",
+          "market": "spread",
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no RLM (public=home, line -1.5\u2192-2.5)",
+          "available": false
+        },
+        "hybrid": {
+          "stage": "hybrid",
+          "market": "spread",
+          "side": "home",
+          "team": "BUF",
+          "line": -2.2630345352435413,
+          "confidence": 0.4599,
+          "reason": "model lean only \u2014 no confirming market stage",
+          "available": true
         }
-      }
-    ],
-    "props": [
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Josh Allen",
-        "team": "BUF",
-        "market": "player_pass_yds",
-        "side": "over",
-        "line": 300.5,
-        "book": "pinnacle",
-        "price": 240.0,
-        "p_true": 0.3275,
-        "p_mkt": 0.2785,
-        "edge": 0.1135,
-        "model_mean": 265.93,
-        "model_median": 250.21,
-        "is_alternate": false,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": false
-        },
-        "filter_notes": [
-          "EV=11.35% mean=265.9 vs line=300.5"
-        ],
-        "rationale": "EV=11.35% mean=265.9 vs line=300.5",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
       },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Josh Allen",
-        "team": "BUF",
-        "market": "player_pass_yds",
-        "side": "over",
-        "line": 300.5,
-        "book": "draftkings",
-        "price": 240.0,
-        "p_true": 0.3275,
-        "p_mkt": 0.2785,
-        "edge": 0.1135,
-        "model_mean": 265.93,
-        "model_median": 250.21,
-        "is_alternate": false,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": false
+      "agreement": {
+        "n_available": 5,
+        "home_votes": 2,
+        "away_votes": 2,
+        "unanimous": false,
+        "sharp_vs_public": {
+          "sharp": "KC",
+          "public": "BUF",
+          "fade_public": true
         },
-        "filter_notes": [
-          "EV=11.35% mean=265.9 vs line=300.5"
-        ],
-        "rationale": "EV=11.35% mean=265.9 vs line=300.5",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
+        "money_vs_public": {
+          "aligned": false,
+          "money": "KC",
+          "public": "BUF"
+        },
+        "rlm_active": false
       },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Patrick Mahomes",
-        "team": "KC",
-        "market": "player_pass_yds",
-        "side": "under",
-        "line": 274.5,
-        "book": "pinnacle",
-        "price": -110.0,
-        "p_true": 0.5528,
-        "p_mkt": 0.5,
-        "edge": 0.0553,
-        "model_mean": 275.96,
-        "model_median": 259.65,
-        "is_alternate": false,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": false
-        },
-        "filter_notes": [
-          "EV=5.53% mean=276.0 vs line=274.5"
-        ],
-        "rationale": "EV=5.53% mean=276.0 vs line=274.5",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Patrick Mahomes",
-        "team": "KC",
-        "market": "player_pass_yds",
-        "side": "under",
-        "line": 274.5,
-        "book": "draftkings",
-        "price": -110.0,
-        "p_true": 0.5528,
-        "p_mkt": 0.5,
-        "edge": 0.0553,
-        "model_mean": 275.96,
-        "model_median": 259.65,
-        "is_alternate": false,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": false
-        },
-        "filter_notes": [
-          "EV=5.53% mean=276.0 vs line=274.5"
-        ],
-        "rationale": "EV=5.53% mean=276.0 vs line=274.5",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Stefon Diggs",
-        "team": "BUF",
-        "market": "player_reception_yds",
-        "side": "under",
-        "line": 74.5,
-        "book": "pinnacle",
-        "price": -110.0,
-        "p_true": 0.5477,
-        "p_mkt": 0.5,
-        "edge": 0.0456,
-        "model_mean": 78.47,
-        "model_median": 69.11,
-        "is_alternate": true,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": true
-        },
-        "filter_notes": [
-          "EV=4.56% mean=78.5 vs line=74.5",
-          "alternate/tail line edge"
-        ],
-        "rationale": "EV=4.56% mean=78.5 vs line=74.5; alternate/tail line edge",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Stefon Diggs",
-        "team": "BUF",
-        "market": "player_reception_yds",
-        "side": "under",
-        "line": 74.5,
-        "book": "draftkings",
-        "price": -110.0,
-        "p_true": 0.5477,
-        "p_mkt": 0.5,
-        "edge": 0.0456,
-        "model_mean": 78.47,
-        "model_median": 69.11,
-        "is_alternate": true,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": true
-        },
-        "filter_notes": [
-          "EV=4.56% mean=78.5 vs line=74.5",
-          "alternate/tail line edge"
-        ],
-        "rationale": "EV=4.56% mean=78.5 vs line=74.5; alternate/tail line edge",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Josh Allen",
-        "team": "BUF",
-        "market": "player_pass_yds",
-        "side": "under",
-        "line": 259.5,
-        "book": "pinnacle",
-        "price": -105.0,
-        "p_true": 0.5351,
-        "p_mkt": 0.4892,
-        "edge": 0.0447,
-        "model_mean": 265.93,
-        "model_median": 250.21,
-        "is_alternate": true,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": true
-        },
-        "filter_notes": [
-          "EV=4.47% mean=265.9 vs line=259.5",
-          "alternate/tail line edge"
-        ],
-        "rationale": "EV=4.47% mean=265.9 vs line=259.5; alternate/tail line edge",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Josh Allen",
-        "team": "BUF",
-        "market": "player_pass_yds",
-        "side": "under",
-        "line": 259.5,
-        "book": "draftkings",
-        "price": -105.0,
-        "p_true": 0.5351,
-        "p_mkt": 0.4892,
-        "edge": 0.0447,
-        "model_mean": 265.93,
-        "model_median": 250.21,
-        "is_alternate": true,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": true
-        },
-        "filter_notes": [
-          "EV=4.47% mean=265.9 vs line=259.5",
-          "alternate/tail line edge"
-        ],
-        "rationale": "EV=4.47% mean=265.9 vs line=259.5; alternate/tail line edge",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      }
-    ],
-    "plays": [
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Josh Allen",
-        "team": "BUF",
-        "market": "player_pass_yds",
-        "side": "over",
-        "line": 300.5,
-        "book": "pinnacle",
-        "price": 240.0,
-        "p_true": 0.3275,
-        "p_mkt": 0.2785,
-        "edge": 0.1135,
-        "model_mean": 265.93,
-        "model_median": 250.21,
-        "is_alternate": false,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": false
-        },
-        "filter_notes": [
-          "EV=11.35% mean=265.9 vs line=300.5"
-        ],
-        "rationale": "EV=11.35% mean=265.9 vs line=300.5",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Josh Allen",
-        "team": "BUF",
-        "market": "player_pass_yds",
-        "side": "over",
-        "line": 300.5,
-        "book": "draftkings",
-        "price": 240.0,
-        "p_true": 0.3275,
-        "p_mkt": 0.2785,
-        "edge": 0.1135,
-        "model_mean": 265.93,
-        "model_median": 250.21,
-        "is_alternate": false,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": false
-        },
-        "filter_notes": [
-          "EV=11.35% mean=265.9 vs line=300.5"
-        ],
-        "rationale": "EV=11.35% mean=265.9 vs line=300.5",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Patrick Mahomes",
-        "team": "KC",
-        "market": "player_pass_yds",
-        "side": "under",
-        "line": 274.5,
-        "book": "pinnacle",
-        "price": -110.0,
-        "p_true": 0.5528,
-        "p_mkt": 0.5,
-        "edge": 0.0553,
-        "model_mean": 275.96,
-        "model_median": 259.65,
-        "is_alternate": false,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": false
-        },
-        "filter_notes": [
-          "EV=5.53% mean=276.0 vs line=274.5"
-        ],
-        "rationale": "EV=5.53% mean=276.0 vs line=274.5",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Patrick Mahomes",
-        "team": "KC",
-        "market": "player_pass_yds",
-        "side": "under",
-        "line": 274.5,
-        "book": "draftkings",
-        "price": -110.0,
-        "p_true": 0.5528,
-        "p_mkt": 0.5,
-        "edge": 0.0553,
-        "model_mean": 275.96,
-        "model_median": 259.65,
-        "is_alternate": false,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": false
-        },
-        "filter_notes": [
-          "EV=5.53% mean=276.0 vs line=274.5"
-        ],
-        "rationale": "EV=5.53% mean=276.0 vs line=274.5",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Stefon Diggs",
-        "team": "BUF",
-        "market": "player_reception_yds",
-        "side": "under",
-        "line": 74.5,
-        "book": "pinnacle",
-        "price": -110.0,
-        "p_true": 0.5477,
-        "p_mkt": 0.5,
-        "edge": 0.0456,
-        "model_mean": 78.47,
-        "model_median": 69.11,
-        "is_alternate": true,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": true
-        },
-        "filter_notes": [
-          "EV=4.56% mean=78.5 vs line=74.5",
-          "alternate/tail line edge"
-        ],
-        "rationale": "EV=4.56% mean=78.5 vs line=74.5; alternate/tail line edge",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Stefon Diggs",
-        "team": "BUF",
-        "market": "player_reception_yds",
-        "side": "under",
-        "line": 74.5,
-        "book": "draftkings",
-        "price": -110.0,
-        "p_true": 0.5477,
-        "p_mkt": 0.5,
-        "edge": 0.0456,
-        "model_mean": 78.47,
-        "model_median": 69.11,
-        "is_alternate": true,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": true
-        },
-        "filter_notes": [
-          "EV=4.56% mean=78.5 vs line=74.5",
-          "alternate/tail line edge"
-        ],
-        "rationale": "EV=4.56% mean=78.5 vs line=74.5; alternate/tail line edge",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Josh Allen",
-        "team": "BUF",
-        "market": "player_pass_yds",
-        "side": "under",
-        "line": 259.5,
-        "book": "pinnacle",
-        "price": -105.0,
-        "p_true": 0.5351,
-        "p_mkt": 0.4892,
-        "edge": 0.0447,
-        "model_mean": 265.93,
-        "model_median": 250.21,
-        "is_alternate": true,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": true
-        },
-        "filter_notes": [
-          "EV=4.47% mean=265.9 vs line=259.5",
-          "alternate/tail line edge"
-        ],
-        "rationale": "EV=4.47% mean=265.9 vs line=259.5; alternate/tail line edge",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      },
-      {
-        "event_id": "demo-kc-buf",
-        "home_team": "BUF",
-        "away_team": "KC",
-        "player_name": "Josh Allen",
-        "team": "BUF",
-        "market": "player_pass_yds",
-        "side": "under",
-        "line": 259.5,
-        "book": "draftkings",
-        "price": -105.0,
-        "p_true": 0.5351,
-        "p_mkt": 0.4892,
-        "edge": 0.0447,
-        "model_mean": 265.93,
-        "model_median": 250.21,
-        "is_alternate": true,
-        "filter_passed": true,
-        "tier": "play",
-        "flags": {
-          "ev_ok": true,
-          "weather_ok": true,
-          "active": true,
-          "news_ok": true,
-          "alternate": true
-        },
-        "filter_notes": [
-          "EV=4.47% mean=265.9 vs line=259.5",
-          "alternate/tail line edge"
-        ],
-        "rationale": "EV=4.47% mean=265.9 vs line=259.5; alternate/tail line edge",
-        "play_type": "prop",
-        "kickoff": "2026-08-07T03:47:11.662603+00:00",
-        "commence_time": "2026-08-07T03:47:11.662603+00:00",
-        "window": null
-      }
-    ]
-  },
-  "n_prop_validated": 8
+      "consensus_side": null,
+      "consensus_team": null,
+      "hybrid_agrees_with": [
+        "model",
+        "public"
+      ],
+      "conflict_stages": [
+        "sharp",
+        "money"
+      ]
+    }
+  ],
+  "stage_summary": {
+    "n_games": 1,
+    "hybrid_agreement_rate": {
+      "model": 1.0,
+      "sharp": 0.0,
+      "public": 1.0,
+      "money": 0.0,
+      "rlm": null
+    },
+    "fade_public_games": 1,
+    "rlm_games": 0
+  }
 }

@@ -78,6 +78,16 @@ def get_record() -> dict[str, Any]:
     return compute_record()
 
 
+@app.get("/api/stages")
+def get_stages() -> dict[str, Any]:
+    data = load_latest_artifacts()
+    return {
+        "stage_picks": data.get("stage_picks") or [],
+        "stage_summary": data.get("stage_summary") or {},
+        "record": (data.get("record") or {}).get("stage_records"),
+    }
+
+
 @app.get("/api/props")
 def get_props() -> dict[str, Any]:
     from sharp_scout.config import ARTIFACTS_DIR

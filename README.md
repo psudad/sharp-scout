@@ -37,6 +37,21 @@ python scripts/settle_plays.py --manual KC BUF 24 20 --build-site
 uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000
 ```
 
+## Stage picks (compare every lens)
+
+For each game the pipeline also picks a side from **each data stage** independently:
+
+| Stage | Winner rule |
+|---|---|
+| `model` | Monte Carlo / fundamental favorite |
+| `sharp` | Pinnacle/Circa no-vig favorite |
+| `public` | Ticket-% majority |
+| `money` | Handle-% majority |
+| `rlm` | Reverse line movement side (when present) |
+| `hybrid` | Full system validated play, else model+confirmations |
+
+These land in `stage_picks` on the artifact and the **Stages** tab on GitHub Pages, with per-stage W–L after settlement — so you can see when sharps fade the public, when RLM fires, and whether the hybrid agrees.
+
 ## Player props
 
 Props reuse the same ledger/Pages board with a separate engine:

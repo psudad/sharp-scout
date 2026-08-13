@@ -49,7 +49,7 @@ def money_ticket_gap_ok(
         return False, "unknown side for splits"
 
     if bet is None or money is None:
-        return False, "splits incomplete (money % locked or missing — set ACTION_NETWORK_COOKIE?)"
+        return False, "splits incomplete (money/ticket % missing — run scripts/diagnose_action_network.py)"
 
     gap = money - bet
     if gap >= gap_threshold:

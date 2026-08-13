@@ -52,17 +52,90 @@ def get_ratings() -> list[dict[str, Any]]:
 def trigger_run(
     demo: bool = Query(False, description="Use mock odds/splits"),
     skip_pbp: bool = Query(False, description="Skip nflverse download; neutral/demo ratings"),
+    build_site: bool = Query(False, description="Rebuild docs/ GitHub Pages site"),
 ) -> dict[str, Any]:
     settings = get_settings()
     use_demo = demo or not settings.odds_api_key
-    payload = run_pipeline(demo=use_demo, skip_pbp=skip_pbp or use_demo)
+    payload = run_pipeline(
+        demo=use_demo,
+        skip_pbp=skip_pbp or use_demo,
+        build_pages=build_site,
+    )
     return {
         "ok": True,
         "n_games": payload["n_games"],
         "n_validated": payload["n_validated"],
         "generated_at": payload["generated_at"],
         "demo": payload["demo"],
+        "record": payload.get("record"),
     }
+
+
+@app.get("/api/record")
+def get_record() -> dict[str, Any]:
+    from sharp_scout.ledger.tracker import compute_record
+
+    return compute_record()
+
+
+@app.get("/api/stages")
+def get_stages() -> dict[str, Any]:
+    data = load_latest_artifacts()
+    return {
+        "stage_picks": data.get("stage_picks") or [],
+        "stage_summary": data.get("stage_summary") or {},
+        "record": (data.get("record") or {}).get("stage_records"),
+    }
+
+
+@app.get("/api/props")
+def get_props() -> dict[str, Any]:
+    from sharp_scout.config import ARTIFACTS_DIR
+    import json
+
+    path = ARTIFACTS_DIR / "latest_props.json"
+    if not path.exists():
+        raise HTTPException(404, "No props yet")
+    return json.loads(path.read_text())
+
+
+@app.post("/api/run-props")
+def trigger_props(
+    demo: bool = Query(False),
+    skip_pbp: bool = Query(False),
+    build_site: bool = Query(True),
+) -> dict[str, Any]:
+    from sharp_scout.props.pipeline import run_props_pipeline
+
+    settings = get_settings()
+    use_demo = demo or not settings.odds_api_key
+    payload = run_props_pipeline(
+        demo=use_demo,
+        skip_pbp=skip_pbp or use_demo,
+        build_pages=build_site,
+    )
+    return {
+        "ok": True,
+        "n_validated": payload["n_validated"],
+        "generated_at": payload["generated_at"],
+        "demo": payload["demo"],
+    }
+
+
+@app.post("/api/run-pregame")
+def trigger_pregame(
+    demo: bool = Query(False),
+    force_all: bool = Query(False),
+) -> dict[str, Any]:
+    from sharp_scout.scheduler.pregame import run_due_pregame
+
+    settings = get_settings()
+    return run_due_pregame(
+        demo=demo or not settings.odds_api_key,
+        force_all_upcoming=force_all,
+        build_pages=True,
+        skip_pbp=demo or not settings.odds_api_key,
+    )
 
 
 # Serve existing Sharp Scout UI from repo root

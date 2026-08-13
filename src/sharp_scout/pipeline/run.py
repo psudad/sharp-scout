@@ -27,11 +27,17 @@ def run_pipeline(
     demo: bool = False,
     persist: bool = True,
     skip_pbp: bool = False,
+    update_ledger: bool = True,
+    build_pages: bool = False,
+    season: int | None = None,
+    week: int | None = None,
 ) -> dict[str, Any]:
     """Execute the four-phase signal pipeline.
 
     demo=True uses mock odds/splits and skips live API calls.
     skip_pbp=True uses neutral ratings (fast CI / no nflverse download).
+    update_ledger=True appends validated plays to data/ledger.json.
+    build_pages=True regenerates the docs/ GitHub Pages site.
     """
     settings = get_settings()
     setup_logging(settings.log_level)
@@ -79,6 +85,7 @@ def run_pipeline(
     # ── Phases 2–4 per event ─────────────────────────────────
     game_results: list[dict[str, Any]] = []
     all_signals: list[dict[str, Any]] = []
+    sims_by_event: dict[str, Any] = {}
 
     for ev in events:
         home, away = ev["home_team"], ev["away_team"]
@@ -104,6 +111,7 @@ def run_pipeline(
         )
         edges = discover_edges(ev, sim)
         filtered = attach_filters(edges, splits)
+        sims_by_event[str(ev.get("event_id"))] = sim
 
         game_results.append(
             {
@@ -123,10 +131,32 @@ def run_pipeline(
                 "validated": sum(1 for s in filtered if s["filter_passed"]),
             }
         )
+        kickoff = (
+            ev.get("commence_time").isoformat()
+            if hasattr(ev.get("commence_time"), "isoformat")
+            else ev.get("commence_time")
+        )
+        for s in filtered:
+            s["kickoff"] = kickoff
+            s["commence_time"] = kickoff
         all_signals.extend(filtered)
 
     validated = [s for s in all_signals if s["filter_passed"]]
     validated.sort(key=lambda s: s["edge"], reverse=True)
+
+    # ── Stage picks: independent winners per data lens ────────
+    from sharp_scout.stage_picks import build_slate_stage_picks, summarize_stage_slate
+
+    stage_cards = build_slate_stage_picks(events, sims_by_event, splits, validated, market="spread")
+    stage_summary = summarize_stage_slate(stage_cards)
+    for g in game_results:
+        eid = str(g.get("event_id"))
+        card = next((c for c in stage_cards if c["event_id"] == eid), None)
+        if card:
+            g["stage_picks"] = card["picks"]
+            g["stage_agreement"] = card["agreement"]
+            g["consensus_team"] = card.get("consensus_team")
+            g["hybrid_team"] = (card.get("picks") or {}).get("hybrid", {}).get("team")
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -141,6 +171,8 @@ def run_pipeline(
         "games": game_results,
         "signals": all_signals,
         "plays": validated,
+        "stage_picks": stage_cards,
+        "stage_summary": stage_summary,
     }
 
     out_path = ARTIFACTS_DIR / "latest_signals.json"
@@ -149,6 +181,22 @@ def run_pipeline(
 
     if persist:
         _persist(rating_rows, validated)
+
+    if update_ledger:
+        from sharp_scout.ledger.tracker import append_signals, append_stage_cards, compute_record
+
+        if validated:
+            append_signals(validated, season=season, week=week)
+        if stage_cards:
+            append_stage_cards(stage_cards, season=season, week=week)
+        payload["record"] = compute_record()
+
+    if build_pages:
+        from sharp_scout.site.build import build_site
+
+        site_path = build_site()
+        payload["site"] = str(site_path)
+        logger.info("Built GitHub Pages site at %s", site_path)
 
     return payload
 

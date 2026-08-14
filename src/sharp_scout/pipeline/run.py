@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from sharp_scout.config import ARTIFACTS_DIR, get_settings
-from sharp_scout.data.action_network import ActionNetworkClient, mock_splits
+from sharp_scout.data.action_network import mock_splits
 from sharp_scout.data.odds_api import OddsClient, mock_odds_events
 from sharp_scout.data.situational import situational_spread_adj
 from sharp_scout.db.models import Signal, TeamRating, get_session, init_db
@@ -31,11 +31,16 @@ def run_pipeline(
     build_pages: bool = False,
     season: int | None = None,
     week: int | None = None,
+    events: list[dict[str, Any]] | None = None,
+    splits_date: str | None = None,
+    fetch_splits: bool = True,
 ) -> dict[str, Any]:
     """Execute the four-phase signal pipeline.
 
     demo=True uses mock odds/splits and skips live API calls.
     skip_pbp=True uses neutral ratings (fast CI / no nflverse download).
+    events= manual slate (preseason pasted lines); still joins Action Network splits.
+    splits_date= YYYYMMDD for Action Network scoreboard when using manual odds.
     update_ledger=True appends validated plays to data/ledger.json.
     build_pages=True regenerates the docs/ GitHub Pages site.
     """
@@ -59,7 +64,10 @@ def run_pipeline(
     rating_rows = ratings_as_of_now(ratings)
 
     # ── Market + splits inputs ───────────────────────────────
-    if demo or not settings.odds_api_key:
+    manual_mode = events is not None
+    if manual_mode:
+        logger.info("Manual slate: %d games (preseason / pasted odds)", len(events))
+    elif demo or not settings.odds_api_key:
         if not settings.odds_api_key and not demo:
             logger.warning("ODDS_API_KEY missing — falling back to demo odds")
         events = mock_odds_events()
@@ -70,17 +78,21 @@ def run_pipeline(
             logger.error("Odds fetch failed (%s); using demo events", exc)
             events = mock_odds_events()
 
-    if demo or not events:
+    if demo and not manual_mode:
         splits = mock_splits()
-    else:
+    elif fetch_splits:
         try:
-            splits = ActionNetworkClient().fetch_scoreboard()
+            from sharp_scout.data.splits_board import fetch_action_network_splits
+
+            splits = fetch_action_network_splits(date=splits_date)
             if not splits:
-                logger.warning("Action Network returned no games — using mock splits overlay where possible")
-                splits = mock_splits()
+                logger.warning("Action Network returned no games — splits unavailable")
+                splits = []
         except Exception as exc:  # noqa: BLE001
             logger.warning("Action Network failed: %s", exc)
-            splits = mock_splits()
+            splits = []
+    else:
+        splits = []
 
     # ── Phases 2–4 per event ─────────────────────────────────
     game_results: list[dict[str, Any]] = []
@@ -149,6 +161,10 @@ def run_pipeline(
 
     stage_cards = build_slate_stage_picks(events, sims_by_event, splits, validated, market="spread")
     stage_summary = summarize_stage_slate(stage_cards)
+
+    from sharp_scout.data.splits_board import build_slate_split_boards
+
+    split_boards = build_slate_split_boards(events, splits)
     for g in game_results:
         eid = str(g.get("event_id"))
         card = next((c for c in stage_cards if c["event_id"] == eid), None)
@@ -160,7 +176,10 @@ def run_pipeline(
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "demo": demo or not settings.odds_api_key,
+        "demo": demo and not manual_mode,
+        "manual_slate": manual_mode,
+        "splits_date": splits_date,
+        "n_splits_games": len(splits),
         "n_games": len(game_results),
         "n_candidates": len(all_signals),
         "n_validated": len(validated),
@@ -173,6 +192,7 @@ def run_pipeline(
         "plays": validated,
         "stage_picks": stage_cards,
         "stage_summary": stage_summary,
+        "split_boards": split_boards,
     }
 
     out_path = ARTIFACTS_DIR / "latest_signals.json"

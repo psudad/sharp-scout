@@ -266,7 +266,7 @@ def _pick_cell(pick: dict | None) -> str:
 
 def _render_stage_rows(cards: list[dict]) -> str:
     if not cards:
-        return "<tr><td colspan='8'>No stage picks yet. Run the pipeline.</td></tr>"
+        return "<tr><td colspan='9'>No stage picks yet. Run the pipeline.</td></tr>"
     rows = []
     for c in cards:
         picks = c.get("picks") or {}
@@ -285,6 +285,7 @@ def _render_stage_rows(cards: list[dict]) -> str:
             f"<td>{_pick_cell(picks.get('sharp'))}</td>"
             f"<td>{_pick_cell(picks.get('public'))}</td>"
             f"<td>{_pick_cell(picks.get('money'))}</td>"
+            f"<td>{_pick_cell(picks.get('sharp_edge'))}</td>"
             f"<td>{_pick_cell(picks.get('rlm'))}</td>"
             f"<td class='pos'>{_pick_cell(hybrid)}</td>"
             f"<td>{_esc(flag or agrees)}</td>"
@@ -425,7 +426,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">Per-Game Stage Winners</div>
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
+      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
     </tr></thead>
     <tbody>{stage_rows}</tbody>
   </table></div>

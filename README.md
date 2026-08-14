@@ -28,6 +28,9 @@ python scripts/run_pipeline.py --demo --build-site
 # Live run
 python scripts/run_pipeline.py --build-site
 
+# Preseason / manual pasted odds (The Odds API has no preseason) + live Action Network splits
+python scripts/run_manual_slate.py data/manual_slate.example.json --date 20260814 --skip-pbp --build-site
+
 # Settle completed games (nflverse scores) and refresh site
 python scripts/settle_plays.py --build-site
 # Or one game manually:

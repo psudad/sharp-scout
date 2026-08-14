@@ -90,6 +90,19 @@
   .footer-note { color: #4b5563; font-size: 11px; margin-top: 16px; line-height: 1.6; }
   .empty { color: #8b949e; font-size: 13px; padding: 24px 8px; text-align: center; line-height: 1.6; }
   hr.divider { border: none; border-top: 1px solid #21262d; margin: 16px 0; }
+
+  .game-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+  .game-card h3 { font-size: 15px; color: #fff; margin-bottom: 4px; }
+  .game-card .sub { font-size: 11px; color: #8b949e; margin-bottom: 10px; }
+  .split-table { min-width: 560px; font-size: 11px; }
+  .split-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .diff-pos { color: #4ade80; font-weight: 700; }
+  .bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .bar { height: 6px; border-radius: 3px; background: #238636; min-width: 4px; }
+  .pct { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+  .edge-pill { display: inline-block; background: #0d2a1a; border: 1px solid #4ade80; color: #4ade80; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; }
+  .stage-chip { font-size: 11px; padding: 4px 6px; border-radius: 6px; background: #21262d; border: 1px solid #30363d; margin: 2px 4px 2px 0; display: inline-block; }
+  .stage-chip b { color: #fff; }
 </style>
 </head>
 <body>
@@ -106,6 +119,9 @@
 
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays',this)">Plays</div>
+  <div class="tab" onclick="showTab('splits',this)">Splits</div>
+  <div class="tab" onclick="showTab('stages',this)">Stages</div>
+  <div class="tab" onclick="showTab('candidates',this)">Candidates</div>
   <div class="tab" onclick="showTab('games',this)">Games</div>
   <div class="tab" onclick="showTab('ratings',this)">Ratings</div>
   <div class="tab" onclick="showTab('log',this)">Log</div>
@@ -120,6 +136,27 @@
   </div>
   <div class="section-label" id="plays-label">Validated Signals</div>
   <div id="plays-list"><div class="empty">No signals yet. Click <b>Run Demo Pipeline</b> or POST /api/run.</div></div>
+</div>
+
+<div id="tab-splits" class="content">
+  <div class="section-label">Action Network — Tickets / Money / Diff</div>
+  <p class="footer-note" style="margin-top:0;margin-bottom:12px;">Sharp edge = side where handle % exceeds ticket % (Action Network Diff). Preseason: use <code>scripts/run_manual_slate.py</code> with pasted odds + live splits.</p>
+  <div id="splits-list"><div class="empty">No split boards yet. Run the pipeline with Action Network reachable.</div></div>
+</div>
+
+<div id="tab-stages" class="content">
+  <div class="section-label">Per-game stage picks (spread)</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Matchup</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th></tr></thead>
+      <tbody id="stages-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="tab-candidates" class="content">
+  <div class="section-label">All model edges (incl. rejected)</div>
+  <div id="candidates-list"><div class="empty">No candidates yet.</div></div>
 </div>
 
 <div id="tab-games" class="content">
@@ -182,6 +219,130 @@ function confFromEdge(edge) {
   return Math.min(99, Math.round(50 + edge * 500));
 }
 
+function pct(x) {
+  if (x == null || isNaN(x)) return '—';
+  return `${Math.round(x * 100)}%`;
+}
+
+function diffCell(d) {
+  if (d == null || isNaN(d)) return '—';
+  const cls = d > 0 ? 'diff-pos' : '';
+  const sign = d > 0 ? '+' : '';
+  return `<span class="${cls}">${sign}${Math.round(d * 100)}%</span>`;
+}
+
+function barRow(label, tickets, money, diff) {
+  const tw = tickets != null ? Math.max(4, Math.round(tickets * 100)) : 0;
+  const mw = money != null ? Math.max(4, Math.round(money * 100)) : 0;
+  return `<tr>
+    <td><b>${label}</b></td>
+    <td><div class="bar-wrap"><span class="pct">${pct(tickets)}</span><div class="bar" style="width:${tw}px"></div></div></td>
+    <td><div class="bar-wrap"><span class="pct">${pct(money)}</span><div class="bar" style="width:${mw}px;opacity:0.85"></div></div></td>
+    <td>${diffCell(diff)}</td>
+  </tr>`;
+}
+
+function renderMarketTable(mkt) {
+  const sides = mkt.sides || {};
+  const keys = Object.keys(sides);
+  const title = (mkt.market || '').toUpperCase();
+  const line = mkt.line != null ? ` · line ${mkt.line}` : '';
+  const edge = mkt.sharp_edge || {};
+  const edgeHtml = edge.available
+    ? `<span class="edge-pill">Edge: ${edge.team} ${diffCell(edge.diff_pct)}</span>`
+    : '';
+  return `
+    <div class="section-label" style="margin-top:12px;margin-bottom:6px;">${title}${line} ${edgeHtml}</div>
+    <div class="table-wrap">
+      <table class="split-table">
+        <thead><tr><th>Side</th><th>% Bets</th><th>% Money</th><th>Diff</th></tr></thead>
+        <tbody>
+          ${keys.map(k => {
+            const s = sides[k];
+            return barRow(s.label || k, s.tickets_pct, s.money_pct, s.diff_pct);
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderSplits(data) {
+  const boards = data.split_boards || [];
+  const el = document.getElementById('splits-list');
+  if (!boards.length) {
+    el.innerHTML = '<div class="empty">No split boards. Action Network may not match these games (check team abbreviations / date).</div>';
+    return;
+  }
+  el.innerHTML = boards.map(b => {
+    if (!b.available) {
+      return `<div class="game-card"><h3>${b.away_team} @ ${b.home_team}</h3><div class="sub">${b.reason || 'splits unavailable'}</div></div>`;
+    }
+    const mkts = ['spread', 'total', 'moneyline'].filter(k => b.markets && b.markets[k]);
+    return `<div class="game-card">
+      <h3>${b.away_team} @ ${b.home_team}</h3>
+      <div class="sub">${b.num_bets ? b.num_bets.toLocaleString() + ' bets tracked' : 'Action Network'}${data.splits_date ? ' · slate ' + data.splits_date : ''}</div>
+      ${mkts.map(k => renderMarketTable(b.markets[k])).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderStages(data) {
+  const cards = data.stage_picks || [];
+  const body = document.getElementById('stages-body');
+  const cell = p => {
+    if (!p || !p.available || !p.team) return '—';
+    return `<b>${p.team}</b>`;
+  };
+  const note = c => {
+    const bits = [];
+    const svp = (c.agreement || {}).sharp_vs_public;
+    if (svp && svp.fade_public) bits.push('fade public');
+    if ((c.agreement || {}).rlm_active) bits.push('RLM');
+  const agrees = (c.hybrid_agrees_with || []).join('+');
+    if (agrees) bits.push('hybrid↔' + agrees);
+    return bits.join(' · ') || '—';
+  };
+  body.innerHTML = cards.map(c => {
+    const p = c.picks || {};
+    return `<tr>
+      <td>${c.away_team} @ ${c.home_team}</td>
+      <td>${cell(p.model)}</td>
+      <td>${cell(p.sharp)}</td>
+      <td>${cell(p.public)}</td>
+      <td>${cell(p.money)}</td>
+      <td>${cell(p.sharp_edge)}</td>
+      <td>${cell(p.rlm)}</td>
+      <td class="pos">${cell(p.hybrid)}</td>
+      <td>${note(c)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9">No stage picks yet.</td></tr>';
+}
+
+function renderCandidates(data) {
+  const signals = (data.signals || []).slice().sort((a,b) => (b.edge||0) - (a.edge||0));
+  const el = document.getElementById('candidates-list');
+  if (!signals.length) {
+    el.innerHTML = '<div class="empty">No candidates.</div>';
+    return;
+  }
+  el.innerHTML = signals.map(s => {
+    const passed = s.filter_passed;
+    const tier = passed ? (s.tier || 'lean') : 'rejected';
+    const cardCls = passed ? (s.tier === 'play' ? 'sharp-play' : s.tier === 'lean' ? 'sharp-lean' : 'candidate') : 'candidate';
+    const notes = (s.filter_notes || []).join(' · ');
+    return `<div class="play-card ${cardCls}">
+      <div class="play-title">${s.away_team} @ ${s.home_team} · ${sideLabel(s)}</div>
+      <div class="play-subtitle">${s.book} · EV ${(s.edge*100).toFixed(1)}% · ${passed ? tier.toUpperCase() : 'REJECTED'}</div>
+      <div class="flags" style="margin-top:8px;">
+        ${s.flags?.money_split ? '<span class="flag ok">Money gap</span>' : ''}
+        ${s.flags?.rlm ? '<span class="flag ok">RLM</span>' : ''}
+        ${!passed ? '<span class="flag warn">No confirm</span>' : ''}
+      </div>
+      <div class="rationale-body open" style="display:block;border:none;padding-top:6px;">${notes.replace(/</g,'&lt;')}</div>
+    </div>`;
+  }).join('');
+}
+
 function renderPlays(data) {
   const plays = data.plays || [];
   const list = document.getElementById('plays-list');
@@ -192,7 +353,7 @@ function renderPlays(data) {
   document.getElementById('plays-label').textContent = `Validated Signals — ${plays.length}`;
 
   if (!plays.length) {
-    list.innerHTML = '<div class="empty">Pipeline ran but no edges cleared the split filter. Check candidates in artifacts or lower thresholds.</div>';
+    list.innerHTML = '<div class="empty">No validated plays. See <b>Splits</b> and <b>Candidates</b> tabs for full pipeline output.</div>';
     return;
   }
 
@@ -268,6 +429,9 @@ function updateHeader(data) {
   if (data.demo) {
     pill.className = 'result-pill demo';
     pill.textContent = 'DEMO MODE · mock odds / splits';
+  } else if (data.manual_slate) {
+    pill.className = 'result-pill';
+    pill.textContent = `MANUAL SLATE · ${data.n_validated || 0} plays · AN ${data.splits_date || ''}`;
   } else {
     pill.className = 'result-pill';
     pill.textContent = `LIVE · ${data.n_validated || 0} plays`;
@@ -281,6 +445,9 @@ async function loadSignals() {
     const data = await res.json();
     updateHeader(data);
     renderPlays(data);
+    renderSplits(data);
+    renderStages(data);
+    renderCandidates(data);
     renderGames(data);
     renderRatings(data);
   } catch (e) {

@@ -26,7 +26,7 @@ from sharp_scout.utils.odds import american_to_implied_prob
 Side = Literal["home", "away"]
 MarketFocus = Literal["spread", "h2h"]
 
-STAGES = ("model", "sharp", "public", "money", "rlm", "hybrid")
+STAGES = ("model", "sharp", "public", "money", "sharp_edge", "rlm", "hybrid")
 
 
 @dataclass
@@ -188,6 +188,50 @@ def pick_money(split_game: dict[str, Any] | None, home: str, away: str, market: 
     )
 
 
+def pick_sharp_edge(
+    split_game: dict[str, Any] | None,
+    home: str,
+    away: str,
+    market: str = "spread",
+) -> StagePick:
+    """Action Network Diff: side with the largest positive money − ticket %."""
+    from sharp_scout.data.splits_board import build_market_board
+
+    if not split_game:
+        return StagePick("sharp_edge", market, None, None, reason="no Action Network row", available=False)
+    mkey = {"spread": "spread", "h2h": "moneyline"}.get(market, market)
+    if mkey not in ("spread", "moneyline", "total"):
+        mkey = "spread"
+    block = (split_game.get("markets") or {}).get(mkey) or {}
+    board = build_market_board(block, market=mkey, home_team=home, away_team=away)  # type: ignore[arg-type]
+    edge = board.get("sharp_edge") or {}
+    if not edge.get("available"):
+        return StagePick(
+            "sharp_edge",
+            market,
+            None,
+            None,
+            reason=edge.get("reason") or "no sharp-edge diff",
+            available=False,
+        )
+    side = edge.get("side")
+    if side not in ("home", "away", "over", "under"):
+        return StagePick("sharp_edge", market, None, None, reason="unparsed sharp-edge side", available=False)
+    team = edge.get("team")
+    if side in ("home", "away"):
+        team = _team(side, home, away)
+    conf = min(0.99, 0.5 + float(edge.get("diff_pct") or 0))
+    return StagePick(
+        "sharp_edge",
+        market,
+        side,  # type: ignore[arg-type]
+        team,
+        block.get("current_line"),
+        conf,
+        edge.get("reason") or "",
+    )
+
+
 def pick_rlm(split_game: dict[str, Any] | None, home: str, away: str) -> StagePick:
     if not split_game:
         return StagePick("rlm", "spread", None, None, reason="no Action Network row", available=False)
@@ -293,6 +337,7 @@ def build_game_stage_card(
     sharp = pick_sharp(event, home, away, market=market)
     public = pick_public(split, home, away, market=market)
     money = pick_money(split, home, away, market=market)
+    sharp_edge = pick_sharp_edge(split, home, away, market=market)
     rlm = pick_rlm(split, home, away) if market == "spread" else StagePick(
         "rlm", market, None, None, reason="RLM is spread-only", available=False
     )
@@ -311,6 +356,7 @@ def build_game_stage_card(
         "sharp": sharp,
         "public": public,
         "money": money,
+        "sharp_edge": sharp_edge,
         "rlm": rlm,
         "hybrid": hybrid,
     }

@@ -56,7 +56,7 @@ def test_build_run_plan_counts_windows():
 def test_merge_odds_adds_preseason_games_not_in_nflverse(mock_client, mock_settings):
     kickoff = datetime(2026, 8, 15, 17, 0, tzinfo=timezone.utc)
     mock_settings.return_value.odds_api_key = "test"
-    mock_client.return_value.fetch_events.return_value = [
+    mock_client.return_value.fetch_events_all_sports.return_value = [
         {
             "event_id": "pre-buf-car",
             "home_team": "BUF",

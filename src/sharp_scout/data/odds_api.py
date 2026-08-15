@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.the-odds-api.com/v4"
 SPORT = "americanfootball_nfl"
+SPORT_PRESEASON = "americanfootball_nfl_preseason"
+NFL_SPORT_KEYS = (SPORT, SPORT_PRESEASON)
 
 
 class OddsAPIError(RuntimeError):
@@ -53,9 +55,11 @@ class OddsClient:
         markets: str = "h2h,spreads,totals",
         regions: str = "us,us2,eu",
         odds_format: str = "american",
+        sport: str | None = None,
     ) -> list[dict[str, Any]]:
+        sport_key = sport or SPORT
         raw = self._get(
-            f"/sports/{SPORT}/odds",
+            f"/sports/{sport_key}/odds",
             {
                 "regions": regions,
                 "markets": markets,
@@ -65,9 +69,39 @@ class OddsClient:
         )
         return [self._normalize_event(ev) for ev in raw]
 
-    def fetch_events(self) -> list[dict[str, Any]]:
+    def fetch_odds_all_sports(
+        self,
+        markets: str = "h2h,spreads,totals",
+        regions: str = "us,us2,eu",
+        odds_format: str = "american",
+    ) -> list[dict[str, Any]]:
+        """Merge odds from regular-season and preseason NFL sport keys."""
+        seen: set[str] = set()
+        out: list[dict[str, Any]] = []
+        for sport_key in NFL_SPORT_KEYS:
+            try:
+                batch = self.fetch_odds(
+                    markets=markets,
+                    regions=regions,
+                    odds_format=odds_format,
+                    sport=sport_key,
+                )
+            except OddsAPIError as exc:
+                logger.warning("Odds fetch skipped for %s: %s", sport_key, exc)
+                continue
+            for ev in batch:
+                eid = ev.get("event_id")
+                if eid and eid in seen:
+                    continue
+                if eid:
+                    seen.add(eid)
+                out.append(ev)
+        return out
+
+    def fetch_events(self, sport: str | None = None) -> list[dict[str, Any]]:
         """Upcoming NFL events (no odds) — used by pregame scheduler."""
-        raw = self._get(f"/sports/{SPORT}/events", {"dateFormat": "iso"})
+        sport_key = sport or SPORT
+        raw = self._get(f"/sports/{sport_key}/events", {"dateFormat": "iso"})
         out = []
         for ev in raw or []:
             commence = ev.get("commence_time")
@@ -88,18 +122,39 @@ class OddsClient:
             )
         return out
 
+    def fetch_events_all_sports(self) -> list[dict[str, Any]]:
+        """Merge events from regular-season and preseason NFL sport keys."""
+        seen: set[str] = set()
+        out: list[dict[str, Any]] = []
+        for sport_key in NFL_SPORT_KEYS:
+            try:
+                batch = self.fetch_events(sport=sport_key)
+            except OddsAPIError as exc:
+                logger.warning("Events fetch skipped for %s: %s", sport_key, exc)
+                continue
+            for ev in batch:
+                eid = ev.get("event_id")
+                if eid and eid in seen:
+                    continue
+                if eid:
+                    seen.add(eid)
+                out.append(ev)
+        return out
+
     def fetch_event_props(
         self,
         event_id: str,
         markets: str | None = None,
         regions: str = "us,us2",
         odds_format: str = "american",
+        sport: str | None = None,
     ) -> dict[str, Any]:
         """Player props are per-event on The Odds API."""
         settings = get_settings()
         markets = markets or settings.prop_markets
+        sport_key = sport or SPORT
         raw = self._get(
-            f"/sports/{SPORT}/events/{event_id}/odds",
+            f"/sports/{sport_key}/events/{event_id}/odds",
             {
                 "regions": regions,
                 "markets": markets,

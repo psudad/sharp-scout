@@ -14,7 +14,7 @@ from sharp_scout.props.usage import (
     reallocate_targets,
 )
 from sharp_scout.data.odds_api import mock_odds_events
-from sharp_scout.scheduler.pregame import find_due_windows, mark_fired
+from sharp_scout.scheduler.pregame import find_due_windows, mark_fired, run_due_pregame
 from sharp_scout.props.pipeline import run_props_pipeline
 
 
@@ -111,6 +111,18 @@ def test_pregame_windows(tmp_path):
     mark_fired(hits, path=state_path)
     hits2 = find_due_windows(events, windows_hours=[12, 3, 1], tolerance_minutes=30, now=now, state=pg.load_state(state_path))
     assert hits2 == []
+
+
+def test_demo_pregame_does_not_refire_same_window(tmp_path):
+    """Demo mode must respect schedule_state (cron was re-firing every 30 min)."""
+    from sharp_scout.scheduler import pregame as pg
+
+    pg.STATE_PATH = tmp_path / "state.json"
+    first = run_due_pregame(demo=True, build_pages=False, skip_pbp=True)
+    assert first["ran"] is True
+    second = run_due_pregame(demo=True, build_pages=False, skip_pbp=True)
+    assert second["ran"] is False
+    assert second["hits"] == []
 
 
 def test_props_pipeline_demo():

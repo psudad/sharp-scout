@@ -70,13 +70,16 @@ python scripts/run_props.py --demo --build-site
 
 ## Pregame schedule (T-12h / T-3h / T-1h)
 
-`scripts/run_pregame.py` checks upcoming kickoffs and fires **sides + props** when a game is within ±25 minutes of 12h, 3h, or 1h before kickoff. Fired windows are recorded in `data/schedule_state.json` so each window runs once.
+`scripts/run_pregame.py` fires **sides + props** when a game is within ±25 minutes of 12h, 3h, or 1h before kickoff. Fired windows are recorded in `data/schedule_state.json` so each window runs once.
 
-GitHub Action **Pregame Windows** runs every 30 minutes on `main`.
+Weekly run times are built from the nflverse schedule (`games.csv`) into `data/pregame_run_plan.json`:
 
 ```bash
+python scripts/plan_pregame_runs.py   # refresh plan from NFL schedule
 python scripts/run_pregame.py --demo
 ```
+
+GitHub Action **Pregame Windows** checks the run plan hourly on Thu–Mon (most hours exit in seconds). Full pipeline runs only when a planned window is due — typically ~3 runs per kickoff slot (1pm / 4pm / 8pm ET Sunday, etc.), not every 30 minutes.
 
 ## GitHub Pages (weekly public board)
 
@@ -84,8 +87,8 @@ python scripts/run_pregame.py --demo
 
 1. **Settings → Pages → Build and deployment**
    - Source: **GitHub Actions**
-2. **Settings → Secrets and variables → Actions** — add:
-   - `ODDS_API_KEY` (required for live odds)
+2. **Settings → Secrets and variables → Actions → Repository secrets** — add:
+   - `ODDS_API_KEY` (required for live odds on GitHub Actions — a local `.env` file is **not** used in CI)
    - `ACTION_NETWORK_COOKIE` (optional; money/handle %)
 3. Merge this branch to `main`, then run **Actions → NFL Pipeline + Ledger → Run workflow**
 4. Site URL: `https://<user>.github.io/sharp-scout/`
@@ -94,7 +97,7 @@ python scripts/run_pregame.py --demo
 
 | Workflow | When | Does |
 |---|---|---|
-| `Pregame Windows` | Every 30 min | Fire T-12h / T-3h / T-1h side+prop runs for due games → update ledger + Pages |
+| `Pregame Windows` | Hourly Thu–Mon + plan refresh Monday | Fire T-12h / T-3h / T-1h only when scheduled in run plan |
 | `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full slate refresh / settle / site |
 | `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
 

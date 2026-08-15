@@ -1,13 +1,19 @@
 name: Pregame Windows (T-12 / T-3 / T-1)
 
-# Checks every 30 minutes which games fall inside the 12h / 3h / 1h windows
-# (±25 min), then runs side + player-prop pipelines for those games only.
-# Secrets: ODDS_API_KEY (required), ACTION_NETWORK_COOKIE (optional),
-#          INACTIVE_PLAYERS (optional comma-separated names)
+# Uses data/pregame_run_plan.json (built from nflverse weekly schedule) to fire only
+# near real kickoff windows — not every 30 minutes.
+#
+# Secrets (repo Settings → Secrets and variables → Actions → Repository secrets):
+#   ODDS_API_KEY (required for live runs)
+#   ACTION_NETWORK_COOKIE (optional)
+#   INACTIVE_PLAYERS (optional)
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    # Refresh weekly plan: Monday 10:00 UTC (~6am ET)
+    - cron: "0 10 * * 1"
+    # Hourly on NFL game days (Thu–Mon UTC); most hours exit in seconds via run plan gate
+    - cron: "0 * * * 0,4,5,6,1"
   workflow_dispatch:
     inputs:
       demo:
@@ -16,6 +22,10 @@ on:
         default: false
       force_all:
         description: "Force all upcoming games (ignore windows)"
+        type: boolean
+        default: false
+      refresh_plan:
+        description: "Rebuild pregame_run_plan.json before running"
         type: boolean
         default: false
 
@@ -34,30 +44,66 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Gate — skip hour if not in run plan
+        id: gate
+        if: github.event_name == 'schedule'
+        run: python3 scripts/check_pregame_plan.py
+
+      - name: Stop — not a planned run hour
+        if: github.event_name == 'schedule' && steps.gate.outputs.run != 'true'
+        run: echo "Skipping — no pregame window scheduled for this hour."
+
       - uses: actions/setup-python@v5
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true' || github.event.schedule == '0 10 * * 1'
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true' || github.event.schedule == '0 10 * * 1'
         run: pip install -e .
 
       - name: Configure env
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true' || github.event.schedule == '0 10 * * 1'
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
           echo "ACTION_NETWORK_COOKIE=${{ secrets.ACTION_NETWORK_COOKIE }}" >> $GITHUB_ENV
           echo "INACTIVE_PLAYERS=${{ secrets.INACTIVE_PLAYERS }}" >> $GITHUB_ENV
           echo "MONTE_CARLO_SIMS=4000" >> $GITHUB_ENV
 
+      - name: Build weekly pregame run plan
+        if: github.event.schedule == '0 10 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.refresh_plan)
+        run: python scripts/plan_pregame_runs.py
+
+      - name: Commit run plan
+        if: github.event.schedule == '0 10 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.refresh_plan)
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/pregame_run_plan.json || true
+          if git diff --staged --quiet; then
+            echo "No plan changes"
+          else
+            git commit -m "chore: refresh pregame run plan from NFL schedule"
+            git push
+          fi
+
       - name: Settle prior plays
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         continue-on-error: true
         run: python scripts/settle_plays.py
 
       - name: Run due pregame windows
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         env:
           DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
           FORCE_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.force_all || false }}
         run: |
+          if [ -z "$ODDS_API_KEY" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "No ODDS_API_KEY secret — skipping scheduled pregame."
+            echo "Add ODDS_API_KEY at: Settings → Secrets and variables → Actions → Repository secrets"
+            exit 0
+          fi
           ARGS=""
           if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
             ARGS="--demo --skip-pbp"
@@ -68,6 +114,7 @@ jobs:
           python scripts/run_pregame.py $ARGS
 
       - name: Commit ledger, schedule state, site
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -78,20 +125,3 @@ jobs:
             git commit -m "chore: pregame window update (sides + props)"
             git push
           fi
-
-      - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
-
-  deploy:
-    needs: pregame
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4

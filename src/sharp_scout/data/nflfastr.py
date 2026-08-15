@@ -19,8 +19,7 @@ PBP_URL = (
     "play_by_play_{season}.parquet"
 )
 SCHEDULE_URL = (
-    "https://github.com/nflverse/nflverse-data/releases/download/schedules/"
-    "schedules.parquet"
+    "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.parquet"
 )
 
 

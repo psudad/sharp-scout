@@ -32,6 +32,15 @@ def _price(p: Any) -> str:
     return f"+{int(round(n))}" if n > 0 else str(int(round(n)))
 
 
+def _team_for_side(p: dict[str, Any]) -> str:
+    side = str(p.get("side") or "").lower()
+    if side == "home":
+        return str(p.get("home_team") or "HOME")
+    if side == "away":
+        return str(p.get("away_team") or "AWAY")
+    return str(p.get("side", "")).upper()
+
+
 def _side_label(p: dict[str, Any]) -> str:
     if p.get("player_name") or str(p.get("market") or "").startswith("player_"):
         line = p.get("line")
@@ -43,7 +52,8 @@ def _side_label(p: dict[str, Any]) -> str:
     if line is not None:
         line_s = f" {float(line):+g}" if float(line) != 0 else " 0"
     m = {"spreads": "spread", "totals": "total", "h2h": "ML"}.get(p.get("market"), p.get("market"))
-    return f"{str(p.get('side', '')).upper()}{line_s} ({m}) {_price(p.get('price'))}"
+    team = _team_for_side(p)
+    return f"{team}{line_s} ({m}) {_price(p.get('price'))}"
 
 
 def _status_badge(status: str) -> str:
@@ -150,7 +160,8 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
             title = _side_label(p)
             sub = f"{p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
             if p.get("window"):
-                sub += f" · T-{p.get('window')}h"
+                w = p.get("window")
+                sub += f" · {'force-all' if w == -1 else f'T-{w}h'}"
             if p.get("play_type") == "prop" or p.get("player_name"):
                 sub = f"PROP · {sub}"
             if p.get("home_score") is not None and not p.get("player_name"):

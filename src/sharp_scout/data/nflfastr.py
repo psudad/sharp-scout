@@ -114,8 +114,8 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
 
     for col in ("posteam", "defteam", "home_team", "away_team"):
         if col in df.columns:
-            df[col] = df[col].astype(str).map(
-                lambda x: normalize_team(x) if x and x != "nan" else x
+            df[col] = df[col].map(
+                lambda x: normalize_team(x) if isinstance(x, str) and x.strip() else x
             )
 
     if "success" not in df.columns and "epa" in df.columns:
@@ -157,5 +157,7 @@ def load_schedules(seasons: list[int] | None = None) -> pd.DataFrame:
         sched = sched[sched["season"].isin(seasons)]
     for col in ("home_team", "away_team"):
         if col in sched.columns:
-            sched[col] = sched[col].astype(str).map(normalize_team)
+            sched[col] = sched[col].map(
+                lambda x: normalize_team(x) if isinstance(x, str) and x.strip() else x
+            )
     return sched.reset_index(drop=True)

@@ -13,8 +13,17 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from sharp_scout.config import get_settings  # noqa: E402
-from sharp_scout.data.odds_api import OddsClient, mock_odds_events  # noqa: E402
+from tenacity import RetryError
+
+from sharp_scout.config import DATA_DIR, get_settings  # noqa: E402
+from sharp_scout.data.manual_odds import load_manual_slate  # noqa: E402
+from sharp_scout.data.odds_api import (  # noqa: E402
+    OddsAPIError,
+    OddsClient,
+    SPORT,
+    SPORT_PRESEASON,
+    mock_odds_events,
+)
 from sharp_scout.pipeline.run import run_pipeline  # noqa: E402
 from sharp_scout.utils.odds import setup_logging  # noqa: E402
 
@@ -47,6 +56,47 @@ def _filter_today(events: list[dict], start_utc: datetime, end_utc: datetime) ->
     return out
 
 
+def _resolve_today_events(
+    client: OddsClient,
+    start_utc: datetime,
+    end_utc: datetime,
+    splits_date: str,
+    slate_path: Path | None = None,
+) -> tuple[list[dict], str]:
+    """Try regular NFL, preseason Odds API, then optional manual slate file."""
+    for sport, label in ((SPORT, "odds_api"), (SPORT_PRESEASON, "odds_api_preseason")):
+        try:
+            odds = client.fetch_odds(sport=sport)
+        except (OddsAPIError, RetryError):
+            odds = []
+        today = _filter_today(odds, start_utc, end_utc)
+        if today:
+            return today, label
+        try:
+            evs = client.fetch_events(sport=sport)
+        except (OddsAPIError, RetryError):
+            evs = []
+        today = _filter_today(evs, start_utc, end_utc)
+        if today:
+            return today, f"{label}_events_only"
+
+    candidates = []
+    if slate_path:
+        candidates.append(slate_path)
+    candidates.append(DATA_DIR / "slates" / f"{splits_date}.json")
+    for path in candidates:
+        if not path.exists():
+            continue
+        events, _ = load_manual_slate(path)
+        today = _filter_today(events, start_utc, end_utc)
+        if today:
+            return today, f"manual_slate:{path.name}"
+        if events and path == slate_path:
+            return events, f"manual_slate:{path.name}"
+
+    return [], "none"
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Sharp Scout — today's NFL slate (full pipeline)")
     p.add_argument("--date", help="Eastern slate date YYYYMMDD (default: today ET)")
@@ -55,6 +105,12 @@ def main() -> None:
     p.add_argument("--no-ledger", action="store_true")
     p.add_argument("--fresh-ledger", action="store_true", help="Clear ledger before append")
     p.add_argument("--build-site", action="store_true")
+    p.add_argument(
+        "--slate",
+        type=Path,
+        default=None,
+        help="Manual slate JSON (default: data/slates/{YYYYMMDD}.json if needed)",
+    )
     args = p.parse_args()
 
     settings = get_settings()
@@ -71,12 +127,12 @@ def main() -> None:
             events = [ev]
         demo = True
         skip_pbp = True
+        event_source = "demo"
     else:
         client = OddsClient()
-        events = client.fetch_odds()
-        if not events:
-            events = client.fetch_events()
-        events = _filter_today(events, start_utc, end_utc)
+        events, event_source = _resolve_today_events(
+            client, start_utc, end_utc, splits_date, args.slate
+        )
         demo = False
         skip_pbp = args.skip_pbp
 
@@ -93,7 +149,10 @@ def main() -> None:
                     "error": "no_games_today",
                     "splits_date": splits_date,
                     "window_utc": [start_utc.isoformat(), end_utc.isoformat()],
-                    "hint": "Odds API may not list preseason yet; try --demo or manual slate.",
+                    "hint": (
+                        "No games on regular or preseason Odds API feeds for this Eastern day. "
+                        "Add data/slates/{date}.json or pass --slate."
+                    ),
                 },
                 indent=2,
             )
@@ -112,7 +171,7 @@ def main() -> None:
 
     summary = {
         "ok": True,
-        "splits_date": splits_date,
+        "event_source": event_source,
         "n_games": result["n_games"],
         "n_candidates": result["n_candidates"],
         "n_validated": result["n_validated"],

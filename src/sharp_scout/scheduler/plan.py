@@ -105,7 +105,7 @@ def merge_odds_kickoffs(games: list[dict[str, Any]]) -> list[dict[str, Any]]:
     try:
         from sharp_scout.data.odds_api import OddsClient
 
-        events = OddsClient().fetch_events()
+        events = OddsClient().fetch_events_all_sports()
     except Exception as exc:  # noqa: BLE001
         logger.warning("Odds API schedule merge skipped: %s", exc)
         return games

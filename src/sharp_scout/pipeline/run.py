@@ -135,8 +135,8 @@ def run_pipeline(
                 else ev.get("commence_time"),
                 "mu_home": means["mu_home"],
                 "mu_away": means["mu_away"],
-                "model_spread": sim.model_spread,
-                "model_total": sim.model_total,
+                "model_spread": round(sim.model_spread, 2),
+                "model_total": round(sim.model_total, 2),
                 "p_home_win": sim.p_home_win,
                 "situational": situ,
                 "edge_count": len(edges),
@@ -154,7 +154,11 @@ def run_pipeline(
         all_signals.extend(filtered)
 
     validated = [s for s in all_signals if s["filter_passed"]]
-    validated.sort(key=lambda s: s["edge"], reverse=True)
+    from sharp_scout.copy.explain import collapse_best_signals, format_play_rationale
+
+    validated = collapse_best_signals(validated, only_passed=True)
+    for s in validated:
+        s["rationale"] = format_play_rationale(s)
 
     # ── Stage picks: independent winners per data lens ────────
     from sharp_scout.stage_picks import build_slate_stage_picks, summarize_stage_slate

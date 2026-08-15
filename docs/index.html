@@ -47,8 +47,11 @@
   .conf-fill { height: 5px; border-radius: 4px; }
   .rationale-toggle { margin-top: 10px; color: #8b949e; font-size: 12px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
   .rationale-toggle.open .arrow { transform: rotate(90deg); }
-  .rationale-body { display: none; font-size: 12px; color: #94a3b8; margin-top: 8px; line-height: 1.6; border-top: 1px solid #21262d; padding-top: 8px; }
+  .rationale-body { display: none; font-size: 12px; color: #cbd5e1; margin-top: 8px; line-height: 1.65; border-top: 1px solid #21262d; padding-top: 8px; }
   .rationale-body.open { display: block; }
+  .rationale-cell { font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 320px; }
+  .stage-why { font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 420px; }
+  .splits-summary { color: #e2e8f0; margin-bottom: 8px; }
   .table-wrap { overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }
   th { background: #161b22; color: #8b949e; text-align: left; padding: 10px; border-bottom: 1px solid #30363d; }
@@ -74,8 +77,8 @@
 <div class="header">
   <h1>Sharp Scout</h1>
   <p>NFL hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
-  <span class="pill">0-23 · -34.5u · Live pipeline</span>
-  <p style="margin-top:8px">Updated 2026-08-15 13:29 UTC</p>
+  <span class="pill">0-24 · -36.0u · Live pipeline</span>
+  <p style="margin-top:8px">Updated 2026-08-15 13:52 UTC</p>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">Plays</div>
@@ -87,427 +90,19 @@
 
 <div id="tab-plays" class="content active">
   <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">0-23</div><div class="stat-label">Record</div></div>
+    <div class="stat-card"><div class="stat-val">0-24</div><div class="stat-label">Record</div></div>
     <div class="stat-card"><div class="stat-val">0.0%</div><div class="stat-label">Win %</div></div>
-    <div class="stat-card"><div class="stat-val neg">-34.5u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">65.5u</div><div class="stat-label">Bankroll</div></div>
+    <div class="stat-card"><div class="stat-val neg">-36.0u</div><div class="stat-label">Profit</div></div>
+    <div class="stat-card"><div class="stat-val">64.0u</div><div class="stat-label">Bankroll</div></div>
   </div>
-  <div class="section-label">Open / Latest Plays · 24 pending · 47 total</div>
+  <div class="section-label">Open / Latest Plays · 23 pending · 47 total</div>
   
       <div class="play-card sharp-play">
         <div class="card-top">
           <div class="card-left">
             <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">NYG +1.5 (spread) -110</div>
-            <div class="play-subtitle">MIN @ NYG · mybookieag</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.4%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=21.38% at mybookieag -110; money-ticket gap +27% on home (money=77% tickets=50%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +105</div>
-            <div class="play-subtitle">LAR @ KC · fliff</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">25.1%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=25.05% at fliff +105; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +108</div>
-            <div class="play-subtitle">LAR @ KC · betsson</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">26.9%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=26.88% at betsson +108; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +108</div>
-            <div class="play-subtitle">LAR @ KC · nordicbet</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">26.9%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=26.88% at nordicbet +108; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +110</div>
-            <div class="play-subtitle">LAR @ KC · hardrockbet</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">28.1%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=28.10% at hardrockbet +110; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +110</div>
-            <div class="play-subtitle">LAR @ KC · mybookieag</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">28.1%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=28.10% at mybookieag +110; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +110</div>
-            <div class="play-subtitle">LAR @ KC · draftkings</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">28.1%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=28.10% at draftkings +110; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +110</div>
-            <div class="play-subtitle">LAR @ KC · fanduel</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">28.1%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=28.10% at fanduel +110; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +115</div>
-            <div class="play-subtitle">LAR @ KC · bovada</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.1%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=31.15% at bovada +115; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +115</div>
-            <div class="play-subtitle">LAR @ KC · gtbets</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.1%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=31.15% at gtbets +115; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +116</div>
-            <div class="play-subtitle">LAR @ KC · matchbook</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.8%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=31.76% at matchbook +116; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +117</div>
-            <div class="play-subtitle">LAR @ KC · pinnacle</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">32.4%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=32.37% at pinnacle +117; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +118</div>
-            <div class="play-subtitle">LAR @ KC · ballybet</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=32.98% at ballybet +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +118</div>
-            <div class="play-subtitle">LAR @ KC · unibet_se</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=32.98% at unibet_se +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +118</div>
-            <div class="play-subtitle">LAR @ KC · betparx</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=32.98% at betparx +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +118</div>
-            <div class="play-subtitle">LAR @ KC · leovegas_se</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=32.98% at leovegas_se +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +118</div>
-            <div class="play-subtitle">LAR @ KC · betrivers</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=32.98% at betrivers +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
             <div class="play-title">LAR (ML) +120</div>
-            <div class="play-subtitle">LAR @ KC · betanysports</div>
+            <div class="play-subtitle">Sat Aug 15, 4:00 PM ET · LAR @ KC · betonlineag</div>
           </div>
           <div class="units-badge">1.5u</div>
         </div>
@@ -523,151 +118,7 @@
         <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
           <span class="arrow">▶</span><span>Rationale</span>
         </div>
-        <div class="rationale-body">EV=34.20% at betanysports +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +120</div>
-            <div class="play-subtitle">LAR @ KC · betfair_ex_eu</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=34.20% at betfair_ex_eu +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +120</div>
-            <div class="play-subtitle">LAR @ KC · espnbet</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=34.20% at espnbet +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +120</div>
-            <div class="play-subtitle">LAR @ KC · betus</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=34.20% at betus +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +120</div>
-            <div class="play-subtitle">LAR @ KC · betmgm</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=34.20% at betmgm +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +120</div>
-            <div class="play-subtitle">LAR @ KC · lowvig</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=34.20% at lowvig +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LAR (ML) +120</div>
-            <div class="play-subtitle">LAR @ KC · betonlineag</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=34.20% at betonlineag +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+        <div class="rationale-body">We project LAR ML on the moneyline at 61.0% true probability vs 44.3% implied at betonlineag — about 34.2% expected value.</div>
       </div>
 </div>
 
@@ -677,252 +128,247 @@
       <div class="game-card">
         <div class="game-head">
           <div class="game-title">CAR @ BUF</div>
-          <div class="game-kick">2026-08-15T17:00:00+00:00</div>
+          <div class="game-kick">Sat Aug 15, 1:00 PM ET</div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
           <p class="phase-note"><b>CAR</b>: power -0.052 · off -0.031 · def -0.021</p>
           <p class="phase-note"><b>BUF</b>: power 0.115 · off 0.122 · def -0.007</p>
-          <p class="phase-note">Model spread (home): <b>-7.07589386395513</b> ·
-            total <b>48.34674591707173</b> · P(home win) <b>77.3%</b></p>
+          <p class="phase-note">Model spread (home): <b>-7.08</b> ·
+            total <b>48.35</b> · P(home win) <b>77.3%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
-            <tbody><tr><td>totals</td><td>over 38.5</td><td>matchbook</td><td class='pending'>62.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=62.47% at matchbook -106; money-ticket gap only -1% on over (need ≥20%); no o</td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>gtbets</td><td class='pending'>60.3%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=60.30% at gtbets -109; money-ticket gap only -1% on over (need ≥20%); no open</td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>pinnacle</td><td class='pending'>60.3%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=60.30% at pinnacle -109; money-ticket gap only -1% on over (need ≥20%); no op</td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>betrivers</td><td class='pending'>59.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.60% at betrivers -110; money-ticket gap only -1% on over (need ≥20%); no o</td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>betparx</td><td class='pending'>59.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.60% at betparx -110; money-ticket gap only -1% on over (need ≥20%); no ope</td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>ballybet</td><td class='pending'>59.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.60% at ballybet -110; money-ticket gap only -1% on over (need ≥20%); no op</td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>betus</td><td class='pending'>59.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.60% at betus -110; money-ticket gap only -1% on over (need ≥20%); no open/</td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>bovada</td><td class='pending'>59.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.60% at bovada -110; money-ticket gap only -1% on over (need ≥20%); no open</td></tr></tbody>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>total</td><td>OVER +38.5 (total) -106</td><td>matchbook</td><td class='pending'>62.5%</td><td>—</td><td class='rationale-cell'>We project OVER 38.5 on the total at 83.6% true probability vs 50.2% implied at matchbook — about 62.5% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +39.5 (total) -107</td><td>betrivers</td><td class='pending'>56.1%</td><td>—</td><td class='rationale-cell'>We project OVER 39.5 on the total at 80.7% true probability vs 50.2% implied at betrivers — about 56.1% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +39 (total) -114</td><td>betparx</td><td class='pending'>51.5%</td><td>—</td><td class='rationale-cell'>We project OVER 39.0 on the total at 80.7% true probability vs 50.2% implied at betparx — about 51.5% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>BUF -2.5 (spread) -110</td><td>mybookieag</td><td class='pending'>32.3%</td><td>—</td><td class='rationale-cell'>We project BUF -2.5 on the spread at 69.3% true probability vs 49.8% implied at mybookieag — about 32.3% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>ML</td><td>BUF (ML) -152</td><td>betfair_ex_eu</td><td class='pending'>30.9%</td><td>—</td><td class='rationale-cell'>We project BUF ML on the moneyline at 78.9% true probability vs 60.1% implied at betfair_ex_eu — about 30.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>BUF -3 (spread) -105</td><td>betus</td><td class='pending'>27.1%</td><td>—</td><td class='rationale-cell'>We project BUF -3 on the spread at 65.1% true probability vs 49.8% implied at betus — about 27.1% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr></tbody>
           </table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
-          <div class='phase-sub'>spread line -3.0</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BUF</td><td>69%</td><td>65%</td><td class='pos'>-4%</td></tr><tr><td>CAR</td><td>31%</td><td>35%</td><td class='pos'>+4%</td></tr></tbody></table></div><div class='phase-sub'>total line 38.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>58%</td><td>57%</td><td class='pos'>-1%</td></tr><tr><td>Under</td><td>42%</td><td>43%</td><td class='pos'>+1%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BUF</td><td>80%</td><td>85%</td><td class='pos'>+5%</td></tr><tr><td>CAR</td><td>20%</td><td>15%</td><td class='pos'>-5%</td></tr></tbody></table></div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans CAR (handle minus tickets +4% on that side). Total: sharp money leans Under (handle minus tickets +1% on that side). Moneyline: sharp money leans BUF (handle minus tickets +5% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BUF</td><td>69%</td><td>65%</td><td class='pos'>-4%</td></tr><tr><td>CAR</td><td>31%</td><td>35%</td><td class='pos'>+4%</td></tr></tbody></table></div><div class='phase-sub'>total line 38.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>58%</td><td>57%</td><td class='pos'>-1%</td></tr><tr><td>Under</td><td>42%</td><td>43%</td><td class='pos'>+1%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BUF</td><td>80%</td><td>85%</td><td class='pos'>+5%</td></tr><tr><td>CAR</td><td>20%</td><td>15%</td><td class='pos'>-5%</td></tr></tbody></table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>BUF (77%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-7.1 (home perspective)</td></tr><tr><td>sharp</td><td>CAR (50%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 50.2% @ -109</td></tr><tr><td>public</td><td>BUF (69%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=69% away=31%</td></tr><tr><td>money</td><td>BUF (65%)</td><td style='font-size:11px;color:#94a3b8'>money home=65% away=35% (gap vs tickets -4% on home)</td></tr><tr><td>sharp_edge</td><td>CAR (54%)</td><td style='font-size:11px;color:#94a3b8'>+4% money vs tickets on CAR</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>BUF (77%)</td><td style='font-size:11px;color:#94a3b8'>model aligned with money (no validated edge)</td></tr></tbody></table></div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>BUF (77%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor BUF (line -7.07589). Model spread (home) is -7.08 (negative = home favored). · 77% confidence</td></tr><tr><td><b>Sharp line</b></td><td>CAR (50%)</td><td class='stage-why'>Pinnacle / sharp books lean toward CAR (line +3). pinnacle no-vig 50.2% @ -109 · 50% confidence</td></tr><tr><td><b>Public tickets</b></td><td>BUF (69%)</td><td class='stage-why'>Most bet tickets are on BUF (line -2.5). tickets home=69% away=31% · 69% confidence</td></tr><tr><td><b>Sharp money</b></td><td>BUF (65%)</td><td class='stage-why'>Most handle (dollars) is on BUF (line -2.5). money home=65% away=35% (gap vs tickets -4% on home) · 65% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>CAR (54%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to CAR. +4% money vs tickets on CAR · 54% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>no open/current line for RLM</td></tr><tr><td><b>Full system</b></td><td>BUF (77%)</td><td class='stage-why'>Validated system play: BUF. model aligned with money (no validated edge) · 77% confidence</td></tr></tbody></table></div>
         </div>
       </div>
 
       <div class="game-card">
         <div class="game-head">
           <div class="game-title">CLE @ CHI</div>
-          <div class="game-kick">2026-08-15T17:00:00+00:00</div>
+          <div class="game-kick">Sat Aug 15, 1:00 PM ET</div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
           <p class="phase-note"><b>CLE</b>: power -0.083 · off -0.161 · def 0.077</p>
           <p class="phase-note"><b>CHI</b>: power 0.039 · off 0.066 · def -0.027</p>
-          <p class="phase-note">Model spread (home): <b>-5.735442987500509</b> ·
-            total <b>40.950713569427734</b> · P(home win) <b>75.8%</b></p>
+          <p class="phase-note">Model spread (home): <b>-5.74</b> ·
+            total <b>40.95</b> · P(home win) <b>75.8%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
-            <tbody><tr><td>h2h</td><td>home</td><td>betmgm</td><td class='pending'>94.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=94.62% at betmgm +150; money-ticket gap only 6% on home (need ≥20%); no open/</td></tr>
-<tr><td>h2h</td><td>home</td><td>espnbet</td><td class='pending'>94.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=94.62% at espnbet +150; money-ticket gap only 6% on home (need ≥20%); no open</td></tr>
-<tr><td>h2h</td><td>home</td><td>betanysports</td><td class='pending'>94.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=94.62% at betanysports +150; money-ticket gap only 6% on home (need ≥20%); no</td></tr>
-<tr><td>h2h</td><td>home</td><td>betonlineag</td><td class='pending'>93.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=93.85% at betonlineag +149; money-ticket gap only 6% on home (need ≥20%); no </td></tr>
-<tr><td>h2h</td><td>home</td><td>lowvig</td><td class='pending'>93.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=93.85% at lowvig +149; money-ticket gap only 6% on home (need ≥20%); no open/</td></tr>
-<tr><td>h2h</td><td>home</td><td>betfair_ex_eu</td><td class='pending'>93.1%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=93.07% at betfair_ex_eu +148; money-ticket gap only 6% on home (need ≥20%); n</td></tr>
-<tr><td>h2h</td><td>home</td><td>gtbets</td><td class='pending'>90.7%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=90.73% at gtbets +145; money-ticket gap only 6% on home (need ≥20%); no open/</td></tr>
-<tr><td>h2h</td><td>home</td><td>bovada</td><td class='pending'>90.7%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=90.73% at bovada +145; money-ticket gap only 6% on home (need ≥20%); no open/</td></tr></tbody>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>ML</td><td>CHI (ML) +155</td><td>bovada</td><td class='pending'>98.5%</td><td>—</td><td class='rationale-cell'>We project CHI ML on the moneyline at 77.8% true probability vs 38.3% implied at bovada — about 98.5% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>CHI +2.5 (spread) +100</td><td>hardrockbet</td><td class='pending'>73.0%</td><td>—</td><td class='rationale-cell'>We project CHI +2.5 on the spread at 86.5% true probability vs 52.1% implied at hardrockbet — about 73.0% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>CHI +3.5 (spread) -110</td><td>mybookieag</td><td class='pending'>69.9%</td><td>—</td><td class='rationale-cell'>We project CHI +3.5 on the spread at 89.0% true probability vs 52.1% implied at mybookieag — about 69.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>CHI +3 (spread) -104</td><td>gtbets</td><td class='pending'>69.7%</td><td>—</td><td class='rationale-cell'>We project CHI +3 on the spread at 86.5% true probability vs 52.1% implied at gtbets — about 69.7% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr></tbody>
           </table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
-          <div class='phase-sub'>spread line 3.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>CHI</td><td>65%</td><td>79%</td><td class='pos'>+14%</td></tr><tr><td>CLE</td><td>35%</td><td>21%</td><td class='pos'>-14%</td></tr></tbody></table></div><div class='phase-sub'>total line 40.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>66%</td><td>68%</td><td class='pos'>+2%</td></tr><tr><td>Under</td><td>34%</td><td>32%</td><td class='pos'>-2%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>CHI</td><td>52%</td><td>58%</td><td class='pos'>+6%</td></tr><tr><td>CLE</td><td>48%</td><td>42%</td><td class='pos'>-6%</td></tr></tbody></table></div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans CHI (handle minus tickets +14% on that side). Total: sharp money leans Over (handle minus tickets +2% on that side). Moneyline: sharp money leans CHI (handle minus tickets +6% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line 3.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>CHI</td><td>65%</td><td>79%</td><td class='pos'>+14%</td></tr><tr><td>CLE</td><td>35%</td><td>21%</td><td class='pos'>-14%</td></tr></tbody></table></div><div class='phase-sub'>total line 40.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>66%</td><td>68%</td><td class='pos'>+2%</td></tr><tr><td>Under</td><td>34%</td><td>32%</td><td class='pos'>-2%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>CHI</td><td>52%</td><td>58%</td><td class='pos'>+6%</td></tr><tr><td>CLE</td><td>48%</td><td>42%</td><td class='pos'>-6%</td></tr></tbody></table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>CHI (76%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-5.7 (home perspective)</td></tr><tr><td>sharp</td><td>CHI (53%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 53.5% @ -125</td></tr><tr><td>public</td><td>CHI (65%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=65% away=35%</td></tr><tr><td>money</td><td>CHI (79%)</td><td style='font-size:11px;color:#94a3b8'>money home=79% away=21% (gap vs tickets +14% on home)</td></tr><tr><td>sharp_edge</td><td>CHI (64%)</td><td style='font-size:11px;color:#94a3b8'>+14% money vs tickets on CHI</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>CHI (76%)</td><td style='font-size:11px;color:#94a3b8'>model aligned with money+sharp (no validated edge)</td></tr></tbody></table></div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>CHI (76%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor CHI (line -5.73544). Model spread (home) is -5.74 (negative = home favored). · 76% confidence</td></tr><tr><td><b>Sharp line</b></td><td>CHI (52%)</td><td class='stage-why'>Pinnacle / sharp books lean toward CHI (line +3.5). pinnacle no-vig 52.1% @ -118 · 52% confidence</td></tr><tr><td><b>Public tickets</b></td><td>CHI (65%)</td><td class='stage-why'>Most bet tickets are on CHI (line +3.5). tickets home=65% away=35% · 65% confidence</td></tr><tr><td><b>Sharp money</b></td><td>CHI (79%)</td><td class='stage-why'>Most handle (dollars) is on CHI (line +3.5). money home=79% away=21% (gap vs tickets +14% on home) · 79% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>CHI (64%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to CHI. +14% money vs tickets on CHI · 64% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>no open/current line for RLM</td></tr><tr><td><b>Full system</b></td><td>CHI (76%)</td><td class='stage-why'>Validated system play: CHI. model aligned with money+sharp (no validated edge) · 76% confidence</td></tr></tbody></table></div>
         </div>
       </div>
 
       <div class="game-card">
         <div class="game-head">
           <div class="game-title">MIN @ NYG</div>
-          <div class="game-kick">2026-08-15T17:00:00+00:00</div>
+          <div class="game-kick">Sat Aug 15, 1:00 PM ET</div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
           <p class="phase-note"><b>MIN</b>: power 0.039 · off -0.096 · def 0.135</p>
           <p class="phase-note"><b>NYG</b>: power -0.017 · off 0.021 · def -0.038</p>
-          <p class="phase-note">Model spread (home): <b>-1.042467884999681</b> ·
-            total <b>40.22433221278142</b> · P(home win) <b>53.6%</b></p>
+          <p class="phase-note">Model spread (home): <b>-1.04</b> ·
+            total <b>40.22</b> · P(home win) <b>53.6%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
-            <tbody><tr><td>spreads</td><td>home 2.5</td><td>fanduel</td><td class='pos'>31.7%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=31.69% at fanduel -110; money-ticket gap +27% on home (money=77% tickets=50%)</td></tr>
-<tr><td>spreads</td><td>home 2.5</td><td>betmgm</td><td class='pos'>31.7%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=31.69% at betmgm -110; money-ticket gap +27% on home (money=77% tickets=50%);</td></tr>
-<tr><td>spreads</td><td>home 2.5</td><td>espnbet</td><td class='pos'>31.7%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=31.69% at espnbet -110; money-ticket gap +27% on home (money=77% tickets=50%)</td></tr>
-<tr><td>spreads</td><td>home 2.5</td><td>fliff</td><td class='pos'>29.0%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=28.96% at fliff -115; money-ticket gap +27% on home (money=77% tickets=50%); </td></tr>
-<tr><td>spreads</td><td>home 1.5</td><td>draftkings</td><td class='pos'>24.1%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=24.13% at draftkings -105; money-ticket gap +27% on home (money=77% tickets=5</td></tr>
-<tr><td>spreads</td><td>home 2.0</td><td>lowvig</td><td class='pos'>24.1%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=24.13% at lowvig -105; money-ticket gap +27% on home (money=77% tickets=50%);</td></tr>
-<tr><td>spreads</td><td>home 1.5</td><td>betus</td><td class='pos'>24.1%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=24.13% at betus -105; money-ticket gap +27% on home (money=77% tickets=50%); </td></tr>
-<tr><td>spreads</td><td>home 2.0</td><td>gtbets</td><td class='pos'>21.9%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=21.91% at gtbets -109; money-ticket gap +27% on home (money=77% tickets=50%);</td></tr></tbody>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>spread</td><td>NYG +2.5 (spread) -110</td><td>fanduel</td><td class='pos'>31.7%</td><td>✓</td><td class='rationale-cell'>We project NYG +2.5 on the spread at 69.0% true probability vs 50.4% implied at fanduel — about 31.7% expected value. · On this side, 77% of handle vs 50% of tickets (+27% handle-minus-tickets gap) — sharp money signal. · No opening line on file to check reverse line movement. · Sharp money confirms this side (handle % well above ticket %).</td></tr>
+<tr><td>spread</td><td>NYG +1.5 (spread) -105</td><td>betus</td><td class='pos'>24.1%</td><td>✓</td><td class='rationale-cell'>We project NYG +1.5 on the spread at 63.6% true probability vs 50.4% implied at betus — about 24.1% expected value. · On this side, 77% of handle vs 50% of tickets (+27% handle-minus-tickets gap) — sharp money signal. · No opening line on file to check reverse line movement. · Sharp money confirms this side (handle % well above ticket %).</td></tr>
+<tr><td>spread</td><td>NYG +2 (spread) -109</td><td>gtbets</td><td class='pos'>21.9%</td><td>✓</td><td class='rationale-cell'>We project NYG +2 on the spread at 63.6% true probability vs 50.4% implied at gtbets — about 21.9% expected value. · On this side, 77% of handle vs 50% of tickets (+27% handle-minus-tickets gap) — sharp money signal. · No opening line on file to check reverse line movement. · Sharp money confirms this side (handle % well above ticket %).</td></tr>
+<tr><td>ML</td><td>NYG (ML) +116</td><td>betfair_ex_eu</td><td class='pending'>20.8%</td><td>—</td><td class='rationale-cell'>We project NYG ML on the moneyline at 55.9% true probability vs 45.2% implied at betfair_ex_eu — about 20.8% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>UNDER +42.5 (total) -109</td><td>gtbets</td><td class='pending'>20.5%</td><td>—</td><td class='rationale-cell'>We project UNDER 42.5 on the total at 62.9% true probability vs 50.8% implied at gtbets — about 20.5% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>UNDER +41.5 (total) -105</td><td>hardrockbet</td><td class='pending'>13.9%</td><td>—</td><td class='rationale-cell'>We project UNDER 41.5 on the total at 58.3% true probability vs 50.8% implied at hardrockbet — about 13.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr></tbody>
           </table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
-          <div class='phase-sub'>spread line 2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NYG</td><td>50%</td><td>77%</td><td class='pos'>+27%</td></tr><tr><td>MIN</td><td>50%</td><td>23%</td><td class='pos'>-27%</td></tr></tbody></table></div><div class='phase-sub'>total line 42.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>45%</td><td>52%</td><td class='pos'>+7%</td></tr><tr><td>Under</td><td>55%</td><td>48%</td><td class='pos'>-7%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NYG</td><td>24%</td><td>20%</td><td class='pos'>-4%</td></tr><tr><td>MIN</td><td>76%</td><td>80%</td><td class='pos'>+4%</td></tr></tbody></table></div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans NYG (handle minus tickets +27% on that side). Total: sharp money leans Over (handle minus tickets +7% on that side). Moneyline: sharp money leans MIN (handle minus tickets +4% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line 2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NYG</td><td>50%</td><td>77%</td><td class='pos'>+27%</td></tr><tr><td>MIN</td><td>50%</td><td>23%</td><td class='pos'>-27%</td></tr></tbody></table></div><div class='phase-sub'>total line 42.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>45%</td><td>52%</td><td class='pos'>+7%</td></tr><tr><td>Under</td><td>55%</td><td>48%</td><td class='pos'>-7%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NYG</td><td>24%</td><td>20%</td><td class='pos'>-4%</td></tr><tr><td>MIN</td><td>76%</td><td>80%</td><td class='pos'>+4%</td></tr></tbody></table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>NYG (54%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-1.0 (home perspective)</td></tr><tr><td>sharp</td><td>NYG (50%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 50.4% @ -110</td></tr><tr><td>public</td><td>NYG (50%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=50% away=50%</td></tr><tr><td>money</td><td>NYG (77%)</td><td style='font-size:11px;color:#94a3b8'>money home=77% away=23% (gap vs tickets +27% on home)</td></tr><tr><td>sharp_edge</td><td>NYG (77%)</td><td style='font-size:11px;color:#94a3b8'>+27% money vs tickets on NYG</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>NYG (69%)</td><td style='font-size:11px;color:#94a3b8'>validated play EV=31.7% @ fanduel</td></tr></tbody></table></div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>NYG (54%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor NYG (line -1.04247). Model spread (home) is -1.04 (negative = home favored). · 54% confidence</td></tr><tr><td><b>Sharp line</b></td><td>NYG (50%)</td><td class='stage-why'>Pinnacle / sharp books lean toward NYG (line +2). pinnacle no-vig 50.4% @ -110 · 50% confidence</td></tr><tr><td><b>Public tickets</b></td><td>NYG (50%)</td><td class='stage-why'>Most bet tickets are on NYG (line +2.5). tickets home=50% away=50% · 50% confidence</td></tr><tr><td><b>Sharp money</b></td><td>NYG (77%)</td><td class='stage-why'>Most handle (dollars) is on NYG (line +2.5). money home=77% away=23% (gap vs tickets +27% on home) · 77% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>NYG (77%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to NYG. +27% money vs tickets on NYG · 77% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>no open/current line for RLM</td></tr><tr><td><b>Full system</b></td><td>NYG (69%)</td><td class='stage-why'>Validated system play: NYG. validated play EV=31.7% @ fanduel · 69% confidence</td></tr></tbody></table></div>
         </div>
       </div>
 
       <div class="game-card">
         <div class="game-head">
           <div class="game-title">JAX @ NO</div>
-          <div class="game-kick">2026-08-15T20:00:00+00:00</div>
+          <div class="game-kick">Sat Aug 15, 4:00 PM ET</div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
           <p class="phase-note"><b>JAX</b>: power 0.109 · off 0.039 · def 0.070</p>
           <p class="phase-note"><b>NO</b>: power 0.012 · off -0.066 · def 0.078</p>
-          <p class="phase-note">Model spread (home): <b>0.3049215936992411</b> ·
-            total <b>40.08989507567146</b> · P(home win) <b>45.7%</b></p>
+          <p class="phase-note">Model spread (home): <b>+0.30</b> ·
+            total <b>40.09</b> · P(home win) <b>45.7%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
-            <tbody><tr><td>totals</td><td>over 35.5</td><td>lowvig</td><td class='pending'>37.9%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=37.91% at lowvig -102; money-ticket gap only 0% on over (need ≥20%); no open/</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>matchbook</td><td class='pending'>36.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=36.60% at matchbook -104; money-ticket gap only 0% on over (need ≥20%); no op</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>betonlineag</td><td class='pending'>36.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=35.96% at betonlineag -105; money-ticket gap only 0% on over (need ≥20%); no </td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>pinnacle</td><td class='pending'>35.3%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=35.34% at pinnacle -106; money-ticket gap only 0% on over (need ≥20%); no ope</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>draftkings</td><td class='pending'>34.1%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=34.12% at draftkings -108; money-ticket gap only 0% on over (need ≥20%); no o</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>gtbets</td><td class='pending'>33.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=33.53% at gtbets -109; money-ticket gap only 0% on over (need ≥20%); no open/</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>betrivers</td><td class='pending'>33.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=33.53% at betrivers -109; money-ticket gap only 0% on over (need ≥20%); no op</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>betparx</td><td class='pending'>33.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=33.53% at betparx -109; money-ticket gap only 0% on over (need ≥20%); no open</td></tr></tbody>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>total</td><td>OVER +35.5 (total) -104</td><td>matchbook</td><td class='pending'>36.6%</td><td>—</td><td class='rationale-cell'>We project OVER 35.5 on the total at 69.6% true probability vs 49.5% implied at matchbook — about 36.6% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>JAX +2.5 (spread) +100</td><td>espnbet</td><td class='pending'>30.5%</td><td>—</td><td class='rationale-cell'>We project JAX +2.5 on the spread at 65.3% true probability vs 46.3% implied at espnbet — about 30.5% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>JAX +1.5 (spread) +108</td><td>pinnacle</td><td class='pending'>24.9%</td><td>—</td><td class='rationale-cell'>We project JAX +1.5 on the spread at 60.0% true probability vs 46.3% implied at pinnacle — about 24.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>JAX +2 (spread) -110</td><td>betanysports</td><td class='pending'>24.6%</td><td>—</td><td class='rationale-cell'>We project JAX +2 on the spread at 65.3% true probability vs 46.3% implied at betanysports — about 24.6% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>ML</td><td>JAX (ML) +130</td><td>bovada</td><td class='pending'>18.0%</td><td>—</td><td class='rationale-cell'>We project JAX ML on the moneyline at 51.3% true probability vs 42.4% implied at bovada — about 18.0% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr></tbody>
           </table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
-          <div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NO</td><td>36%</td><td>41%</td><td class='pos'>+5%</td></tr><tr><td>JAX</td><td>64%</td><td>59%</td><td class='pos'>-5%</td></tr></tbody></table></div><div class='phase-sub'>total line 35.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>59%</td><td>59%</td><td class='pos'>+0%</td></tr><tr><td>Under</td><td>41%</td><td>41%</td><td class='pos'>+0%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NO</td><td>55%</td><td>59%</td><td class='pos'>+4%</td></tr><tr><td>JAX</td><td>45%</td><td>41%</td><td class='pos'>-4%</td></tr></tbody></table></div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans NO (handle minus tickets +5% on that side). Total: Over: 59% tickets / 59% money; Under: 41% tickets / 41% money. Moneyline: sharp money leans NO (handle minus tickets +4% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NO</td><td>36%</td><td>41%</td><td class='pos'>+5%</td></tr><tr><td>JAX</td><td>64%</td><td>59%</td><td class='pos'>-5%</td></tr></tbody></table></div><div class='phase-sub'>total line 35.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>59%</td><td>59%</td><td class='pos'>+0%</td></tr><tr><td>Under</td><td>41%</td><td>41%</td><td class='pos'>+0%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NO</td><td>55%</td><td>59%</td><td class='pos'>+4%</td></tr><tr><td>JAX</td><td>45%</td><td>41%</td><td class='pos'>-4%</td></tr></tbody></table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>JAX (48%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=+0.3 (home perspective)</td></tr><tr><td>sharp</td><td>NO (54%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 53.7% @ -126</td></tr><tr><td>public</td><td>JAX (64%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=36% away=64%</td></tr><tr><td>money</td><td>JAX (59%)</td><td style='font-size:11px;color:#94a3b8'>money home=41% away=59% (gap vs tickets -5% on away)</td></tr><tr><td>sharp_edge</td><td>NO (55%)</td><td style='font-size:11px;color:#94a3b8'>+5% money vs tickets on NO</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>JAX (48%)</td><td style='font-size:11px;color:#94a3b8'>model aligned with money (no validated edge)</td></tr></tbody></table></div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>JAX (48%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor JAX (line +0.304922). Model spread (home) is +0.30 (negative = home favored). · 48% confidence</td></tr><tr><td><b>Sharp line</b></td><td>NO (54%)</td><td class='stage-why'>Pinnacle / sharp books lean toward NO (line -1.5). pinnacle no-vig 53.7% @ -126 · 54% confidence</td></tr><tr><td><b>Public tickets</b></td><td>JAX (64%)</td><td class='stage-why'>Most bet tickets are on JAX (line -2.5). tickets home=36% away=64% · 64% confidence</td></tr><tr><td><b>Sharp money</b></td><td>JAX (59%)</td><td class='stage-why'>Most handle (dollars) is on JAX (line -2.5). money home=41% away=59% (gap vs tickets -5% on away) · 59% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>NO (55%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to NO. +5% money vs tickets on NO · 55% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>no open/current line for RLM</td></tr><tr><td><b>Full system</b></td><td>JAX (48%)</td><td class='stage-why'>Validated system play: JAX. model aligned with money (no validated edge) · 48% confidence</td></tr></tbody></table></div>
         </div>
       </div>
 
       <div class="game-card">
         <div class="game-head">
           <div class="game-title">LAR @ KC</div>
-          <div class="game-kick">2026-08-15T20:00:00+00:00</div>
+          <div class="game-kick">Sat Aug 15, 4:00 PM ET</div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
           <p class="phase-note"><b>LAR</b>: power 0.160 · off 0.150 · def 0.011</p>
           <p class="phase-note"><b>KC</b>: power -0.025 · off -0.038 · def 0.013</p>
-          <p class="phase-note">Model spread (home): <b>2.442465153879528</b> ·
-            total <b>47.482910539411336</b> · P(home win) <b>36.8%</b></p>
+          <p class="phase-note">Model spread (home): <b>+2.44</b> ·
+            total <b>47.48</b> · P(home win) <b>36.8%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
-            <tbody><tr><td>totals</td><td>over 35.5</td><td>gtbets</td><td class='pending'>72.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=72.19% at gtbets -109; money-ticket gap only 4% on over (need ≥20%); no open/</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>matchbook</td><td class='pending'>72.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=72.19% at matchbook -109; money-ticket gap only 4% on over (need ≥20%); no op</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>betmgm</td><td class='pending'>71.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=71.44% at betmgm -110; money-ticket gap only 4% on over (need ≥20%); no open/</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>betus</td><td class='pending'>71.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=71.44% at betus -110; money-ticket gap only 4% on over (need ≥20%); no open/c</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>bovada</td><td class='pending'>71.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=71.44% at bovada -110; money-ticket gap only 4% on over (need ≥20%); no open/</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>betanysports</td><td class='pending'>71.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=71.44% at betanysports -110; money-ticket gap only 4% on over (need ≥20%); no</td></tr>
-<tr><td>totals</td><td>over 36.5</td><td>fanduel</td><td class='pending'>70.1%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=70.09% at fanduel -105; money-ticket gap only 4% on over (need ≥20%); no open</td></tr>
-<tr><td>totals</td><td>over 35.5</td><td>draftkings</td><td class='pending'>70.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=69.98% at draftkings -112; money-ticket gap only 4% on over (need ≥20%); no o</td></tr></tbody>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>total</td><td>OVER +35.5 (total) -109</td><td>gtbets</td><td class='pending'>72.2%</td><td>—</td><td class='rationale-cell'>We project OVER 35.5 on the total at 89.8% true probability vs 50.9% implied at gtbets — about 72.2% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +36.5 (total) -105</td><td>fanduel</td><td class='pending'>70.1%</td><td>—</td><td class='rationale-cell'>We project OVER 36.5 on the total at 87.1% true probability vs 50.9% implied at fanduel — about 70.1% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +36 (total) -110</td><td>mybookieag</td><td class='pending'>66.3%</td><td>—</td><td class='rationale-cell'>We project OVER 36.0 on the total at 87.1% true probability vs 50.9% implied at mybookieag — about 66.3% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>LAR +2 (spread) -105</td><td>espnbet</td><td class='pending'>39.1%</td><td>—</td><td class='rationale-cell'>We project LAR +2 on the spread at 71.2% true probability vs 51.1% implied at espnbet — about 39.1% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>LAR +2.5 (spread) -108</td><td>betrivers</td><td class='pending'>37.2%</td><td>—</td><td class='rationale-cell'>We project LAR +2.5 on the spread at 71.2% true probability vs 51.1% implied at betrivers — about 37.2% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>ML</td><td>LAR (ML) +120</td><td>gtbets</td><td class='pos'>34.2%</td><td>✓</td><td class='rationale-cell'>We project LAR ML on the moneyline at 61.0% true probability vs 44.3% implied at gtbets — about 34.2% expected value. · On this side, 50% of handle vs 25% of tickets (+25% handle-minus-tickets gap) — sharp money signal. · No opening line on file to check reverse line movement. · Sharp money confirms this side (handle % well above ticket %).</td></tr>
+<tr><td>spread</td><td>LAR +1.5 (spread) -105</td><td>draftkings</td><td class='pending'>31.9%</td><td>—</td><td class='rationale-cell'>We project LAR +1.5 on the spread at 67.6% true probability vs 51.1% implied at draftkings — about 31.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr></tbody>
           </table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
-          <div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>KC</td><td>35%</td><td>31%</td><td class='pos'>-4%</td></tr><tr><td>LAR</td><td>65%</td><td>69%</td><td class='pos'>+4%</td></tr></tbody></table></div><div class='phase-sub'>total line 35.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>81%</td><td>85%</td><td class='pos'>+4%</td></tr><tr><td>Under</td><td>19%</td><td>15%</td><td class='pos'>-4%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>KC</td><td>75%</td><td>50%</td><td class='pos'>-25%</td></tr><tr><td>LAR</td><td>25%</td><td>50%</td><td class='pos'>+25%</td></tr></tbody></table></div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans LAR (handle minus tickets +4% on that side). Total: sharp money leans Over (handle minus tickets +4% on that side). Moneyline: sharp money leans LAR (handle minus tickets +25% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line -1.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>KC</td><td>35%</td><td>31%</td><td class='pos'>-4%</td></tr><tr><td>LAR</td><td>65%</td><td>69%</td><td class='pos'>+4%</td></tr></tbody></table></div><div class='phase-sub'>total line 35.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>81%</td><td>85%</td><td class='pos'>+4%</td></tr><tr><td>Under</td><td>19%</td><td>15%</td><td class='pos'>-4%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>KC</td><td>75%</td><td>50%</td><td class='pos'>-25%</td></tr><tr><td>LAR</td><td>25%</td><td>50%</td><td class='pos'>+25%</td></tr></tbody></table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>LAR (59%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=+2.4 (home perspective)</td></tr><tr><td>sharp</td><td>LAR (51%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 51.1% @ -113</td></tr><tr><td>public</td><td>LAR (65%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=35% away=65%</td></tr><tr><td>money</td><td>LAR (69%)</td><td style='font-size:11px;color:#94a3b8'>money home=31% away=69% (gap vs tickets +4% on away)</td></tr><tr><td>sharp_edge</td><td>LAR (54%)</td><td style='font-size:11px;color:#94a3b8'>+4% money vs tickets on LAR</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>LAR (61%)</td><td style='font-size:11px;color:#94a3b8'>validated play EV=34.2% @ betonlineag</td></tr></tbody></table></div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>LAR (59%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor LAR (line +2.44247). Model spread (home) is +2.44 (negative = home favored). · 59% confidence</td></tr><tr><td><b>Sharp line</b></td><td>LAR (51%)</td><td class='stage-why'>Pinnacle / sharp books lean toward LAR (line +2.5). pinnacle no-vig 51.1% @ -113 · 51% confidence</td></tr><tr><td><b>Public tickets</b></td><td>LAR (65%)</td><td class='stage-why'>Most bet tickets are on LAR (line -1.5). tickets home=35% away=65% · 65% confidence</td></tr><tr><td><b>Sharp money</b></td><td>LAR (69%)</td><td class='stage-why'>Most handle (dollars) is on LAR (line -1.5). money home=31% away=69% (gap vs tickets +4% on away) · 69% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>LAR (54%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to LAR. +4% money vs tickets on LAR · 54% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>no open/current line for RLM</td></tr><tr><td><b>Full system</b></td><td>LAR (61%)</td><td class='stage-why'>Validated system play: LAR. validated play EV=34.2% @ gtbets · 61% confidence</td></tr></tbody></table></div>
         </div>
       </div>
 
       <div class="game-card">
         <div class="game-head">
           <div class="game-title">PHI @ BAL</div>
-          <div class="game-kick">2026-08-15T23:00:00+00:00</div>
+          <div class="game-kick">Sat Aug 15, 7:00 PM ET</div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
           <p class="phase-note"><b>PHI</b>: power 0.054 · off -0.027 · def 0.080</p>
           <p class="phase-note"><b>BAL</b>: power 0.042 · off 0.049 · def -0.006</p>
-          <p class="phase-note">Model spread (home): <b>-1.922825042755246</b> ·
-            total <b>43.54921964978077</b> · P(home win) <b>56.8%</b></p>
+          <p class="phase-note">Model spread (home): <b>-1.92</b> ·
+            total <b>43.55</b> · P(home win) <b>56.8%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
-            <tbody><tr><td>h2h</td><td>home</td><td>betfair_ex_eu</td><td class='pending'>61.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=61.54% at betfair_ex_eu +172; money-ticket gap only 11% on home (need ≥20%); </td></tr>
-<tr><td>h2h</td><td>home</td><td>betonlineag</td><td class='pending'>60.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=60.35% at betonlineag +170; money-ticket gap only 11% on home (need ≥20%); no</td></tr>
-<tr><td>h2h</td><td>home</td><td>lowvig</td><td class='pending'>60.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=60.35% at lowvig +170; money-ticket gap only 11% on home (need ≥20%); no open</td></tr>
-<tr><td>h2h</td><td>home</td><td>gtbets</td><td class='pending'>60.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=60.35% at gtbets +170; money-ticket gap only 11% on home (need ≥20%); no open</td></tr>
-<tr><td>h2h</td><td>home</td><td>bovada</td><td class='pending'>60.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=60.35% at bovada +170; money-ticket gap only 11% on home (need ≥20%); no open</td></tr>
-<tr><td>h2h</td><td>home</td><td>pinnacle</td><td class='pending'>59.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.17% at pinnacle +168; money-ticket gap only 11% on home (need ≥20%); no op</td></tr>
-<tr><td>h2h</td><td>home</td><td>matchbook</td><td class='pending'>59.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.17% at matchbook +168; money-ticket gap only 11% on home (need ≥20%); no o</td></tr>
-<tr><td>h2h</td><td>home</td><td>betus</td><td class='pending'>58.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=58.57% at betus +167; money-ticket gap only 11% on home (need ≥20%); no open/</td></tr></tbody>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>ML</td><td>BAL (ML) +176</td><td>betfair_ex_eu</td><td class='pending'>63.9%</td><td>—</td><td class='rationale-cell'>We project BAL ML on the moneyline at 59.4% true probability vs 35.8% implied at betfair_ex_eu — about 63.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +36.5 (total) -103</td><td>matchbook</td><td class='pending'>53.7%</td><td>—</td><td class='rationale-cell'>We project OVER 36.5 on the total at 78.0% true probability vs 49.1% implied at matchbook — about 53.7% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +37.5 (total) +108</td><td>nordicbet</td><td class='pending'>53.5%</td><td>—</td><td class='rationale-cell'>We project OVER 37.5 on the total at 73.8% true probability vs 49.1% implied at nordicbet — about 53.5% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>BAL +3.5 (spread) +101</td><td>gtbets</td><td class='pending'>53.0%</td><td>—</td><td class='rationale-cell'>We project BAL +3.5 on the spread at 76.1% true probability vs 48.3% implied at gtbets — about 53.0% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>BAL +4.5 (spread) -115</td><td>draftkings</td><td class='pending'>49.0%</td><td>—</td><td class='rationale-cell'>We project BAL +4.5 on the spread at 79.7% true probability vs 48.3% implied at draftkings — about 49.0% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +36 (total) -110</td><td>betus</td><td class='pending'>48.9%</td><td>—</td><td class='rationale-cell'>We project OVER 36.0 on the total at 78.0% true probability vs 49.1% implied at betus — about 48.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>BAL +4 (spread) -110</td><td>betus</td><td class='pending'>45.3%</td><td>—</td><td class='rationale-cell'>We project BAL +4 on the spread at 76.1% true probability vs 48.3% implied at betus — about 45.3% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +37 (total) -107</td><td>betparx</td><td class='pending'>42.8%</td><td>—</td><td class='rationale-cell'>We project OVER 37.0 on the total at 73.8% true probability vs 49.1% implied at betparx — about 42.8% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr></tbody>
           </table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
-          <div class='phase-sub'>spread line 3.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BAL</td><td>55%</td><td>57%</td><td class='pos'>+2%</td></tr><tr><td>PHI</td><td>45%</td><td>43%</td><td class='pos'>-2%</td></tr></tbody></table></div><div class='phase-sub'>total line 36.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>80%</td><td>81%</td><td class='pos'>+1%</td></tr><tr><td>Under</td><td>20%</td><td>19%</td><td class='pos'>-1%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BAL</td><td>21%</td><td>32%</td><td class='pos'>+11%</td></tr><tr><td>PHI</td><td>79%</td><td>68%</td><td class='pos'>-11%</td></tr></tbody></table></div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans BAL (handle minus tickets +2% on that side). Total: sharp money leans Over (handle minus tickets +1% on that side). Moneyline: sharp money leans BAL (handle minus tickets +11% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line 3.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BAL</td><td>55%</td><td>57%</td><td class='pos'>+2%</td></tr><tr><td>PHI</td><td>45%</td><td>43%</td><td class='pos'>-2%</td></tr></tbody></table></div><div class='phase-sub'>total line 36.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>80%</td><td>81%</td><td class='pos'>+1%</td></tr><tr><td>Under</td><td>20%</td><td>19%</td><td class='pos'>-1%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BAL</td><td>21%</td><td>32%</td><td class='pos'>+11%</td></tr><tr><td>PHI</td><td>79%</td><td>68%</td><td class='pos'>-11%</td></tr></tbody></table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>BAL (57%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-1.9 (home perspective)</td></tr><tr><td>sharp</td><td>PHI (52%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 51.7% @ -116</td></tr><tr><td>public</td><td>BAL (55%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=55% away=45%</td></tr><tr><td>money</td><td>BAL (57%)</td><td style='font-size:11px;color:#94a3b8'>money home=57% away=43% (gap vs tickets +2% on home)</td></tr><tr><td>sharp_edge</td><td>BAL (52%)</td><td style='font-size:11px;color:#94a3b8'>+2% money vs tickets on BAL</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>BAL (57%)</td><td style='font-size:11px;color:#94a3b8'>model aligned with money (no validated edge)</td></tr></tbody></table></div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>BAL (57%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor BAL (line -1.92283). Model spread (home) is -1.92 (negative = home favored). · 57% confidence</td></tr><tr><td><b>Sharp line</b></td><td>PHI (52%)</td><td class='stage-why'>Pinnacle / sharp books lean toward PHI (line -3.5). pinnacle no-vig 51.7% @ -116 · 52% confidence</td></tr><tr><td><b>Public tickets</b></td><td>BAL (55%)</td><td class='stage-why'>Most bet tickets are on BAL (line +3.5). tickets home=55% away=45% · 55% confidence</td></tr><tr><td><b>Sharp money</b></td><td>BAL (57%)</td><td class='stage-why'>Most handle (dollars) is on BAL (line +3.5). money home=57% away=43% (gap vs tickets +2% on home) · 57% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>BAL (52%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to BAL. +2% money vs tickets on BAL · 52% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>no open/current line for RLM</td></tr><tr><td><b>Full system</b></td><td>BAL (57%)</td><td class='stage-why'>Validated system play: BAL. model aligned with money (no validated edge) · 57% confidence</td></tr></tbody></table></div>
         </div>
       </div>
 
       <div class="game-card">
         <div class="game-head">
           <div class="game-title">DAL @ SEA</div>
-          <div class="game-kick">2026-08-16T00:00:00+00:00</div>
+          <div class="game-kick">Sat Aug 15, 8:00 PM ET</div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
           <p class="phase-note"><b>DAL</b>: power -0.095 · off 0.057 · def -0.151</p>
           <p class="phase-note"><b>SEA</b>: power 0.211 · off 0.050 · def 0.162</p>
-          <p class="phase-note">Model spread (home): <b>-11.441864016413032</b> ·
-            total <b>47.70457142318598</b> · P(home win) <b>88.9%</b></p>
+          <p class="phase-note">Model spread (home): <b>-11.44</b> ·
+            total <b>47.70</b> · P(home win) <b>88.9%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
-            <tbody><tr><td>totals</td><td>over 38.0</td><td>bovada</td><td class='pending'>68.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=67.98% at bovada +105; money-ticket gap only -11% on over (need ≥20%); no ope</td></tr>
-<tr><td>totals</td><td>over 38.0</td><td>pinnacle</td><td class='pending'>66.3%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=66.34% at pinnacle +103; money-ticket gap only -11% on over (need ≥20%); no o</td></tr>
-<tr><td>totals</td><td>over 37.5</td><td>draftkings</td><td class='pending'>65.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=65.48% at draftkings -105; money-ticket gap only -11% on over (need ≥20%); no</td></tr>
-<tr><td>totals</td><td>over 37.5</td><td>hardrockbet</td><td class='pending'>65.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=65.48% at hardrockbet -105; money-ticket gap only -11% on over (need ≥20%); n</td></tr>
-<tr><td>totals</td><td>over 37.0</td><td>lowvig</td><td class='pending'>64.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=63.97% at lowvig -107; money-ticket gap only -11% on over (need ≥20%); no ope</td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>nordicbet</td><td class='pending'>63.9%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=63.88% at nordicbet +100; money-ticket gap only -11% on over (need ≥20%); no </td></tr>
-<tr><td>totals</td><td>over 38.5</td><td>betsson</td><td class='pending'>63.9%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=63.88% at betsson +100; money-ticket gap only -11% on over (need ≥20%); no op</td></tr>
-<tr><td>spreads</td><td>home -3.0</td><td>bovada</td><td class='pending'>62.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=62.84% at bovada +100; money-ticket gap only -1% on home (need ≥20%); no open</td></tr></tbody>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>total</td><td>OVER +38 (total) +103</td><td>pinnacle</td><td class='pending'>66.3%</td><td>—</td><td class='rationale-cell'>We project OVER 38.0 on the total at 81.9% true probability vs 47.4% implied at pinnacle — about 66.3% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +37.5 (total) -104</td><td>gtbets</td><td class='pending'>66.3%</td><td>—</td><td class='rationale-cell'>We project OVER 37.5 on the total at 84.8% true probability vs 47.4% implied at gtbets — about 66.3% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +38.5 (total) +100</td><td>nordicbet</td><td class='pending'>63.9%</td><td>—</td><td class='rationale-cell'>We project OVER 38.5 on the total at 81.9% true probability vs 47.4% implied at nordicbet — about 63.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>SEA -3 (spread) +100</td><td>bovada</td><td class='pending'>62.8%</td><td>—</td><td class='rationale-cell'>We project SEA -3 on the spread at 81.4% true probability vs 49.3% implied at bovada — about 62.8% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>total</td><td>OVER +37 (total) -110</td><td>betus</td><td class='pending'>61.8%</td><td>—</td><td class='rationale-cell'>We project OVER 37.0 on the total at 84.8% true probability vs 47.4% implied at betus — about 61.8% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>SEA -2.5 (spread) -110</td><td>mybookieag</td><td class='pending'>60.7%</td><td>—</td><td class='rationale-cell'>We project SEA -2.5 on the spread at 84.2% true probability vs 49.3% implied at mybookieag — about 60.7% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>spread</td><td>SEA -1.5 (spread) -135</td><td>fliff</td><td class='pending'>50.6%</td><td>—</td><td class='rationale-cell'>We project SEA -1.5 on the spread at 86.5% true probability vs 49.3% implied at fliff — about 50.6% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr>
+<tr><td>ML</td><td>SEA (ML) -150</td><td>betmgm</td><td class='pending'>50.0%</td><td>—</td><td class='rationale-cell'>We project SEA ML on the moneyline at 90.0% true probability vs 59.3% implied at betmgm — about 50.0% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No opening line on file to check reverse line movement. · Did not pass Phase 4: needs either sharp-money or reverse-line confirmation.</td></tr></tbody>
           </table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
-          <div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>SEA</td><td>45%</td><td>44%</td><td class='pos'>-1%</td></tr><tr><td>DAL</td><td>55%</td><td>56%</td><td class='pos'>+1%</td></tr></tbody></table></div><div class='phase-sub'>total line 37.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>58%</td><td>47%</td><td class='pos'>-11%</td></tr><tr><td>Under</td><td>42%</td><td>53%</td><td class='pos'>+11%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>SEA</td><td>83%</td><td>73%</td><td class='pos'>-10%</td></tr><tr><td>DAL</td><td>17%</td><td>27%</td><td class='pos'>+10%</td></tr></tbody></table></div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans DAL (handle minus tickets +1% on that side). Total: sharp money leans Under (handle minus tickets +11% on that side). Moneyline: sharp money leans DAL (handle minus tickets +10% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>SEA</td><td>45%</td><td>44%</td><td class='pos'>-1%</td></tr><tr><td>DAL</td><td>55%</td><td>56%</td><td class='pos'>+1%</td></tr></tbody></table></div><div class='phase-sub'>total line 37.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>58%</td><td>47%</td><td class='pos'>-11%</td></tr><tr><td>Under</td><td>42%</td><td>53%</td><td class='pos'>+11%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>SEA</td><td>83%</td><td>73%</td><td class='pos'>-10%</td></tr><tr><td>DAL</td><td>17%</td><td>27%</td><td class='pos'>+10%</td></tr></tbody></table></div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>SEA (89%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-11.4 (home perspective)</td></tr><tr><td>sharp</td><td>DAL (51%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 50.7% @ -111</td></tr><tr><td>public</td><td>DAL (55%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=45% away=55%</td></tr><tr><td>money</td><td>DAL (56%)</td><td style='font-size:11px;color:#94a3b8'>money home=44% away=56% (gap vs tickets +1% on away)</td></tr><tr><td>sharp_edge</td><td>DAL (51%)</td><td style='font-size:11px;color:#94a3b8'>+1% money vs tickets on DAL</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>SEA (71%)</td><td style='font-size:11px;color:#94a3b8'>model lean only — no confirming market stage</td></tr></tbody></table></div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>SEA (89%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor SEA (line -11.4419). Model spread (home) is -11.44 (negative = home favored). · 89% confidence</td></tr><tr><td><b>Sharp line</b></td><td>DAL (51%)</td><td class='stage-why'>Pinnacle / sharp books lean toward DAL (line +3). pinnacle no-vig 50.7% @ -111 · 51% confidence</td></tr><tr><td><b>Public tickets</b></td><td>DAL (55%)</td><td class='stage-why'>Most bet tickets are on DAL (line -2.5). tickets home=45% away=55% · 55% confidence</td></tr><tr><td><b>Sharp money</b></td><td>DAL (56%)</td><td class='stage-why'>Most handle (dollars) is on DAL (line -2.5). money home=44% away=56% (gap vs tickets +1% on away) · 56% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>DAL (51%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to DAL. +1% money vs tickets on DAL · 51% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>no open/current line for RLM</td></tr><tr><td><b>Full system</b></td><td>SEA (71%)</td><td class='stage-why'>Validated system play: SEA. model lean only — no confirming market stage · 71% confidence</td></tr></tbody></table></div>
         </div>
       </div>
 </div>
@@ -962,12 +408,12 @@
   <div class="section-label">By Week</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Week</th><th>Record</th><th>Pending</th><th>PnL</th></tr></thead>
-    <tbody><tr><td>? W?</td><td>0-23</td><td>24</td><td class='neg'>-34.50u</td></tr></tbody>
+    <tbody><tr><td>? W?</td><td>0-24</td><td>23</td><td class='neg'>-36.00u</td></tr></tbody>
   </table></div>
   <div class="section-label">All Plays</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>PnL</th></tr></thead>
-    <tbody><tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+    <tbody><tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -110</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -115</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -114</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -114</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
@@ -986,33 +432,11 @@
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -105</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -105</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -105</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +105</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +108</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +108</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -115</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +115</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +115</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -110</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -110</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -110</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
 <tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -110</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='neg'>-1.5</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +116</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +117</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
 <tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr></tbody>
   </table></div>
 </div>

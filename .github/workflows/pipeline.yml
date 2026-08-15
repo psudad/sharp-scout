@@ -19,6 +19,14 @@ on:
         description: "Skip nflverse PBP download"
         type: boolean
         default: false
+      today_slate:
+        description: "Today's NFL games only (Eastern kickoff day)"
+        type: boolean
+        default: false
+      fresh_ledger:
+        description: "Clear ledger before run (today slate)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -57,7 +65,20 @@ jobs:
         env:
           DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
           SKIP_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_pbp || false }}
+          TODAY_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.today_slate || false }}
+          FRESH_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.fresh_ledger || false }}
         run: |
+          if [ "$TODAY_INPUT" = "true" ]; then
+            ARGS="--build-site"
+            if [ "$FRESH_INPUT" = "true" ]; then ARGS="$ARGS --fresh-ledger"; fi
+            if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
+              ARGS="$ARGS --demo --skip-pbp"
+            elif [ "$SKIP_INPUT" = "true" ]; then
+              ARGS="$ARGS --skip-pbp"
+            fi
+            python scripts/run_today_slate.py $ARGS
+            exit 0
+          fi
           ARGS="--build-site"
           if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
             ARGS="$ARGS --demo --skip-pbp"

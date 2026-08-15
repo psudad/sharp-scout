@@ -98,6 +98,17 @@ GitHub Action **Pregame Windows** checks the run plan hourly on Thu–Mon (most 
 | Workflow | When | Does |
 |---|---|---|
 | `Pregame Windows` | Hourly Thu–Mon + plan refresh Monday | Fire T-12h / T-3h / T-1h only when scheduled in run plan |
+| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon | Full ratings + slate refresh; or **Run workflow** with **Today's slate** |
+
+### Today's preseason slate (manual)
+
+```bash
+python scripts/run_today_slate.py --build-site --fresh-ledger
+```
+
+On GitHub: **Actions → NFL Pipeline + Ledger → Run workflow** → check **Today's slate only** and **Build site**.
+
+Then open the **Games** tab on GitHub Pages to see each phase (EPA model, EV edges, money/ticket %, stage picks).
 | `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full slate refresh / settle / site |
 | `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
 

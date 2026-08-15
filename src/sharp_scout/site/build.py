@@ -110,6 +110,14 @@ def build_site(
     fade_n = stage_summary.get("fade_public_games", "—")
     rlm_n = stage_summary.get("rlm_games", "—")
 
+    games_html = _render_games_pipeline(
+        signals.get("games") or [],
+        signals.get("split_boards") or [],
+        stage_cards,
+        signals.get("signals") or [],
+        signals.get("ratings") or [],
+    )
+
     html = SITE_TEMPLATE.format(
         generated=generated,
         record=record["record"],
@@ -125,6 +133,7 @@ def build_site(
         ratings_rows=ratings_rows,
         stage_rows=stage_rows,
         stage_record_rows=stage_record_rows,
+        games_html=games_html,
         fade_n=fade_n,
         rlm_n=rlm_n,
         demo_note="DEMO data" if signals.get("demo") else "Live pipeline",
@@ -269,6 +278,149 @@ def _render_ratings(ratings: list[dict]) -> str:
     )
 
 
+def _rating_row(team: str, ratings: list[dict]) -> str:
+    r = next((x for x in ratings if x.get("team") == team), None)
+    if not r:
+        return "—"
+    return f"power {r['power']:.3f} · off {r['off_epa']:.3f} · def {r['def_epa']:.3f}"
+
+
+def _render_splits_table(board: dict[str, Any]) -> str:
+    markets = board.get("markets") or {}
+    if not markets:
+        reason = board.get("reason") or "No split data"
+        return f'<p class="phase-note">{_esc(reason)}</p>'
+    parts = []
+    for mkey, mdata in markets.items():
+        rows = []
+        for side_key, side in (mdata.get("sides") or {}).items():
+            t = side.get("tickets_pct")
+            m = side.get("money_pct")
+            d = side.get("diff_pct")
+            t_s = f"{t * 100:.0f}%" if t is not None else "—"
+            m_s = f"{m * 100:.0f}%" if m is not None else "—"
+            d_s = f"{d * 100:+.0f}%" if d is not None else "—"
+            rows.append(
+                f"<tr><td>{_esc(side.get('label') or side_key)}</td>"
+                f"<td>{t_s}</td><td>{m_s}</td><td class='pos'>{d_s}</td></tr>"
+            )
+        line = mdata.get("line")
+        line_s = f" line {line}" if line is not None else ""
+        parts.append(
+            f"<div class='phase-sub'>{_esc(mkey)}{line_s}</div>"
+            f"<div class='table-wrap'><table><thead><tr>"
+            f"<th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead>"
+            f"<tbody>{''.join(rows)}</tbody></table></div>"
+        )
+    return "".join(parts)
+
+
+def _render_edge_rows(signals: list[dict]) -> str:
+    if not signals:
+        return "<tr><td colspan='6'>No EV candidates (phase 3).</td></tr>"
+    rows = []
+    for s in sorted(signals, key=lambda x: -(x.get("edge") or 0))[:8]:
+        passed = s.get("filter_passed")
+        cls = "pos" if passed else "pending"
+        flag = "✓" if passed else "—"
+        edge = s.get("edge")
+        edge_s = f"{edge * 100:.1f}%" if edge is not None else "—"
+        line = s.get("line")
+        line_s = f" {line}" if line is not None else ""
+        rows.append(
+            f"<tr><td>{_esc(s.get('market'))}</td>"
+            f"<td>{_esc(str(s.get('side')))}{line_s}</td>"
+            f"<td>{_esc(s.get('book'))}</td>"
+            f"<td class='{cls}'>{edge_s}</td>"
+            f"<td>{flag}</td>"
+            f"<td style='font-size:11px;color:#94a3b8'>{_esc((s.get('rationale') or '')[:80])}</td></tr>"
+        )
+    return "\n".join(rows)
+
+
+def _render_stage_mini(card: dict | None) -> str:
+    if not card:
+        return "<p class='phase-note'>No stage card.</p>"
+    picks = card.get("picks") or {}
+    rows = []
+    for key in ("model", "sharp", "public", "money", "sharp_edge", "rlm", "hybrid"):
+        p = picks.get(key) or {}
+        if not p.get("available"):
+            cell = "—"
+        else:
+            team = p.get("team") or p.get("side") or "—"
+            conf = p.get("confidence")
+            conf_s = f" ({conf * 100:.0f}%)" if conf is not None else ""
+            cell = f"{_esc(team)}{conf_s}"
+        rows.append(f"<tr><td>{_esc(key)}</td><td>{cell}</td>"
+                    f"<td style='font-size:11px;color:#94a3b8'>{_esc(p.get('reason') or '')}</td></tr>")
+    return (
+        "<div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></div>"
+    )
+
+
+def _render_games_pipeline(
+    games: list[dict],
+    split_boards: list[dict],
+    stage_cards: list[dict],
+    signals: list[dict],
+    ratings: list[dict],
+) -> str:
+    if not games:
+        return '<div class="empty">No games in latest pipeline run. Run scripts/run_today_slate.py or the NFL Pipeline workflow.</div>'
+
+    boards = {str(b.get("event_id")): b for b in split_boards}
+    stages = {str(c.get("event_id")): c for c in stage_cards}
+    sig_by_event: dict[str, list[dict]] = {}
+    for s in signals:
+        sig_by_event.setdefault(str(s.get("event_id")), []).append(s)
+
+    cards = []
+    for g in games:
+        eid = str(g.get("event_id"))
+        away, home = g.get("away_team"), g.get("home_team")
+        board = boards.get(eid) or {}
+        stage = stages.get(eid)
+        game_sigs = sig_by_event.get(eid) or []
+        kick = g.get("commence_time") or ""
+        p_hw = g.get("p_home_win")
+        p_hw_s = f"{p_hw * 100:.1f}%" if p_hw is not None else "—"
+
+        cards.append(
+            f"""
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">{_esc(away)} @ {_esc(home)}</div>
+          <div class="game-kick">{_esc(kick)}</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>{_esc(away)}</b>: {_esc(_rating_row(away, ratings))}</p>
+          <p class="phase-note"><b>{_esc(home)}</b>: {_esc(_rating_row(home, ratings))}</p>
+          <p class="phase-note">Model spread (home): <b>{g.get('model_spread', '—')}</b> ·
+            total <b>{g.get('model_total', '—')}</b> · P(home win) <b>{p_hw_s}</b></p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody>{_render_edge_rows(game_sigs)}</tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          {_render_splits_table(board)}
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          {_render_stage_mini(stage)}
+        </div>
+      </div>"""
+        )
+    return "\n".join(cards)
+
+
 def _pick_cell(pick: dict | None) -> str:
     if not pick or not pick.get("available") or not pick.get("team"):
         return "<span class='pending'>—</span>"
@@ -396,6 +548,14 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .pos {{ color: #4ade80; font-weight: 600; }}
   .neg {{ color: #f87171; font-weight: 600; }}
   .empty {{ color: #8b949e; text-align: center; padding: 28px 8px; }}
+  .game-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; margin-bottom: 14px; }}
+  .game-head {{ margin-bottom: 10px; }}
+  .game-title {{ font-size: 18px; font-weight: 800; }}
+  .game-kick {{ font-size: 11px; color: #8b949e; margin-top: 4px; }}
+  .phase-block {{ margin-top: 12px; border-top: 1px solid #21262d; padding-top: 10px; }}
+  .phase-label {{ font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #f4820a; text-transform: uppercase; margin-bottom: 6px; }}
+  .phase-note {{ font-size: 12px; color: #94a3b8; margin: 4px 0; line-height: 1.5; }}
+  .phase-sub {{ font-size: 11px; font-weight: 700; color: #8b949e; margin: 8px 0 4px; }}
   .footer {{ color: #4b5563; font-size: 11px; padding: 24px 16px; text-align: center; line-height: 1.6; }}
 </style>
 </head>
@@ -408,6 +568,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">Plays</div>
+  <div class="tab" onclick="showTab('games', this)">Games</div>
   <div class="tab" onclick="showTab('stages', this)">Stages</div>
   <div class="tab" onclick="showTab('ledger', this)">Ledger</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
@@ -422,6 +583,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </div>
   <div class="section-label">Open / Latest Plays · {pending} pending · {n_plays} total</div>
   {plays_html}
+</div>
+
+<div id="tab-games" class="content">
+  <p class="phase-note" style="padding:12px 0">Per-game pipeline output: EPA model → Monte Carlo → market EV → money/ticket splits → stage picks.</p>
+  {games_html}
 </div>
 
 <div id="tab-stages" class="content">

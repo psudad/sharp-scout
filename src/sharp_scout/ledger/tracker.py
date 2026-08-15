@@ -64,16 +64,10 @@ def _play_key(play: dict[str, Any]) -> str:
 
 
 def _logical_play_key(play: dict[str, Any]) -> str:
-    """Same bet (game/market/side/line) regardless of book or run window."""
-    return "|".join(
-        [
-            str(play.get("event_id") or ""),
-            str(play.get("player_name") or ""),
-            str(play.get("market") or ""),
-            str(play.get("side") or ""),
-            str(play.get("line") if play.get("line") is not None else ""),
-        ]
-    )
+    """Same actionable bet regardless of book, window, or alternate line."""
+    from sharp_scout.copy.explain import _signal_group_key
+
+    return "|".join(str(p) for p in _signal_group_key(play))
 
 
 def units_for_tier(tier: str) -> float:
@@ -97,8 +91,8 @@ def append_signals(
 ) -> dict[str, Any]:
     """Append new validated plays to the ledger (deduped).
 
-    Replaces any pending play on the same game/market/side/line so only the
-    latest best book survives across pipeline runs.
+    Replaces any pending play on the same game/market/side so only the
+    latest best line/book survives across pipeline runs.
     """
     ledger = load_ledger(path)
     existing = {_play_key(p) for p in ledger["plays"]}

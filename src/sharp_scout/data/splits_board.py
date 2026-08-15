@@ -207,5 +207,7 @@ def build_slate_split_boards(
 def fetch_action_network_splits(*, date: str | None = None) -> list[dict[str, Any]]:
     """Fetch live Action Network splits; never silently substitutes mock data."""
     from sharp_scout.data.action_network import ActionNetworkClient
+    from sharp_scout.data.line_memory import overlay_open_lines
 
-    return ActionNetworkClient().fetch_scoreboard(date=date)
+    games = ActionNetworkClient().fetch_scoreboard(date=date)
+    return overlay_open_lines(games)

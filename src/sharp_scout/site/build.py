@@ -122,6 +122,7 @@ def build_site(
     stage_summary = signals.get("stage_summary") or {}
     fade_n = stage_summary.get("fade_public_games", "—")
     rlm_n = stage_summary.get("rlm_games", "—")
+    stage_highlights_html = _render_stage_highlight_lists(stage_summary)
 
     games_html = _render_games_pipeline(
         signals.get("games") or [],
@@ -149,6 +150,7 @@ def build_site(
         games_html=games_html,
         fade_n=fade_n,
         rlm_n=rlm_n,
+        stage_highlights_html=stage_highlights_html,
         demo_note="DEMO data" if signals.get("demo") else "Live pipeline",
     )
     (out / "index.html").write_text(html)
@@ -460,6 +462,44 @@ def _render_games_pipeline(
     return "\n".join(cards)
 
 
+def _render_stage_highlight_lists(stage_summary: dict[str, Any]) -> str:
+    fade = stage_summary.get("fade_public_matchups") or []
+    rlm = stage_summary.get("rlm_matchups") or []
+    parts: list[str] = []
+    if fade:
+        lines = [
+            f"{x.get('away_team')} @ {x.get('home_team')}: "
+            f"sharp books like {x.get('sharp_team')} · public tickets on {x.get('public_team')}"
+            for x in fade
+        ]
+        parts.append(
+            "<div class='phase-note'><b>Sharp vs public games:</b><br>"
+            + "<br>".join(_esc(line) for line in lines)
+            + "</div>"
+        )
+    else:
+        parts.append(
+            "<div class='phase-note'>No games on this slate where sharp books disagree with public ticket %.</div>"
+        )
+    if rlm:
+        lines = [
+            f"{x.get('away_team')} @ {x.get('home_team')}: "
+            f"RLM toward {x.get('rlm_team')} — {_esc(x.get('reason') or '')}"
+            for x in rlm
+        ]
+        parts.append(
+            "<div class='phase-note' style='margin-top:10px'><b>Reverse line movement games:</b><br>"
+            + "<br>".join(lines)
+            + "</div>"
+        )
+    else:
+        parts.append(
+            "<div class='phase-note' style='margin-top:10px'>"
+            "No RLM signals on this slate (needs an opening line vs current — stored on first pipeline run).</div>"
+        )
+    return "".join(parts)
+
+
 def _pick_cell(pick: dict | None) -> str:
     if not pick or not pick.get("available") or not pick.get("team"):
         return "<span class='pending'>—</span>"
@@ -634,9 +674,10 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 
 <div id="tab-stages" class="content">
   <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">{fade_n}</div><div class="stat-label">Sharp vs Public</div></div>
-    <div class="stat-card"><div class="stat-val">{rlm_n}</div><div class="stat-label">RLM Games</div></div>
+    <div class="stat-card"><div class="stat-val">{fade_n}</div><div class="stat-label">Sharp ≠ Public games</div></div>
+    <div class="stat-card"><div class="stat-val">{rlm_n}</div><div class="stat-label">RLM games</div></div>
   </div>
+  {stage_highlights_html}
   <div class="section-label">Stage Records (settled)</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
@@ -666,6 +707,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-ratings" class="content">
+  <p class="phase-note" style="padding:8px 0">Power ratings from nflverse play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
   <div class="section-label">Power Ratings</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>

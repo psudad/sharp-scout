@@ -11,14 +11,16 @@ from sharp_scout.copy.explain import (
 
 def test_collapse_best_signals_one_per_side():
     signals = [
-        {"event_id": "e1", "market": "spreads", "side": "home", "line": 2.5, "book": "dk", "edge": 0.05},
+        {"event_id": "e1", "market": "spreads", "side": "home", "line": 1.5, "book": "dk", "edge": 0.05},
         {"event_id": "e1", "market": "spreads", "side": "home", "line": 2.5, "book": "fd", "edge": 0.08},
         {"event_id": "e1", "market": "spreads", "side": "away", "line": -2.5, "book": "dk", "edge": 0.03},
     ]
     out = collapse_best_signals(signals)
     assert len(out) == 2
-    assert out[0]["book"] == "fd"
-    assert out[0]["edge"] == 0.08
+    home = next(s for s in out if s["side"] == "home")
+    assert home["book"] == "fd"
+    assert home["line"] == 2.5
+    assert home["edge"] == 0.08
 
 
 def test_format_kickoff_et():

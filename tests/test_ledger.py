@@ -76,7 +76,6 @@ def test_ledger_replaces_pending_same_side_different_book(tmp_path: Path):
         "home_team": "NYG",
         "market": "spreads",
         "side": "home",
-        "line": 1.5,
         "price": -110,
         "edge": 0.05,
         "p_true": 0.55,
@@ -84,11 +83,12 @@ def test_ledger_replaces_pending_same_side_different_book(tmp_path: Path):
         "filter_passed": True,
         "rationale": "first",
     }
-    append_signals([{**base, "book": "draftkings"}], path=path)
-    append_signals([{**base, "book": "fanduel", "edge": 0.08, "rationale": "better"}], path=path)
+    append_signals([{**base, "line": 1.5, "book": "draftkings"}], path=path)
+    append_signals([{**base, "line": 2.5, "book": "fanduel", "edge": 0.08, "rationale": "better"}], path=path)
     data = json.loads(path.read_text())
     assert len(data["plays"]) == 1
     assert data["plays"][0]["book"] == "fanduel"
+    assert data["plays"][0]["line"] == 2.5
     assert data["plays"][0]["edge"] == 0.08
 
 

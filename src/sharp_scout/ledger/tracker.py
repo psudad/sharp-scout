@@ -63,6 +63,19 @@ def _play_key(play: dict[str, Any]) -> str:
     )
 
 
+def _logical_play_key(play: dict[str, Any]) -> str:
+    """Same bet (game/market/side/line) regardless of book or run window."""
+    return "|".join(
+        [
+            str(play.get("event_id") or ""),
+            str(play.get("player_name") or ""),
+            str(play.get("market") or ""),
+            str(play.get("side") or ""),
+            str(play.get("line") if play.get("line") is not None else ""),
+        ]
+    )
+
+
 def units_for_tier(tier: str) -> float:
     return float(DEFAULT_UNITS.get(tier, 1.0))
 
@@ -82,10 +95,15 @@ def append_signals(
     week: int | None = None,
     path: Path | None = None,
 ) -> dict[str, Any]:
-    """Append new validated plays to the ledger (deduped)."""
+    """Append new validated plays to the ledger (deduped).
+
+    Replaces any pending play on the same game/market/side/line so only the
+    latest best book survives across pipeline runs.
+    """
     ledger = load_ledger(path)
     existing = {_play_key(p) for p in ledger["plays"]}
     added = 0
+    replaced = 0
     for s in signals:
         if only_validated and not s.get("filter_passed"):
             continue
@@ -128,12 +146,26 @@ def append_signals(
         key = _play_key(row)
         if key in existing:
             continue
-        # Also skip if same matchup/market/side already pending
+        logical = _logical_play_key(row)
+        before_len = len(ledger["plays"])
+        ledger["plays"] = [
+            p
+            for p in ledger["plays"]
+            if (p.get("status") or "pending") != "pending" or _logical_play_key(p) != logical
+        ]
+        if len(ledger["plays"]) < before_len:
+            replaced += 1
+        existing = {_play_key(p) for p in ledger["plays"]}
         ledger["plays"].append(row)
         existing.add(key)
         added += 1
     save_ledger(ledger, path)
-    logger.info("Ledger: added %d plays (total %d)", added, len(ledger["plays"]))
+    logger.info(
+        "Ledger: added %d plays, replaced %d pending (total %d)",
+        added,
+        replaced,
+        len(ledger["plays"]),
+    )
     return ledger
 
 

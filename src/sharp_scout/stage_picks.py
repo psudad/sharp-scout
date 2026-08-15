@@ -118,7 +118,7 @@ def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread")
         _team(side, home, away),
         float(sim.model_spread),
         conf,
-        f"S_mod={sim.model_spread:+.1f} (home perspective)",
+        f"S_mod={sim.model_spread:+.2f} (home perspective)",
     )
 
 

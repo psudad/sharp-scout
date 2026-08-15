@@ -9,6 +9,15 @@ from pathlib import Path
 from typing import Any
 
 from sharp_scout.config import ARTIFACTS_DIR, ROOT
+from sharp_scout.copy.explain import (
+    collapse_best_signals,
+    describe_splits_board,
+    describe_stage_pick,
+    format_kickoff_et,
+    format_play_rationale,
+    kickoff_sort_key,
+    STAGE_LABELS,
+)
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 
 DOCS_DIR = ROOT / "docs"
@@ -87,10 +96,14 @@ def build_site(
     pending = [p for p in ledger["plays"] if (p.get("status") or "pending") == "pending"]
     settled = [p for p in ledger["plays"] if (p.get("status") or "pending") != "pending"]
     settled_sorted = sorted(settled, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True)
-    pending_sorted = sorted(pending, key=lambda p: p.get("created_at") or "", reverse=True)
+    pending_deduped = collapse_best_signals(pending)
+    pending_sorted = sorted(
+        pending_deduped,
+        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
 
     # Prefer live validated signals for "this week" board if present
-    live_plays = signals.get("plays") or []
+    live_plays = collapse_best_signals(signals.get("plays") or [], only_passed=True)
 
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     win_pct = f"{record['win_pct'] * 100:.1f}%" if record["win_pct"] is not None else "—"
@@ -150,24 +163,23 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
     if not source:
         return '<div class="empty">No open plays. Run the pipeline to generate signals.</div>'
 
-    # If using live_fallback (not yet in ledger), shape lightly
     cards = []
     for p in source:
+        kick_et = format_kickoff_et(p.get("kickoff") or p.get("commence_time"))
         if "filter_passed" in p and not p.get("status"):
-            # live signal shape
             tier = p.get("tier") or "lean"
             status_html = '<span class="card-result pending">OPEN</span>'
             title = _side_label(p)
-            sub = f"{p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
+            sub = f"{kick_et} · {p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
             edge = p.get("edge")
             units = {"play": 1.5, "lean": 1.0}.get(tier, 0.5)
-            rationale = p.get("rationale") or ""
+            rationale = format_play_rationale(p)
             meta_edge = f"{(edge or 0) * 100:.1f}%" if edge is not None else "—"
         else:
             tier = p.get("tier") or "lean"
             status_html = _status_badge(p.get("status") or "pending")
             title = _side_label(p)
-            sub = f"{p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
+            sub = f"{kick_et} · {p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
             if p.get("window"):
                 w = p.get("window")
                 sub += f" · {'force-all' if w == -1 else f'T-{w}h'}"
@@ -177,7 +189,7 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
                 sub += f" · Final {p.get('away_team')} {p.get('away_score')}, {p.get('home_team')} {p.get('home_score')}"
             edge = p.get("edge")
             units = p.get("units") or 1
-            rationale = p.get("rationale") or ""
+            rationale = format_play_rationale(p)
             meta_edge = f"{(edge or 0) * 100:.1f}%" if edge is not None else "—"
 
         card_cls = "sharp-play" if tier == "play" else "sharp-lean" if tier == "lean" else "candidate"
@@ -214,7 +226,7 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
         <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
           <span class="arrow">▶</span><span>Rationale</span>
         </div>
-        <div class="rationale-body">{_esc(rationale)}</div>
+        <div class="rationale-body">{_esc(rationale).replace(chr(10), '<br>')}</div>
       </div>"""
         )
     return "\n".join(cards)
@@ -290,7 +302,14 @@ def _render_splits_table(board: dict[str, Any]) -> str:
     if not markets:
         reason = board.get("reason") or "No split data"
         return f'<p class="phase-note">{_esc(reason)}</p>'
-    parts = []
+
+    narrative = describe_splits_board(board)
+    parts = [f'<p class="phase-note splits-summary"><b>Sharp money read:</b> {_esc(narrative)}</p>']
+    parts.append(
+        '<p class="phase-note" style="font-size:11px">'
+        "Tickets = % of bets on each side. Money = % of dollars (handle). "
+        "Diff = money minus tickets — positive means sharps lean that side.</p>"
+    )
     for mkey, mdata in markets.items():
         rows = []
         for side_key, side in (mdata.get("sides") or {}).items():
@@ -318,44 +337,55 @@ def _render_splits_table(board: dict[str, Any]) -> str:
 def _render_edge_rows(signals: list[dict]) -> str:
     if not signals:
         return "<tr><td colspan='6'>No EV candidates (phase 3).</td></tr>"
+    collapsed = collapse_best_signals(signals)
     rows = []
-    for s in sorted(signals, key=lambda x: -(x.get("edge") or 0))[:8]:
+    for s in collapsed[:12]:
         passed = s.get("filter_passed")
         cls = "pos" if passed else "pending"
         flag = "✓" if passed else "—"
         edge = s.get("edge")
         edge_s = f"{edge * 100:.1f}%" if edge is not None else "—"
         line = s.get("line")
-        line_s = f" {line}" if line is not None else ""
+        side_label = _side_label({**s, "price": s.get("price")})
+        rationale = format_play_rationale(s).replace("\n", " · ")
         rows.append(
-            f"<tr><td>{_esc(s.get('market'))}</td>"
-            f"<td>{_esc(str(s.get('side')))}{line_s}</td>"
+            f"<tr><td>{_esc(_market_label(s.get('market')))}</td>"
+            f"<td>{_esc(side_label)}</td>"
             f"<td>{_esc(s.get('book'))}</td>"
             f"<td class='{cls}'>{edge_s}</td>"
             f"<td>{flag}</td>"
-            f"<td style='font-size:11px;color:#94a3b8'>{_esc((s.get('rationale') or '')[:80])}</td></tr>"
+            f"<td class='rationale-cell'>{_esc(rationale)}</td></tr>"
         )
     return "\n".join(rows)
 
 
-def _render_stage_mini(card: dict | None) -> str:
+def _market_label(market: str | None) -> str:
+    return {"spreads": "spread", "totals": "total", "h2h": "ML"}.get(market or "", market or "")
+
+
+def _render_stage_mini(card: dict | None, home: str, away: str) -> str:
     if not card:
         return "<p class='phase-note'>No stage card.</p>"
     picks = card.get("picks") or {}
     rows = []
     for key in ("model", "sharp", "public", "money", "sharp_edge", "rlm", "hybrid"):
         p = picks.get(key) or {}
+        label = STAGE_LABELS.get(key, key)
         if not p.get("available"):
             cell = "—"
+            why = p.get("reason") or "Not available"
         else:
             team = p.get("team") or p.get("side") or "—"
             conf = p.get("confidence")
             conf_s = f" ({conf * 100:.0f}%)" if conf is not None else ""
             cell = f"{_esc(team)}{conf_s}"
-        rows.append(f"<tr><td>{_esc(key)}</td><td>{cell}</td>"
-                    f"<td style='font-size:11px;color:#94a3b8'>{_esc(p.get('reason') or '')}</td></tr>")
+            why = describe_stage_pick(key, p, home, away)
+        rows.append(
+            f"<tr><td><b>{_esc(label)}</b></td><td>{cell}</td>"
+            f"<td class='stage-why'>{_esc(why)}</td></tr>"
+        )
     return (
-        "<div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead>"
+        "<div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
 
@@ -377,15 +407,23 @@ def _render_games_pipeline(
         sig_by_event.setdefault(str(s.get("event_id")), []).append(s)
 
     cards = []
-    for g in games:
+    games_sorted = sorted(
+        games,
+        key=lambda g: kickoff_sort_key(g.get("commence_time")),
+    )
+    for g in games_sorted:
         eid = str(g.get("event_id"))
         away, home = g.get("away_team"), g.get("home_team")
         board = boards.get(eid) or {}
         stage = stages.get(eid)
         game_sigs = sig_by_event.get(eid) or []
-        kick = g.get("commence_time") or ""
+        kick = format_kickoff_et(g.get("commence_time"))
         p_hw = g.get("p_home_win")
         p_hw_s = f"{p_hw * 100:.1f}%" if p_hw is not None else "—"
+        m_spread = g.get("model_spread")
+        m_total = g.get("model_total")
+        spread_s = f"{float(m_spread):+.2f}" if m_spread is not None else "—"
+        total_s = f"{float(m_total):.2f}" if m_total is not None else "—"
 
         cards.append(
             f"""
@@ -398,13 +436,14 @@ def _render_games_pipeline(
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
           <p class="phase-note"><b>{_esc(away)}</b>: {_esc(_rating_row(away, ratings))}</p>
           <p class="phase-note"><b>{_esc(home)}</b>: {_esc(_rating_row(home, ratings))}</p>
-          <p class="phase-note">Model spread (home): <b>{g.get('model_spread', '—')}</b> ·
-            total <b>{g.get('model_total', '—')}</b> · P(home win) <b>{p_hw_s}</b></p>
+          <p class="phase-note">Model spread (home): <b>{spread_s}</b> ·
+            total <b>{total_s}</b> · P(home win) <b>{p_hw_s}</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
             <tbody>{_render_edge_rows(game_sigs)}</tbody>
           </table></div>
         </div>
@@ -414,7 +453,7 @@ def _render_games_pipeline(
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          {_render_stage_mini(stage)}
+          {_render_stage_mini(stage, home, away)}
         </div>
       </div>"""
         )
@@ -536,8 +575,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .conf-fill {{ height: 5px; border-radius: 4px; }}
   .rationale-toggle {{ margin-top: 10px; color: #8b949e; font-size: 12px; cursor: pointer; display: flex; gap: 6px; align-items: center; }}
   .rationale-toggle.open .arrow {{ transform: rotate(90deg); }}
-  .rationale-body {{ display: none; font-size: 12px; color: #94a3b8; margin-top: 8px; line-height: 1.6; border-top: 1px solid #21262d; padding-top: 8px; }}
+  .rationale-body {{ display: none; font-size: 12px; color: #cbd5e1; margin-top: 8px; line-height: 1.65; border-top: 1px solid #21262d; padding-top: 8px; }}
   .rationale-body.open {{ display: block; }}
+  .rationale-cell {{ font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 320px; }}
+  .stage-why {{ font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 420px; }}
+  .splits-summary {{ color: #e2e8f0; margin-bottom: 8px; }}
   .table-wrap {{ overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }}
   th {{ background: #161b22; color: #8b949e; text-align: left; padding: 10px; border-bottom: 1px solid #30363d; }}

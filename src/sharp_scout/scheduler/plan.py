@@ -98,7 +98,7 @@ def upcoming_games_from_schedule(
 
 
 def merge_odds_kickoffs(games: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Overlay Odds API commence times when key is set (more accurate for listed slates)."""
+    """Overlay Odds API kickoffs and add listed games missing from nflverse (preseason)."""
     settings = get_settings()
     if not settings.odds_api_key:
         return games
@@ -111,12 +111,30 @@ def merge_odds_kickoffs(games: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return games
 
     by_matchup: dict[str, datetime] = {}
+    odds_only: list[dict[str, Any]] = []
+    known = {g.get("matchup") for g in games}
     for ev in events:
         home = ev.get("home_team")
         away = ev.get("away_team")
         ct = ev.get("commence_time")
-        if home and away and ct:
-            by_matchup[f"{away}@{home}"] = ct
+        if not home or not away or not ct:
+            continue
+        matchup = f"{away}@{home}"
+        by_matchup[matchup] = ct
+        if matchup not in known:
+            odds_only.append(
+                {
+                    "game_id": ev.get("event_id"),
+                    "season": None,
+                    "week": None,
+                    "game_type": "PRE",
+                    "kickoff": ct,
+                    "home_team": home,
+                    "away_team": away,
+                    "matchup": matchup,
+                    "kickoff_source": "odds_api",
+                }
+            )
 
     for g in games:
         key = g.get("matchup")
@@ -125,6 +143,10 @@ def merge_odds_kickoffs(games: list[dict[str, Any]]) -> list[dict[str, Any]]:
             g["kickoff_source"] = "odds_api"
         else:
             g["kickoff_source"] = "nflverse"
+
+    if odds_only:
+        games = games + odds_only
+        games.sort(key=lambda g: g["kickoff"])
     return games
 
 

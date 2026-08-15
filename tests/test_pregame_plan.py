@@ -5,8 +5,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from unittest.mock import patch
+
 from sharp_scout.scheduler.plan import (
     build_run_plan,
+    merge_odds_kickoffs,
     should_run_now,
     _parse_kickoff,
 )
@@ -46,6 +49,25 @@ def test_build_run_plan_counts_windows():
     plan = build_run_plan(now=now, horizon_days=14, windows_hours=[12, 3, 1])
     assert plan["n_runs"] == 3
     assert {r["window_hours"] for r in plan["runs"]} == {12, 3, 1}
+
+
+@patch("sharp_scout.scheduler.plan.get_settings")
+@patch("sharp_scout.data.odds_api.OddsClient")
+def test_merge_odds_adds_preseason_games_not_in_nflverse(mock_client, mock_settings):
+    kickoff = datetime(2026, 8, 15, 17, 0, tzinfo=timezone.utc)
+    mock_settings.return_value.odds_api_key = "test"
+    mock_client.return_value.fetch_events.return_value = [
+        {
+            "event_id": "pre-buf-car",
+            "home_team": "BUF",
+            "away_team": "CAR",
+            "commence_time": kickoff,
+        }
+    ]
+    merged = merge_odds_kickoffs([])
+    assert len(merged) == 1
+    assert merged[0]["matchup"] == "CAR@BUF"
+    assert merged[0]["kickoff_source"] == "odds_api"
 
 
 def test_should_run_now_within_tolerance():

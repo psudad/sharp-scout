@@ -58,6 +58,11 @@ jobs:
           DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
           FORCE_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.force_all || false }}
         run: |
+          # Scheduled cron must not fall back to demo — that re-runs mock KC@BUF every 30 min.
+          if [ -z "$ODDS_API_KEY" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "No ODDS_API_KEY secret — skipping scheduled pregame (add secret or run workflow manually with demo)."
+            exit 0
+          fi
           ARGS=""
           if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
             ARGS="--demo --skip-pbp"
@@ -79,19 +84,5 @@ jobs:
             git push
           fi
 
-      - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
-
-  deploy:
-    needs: pregame
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      # Pages deploy is handled by workflows/pages.yml on push to docs/ (avoids 404 when Pages
+      # source is not configured for GitHub Actions).

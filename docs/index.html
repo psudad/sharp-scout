@@ -59,6 +59,14 @@
   .pos { color: #4ade80; font-weight: 600; }
   .neg { color: #f87171; font-weight: 600; }
   .empty { color: #8b949e; text-align: center; padding: 28px 8px; }
+  .game-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .game-head { margin-bottom: 10px; }
+  .game-title { font-size: 18px; font-weight: 800; }
+  .game-kick { font-size: 11px; color: #8b949e; margin-top: 4px; }
+  .phase-block { margin-top: 12px; border-top: 1px solid #21262d; padding-top: 10px; }
+  .phase-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #f4820a; text-transform: uppercase; margin-bottom: 6px; }
+  .phase-note { font-size: 12px; color: #94a3b8; margin: 4px 0; line-height: 1.5; }
+  .phase-sub { font-size: 11px; font-weight: 700; color: #8b949e; margin: 8px 0 4px; }
   .footer { color: #4b5563; font-size: 11px; padding: 24px 16px; text-align: center; line-height: 1.6; }
 </style>
 </head>
@@ -66,11 +74,12 @@
 <div class="header">
   <h1>Sharp Scout</h1>
   <p>NFL hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
-  <span class="pill">0-0 · +0.0u · DEMO data</span>
-  <p style="margin-top:8px">Updated 2026-08-15 11:39 UTC</p>
+  <span class="pill">0-0 · +0.0u · Live pipeline</span>
+  <p style="margin-top:8px">Updated 2026-08-15 12:00 UTC</p>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">Plays</div>
+  <div class="tab" onclick="showTab('games', this)">Games</div>
   <div class="tab" onclick="showTab('stages', this)">Stages</div>
   <div class="tab" onclick="showTab('ledger', this)">Ledger</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
@@ -83,45 +92,21 @@
     <div class="stat-card"><div class="stat-val pos">+0.0u</div><div class="stat-label">Profit</div></div>
     <div class="stat-card"><div class="stat-val">100.0u</div><div class="stat-label">Bankroll</div></div>
   </div>
-  <div class="section-label">Open / Latest Plays · 3 pending · 3 total</div>
+  <div class="section-label">Open / Latest Plays · 46 pending · 46 total</div>
   
       <div class="play-card sharp-play">
         <div class="card-top">
           <div class="card-left">
             <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">HOU (ML) +120</div>
-            <div class="play-subtitle">HOU @ LAC · draftkings · force-all</div>
+            <div class="play-title">NYG +1.5 (spread) -115</div>
+            <div class="play-subtitle">MIN @ NYG · onexbet</div>
           </div>
           <div class="units-badge">1.5u</div>
         </div>
         <span class="card-result pending">PENDING</span>
         <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">8.5%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">49.3%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:93%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">EV=8.52% at draftkings +120; money-ticket gap +21% on away (money=61% tickets=40%); no open/current line for RLM</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">HOU +1.5 (spread) -105</div>
-            <div class="play-subtitle">HOU @ LAC · betus · force-all</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">14.0%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">58.4%</span></div>
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">18.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
           
         </div>
         <div class="conf-bar">
@@ -130,22 +115,22 @@
         <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
           <span class="arrow">▶</span><span>Rationale</span>
         </div>
-        <div class="rationale-body">EV=13.97% at betus -105; money-ticket gap +21% on away (money=64% tickets=43%); no open/current line for RLM</div>
+        <div class="rationale-body">EV=18.87% at onexbet -115; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
       </div>
 
       <div class="play-card sharp-play">
         <div class="card-top">
           <div class="card-left">
             <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">HOU +2.5 (spread) -110</div>
-            <div class="play-subtitle">HOU @ LAC · draftkings · force-all</div>
+            <div class="play-title">NYG +1.5 (spread) -114</div>
+            <div class="play-subtitle">MIN @ NYG · betsson</div>
           </div>
           <div class="units-badge">1.5u</div>
         </div>
         <span class="card-result pending">PENDING</span>
         <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">22.8%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">64.3%</span></div>
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">19.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
           
         </div>
         <div class="conf-bar">
@@ -154,26 +139,1349 @@
         <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
           <span class="arrow">▶</span><span>Rationale</span>
         </div>
-        <div class="rationale-body">EV=22.75% at draftkings -110; money-ticket gap +21% on away (money=64% tickets=43%); no open/current line for RLM</div>
+        <div class="rationale-body">EV=19.35% at betsson -114; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +1.5 (spread) -114</div>
+            <div class="play-subtitle">MIN @ NYG · nordicbet</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">19.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=19.35% at nordicbet -114; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · betanysports</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.38% at betanysports -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · matchbook</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.38% at matchbook -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +1.5 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · hardrockbet</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.38% at hardrockbet -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · pinnacle</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.38% at pinnacle -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · bovada</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.38% at bovada -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · betonlineag</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.38% at betonlineag -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -109</div>
+            <div class="play-subtitle">MIN @ NYG · ballybet</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.91% at ballybet -109; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -109</div>
+            <div class="play-subtitle">MIN @ NYG · betrivers</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.91% at betrivers -109; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -109</div>
+            <div class="play-subtitle">MIN @ NYG · betparx</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.91% at betparx -109; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -109</div>
+            <div class="play-subtitle">MIN @ NYG · unibet_se</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.91% at unibet_se -109; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -109</div>
+            <div class="play-subtitle">MIN @ NYG · leovegas_se</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.91% at leovegas_se -109; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -109</div>
+            <div class="play-subtitle">MIN @ NYG · gtbets</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=21.91% at gtbets -109; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +1.5 (spread) -105</div>
+            <div class="play-subtitle">MIN @ NYG · betus</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">24.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=24.13% at betus -105; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2 (spread) -105</div>
+            <div class="play-subtitle">MIN @ NYG · lowvig</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">24.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=24.13% at lowvig -105; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +1.5 (spread) -105</div>
+            <div class="play-subtitle">MIN @ NYG · draftkings</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">24.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">63.6%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=24.13% at draftkings -105; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +105</div>
+            <div class="play-subtitle">LAR @ KC · fliff</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">25.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=25.05% at fliff +105; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +108</div>
+            <div class="play-subtitle">LAR @ KC · betsson</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">26.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=26.88% at betsson +108; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +108</div>
+            <div class="play-subtitle">LAR @ KC · nordicbet</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">26.9%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=26.88% at nordicbet +108; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +110</div>
+            <div class="play-subtitle">LAR @ KC · hardrockbet</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">28.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=28.10% at hardrockbet +110; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +110</div>
+            <div class="play-subtitle">LAR @ KC · mybookieag</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">28.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=28.10% at mybookieag +110; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +110</div>
+            <div class="play-subtitle">LAR @ KC · draftkings</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">28.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=28.10% at draftkings +110; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +110</div>
+            <div class="play-subtitle">LAR @ KC · fanduel</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">28.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=28.10% at fanduel +110; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2.5 (spread) -115</div>
+            <div class="play-subtitle">MIN @ NYG · fliff</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">29.0%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">69.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=28.96% at fliff -115; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +115</div>
+            <div class="play-subtitle">LAR @ KC · bovada</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=31.15% at bovada +115; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +115</div>
+            <div class="play-subtitle">LAR @ KC · gtbets</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.1%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=31.15% at gtbets +115; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2.5 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · mybookieag</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.7%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">69.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=31.69% at mybookieag -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2.5 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · espnbet</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.7%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">69.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=31.69% at espnbet -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2.5 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · betmgm</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.7%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">69.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=31.69% at betmgm -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">NYG +2.5 (spread) -110</div>
+            <div class="play-subtitle">MIN @ NYG · fanduel</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.7%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">69.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=31.69% at fanduel -110; money-ticket gap +28% on home (money=80% tickets=52%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +116</div>
+            <div class="play-subtitle">LAR @ KC · matchbook</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">31.8%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=31.76% at matchbook +116; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +117</div>
+            <div class="play-subtitle">LAR @ KC · pinnacle</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">32.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=32.37% at pinnacle +117; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +118</div>
+            <div class="play-subtitle">LAR @ KC · ballybet</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=32.98% at ballybet +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +118</div>
+            <div class="play-subtitle">LAR @ KC · unibet_se</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=32.98% at unibet_se +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +118</div>
+            <div class="play-subtitle">LAR @ KC · betparx</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=32.98% at betparx +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +118</div>
+            <div class="play-subtitle">LAR @ KC · leovegas_se</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=32.98% at leovegas_se +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +118</div>
+            <div class="play-subtitle">LAR @ KC · betrivers</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">33.0%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=32.98% at betrivers +118; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +120</div>
+            <div class="play-subtitle">LAR @ KC · betanysports</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=34.20% at betanysports +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +120</div>
+            <div class="play-subtitle">LAR @ KC · betfair_ex_eu</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=34.20% at betfair_ex_eu +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +120</div>
+            <div class="play-subtitle">LAR @ KC · espnbet</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=34.20% at espnbet +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +120</div>
+            <div class="play-subtitle">LAR @ KC · betus</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=34.20% at betus +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +120</div>
+            <div class="play-subtitle">LAR @ KC · betmgm</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=34.20% at betmgm +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +120</div>
+            <div class="play-subtitle">LAR @ KC · lowvig</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=34.20% at lowvig +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+
+      <div class="play-card sharp-play">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-play">Sharp Play</span>
+            <div class="play-title">LAR (ML) +120</div>
+            <div class="play-subtitle">LAR @ KC · betonlineag</div>
+          </div>
+          <div class="units-badge">1.5u</div>
+        </div>
+        <span class="card-result pending">PENDING</span>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">34.2%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">61.0%</span></div>
+          
+        </div>
+        <div class="conf-bar">
+          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+        </div>
+        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="arrow">▶</span><span>Rationale</span>
+        </div>
+        <div class="rationale-body">EV=34.20% at betonlineag +120; money-ticket gap +24% on away (money=48% tickets=24%); no open/current line for RLM</div>
+      </div>
+</div>
+
+<div id="tab-games" class="content">
+  <p class="phase-note" style="padding:12px 0">Per-game pipeline output: EPA model → Monte Carlo → market EV → money/ticket splits → stage picks.</p>
+  
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">CAR @ BUF</div>
+          <div class="game-kick">2026-08-15T17:00:00+00:00</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>CAR</b>: power -0.052 · off -0.031 · def -0.021</p>
+          <p class="phase-note"><b>BUF</b>: power 0.115 · off 0.122 · def -0.007</p>
+          <p class="phase-note">Model spread (home): <b>-7.07589386395513</b> ·
+            total <b>48.34674591707173</b> · P(home win) <b>77.3%</b></p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>totals</td><td>over 38.5</td><td>matchbook</td><td class='pending'>62.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=62.47% at matchbook -106; money-ticket gap only -4% on over (need ≥20%); no o</td></tr>
+<tr><td>totals</td><td>over 38.5</td><td>pinnacle</td><td class='pending'>60.3%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=60.30% at pinnacle -109; money-ticket gap only -4% on over (need ≥20%); no op</td></tr>
+<tr><td>totals</td><td>over 39.5</td><td>fanduel</td><td class='pending'>59.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.82% at fanduel -102; money-ticket gap only -4% on over (need ≥20%); no ope</td></tr>
+<tr><td>totals</td><td>over 38.5</td><td>bovada</td><td class='pending'>59.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.60% at bovada -110; money-ticket gap only -4% on over (need ≥20%); no open</td></tr>
+<tr><td>totals</td><td>over 38.5</td><td>mybookieag</td><td class='pending'>59.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=59.60% at mybookieag -110; money-ticket gap only -4% on over (need ≥20%); no </td></tr>
+<tr><td>totals</td><td>over 38.5</td><td>draftkings</td><td class='pending'>58.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=58.24% at draftkings -112; money-ticket gap only -4% on over (need ≥20%); no </td></tr>
+<tr><td>totals</td><td>over 38.5</td><td>betrivers</td><td class='pending'>58.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=58.24% at betrivers -112; money-ticket gap only -4% on over (need ≥20%); no o</td></tr>
+<tr><td>totals</td><td>over 38.5</td><td>betparx</td><td class='pending'>58.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=58.24% at betparx -112; money-ticket gap only -4% on over (need ≥20%); no ope</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <div class='phase-sub'>spread line -3.0</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BUF</td><td>69%</td><td>62%</td><td class='pos'>-7%</td></tr><tr><td>CAR</td><td>31%</td><td>38%</td><td class='pos'>+7%</td></tr></tbody></table></div><div class='phase-sub'>total line 38.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>58%</td><td>54%</td><td class='pos'>-4%</td></tr><tr><td>Under</td><td>42%</td><td>46%</td><td class='pos'>+4%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BUF</td><td>79%</td><td>86%</td><td class='pos'>+7%</td></tr><tr><td>CAR</td><td>21%</td><td>14%</td><td class='pos'>-7%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>BUF (77%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-7.1 (home perspective)</td></tr><tr><td>sharp</td><td>CAR (50%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 50.2% @ -109</td></tr><tr><td>public</td><td>BUF (69%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=69% away=31%</td></tr><tr><td>money</td><td>BUF (62%)</td><td style='font-size:11px;color:#94a3b8'>money home=62% away=38% (gap vs tickets -7% on home)</td></tr><tr><td>sharp_edge</td><td>CAR (57%)</td><td style='font-size:11px;color:#94a3b8'>+7% money vs tickets on CAR</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>BUF (77%)</td><td style='font-size:11px;color:#94a3b8'>model aligned with money (no validated edge)</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">CLE @ CHI</div>
+          <div class="game-kick">2026-08-15T17:00:00+00:00</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>CLE</b>: power -0.083 · off -0.161 · def 0.077</p>
+          <p class="phase-note"><b>CHI</b>: power 0.039 · off 0.066 · def -0.027</p>
+          <p class="phase-note">Model spread (home): <b>-5.735442987500509</b> ·
+            total <b>40.950713569427734</b> · P(home win) <b>75.8%</b></p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>h2h</td><td>home</td><td>betmgm</td><td class='pending'>94.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=94.62% at betmgm +150; money-ticket gap only 7% on home (need ≥20%); no open/</td></tr>
+<tr><td>h2h</td><td>home</td><td>betanysports</td><td class='pending'>94.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=94.62% at betanysports +150; money-ticket gap only 7% on home (need ≥20%); no</td></tr>
+<tr><td>h2h</td><td>home</td><td>betonlineag</td><td class='pending'>93.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=93.85% at betonlineag +149; money-ticket gap only 7% on home (need ≥20%); no </td></tr>
+<tr><td>h2h</td><td>home</td><td>lowvig</td><td class='pending'>93.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=93.85% at lowvig +149; money-ticket gap only 7% on home (need ≥20%); no open/</td></tr>
+<tr><td>h2h</td><td>home</td><td>gtbets</td><td class='pending'>90.7%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=90.73% at gtbets +145; money-ticket gap only 7% on home (need ≥20%); no open/</td></tr>
+<tr><td>h2h</td><td>home</td><td>espnbet</td><td class='pending'>90.7%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=90.73% at espnbet +145; money-ticket gap only 7% on home (need ≥20%); no open</td></tr>
+<tr><td>h2h</td><td>home</td><td>bovada</td><td class='pending'>90.7%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=90.73% at bovada +145; money-ticket gap only 7% on home (need ≥20%); no open/</td></tr>
+<tr><td>h2h</td><td>home</td><td>pinnacle</td><td class='pending'>90.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=89.95% at pinnacle +144; money-ticket gap only 7% on home (need ≥20%); no ope</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <div class='phase-sub'>spread line 3.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>CHI</td><td>65%</td><td>79%</td><td class='pos'>+14%</td></tr><tr><td>CLE</td><td>35%</td><td>21%</td><td class='pos'>-14%</td></tr></tbody></table></div><div class='phase-sub'>total line 40.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>66%</td><td>69%</td><td class='pos'>+3%</td></tr><tr><td>Under</td><td>34%</td><td>31%</td><td class='pos'>-3%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>CHI</td><td>53%</td><td>60%</td><td class='pos'>+7%</td></tr><tr><td>CLE</td><td>47%</td><td>40%</td><td class='pos'>-7%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>CHI (76%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-5.7 (home perspective)</td></tr><tr><td>sharp</td><td>CHI (53%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 53.5% @ -125</td></tr><tr><td>public</td><td>CHI (65%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=65% away=35%</td></tr><tr><td>money</td><td>CHI (79%)</td><td style='font-size:11px;color:#94a3b8'>money home=79% away=21% (gap vs tickets +14% on home)</td></tr><tr><td>sharp_edge</td><td>CHI (64%)</td><td style='font-size:11px;color:#94a3b8'>+14% money vs tickets on CHI</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>CHI (76%)</td><td style='font-size:11px;color:#94a3b8'>model aligned with money+sharp (no validated edge)</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">MIN @ NYG</div>
+          <div class="game-kick">2026-08-15T17:00:00+00:00</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>MIN</b>: power 0.039 · off -0.096 · def 0.135</p>
+          <p class="phase-note"><b>NYG</b>: power -0.017 · off 0.021 · def -0.038</p>
+          <p class="phase-note">Model spread (home): <b>-1.042467884999681</b> ·
+            total <b>40.22433221278142</b> · P(home win) <b>53.6%</b></p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>spreads</td><td>home 2.5</td><td>fanduel</td><td class='pos'>31.7%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=31.69% at fanduel -110; money-ticket gap +28% on home (money=80% tickets=52%)</td></tr>
+<tr><td>spreads</td><td>home 2.5</td><td>betmgm</td><td class='pos'>31.7%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=31.69% at betmgm -110; money-ticket gap +28% on home (money=80% tickets=52%);</td></tr>
+<tr><td>spreads</td><td>home 2.5</td><td>espnbet</td><td class='pos'>31.7%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=31.69% at espnbet -110; money-ticket gap +28% on home (money=80% tickets=52%)</td></tr>
+<tr><td>spreads</td><td>home 2.5</td><td>mybookieag</td><td class='pos'>31.7%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=31.69% at mybookieag -110; money-ticket gap +28% on home (money=80% tickets=5</td></tr>
+<tr><td>spreads</td><td>home 2.5</td><td>fliff</td><td class='pos'>29.0%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=28.96% at fliff -115; money-ticket gap +28% on home (money=80% tickets=52%); </td></tr>
+<tr><td>totals</td><td>under 43.0</td><td>betus</td><td class='pending'>28.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=28.37% at betus -110; money-ticket gap only -7% on under (need ≥20%); no open</td></tr>
+<tr><td>spreads</td><td>home 1.5</td><td>draftkings</td><td class='pos'>24.1%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=24.13% at draftkings -105; money-ticket gap +28% on home (money=80% tickets=5</td></tr>
+<tr><td>spreads</td><td>home 2.0</td><td>lowvig</td><td class='pos'>24.1%</td><td>✓</td><td style='font-size:11px;color:#94a3b8'>EV=24.13% at lowvig -105; money-ticket gap +28% on home (money=80% tickets=52%);</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <div class='phase-sub'>spread line 2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NYG</td><td>52%</td><td>80%</td><td class='pos'>+28%</td></tr><tr><td>MIN</td><td>48%</td><td>20%</td><td class='pos'>-28%</td></tr></tbody></table></div><div class='phase-sub'>total line 42.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>45%</td><td>52%</td><td class='pos'>+7%</td></tr><tr><td>Under</td><td>55%</td><td>48%</td><td class='pos'>-7%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NYG</td><td>24%</td><td>16%</td><td class='pos'>-8%</td></tr><tr><td>MIN</td><td>76%</td><td>84%</td><td class='pos'>+8%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>NYG (54%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-1.0 (home perspective)</td></tr><tr><td>sharp</td><td>NYG (50%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 50.4% @ -110</td></tr><tr><td>public</td><td>NYG (52%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=52% away=48%</td></tr><tr><td>money</td><td>NYG (80%)</td><td style='font-size:11px;color:#94a3b8'>money home=80% away=20% (gap vs tickets +28% on home)</td></tr><tr><td>sharp_edge</td><td>NYG (78%)</td><td style='font-size:11px;color:#94a3b8'>+28% money vs tickets on NYG</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>NYG (69%)</td><td style='font-size:11px;color:#94a3b8'>validated play EV=31.7% @ fanduel</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">JAX @ NO</div>
+          <div class="game-kick">2026-08-15T20:00:00+00:00</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>JAX</b>: power 0.109 · off 0.039 · def 0.070</p>
+          <p class="phase-note"><b>NO</b>: power 0.012 · off -0.066 · def 0.078</p>
+          <p class="phase-note">Model spread (home): <b>0.3049215936992411</b> ·
+            total <b>40.08989507567146</b> · P(home win) <b>45.7%</b></p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>totals</td><td>over 35.5</td><td>lowvig</td><td class='pending'>37.9%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=37.91% at lowvig -102; money-ticket gap only 0% on over (need ≥20%); no open/</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>matchbook</td><td class='pending'>36.6%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=36.60% at matchbook -104; money-ticket gap only 0% on over (need ≥20%); no op</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>betonlineag</td><td class='pending'>36.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=35.96% at betonlineag -105; money-ticket gap only 0% on over (need ≥20%); no </td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>pinnacle</td><td class='pending'>35.3%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=35.34% at pinnacle -106; money-ticket gap only 0% on over (need ≥20%); no ope</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>draftkings</td><td class='pending'>34.1%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=34.12% at draftkings -108; money-ticket gap only 0% on over (need ≥20%); no o</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>gtbets</td><td class='pending'>33.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=33.53% at gtbets -109; money-ticket gap only 0% on over (need ≥20%); no open/</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>betrivers</td><td class='pending'>33.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=33.53% at betrivers -109; money-ticket gap only 0% on over (need ≥20%); no op</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>betparx</td><td class='pending'>33.5%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=33.53% at betparx -109; money-ticket gap only 0% on over (need ≥20%); no open</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NO</td><td>36%</td><td>44%</td><td class='pos'>+8%</td></tr><tr><td>JAX</td><td>64%</td><td>56%</td><td class='pos'>-8%</td></tr></tbody></table></div><div class='phase-sub'>total line 35.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>59%</td><td>59%</td><td class='pos'>+0%</td></tr><tr><td>Under</td><td>41%</td><td>41%</td><td class='pos'>+0%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>NO</td><td>55%</td><td>58%</td><td class='pos'>+3%</td></tr><tr><td>JAX</td><td>45%</td><td>42%</td><td class='pos'>-3%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>JAX (48%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=+0.3 (home perspective)</td></tr><tr><td>sharp</td><td>NO (54%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 53.7% @ -126</td></tr><tr><td>public</td><td>JAX (64%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=36% away=64%</td></tr><tr><td>money</td><td>JAX (56%)</td><td style='font-size:11px;color:#94a3b8'>money home=44% away=56% (gap vs tickets -8% on away)</td></tr><tr><td>sharp_edge</td><td>NO (58%)</td><td style='font-size:11px;color:#94a3b8'>+8% money vs tickets on NO</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>JAX (48%)</td><td style='font-size:11px;color:#94a3b8'>model aligned with money (no validated edge)</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">LAR @ KC</div>
+          <div class="game-kick">2026-08-15T20:00:00+00:00</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>LAR</b>: power 0.160 · off 0.150 · def 0.011</p>
+          <p class="phase-note"><b>KC</b>: power -0.025 · off -0.038 · def 0.013</p>
+          <p class="phase-note">Model spread (home): <b>2.442465153879528</b> ·
+            total <b>47.482910539411336</b> · P(home win) <b>36.8%</b></p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>totals</td><td>over 35.5</td><td>gtbets</td><td class='pending'>72.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=72.19% at gtbets -109; money-ticket gap only 3% on over (need ≥20%); no open/</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>matchbook</td><td class='pending'>72.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=72.19% at matchbook -109; money-ticket gap only 3% on over (need ≥20%); no op</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>betmgm</td><td class='pending'>71.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=71.44% at betmgm -110; money-ticket gap only 3% on over (need ≥20%); no open/</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>betus</td><td class='pending'>71.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=71.44% at betus -110; money-ticket gap only 3% on over (need ≥20%); no open/c</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>bovada</td><td class='pending'>71.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=71.44% at bovada -110; money-ticket gap only 3% on over (need ≥20%); no open/</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>betanysports</td><td class='pending'>71.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=71.44% at betanysports -110; money-ticket gap only 3% on over (need ≥20%); no</td></tr>
+<tr><td>totals</td><td>over 36.5</td><td>fanduel</td><td class='pending'>70.1%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=70.09% at fanduel -105; money-ticket gap only 3% on over (need ≥20%); no open</td></tr>
+<tr><td>totals</td><td>over 35.5</td><td>draftkings</td><td class='pending'>70.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=69.98% at draftkings -112; money-ticket gap only 3% on over (need ≥20%); no o</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>KC</td><td>35%</td><td>29%</td><td class='pos'>-6%</td></tr><tr><td>LAR</td><td>65%</td><td>71%</td><td class='pos'>+6%</td></tr></tbody></table></div><div class='phase-sub'>total line 35.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>81%</td><td>84%</td><td class='pos'>+3%</td></tr><tr><td>Under</td><td>19%</td><td>16%</td><td class='pos'>-3%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>KC</td><td>76%</td><td>52%</td><td class='pos'>-24%</td></tr><tr><td>LAR</td><td>24%</td><td>48%</td><td class='pos'>+24%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>LAR (59%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=+2.4 (home perspective)</td></tr><tr><td>sharp</td><td>LAR (51%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 51.1% @ -113</td></tr><tr><td>public</td><td>LAR (65%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=35% away=65%</td></tr><tr><td>money</td><td>LAR (71%)</td><td style='font-size:11px;color:#94a3b8'>money home=29% away=71% (gap vs tickets +6% on away)</td></tr><tr><td>sharp_edge</td><td>LAR (56%)</td><td style='font-size:11px;color:#94a3b8'>+6% money vs tickets on LAR</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>LAR (61%)</td><td style='font-size:11px;color:#94a3b8'>validated play EV=34.2% @ betonlineag</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">PHI @ BAL</div>
+          <div class="game-kick">2026-08-15T23:00:00+00:00</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>PHI</b>: power 0.054 · off -0.027 · def 0.080</p>
+          <p class="phase-note"><b>BAL</b>: power 0.042 · off 0.049 · def -0.006</p>
+          <p class="phase-note">Model spread (home): <b>-1.922825042755246</b> ·
+            total <b>43.54921964978077</b> · P(home win) <b>56.8%</b></p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>h2h</td><td>home</td><td>fanduel</td><td class='pending'>58.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=57.98% at fanduel +166; money-ticket gap only 11% on home (need ≥20%); no ope</td></tr>
+<tr><td>h2h</td><td>home</td><td>betonlineag</td><td class='pending'>57.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=57.38% at betonlineag +165; money-ticket gap only 11% on home (need ≥20%); no</td></tr>
+<tr><td>h2h</td><td>home</td><td>lowvig</td><td class='pending'>57.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=57.38% at lowvig +165; money-ticket gap only 11% on home (need ≥20%); no open</td></tr>
+<tr><td>h2h</td><td>home</td><td>betmgm</td><td class='pending'>57.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=57.38% at betmgm +165; money-ticket gap only 11% on home (need ≥20%); no open</td></tr>
+<tr><td>h2h</td><td>home</td><td>espnbet</td><td class='pending'>57.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=57.38% at espnbet +165; money-ticket gap only 11% on home (need ≥20%); no ope</td></tr>
+<tr><td>h2h</td><td>home</td><td>betanysports</td><td class='pending'>57.4%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=57.38% at betanysports +165; money-ticket gap only 11% on home (need ≥20%); n</td></tr>
+<tr><td>h2h</td><td>home</td><td>betfair_ex_eu</td><td class='pending'>56.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=56.79% at betfair_ex_eu +164; money-ticket gap only 11% on home (need ≥20%); </td></tr>
+<tr><td>h2h</td><td>home</td><td>betus</td><td class='pending'>56.2%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=56.20% at betus +163; money-ticket gap only 11% on home (need ≥20%); no open/</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <div class='phase-sub'>spread line 3.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BAL</td><td>53%</td><td>53%</td><td class='pos'>+0%</td></tr><tr><td>PHI</td><td>47%</td><td>47%</td><td class='pos'>+0%</td></tr></tbody></table></div><div class='phase-sub'>total line 36.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>80%</td><td>82%</td><td class='pos'>+2%</td></tr><tr><td>Under</td><td>20%</td><td>18%</td><td class='pos'>-2%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BAL</td><td>21%</td><td>32%</td><td class='pos'>+11%</td></tr><tr><td>PHI</td><td>79%</td><td>68%</td><td class='pos'>-11%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>BAL (57%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-1.9 (home perspective)</td></tr><tr><td>sharp</td><td>BAL (51%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 51.1% @ -113</td></tr><tr><td>public</td><td>BAL (53%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=53% away=47%</td></tr><tr><td>money</td><td>BAL (53%)</td><td style='font-size:11px;color:#94a3b8'>money home=53% away=47% (gap vs tickets +0% on home)</td></tr><tr><td>sharp_edge</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no positive money-ticket diff</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>BAL (57%)</td><td style='font-size:11px;color:#94a3b8'>model aligned with money+sharp (no validated edge)</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">DAL @ SEA</div>
+          <div class="game-kick">2026-08-16T00:00:00+00:00</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>DAL</b>: power -0.095 · off 0.057 · def -0.151</p>
+          <p class="phase-note"><b>SEA</b>: power 0.211 · off 0.050 · def 0.162</p>
+          <p class="phase-note">Model spread (home): <b>-11.441864016413032</b> ·
+            total <b>47.70457142318598</b> · P(home win) <b>88.9%</b></p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV candidates</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Side</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>totals</td><td>over 38.0</td><td>bovada</td><td class='pending'>68.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=67.98% at bovada +105; money-ticket gap only -11% on over (need ≥20%); no ope</td></tr>
+<tr><td>totals</td><td>over 38.0</td><td>pinnacle</td><td class='pending'>68.0%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=67.98% at pinnacle +105; money-ticket gap only -11% on over (need ≥20%); no o</td></tr>
+<tr><td>spreads</td><td>home -3.0</td><td>lowvig</td><td class='pending'>62.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=62.84% at lowvig +100; money-ticket gap only 1% on home (need ≥20%); no open/</td></tr>
+<tr><td>spreads</td><td>home -3.0</td><td>bovada</td><td class='pending'>62.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=62.84% at bovada +100; money-ticket gap only 1% on home (need ≥20%); no open/</td></tr>
+<tr><td>totals</td><td>over 38.0</td><td>lowvig</td><td class='pending'>62.3%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=62.27% at lowvig -102; money-ticket gap only -11% on over (need ≥20%); no ope</td></tr>
+<tr><td>totals</td><td>over 37.5</td><td>betus</td><td class='pending'>61.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=61.81% at betus -110; money-ticket gap only -11% on over (need ≥20%); no open</td></tr>
+<tr><td>totals</td><td>over 37.5</td><td>mybookieag</td><td class='pending'>61.8%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=61.81% at mybookieag -110; money-ticket gap only -11% on over (need ≥20%); no</td></tr>
+<tr><td>totals</td><td>over 38.0</td><td>gtbets</td><td class='pending'>60.7%</td><td>—</td><td style='font-size:11px;color:#94a3b8'>EV=60.73% at gtbets -104; money-ticket gap only -11% on over (need ≥20%); no ope</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>SEA</td><td>45%</td><td>46%</td><td class='pos'>+1%</td></tr><tr><td>DAL</td><td>55%</td><td>54%</td><td class='pos'>-1%</td></tr></tbody></table></div><div class='phase-sub'>total line 37.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>58%</td><td>47%</td><td class='pos'>-11%</td></tr><tr><td>Under</td><td>42%</td><td>53%</td><td class='pos'>+11%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>SEA</td><td>83%</td><td>74%</td><td class='pos'>-9%</td></tr><tr><td>DAL</td><td>17%</td><td>26%</td><td class='pos'>+9%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Stage</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td>model</td><td>SEA (89%)</td><td style='font-size:11px;color:#94a3b8'>S_mod=-11.4 (home perspective)</td></tr><tr><td>sharp</td><td>DAL (51%)</td><td style='font-size:11px;color:#94a3b8'>pinnacle no-vig 50.7% @ -111</td></tr><tr><td>public</td><td>DAL (55%)</td><td style='font-size:11px;color:#94a3b8'>tickets home=45% away=55%</td></tr><tr><td>money</td><td>DAL (54%)</td><td style='font-size:11px;color:#94a3b8'>money home=46% away=54% (gap vs tickets -1% on away)</td></tr><tr><td>sharp_edge</td><td>SEA (51%)</td><td style='font-size:11px;color:#94a3b8'>+1% money vs tickets on SEA</td></tr><tr><td>rlm</td><td>—</td><td style='font-size:11px;color:#94a3b8'>no open/current line for RLM</td></tr><tr><td>hybrid</td><td>SEA (71%)</td><td style='font-size:11px;color:#94a3b8'>model lean only — no confirming market stage</td></tr></tbody></table></div>
+        </div>
       </div>
 </div>
 
 <div id="tab-stages" class="content">
   <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">1</div><div class="stat-label">Sharp vs Public</div></div>
+    <div class="stat-card"><div class="stat-val">2</div><div class="stat-label">Sharp vs Public</div></div>
     <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">RLM Games</div></div>
   </div>
   <div class="section-label">Stage Records (settled)</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
-    <tbody><tr><td colspan='4'>Stage records appear after games settle.</td></tr></tbody>
+    <tbody><tr><td><b>hybrid</b></td><td>0-0</td><td>—</td><td>7</td></tr>
+<tr><td><b>model</b></td><td>0-0</td><td>—</td><td>7</td></tr>
+<tr><td><b>sharp</b></td><td>0-0</td><td>—</td><td>7</td></tr>
+<tr><td><b>money</b></td><td>0-0</td><td>—</td><td>7</td></tr>
+<tr><td><b>public</b></td><td>0-0</td><td>—</td><td>7</td></tr>
+<tr><td><b>sharp_edge</b></td><td>0-0</td><td>—</td><td>6</td></tr></tbody>
   </table></div>
   <div class="section-label">Per-Game Stage Winners</div>
   <div class="table-wrap"><table>
     <thead><tr>
       <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
     </tr></thead>
-    <tbody><tr><td>KC @ BUF</td><td><b>BUF</b></td><td><b>KC</b></td><td><b>BUF</b></td><td><b>KC</b></td><td><b>KC</b></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>fade pub</td></tr></tbody>
+    <tbody><tr><td>CAR @ BUF</td><td><b>BUF</b></td><td><b>CAR</b></td><td><b>BUF</b></td><td><b>BUF</b></td><td><b>CAR</b></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>fade pub</td></tr>
+<tr><td>CLE @ CHI</td><td><b>CHI</b></td><td><b>CHI</b></td><td><b>CHI</b></td><td><b>CHI</b></td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model, sharp, public, money, sharp_edge</td></tr>
+<tr><td>MIN @ NYG</td><td><b>NYG</b></td><td><b>NYG</b></td><td><b>NYG</b></td><td><b>NYG</b></td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model, sharp, public, money, sharp_edge</td></tr>
+<tr><td>JAX @ NO</td><td><b>JAX</b></td><td><b>NO</b></td><td><b>JAX</b></td><td><b>JAX</b></td><td><b>NO</b></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>fade pub</td></tr>
+<tr><td>LAR @ KC</td><td><b>LAR</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model, sharp, public, money, sharp_edge</td></tr>
+<tr><td>PHI @ BAL</td><td><b>BAL</b></td><td><b>BAL</b></td><td><b>BAL</b></td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model, sharp, public, money</td></tr>
+<tr><td>DAL @ SEA</td><td><b>SEA</b></td><td><b>DAL</b></td><td><b>DAL</b></td><td><b>DAL</b></td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model, sharp_edge</td></tr></tbody>
   </table></div>
   <p class="footer" style="padding:12px 0">Each column is an independent pick. Hybrid is the full system; compare it to model / sharp / public / money / RLM.</p>
 </div>
@@ -182,14 +1490,57 @@
   <div class="section-label">By Week</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Week</th><th>Record</th><th>Pending</th><th>PnL</th></tr></thead>
-    <tbody><tr><td>? W?</td><td>0-0</td><td>3</td><td class='pos'>+0.00u</td></tr></tbody>
+    <tbody><tr><td>? W?</td><td>0-0</td><td>46</td><td class='pos'>+0.00u</td></tr></tbody>
   </table></div>
   <div class="section-label">All Plays</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>PnL</th></tr></thead>
-    <tbody><tr><td>2026-08-15</td><td>HOU @ LAC</td><td>HOU (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>HOU @ LAC</td><td>HOU +1.5 (spread) -105</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-15</td><td>HOU @ LAC</td><td>HOU +2.5 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr></tbody>
+    <tbody><tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -115</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -114</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -114</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -109</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -109</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -109</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -109</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -109</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -109</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -105</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2 (spread) -105</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -105</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +105</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +108</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +108</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -115</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +115</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +115</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +2.5 (spread) -110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +116</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +117</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +118</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr>
+<tr><td>2026-08-15</td><td>LAR @ KC</td><td>LAR (ML) +120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class=''>—</td></tr></tbody>
   </table></div>
 </div>
 
@@ -197,38 +1548,38 @@
   <div class="section-label">Power Ratings</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
-    <tbody><tr><td><b>KC</b></td><td class='pos'>0.120</td><td>0.080</td><td>0.040</td></tr>
-<tr><td><b>BUF</b></td><td class='pos'>0.110</td><td>0.060</td><td>0.050</td></tr>
-<tr><td><b>ARI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>ATL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>BAL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CAR</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CHI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CIN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CLE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>DAL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>DEN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>DET</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>GB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>HOU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>IND</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>JAX</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>LAC</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>LAR</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>LV</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>MIA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>MIN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>NE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>NO</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>NYG</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>NYJ</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>PHI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>PIT</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>SEA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>SF</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>TB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>TEN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>WAS</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr></tbody>
+    <tbody><tr><td><b>SEA</b></td><td class='pos'>0.211</td><td>0.050</td><td>0.162</td></tr>
+<tr><td><b>LAR</b></td><td class='pos'>0.160</td><td>0.150</td><td>0.011</td></tr>
+<tr><td><b>NE</b></td><td class='pos'>0.149</td><td>0.040</td><td>0.108</td></tr>
+<tr><td><b>BUF</b></td><td class='pos'>0.115</td><td>0.122</td><td>-0.007</td></tr>
+<tr><td><b>HOU</b></td><td class='pos'>0.112</td><td>-0.037</td><td>0.149</td></tr>
+<tr><td><b>JAX</b></td><td class='pos'>0.109</td><td>0.039</td><td>0.070</td></tr>
+<tr><td><b>DEN</b></td><td class='pos'>0.070</td><td>0.009</td><td>0.061</td></tr>
+<tr><td><b>PHI</b></td><td class='pos'>0.054</td><td>-0.027</td><td>0.080</td></tr>
+<tr><td><b>BAL</b></td><td class='pos'>0.042</td><td>0.049</td><td>-0.006</td></tr>
+<tr><td><b>DET</b></td><td class='pos'>0.041</td><td>0.044</td><td>-0.003</td></tr>
+<tr><td><b>MIN</b></td><td class='pos'>0.039</td><td>-0.096</td><td>0.135</td></tr>
+<tr><td><b>CHI</b></td><td class='pos'>0.039</td><td>0.066</td><td>-0.027</td></tr>
+<tr><td><b>GB</b></td><td class='pos'>0.031</td><td>0.085</td><td>-0.053</td></tr>
+<tr><td><b>LAC</b></td><td class='pos'>0.016</td><td>-0.047</td><td>0.063</td></tr>
+<tr><td><b>NO</b></td><td class='pos'>0.012</td><td>-0.066</td><td>0.078</td></tr>
+<tr><td><b>IND</b></td><td class='pos'>0.006</td><td>0.036</td><td>-0.030</td></tr>
+<tr><td><b>ATL</b></td><td class='neg'>-0.004</td><td>-0.006</td><td>0.003</td></tr>
+<tr><td><b>SF</b></td><td class='neg'>-0.005</td><td>0.060</td><td>-0.065</td></tr>
+<tr><td><b>NYG</b></td><td class='neg'>-0.017</td><td>0.021</td><td>-0.038</td></tr>
+<tr><td><b>KC</b></td><td class='neg'>-0.025</td><td>-0.038</td><td>0.013</td></tr>
+<tr><td><b>PIT</b></td><td class='neg'>-0.027</td><td>-0.007</td><td>-0.020</td></tr>
+<tr><td><b>CIN</b></td><td class='neg'>-0.040</td><td>0.026</td><td>-0.066</td></tr>
+<tr><td><b>TB</b></td><td class='neg'>-0.040</td><td>-0.004</td><td>-0.036</td></tr>
+<tr><td><b>CAR</b></td><td class='neg'>-0.052</td><td>-0.031</td><td>-0.021</td></tr>
+<tr><td><b>ARI</b></td><td class='neg'>-0.076</td><td>0.000</td><td>-0.077</td></tr>
+<tr><td><b>CLE</b></td><td class='neg'>-0.083</td><td>-0.161</td><td>0.077</td></tr>
+<tr><td><b>MIA</b></td><td class='neg'>-0.092</td><td>-0.024</td><td>-0.068</td></tr>
+<tr><td><b>DAL</b></td><td class='neg'>-0.095</td><td>0.057</td><td>-0.151</td></tr>
+<tr><td><b>WAS</b></td><td class='neg'>-0.109</td><td>0.008</td><td>-0.117</td></tr>
+<tr><td><b>TEN</b></td><td class='neg'>-0.139</td><td>-0.056</td><td>-0.084</td></tr>
+<tr><td><b>LV</b></td><td class='neg'>-0.164</td><td>-0.155</td><td>-0.010</td></tr>
+<tr><td><b>NYJ</b></td><td class='neg'>-0.236</td><td>-0.108</td><td>-0.129</td></tr></tbody>
   </table></div>
 </div>
 

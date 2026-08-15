@@ -156,7 +156,10 @@ def _translate_filter_note(note: str, play: dict[str, Any]) -> str:
         return n.replace("RLM:", "Reverse line movement:").strip()
 
     if "no open/current line" in n:
-        return "No opening line on file to check reverse line movement."
+        return (
+            "No opening line stored yet for RLM. The first pipeline run of the week "
+            "records the current line as the open; later runs compare movement against it."
+        )
 
     if "no Action Network" in n or "splits incomplete" in n:
         return (
@@ -246,24 +249,52 @@ def describe_stage_pick(stage: str, pick: dict[str, Any], home: str, away: str) 
     return f"{intro} {team}{line_s}{conf_s}"
 
 
+def _signal_group_key(signal: dict[str, Any]) -> tuple[Any, ...]:
+    """Group key for one actionable play (alternate lines collapse to one)."""
+    market = signal.get("market")
+    if signal.get("player_name") or str(market or "").startswith("player_"):
+        return (
+            signal.get("event_id"),
+            signal.get("player_name"),
+            market,
+            signal.get("side"),
+            signal.get("line"),
+        )
+    return (
+        signal.get("event_id"),
+        market,
+        signal.get("side"),
+    )
+
+
+def _signal_rank(signal: dict[str, Any]) -> tuple[float, float, float]:
+    """Sort key: highest EV, then better spread line, then better price."""
+    edge = float(signal.get("edge") or 0)
+    price = float(signal.get("price") or -110)
+    line = signal.get("line")
+    line_bonus = 0.0
+    if signal.get("market") == "spreads" and line is not None:
+        side = str(signal.get("side") or "").lower()
+        lv = float(line)
+        if side == "home" and lv > 0:
+            line_bonus = lv * 0.001
+        elif side == "away" and lv < 0:
+            line_bonus = abs(lv) * 0.001
+    return (edge, line_bonus, price)
+
+
 def collapse_best_signals(
     signals: list[dict[str, Any]],
     *,
     only_passed: bool = False,
 ) -> list[dict[str, Any]]:
-    """One row per event/market/side/line — highest edge wins."""
+    """One best play per game/market/side (alternate lines collapsed)."""
     best: dict[tuple[Any, ...], dict[str, Any]] = {}
     for s in signals:
         if only_passed and not s.get("filter_passed"):
             continue
-        key = (
-            s.get("event_id"),
-            s.get("player_name"),
-            s.get("market"),
-            s.get("side"),
-            s.get("line"),
-        )
+        key = _signal_group_key(s)
         prev = best.get(key)
-        if prev is None or (s.get("edge") or 0) > (prev.get("edge") or 0):
+        if prev is None or _signal_rank(s) > _signal_rank(prev):
             best[key] = s
-    return sorted(best.values(), key=lambda x: -(x.get("edge") or 0))
+    return sorted(best.values(), key=lambda x: -_signal_rank(x)[0])

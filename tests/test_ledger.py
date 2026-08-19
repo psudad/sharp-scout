@@ -99,8 +99,18 @@ def test_record_and_site(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(tr, "LEDGER_PATH", path)
     monkeypatch.setattr(sb, "DOCS_DIR", tmp_path / "docs")
     # build_site imports load_ledger from tracker — patch module attr
-    monkeypatch.setattr(sb, "load_ledger", lambda: tr.load_ledger(path))
-    monkeypatch.setattr(sb, "compute_record", lambda ledger=None: tr.compute_record(ledger or tr.load_ledger(path)))
+    monkeypatch.setattr(
+        sb,
+        "load_ledger",
+        lambda path=None, nfl_path=path: tr.load_ledger(path if path is not None else nfl_path),
+    )
+    monkeypatch.setattr(
+        sb,
+        "compute_record",
+        lambda ledger=None, path=None, nfl_path=path: tr.compute_record(
+            ledger if ledger is not None else tr.load_ledger(path if path is not None else nfl_path)
+        ),
+    )
 
     out = build_site(docs_dir=tmp_path / "docs")
     assert (out / "index.html").exists()

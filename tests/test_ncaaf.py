@@ -74,11 +74,13 @@ def test_ncaaf_demo_pipeline_and_stage_picks():
     assert game["away_team"] == "ALA"
     assert game["home_team"] == "UGA"
     assert "model_spread" in game
+    assert result["n_validated"] >= 1
     assert result["stage_picks"]
     card = result["stage_picks"][0]
     for stage in ("model", "sharp", "public", "money", "rlm", "hybrid"):
         assert stage in card["picks"]
     assert result["n_candidates"] >= 1
+    assert any(s["filter_passed"] for s in result["signals"])
 
 
 def test_compute_record_accepts_path(tmp_path: Path):

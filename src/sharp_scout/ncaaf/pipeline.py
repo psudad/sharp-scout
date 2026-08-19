@@ -34,8 +34,9 @@ def _demo_ratings() -> dict[str, TeamPower]:
         t: TeamPower(t, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         for t in NCAAF_DEMO_TEAMS
     }
-    ratings["ALA"] = TeamPower("ALA", 0.10, 0.05, 0.03, 0.02, 0.5, 0.2, 0.14, 0.02, 0.15)
-    ratings["UGA"] = TeamPower("UGA", 0.08, 0.07, 0.02, 0.03, 0.4, 0.3, 0.11, 0.01, 0.15)
+    # Tilt ALA enough that model EV lands on the money/RLM side (away) in the demo fixture.
+    ratings["ALA"] = TeamPower("ALA", 0.22, 0.12, 0.04, 0.03, 0.6, 0.3, 0.20, 0.02, 0.28)
+    ratings["UGA"] = TeamPower("UGA", 0.04, 0.03, 0.01, 0.01, 0.2, 0.1, 0.05, 0.00, 0.06)
     ratings["OSU"] = TeamPower("OSU", 0.09, 0.04, 0.02, 0.01, 0.45, 0.2, 0.12, 0.02, 0.13)
     ratings["MICH"] = TeamPower("MICH", 0.05, 0.06, 0.01, 0.02, 0.3, 0.25, 0.08, 0.01, 0.11)
     return ratings

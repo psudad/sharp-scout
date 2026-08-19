@@ -116,7 +116,11 @@ TEAM_ALIASES: dict[str, str] = {
 }
 
 
-def normalize_team(name: str) -> str:
+def normalize_team(name: str, sport: str = "nfl") -> str:
+    if (sport or "nfl").lower() == "ncaaf":
+        from sharp_scout.utils.teams import normalize_ncaaf
+
+        return normalize_ncaaf(name)
     key = name.strip().upper()
     if key in TEAM_ALIASES:
         return TEAM_ALIASES[key]

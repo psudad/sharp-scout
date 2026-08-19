@@ -1,6 +1,6 @@
 # Sharp Scout
 
-Institutional-grade **NFL betting signal pipeline** (signals only — no auto-betting).
+Institutional-grade **NFL + NCAA football betting signal pipeline** (signals only — no auto-betting).
 
 Architecture runs bottom-up first so market data filters model edges instead of biasing the baseline:
 
@@ -22,19 +22,46 @@ cp .env.example .env
 # Optional: ACTION_NETWORK_COOKIE (Pro/EDGE session) for richer splits
 python scripts/diagnose_action_network.py   # verify money/ticket %
 
-# Demo run + rebuild Pages site
+# Demo run + rebuild Pages site (NFL)
 python scripts/run_pipeline.py --demo --build-site
+
+# NCAA football (FBS) — same 4-phase engine, separate ledger
+python scripts/run_ncaaf.py --demo --build-site
+python scripts/diagnose_action_network.py --league ncaaf
 
 # Live run
 python scripts/run_pipeline.py --build-site
+python scripts/run_ncaaf.py --build-site
 
-# Settle completed games (nflverse scores) and refresh site
+# Settle completed games (nflverse / cfbfastR scores) and refresh site
 python scripts/settle_plays.py --build-site
+python scripts/settle_plays.py --sport ncaaf --build-site
 # Or one game manually:
 python scripts/settle_plays.py --manual KC BUF 24 20 --build-site
+python scripts/settle_plays.py --sport ncaaf --manual ALA UGA 24 27 --build-site
 
 # Local API (optional)
 uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000
+```
+
+## NCAA football
+
+NCAAF uses the **same 4-phase sequence** as NFL (ratings → Monte Carlo → sharp no-vig EV → split filter) with college-specific sources:
+
+| Layer | NCAAF |
+|---|---|
+| Ratings | cfbfastR / sportsdataverse play-by-play (`data/cfbfastr.py`) |
+| Odds | The Odds API `americanfootball_ncaaf` (Pinnacle + retail) |
+| Splits | Action Network league `ncaaf` |
+| Ledger | `data/ncaaf_ledger.json` (NFL stays in `data/ledger.json`) |
+| Artifacts | `artifacts/latest_ncaaf_signals.json` |
+| Site | **CFB** tab on GitHub Pages |
+
+College defaults: HFA 3.0, scoring base 27.5. Team names like “Alabama Crimson Tide” normalize to `ALA`. Demo mode only populates `ALA@UGA`.
+
+```bash
+python scripts/run_ncaaf.py --demo --build-site
+python scripts/settle_plays.py --sport ncaaf --manual ALA UGA 24 27 --build-site
 ```
 
 ## Stage picks (compare every lens)
@@ -93,6 +120,7 @@ python scripts/run_pregame.py --demo
 |---|---|---|
 | `Pregame Windows` | Every 30 min | Fire T-12h / T-3h / T-1h side+prop runs for due games → update ledger + Pages |
 | `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full slate refresh / settle / site |
+| `NCAAF Pipeline + Ledger` | Tue–Sat + Sunday settle + manual | College slate refresh / settle / site |
 | `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
 
 The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**, and **weekly ledger**.
@@ -147,16 +175,18 @@ Cookies expire (often days–weeks). Re-run `diagnose_action_network.py` when mo
 | 2 Monte Carlo | `S_mod`, `T_mod`, `P_true` | Fair cover / win probs |
 | 3 Market | `EV = P_true × decimal − 1` | Candidates with EV ≥ 2% and ≠ sharp consensus |
 | 4 Filter | RLM **or** money/ticket gap ≥ 20% | Validated play / lean signal |
-| Ledger | `data/ledger.json` | Deduped play history + settlement |
-| Pages | `docs/` | Public board + record |
+| Ledger | `data/ledger.json` / `data/ncaaf_ledger.json` | Deduped play history + settlement |
+| Pages | `docs/` | Public board + NFL + CFB tabs |
 
 ## API
 
 - `GET /api/health`
-- `GET /api/signals` — full latest payload
-- `GET /api/plays` — validated plays only
+- `GET /api/signals` — full latest NFL payload
+- `GET /api/plays` — validated NFL plays only
 - `GET /api/ratings`
-- `POST /api/run?demo=true&skip_pbp=true` — trigger pipeline
+- `POST /api/run?demo=true&skip_pbp=true` — trigger NFL pipeline
+- `GET /api/ncaaf` — latest NCAAF payload (plays, stages, ratings)
+- `POST /api/run-ncaaf?demo=true&skip_pbp=true` — trigger NCAAF pipeline
 
 ## Tests
 

@@ -42,12 +42,38 @@ STADIUMS: dict[str, tuple[float, float]] = {
 BASE_HFA = 2.2
 
 
-def travel_miles(away: str, home: str) -> float:
+# Major FBS venues (lat, lon) — used for NCAAF travel adjustment
+NCAAF_STADIUMS: dict[str, tuple[float, float]] = {
+    "ALA": (33.208, -87.550),
+    "UGA": (33.950, -83.373),
+    "OSU": (40.002, -83.019),
+    "MICH": (42.266, -83.749),
+    "TEX": (30.284, -97.733),
+    "OU": (35.206, -97.442),
+    "ORE": (44.058, -123.069),
+    "PSU": (40.812, -77.856),
+    "CLEM": (34.679, -82.843),
+    "ND": (41.698, -86.234),
+    "LSU": (30.412, -91.184),
+    "FSU": (30.438, -84.304),
+    "MIA": (25.748, -80.313),
+    "USC": (34.014, -118.288),
+    "UCLA": (34.161, -118.167),
+    "WASH": (47.650, -122.302),
+    "TENN": (35.955, -83.925),
+    "TAMU": (30.610, -96.340),
+    "FLA": (29.650, -82.349),
+    "AUB": (32.602, -85.489),
+}
+
+
+def travel_miles(away: str, home: str, stadiums: dict[str, tuple[float, float]] | None = None) -> float:
     from sharp_scout.utils.odds import haversine_miles
 
-    if away not in STADIUMS or home not in STADIUMS:
+    table = stadiums if stadiums is not None else STADIUMS
+    if away not in table or home not in table:
         return 0.0
-    a, b = STADIUMS[away], STADIUMS[home]
+    a, b = table[away], table[home]
     return haversine_miles(a[0], a[1], b[0], b[1])
 
 
@@ -78,8 +104,9 @@ def situational_spread_adj(
     wind_mph: float | None = None,
     precip: bool = False,
     hfa: float = BASE_HFA,
+    stadiums: dict[str, tuple[float, float]] | None = None,
 ) -> dict[str, float]:
-    travel = travel_miles(away, home)
+    travel = travel_miles(away, home, stadiums=stadiums)
     travel_pts = min(travel / 2500.0, 0.8)  # long cross-country slight home boost
     rest = rest_advantage(home_rest, away_rest)
     wx = weather_adjustment(wind_mph, precip)

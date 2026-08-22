@@ -27,6 +27,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.3.0", "pytest-asyncio>=0.24.0"]
+# Optional: richer matchup engine + nflverse scheme enrichment.
+# The engine already works on scikit-learn (a core dep); these are upgrades.
+ml = ["lightgbm>=4.5.0", "nflreadpy>=0.1.0"]
 
 [project.scripts]
 sharp-scout = "sharp_scout.api.main:main"

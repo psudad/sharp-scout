@@ -1,8 +1,17 @@
 # Sharp Scout — "NFL Quant 2.0" Upgrade Plan
 
-**Status:** Proposed (design only — no code changes yet)
+**Status:** Implemented (all 5 features built on `feature/quant-2.0-upgrade-plan`; matchup engine + calibration are no-ops until trained/fit from real history)
 **Author:** Sharp Scout maintainer, from feedback by Tom (`Quant_Additions_NFL`)
 **Last updated:** 2026-08-22
+
+> **Implementation note (2026-08-22):** All five features now exist in code. Modules:
+> `data/line_store.py` (shared timestamped line history), `ledger/clv.py` (CLV),
+> `phase4/steam.py` (steam), `analysis/disagreement.py` (why-wrong classifier),
+> `analysis/calibration.py` + `backtest/walk_forward.py` (calibration + walk-forward),
+> `phase1/scheme.py` + `phase1/matchup_ml.py` (matchup-interaction residual engine).
+> Scripts: `scripts/fit_calibration.py`, `scripts/backtest.py`, `scripts/train_matchup.py`.
+> The matchup engine uses scikit-learn gradient boosting by default (no new runtime dep);
+> LightGBM + nflverse scheme enrichment are optional via `pip install -e ".[ml]"`.
 
 This plan captures five proposed upgrades, the data required for each, where to source
 it, the cost to build and run, and a sequenced implementation roadmap. It is written to be

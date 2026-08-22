@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     # Optional comma-separated inactive player names for reallocation
     inactive_players: str = ""
 
+    # Model-vs-market disagreement logging ("why is our model wrong?")
+    disagreement_prob_threshold: float = 0.05  # |p_true - p_mkt| to flag a disagreement
+    # Steam detection (pre-kick line velocity across sharp books)
+    steam_window_minutes: int = 90  # look-back window for velocity
+    steam_min_points: float = 0.5  # minimum aggregate move to consider
+    steam_min_books: int = 2  # minimum sharp books moving together
+    steam_score_threshold: float = 1.0  # steam score at/above which we flag steam
+
     @property
     def sharp_books(self) -> list[str]:
         return [b.strip() for b in self.sharp_bookmakers.split(",") if b.strip()]

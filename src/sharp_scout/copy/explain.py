@@ -119,6 +119,8 @@ def format_play_rationale(play: dict[str, Any]) -> str:
         lines.append("Sharp money confirms this side (handle % well above ticket %).")
     if flags.get("rlm"):
         lines.append("Reverse line movement supports this side — line moved against the public.")
+    if flags.get("steam"):
+        lines.append("Steam move detected — the line jumped across multiple sharp books toward this side.")
     if flags.get("ev_ok") and not flags.get("money_split") and not flags.get("rlm"):
         if any("splits incomplete" in str(n).lower() for n in notes):
             lines.append(

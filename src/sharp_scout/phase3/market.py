@@ -111,6 +111,7 @@ def discover_edges(
     event: dict[str, Any],
     sim: GameSimResult,
     ev_threshold: float | None = None,
+    calibrate: Any = None,
 ) -> list[EdgeCandidate]:
     settings = get_settings()
     thr = settings.ev_threshold if ev_threshold is None else ev_threshold
@@ -149,6 +150,13 @@ def discover_edges(
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("p_true skip %s: %s", o, exc)
                     continue
+
+                # Apply probability calibration (identity until a calibrator is fit).
+                if calibrate is not None:
+                    try:
+                        p_true = float(calibrate(p_true))
+                    except Exception:  # noqa: BLE001
+                        pass
 
                 # Prefer sharp no-vig as P_mkt reference; else this book's no-vig
                 p_mkt = None

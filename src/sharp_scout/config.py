@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     odds_api_key: str = ""
     action_network_cookie: str = ""
+    # Preferred auth: a Bearer JWT from a logged-in Action Network session
+    # (authorization header). Long-lived (~1yr). Takes precedence over the cookie.
+    action_network_token: str = ""
 
     ev_threshold: float = 0.02
     money_ticket_gap: float = 0.20

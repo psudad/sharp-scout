@@ -94,6 +94,37 @@ def run_pipeline(
     else:
         splits = []
 
+    # Record timestamped sharp line snapshot (feeds CLV closing lines + steam).
+    if not (demo and not manual_mode):
+        try:
+            from sharp_scout.data.line_store import record_snapshot
+
+            record_snapshot(events)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("line snapshot skipped: %s", exc)
+
+    # Probability calibrator (identity until fit from settled history).
+    from sharp_scout.analysis.calibration import load_calibrator
+
+    calibrate = load_calibrator()
+
+    # Matchup-interaction engine (no-op until a model is trained).
+    matchup_adjuster = None
+    scheme_feats: dict[str, Any] = {}
+    if not skip_pbp:
+        try:
+            from sharp_scout.phase1.matchup_ml import load_adjuster
+
+            matchup_adjuster = load_adjuster()
+            if matchup_adjuster.ready:
+                from sharp_scout.data.nflfastr import load_pbp
+                from sharp_scout.phase1.scheme import build_scheme_features
+
+                scheme_feats = build_scheme_features(load_pbp(), ratings)
+                logger.info("Matchup engine active (%d teams)", len(scheme_feats))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Matchup engine skipped: %s", exc)
+
     # ── Phases 2–4 per event ─────────────────────────────────
     game_results: list[dict[str, Any]] = []
     all_signals: list[dict[str, Any]] = []
@@ -109,6 +140,11 @@ def run_pipeline(
             home_boost=situ["home_points_boost"],
             total_adj=situ["total_adj"],
         )
+        # Interaction residual on top of the additive baseline (bounded).
+        if matchup_adjuster is not None and matchup_adjuster.ready and scheme_feats:
+            means = matchup_adjuster.adjust_means(
+                means, scheme_feats.get(home, {}), scheme_feats.get(away, {})
+            )
         # Collect offered lines to refine cover grid
         spread_keys = _collect_points(ev, "spreads")
         total_keys = _collect_points(ev, "totals")
@@ -121,7 +157,7 @@ def run_pipeline(
             spread_keys=spread_keys or None,
             total_keys=total_keys or None,
         )
-        edges = discover_edges(ev, sim)
+        edges = discover_edges(ev, sim, calibrate=calibrate)
         filtered = attach_filters(edges, splits)
         sims_by_event[str(ev.get("event_id"))] = sim
 
@@ -138,6 +174,7 @@ def run_pipeline(
                 "model_spread": round(sim.model_spread, 2),
                 "model_total": round(sim.model_total, 2),
                 "p_home_win": sim.p_home_win,
+                "matchup_residual": means.get("matchup_residual"),
                 "situational": situ,
                 "edge_count": len(edges),
                 "validated": sum(1 for s in filtered if s["filter_passed"]),
@@ -207,12 +244,26 @@ def run_pipeline(
         _persist(rating_rows, validated)
 
     if update_ledger:
-        from sharp_scout.ledger.tracker import append_signals, append_stage_cards, compute_record
+        from sharp_scout.ledger.tracker import (
+            append_disagreements,
+            append_signals,
+            append_stage_cards,
+            compute_record,
+        )
 
         if validated:
             append_signals(validated, season=season, week=week)
         if stage_cards:
             append_stage_cards(stage_cards, season=season, week=week)
+
+        # "Why is our model wrong?" — log material model-vs-market disagreements.
+        from sharp_scout.analysis.disagreement import build_disagreements
+
+        collapsed_all = collapse_best_signals(all_signals, only_passed=False)
+        disagreements = build_disagreements(collapsed_all, season=season, week=week)
+        if disagreements:
+            append_disagreements(disagreements)
+
         payload["record"] = compute_record()
 
     if build_pages:

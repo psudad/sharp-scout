@@ -68,6 +68,39 @@ Props reuse the same ledger/Pages board with a separate engine:
 python scripts/run_props.py --demo --build-site
 ```
 
+## Quant 2.0 features (CLV, steam, disagreement, calibration, matchup engine)
+
+Layered on top of the four-phase baseline (see `plans/quant-2.0-upgrade-plan.md`). All run
+at ~$0 recurring cost on GitHub Actions.
+
+- **Closing Line Value (CLV)** — `ledger/clv.py`. Every play is graded against the sharp
+  closing line (captured from the timestamped line store at the T-1h pregame run). Points +
+  price-based CLV appear on the ledger and a summary banner on the Plays tab. This is the
+  earliest proof the process beats the market.
+- **Steam detection** — `phase4/steam.py`. Sharp line *velocity × breadth* across books,
+  a Phase-4 confirmation flag alongside RLM and money/ticket splits. Reads the shared
+  timestamped history in `data/line_store.py`.
+- **"Why is our model wrong?"** — `analysis/disagreement.py`. Logs every material
+  model-vs-market gap with an auto-classified cause (weather, QB, injury, public bias,
+  market overreaction, model deficiency, …) and learns each category's hit rate over time.
+- **Calibration + walk-forward backtest** — `analysis/calibration.py`,
+  `backtest/walk_forward.py`. Fits an isotonic/Platt calibrator from settled history
+  (applied at edge discovery; identity until fit) and replays weeks without look-ahead.
+
+```bash
+python scripts/fit_calibration.py     # fit data/calibration.json from the ledger
+python scripts/backtest.py            # walk-forward over the ledger (or --records-json)
+```
+
+- **Matchup-interaction engine** — `phase1/scheme.py`, `phase1/matchup_ml.py`. A **bounded
+  residual layer** on top of the additive `matchup_means()` (never a replacement). Uses
+  scikit-learn gradient boosting by default (no new runtime dep); LightGBM + nflverse scheme
+  enrichment are optional via `pip install -e ".[ml]"`. No trained model → zero adjustment.
+
+```bash
+python scripts/train_matchup.py --season 2022 --season 2023 --season 2024
+```
+
 ## Pregame schedule (T-12h / T-3h / T-1h)
 
 `scripts/run_pregame.py` fires **sides + props** when a game is within ±25 minutes of 12h, 3h, or 1h before kickoff. Fired windows are recorded in `data/schedule_state.json` so each window runs once.

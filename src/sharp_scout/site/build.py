@@ -117,6 +117,8 @@ def build_site(
     ratings_rows = _render_ratings(signals.get("ratings") or [])
 
     stage_cards = signals.get("stage_picks") or ledger.get("stage_cards") or []
+    clv_banner_html = _render_clv_banner(record.get("clv"))
+    disagreement_rows = _render_disagreement_rows(record.get("disagreements"))
     stage_rows = _render_stage_rows(stage_cards)
     stage_record_rows = _render_stage_record_rows(record.get("stage_records") or {})
     stage_summary = signals.get("stage_summary") or {}
@@ -147,6 +149,8 @@ def build_site(
         ratings_rows=ratings_rows,
         stage_rows=stage_rows,
         stage_record_rows=stage_record_rows,
+        clv_banner_html=clv_banner_html,
+        disagreement_rows=disagreement_rows,
         games_html=games_html,
         fade_n=fade_n,
         rlm_n=rlm_n,
@@ -234,9 +238,25 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
     return "\n".join(cards)
 
 
+def _clv_cell(p: dict) -> str:
+    """Points of closing-line value with a color cue (positive = beat the close)."""
+    pts = p.get("clv_points")
+    prob = p.get("clv_prob")
+    if pts is None and prob is None:
+        return "<td class='pending'>—</td>"
+    if pts is not None:
+        cls = "pos" if pts > 0 else "neg" if pts < 0 else "pending"
+        main = f"{pts:+g}"
+    else:
+        cls = "pos" if (prob or 0) > 0 else "neg" if (prob or 0) < 0 else "pending"
+        main = f"{prob * 100:+.1f}%"
+    sub = f" ({prob * 100:+.1f}%)" if pts is not None and prob is not None else ""
+    return f"<td class='{cls}'>{main}{sub}</td>"
+
+
 def _render_ledger_rows(plays: list[dict]) -> str:
     if not plays:
-        return "<tr><td colspan='7'>No plays in ledger yet.</td></tr>"
+        return "<tr><td colspan='8'>No plays in ledger yet.</td></tr>"
     rows = []
     for p in sorted(plays, key=lambda x: x.get("created_at") or "", reverse=True):
         st = p.get("status") or "pending"
@@ -258,10 +278,40 @@ def _render_ledger_rows(plays: list[dict]) -> str:
             f"<td>{p.get('units')}u</td>"
             f"<td class='{st if st in ('win','loss') else 'pending'}'>{st.upper()}</td>"
             f"<td>{_esc(score)}</td>"
+            f"{_clv_cell(p)}"
             f"<td class='{pnl_cls}'>{pnl_s}</td>"
             f"</tr>"
         )
     return "\n".join(rows)
+
+
+def _render_clv_banner(clv: dict[str, Any] | None) -> str:
+    """Summary of Closing Line Value — the earliest proof the process beats the market."""
+    clv = clv or {}
+    n = clv.get("n_plays_with_clv") or 0
+    if not n:
+        return (
+            '<p class="phase-note" style="padding:6px 0">Closing Line Value appears here once '
+            "plays are graded against their closing line (captured at the T-1h pregame run).</p>"
+        )
+    avg_pts = clv.get("avg_clv_points")
+    beat_pct = clv.get("beat_close_pct")
+    rec = clv.get("beat_close_record") or "—"
+    pts_s = f"{avg_pts:+g}" if avg_pts is not None else "—"
+    beat_s = f"{beat_pct * 100:.0f}%" if beat_pct is not None else "—"
+    cls = "pos" if (avg_pts or 0) > 0 else "neg" if (avg_pts or 0) < 0 else ""
+    return (
+        '<div class="summary-grid" style="margin-top:6px">'
+        f'<div class="stat-card"><div class="stat-val {cls}">{pts_s}</div>'
+        '<div class="stat-label">Avg CLV (pts)</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{beat_s}</div>'
+        '<div class="stat-label">Beat Close %</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{rec}</div>'
+        '<div class="stat-label">Beat-Close W-L</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{n}</div>'
+        '<div class="stat-label">Plays w/ CLV</div></div>'
+        "</div>"
+    )
 
 
 def _render_week_rows(by_week: dict) -> str:
@@ -536,6 +586,24 @@ def _render_stage_rows(cards: list[dict]) -> str:
     return "\n".join(rows)
 
 
+def _render_disagreement_rows(disagreements: dict[str, Any] | None) -> str:
+    """Per-category count + hit rate for model-vs-market disagreements."""
+    disagreements = disagreements or {}
+    by_cat = disagreements.get("by_category") or {}
+    if not by_cat:
+        return "<tr><td colspan='3'>No logged disagreements yet. They appear when the model differs from the market beyond the threshold.</td></tr>"
+    rows = []
+    for cat, b in by_cat.items():
+        wp = f"{b['win_pct'] * 100:.0f}%" if b.get("win_pct") is not None else "—"
+        rec = b.get("record") or "—"
+        rows.append(
+            f"<tr><td><b>{_esc(cat)}</b></td>"
+            f"<td>{b.get('count', 0)}</td>"
+            f"<td>{_esc(rec)} · {wp}</td></tr>"
+        )
+    return "\n".join(rows)
+
+
 def _render_stage_record_rows(stage_records: dict) -> str:
     if not stage_records:
         return "<tr><td colspan='4'>Stage records appear after games settle.</td></tr>"
@@ -663,6 +731,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <div class="stat-card"><div class="stat-val {pnl_cls}">{pnl}u</div><div class="stat-label">Profit</div></div>
     <div class="stat-card"><div class="stat-val">{bankroll}u</div><div class="stat-label">Bankroll</div></div>
   </div>
+  <div class="section-label">Closing Line Value</div>
+  {clv_banner_html}
   <div class="section-label">Open / Latest Plays · {pending} pending · {n_plays} total</div>
   {plays_html}
 </div>
@@ -683,6 +753,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
     <tbody>{stage_record_rows}</tbody>
   </table></div>
+  <div class="section-label">Why Is Our Model Wrong? (disagreement log)</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Category</th><th>Count</th><th>Record · Hit %</th></tr></thead>
+    <tbody>{disagreement_rows}</tbody>
+  </table></div>
   <div class="section-label">Per-Game Stage Winners</div>
   <div class="table-wrap"><table>
     <thead><tr>
@@ -701,7 +776,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </table></div>
   <div class="section-label">All Plays</div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>PnL</th></tr></thead>
+    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{ledger_rows}</tbody>
   </table></div>
 </div>

@@ -61,6 +61,12 @@ jobs:
         continue-on-error: true
         run: python scripts/settle_plays.py
 
+      - name: Refit probability calibration
+        # Self-updates data/calibration.json from settled history. No-op / identity
+        # until enough plays have graded; safe to run every pipeline execution.
+        continue-on-error: true
+        run: python scripts/fit_calibration.py
+
       - name: Run pipeline
         env:
           DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
@@ -92,7 +98,7 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ledger.json docs/
+          git add data/ledger.json data/line_history.json data/calibration.json docs/ 2>/dev/null || git add data/ledger.json docs/
           if git diff --staged --quiet; then
             echo "No ledger/site changes"
           else

@@ -1,24 +1,25 @@
-name: NCAAF Pipeline + Ledger
+name: Refresh Board (on demand)
 
-# Runs the college football signal pipeline, settles completed games, rebuilds docs/.
-# Requires repo secrets: ODDS_API_KEY (required), ACTION_NETWORK_TOKEN (optional splits).
+# Manual refresh: scan live markets, post CFB plays, rebuild GitHub Pages.
+# Use this any time you want the board updated outside the cron schedule.
 
 on:
-  schedule:
-    # Tuesday–Saturday 15:00 UTC — midweek slate + Thu–Sat kickoffs
-    - cron: "0 15 * * 2-6"
-    # Friday/Saturday 22:00 UTC — late refresh before major kickoffs
-    - cron: "0 22 * * 5,6"
-    # Sunday 12:00 UTC — settle Saturday night
-    - cron: "0 12 * * 0"
   workflow_dispatch:
     inputs:
+      nfl:
+        description: "Refresh NFL signals (no ledger)"
+        type: boolean
+        default: true
+      ncaaf:
+        description: "Refresh CFB plays + ledger"
+        type: boolean
+        default: true
       demo:
         description: "Run in demo mode (no API keys)"
         type: boolean
         default: false
       skip_pbp:
-        description: "Skip cfbfastR PBP download"
+        description: "Skip nflverse / cfbfastR PBP download"
         type: boolean
         default: false
 
@@ -28,7 +29,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: ncaaf-pipeline
+  group: refresh-board
   cancel-in-progress: false
 
 jobs:
@@ -52,37 +53,50 @@ jobs:
           echo "ACTION_NETWORK_COOKIE=${{ secrets.ACTION_NETWORK_COOKIE }}" >> $GITHUB_ENV
           echo "MONTE_CARLO_SIMS=5000" >> $GITHUB_ENV
 
-      - name: Settle prior NCAAF plays
+      - name: Settle graded games
         continue-on-error: true
-        run: python scripts/settle_plays.py --sport ncaaf
-
-      - name: Run NCAAF pipeline
-        env:
-          DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
-          SKIP_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_pbp || false }}
         run: |
-          ARGS="--build-site"
-          if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
+          if [ "${{ inputs.ncaaf }}" = "true" ]; then
+            python scripts/settle_plays.py --sport ncaaf
+          fi
+          if [ "${{ inputs.nfl }}" = "true" ]; then
+            python scripts/settle_plays.py
+          fi
+
+      - name: Refresh NFL signals
+        if: inputs.nfl
+        run: |
+          ARGS="--no-ledger"
+          if [ "${{ inputs.demo }}" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
             ARGS="$ARGS --demo --skip-pbp"
-            echo "Running NCAAF in demo mode (no ODDS_API_KEY or demo requested)"
-          elif [ "$SKIP_INPUT" = "true" ]; then
+          elif [ "${{ inputs.skip_pbp }}" = "true" ]; then
+            ARGS="$ARGS --skip-pbp"
+          fi
+          python scripts/run_pipeline.py $ARGS
+
+      - name: Refresh NCAAF pipeline
+        if: inputs.ncaaf
+        run: |
+          ARGS=""
+          if [ "${{ inputs.demo }}" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
+            ARGS="$ARGS --demo --skip-pbp"
+          elif [ "${{ inputs.skip_pbp }}" = "true" ]; then
             ARGS="$ARGS --skip-pbp"
           fi
           python scripts/run_ncaaf.py $ARGS
 
-      - name: Refresh NCAAF line snapshot plan
-        continue-on-error: true
-        run: python scripts/plan_ncaaf_snapshots.py
+      - name: Rebuild site
+        run: python scripts/build_site.py
 
-      - name: Commit ledger + site
+      - name: Commit site + ledgers
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ncaaf_ledger.json data/line_history.json docs/
+          git add data/ncaaf_ledger.json data/line_history.json data/calibration.json docs/
           if git diff --staged --quiet; then
-            echo "No NCAAF ledger/site changes"
+            echo "No board changes to commit"
           else
-            git commit -m "chore: update NCAAF ledger and GitHub Pages site"
+            git commit -m "chore: refresh board from live market"
             git pull --rebase origin main
             git push
           fi

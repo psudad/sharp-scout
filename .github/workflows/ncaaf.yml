@@ -79,6 +79,7 @@ jobs:
             echo "No NCAAF ledger/site changes"
           else
             git commit -m "chore: update NCAAF ledger and GitHub Pages site"
+            git pull --rebase origin main
             git push
           fi
 

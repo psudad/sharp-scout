@@ -131,6 +131,7 @@ def run_due_pregame(
     force_all_upcoming: bool = False,
     build_pages: bool = True,
     skip_pbp: bool = False,
+    update_ledger: bool = False,
 ) -> dict[str, Any]:
     """Check schedule; for each due window run side + props pipelines for that game."""
     settings = get_settings()
@@ -188,12 +189,12 @@ def run_due_pregame(
     from sharp_scout.props.pipeline import run_props_pipeline
 
     if demo or not settings.odds_api_key:
-        side = run_pipeline(demo=True, skip_pbp=True, update_ledger=True, build_pages=False)
+        side = run_pipeline(demo=True, skip_pbp=True, update_ledger=update_ledger, build_pages=False)
         # Annotate window on plays
         for p in side.get("plays") or []:
             p["window"] = window_map.get(str(p.get("event_id")), 3.0)
             p["pregame_window"] = p["window"]
-        props = run_props_pipeline(demo=True, skip_pbp=True, update_ledger=True, build_pages=build_pages)
+        props = run_props_pipeline(demo=True, skip_pbp=True, update_ledger=update_ledger, build_pages=build_pages)
     else:
         client = OddsClient()
         all_odds = client.fetch_odds()
@@ -206,12 +207,12 @@ def run_due_pregame(
 
         # Side pipeline currently runs all events; filter afterward for ledger
         side = run_pipeline(demo=False, skip_pbp=skip_pbp, update_ledger=False, build_pages=False)
-        # Only ledger plays for due events
+        # Only ledger plays for due events when tracking is enabled
         due_side = [p for p in (side.get("plays") or []) if str(p.get("event_id")) in due_ids]
         for p in due_side:
             p["window"] = window_map.get(str(p.get("event_id")))
             p["pregame_window"] = p["window"]
-        if due_side:
+        if update_ledger and due_side:
             from sharp_scout.ledger.tracker import append_signals
 
             append_signals(due_side)
@@ -247,7 +248,7 @@ def run_due_pregame(
             demo=False,
             skip_pbp=skip_pbp,
             events=prop_events or None,
-            update_ledger=True,
+            update_ledger=update_ledger,
             build_pages=build_pages,
             game_context=game_context,
         )

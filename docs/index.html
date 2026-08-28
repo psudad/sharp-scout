@@ -77,388 +77,82 @@
 <div class="header">
   <h1>Sharp Scout</h1>
   <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
-  <span class="pill">2-1 · +1.66u · Live pipeline</span>
-  <p style="margin-top:8px">Updated 2026-08-28 11:21 UTC</p>
+  <span class="pill">CFB 0-0 · +0.0u · DEMO data</span>
+  <p style="margin-top:8px">Updated 2026-08-28 11:38 UTC</p>
 </div>
 <div class="tabs">
-  <div class="tab active" onclick="showTab('plays', this)">Plays</div>
+  <div class="tab active" onclick="showTab('plays', this)">NFL</div>
   <div class="tab" onclick="showTab('games', this)">Games</div>
   <div class="tab" onclick="showTab('stages', this)">Stages</div>
-  <div class="tab" onclick="showTab('ledger', this)">Ledger</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
   <div class="tab" onclick="showTab('cfb', this)">CFB</div>
 </div>
 
 <div id="tab-plays" class="content active">
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">2-1</div><div class="stat-label">Record</div></div>
-    <div class="stat-card"><div class="stat-val">66.7%</div><div class="stat-label">Win %</div></div>
-    <div class="stat-card"><div class="stat-val pos">+1.66u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">101.66u</div><div class="stat-label">Bankroll</div></div>
-  </div>
-  <div class="section-label">Closing Line Value</div>
-  <p class="phase-note" style="padding:6px 0">Closing Line Value appears here once plays are graded against their closing line (captured at the T-1h pregame run).</p>
-  <div class="section-label">Open / Latest Plays · 1 pending · 4 total</div>
-  
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">SEA (ML) -175</div>
-            <div class="play-subtitle">Sun Oct 25, 8:20 PM ET · KC @ SEA · draftkings</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">40.7%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">89.5%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">We project SEA ML on the moneyline at 89.5% true probability vs 60.9% implied at draftkings — about 40.7% expected value.<br>We project SEA ML on the moneyline at 89.5% true probability vs 60.9% implied at draftkings — about 40.7% expected value.<br>On this side, 77% of handle vs 35% of tickets (+42% handle-minus-tickets gap) — sharp money signal.<br>No opening line stored yet for RLM. The first pipeline run of the week records the current line as the open; later runs compare movement against it.<br>Sharp money confirms this side (handle % well above ticket %).</div>
-      </div>
+  <p class="phase-note" style="padding:8px 0">NFL signals only — no ledger tracking. Latest validated plays from the most recent pipeline run.</p>
+  <div class="section-label">Latest NFL Signals · 0 plays</div>
+  <div class="empty">No open plays. Run the pipeline to generate signals.</div>
 </div>
 
 <div id="tab-games" class="content">
   <p class="phase-note" style="padding:12px 0">Per-game pipeline output: EPA model → Monte Carlo → market EV → money/ticket splits → stage picks.</p>
-  <div class="empty">No games in latest pipeline run. Run scripts/run_today_slate.py or the NFL Pipeline workflow.</div>
+  
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">SEA @ TEN</div>
+          <div class="game-kick">Sun Aug 23, 8:00 PM ET</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>SEA</b>: power 0.000 · off 0.000 · def 0.000</p>
+          <p class="phase-note"><b>TEN</b>: power 0.000 · off 0.000 · def 0.000</p>
+          <p class="phase-note">Model spread (home): <b>-2.99</b> ·
+            total <b>45.00</b> · P(home win) <b>61.0%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>total</td><td>OVER +37.5 (total) -110</td><td>fanduel</td><td class='pending'>48.7%</td><td>—</td><td class='rationale-cell'>We project OVER 37.5 on the total at 77.9% true probability vs 50.0% implied at fanduel — about 48.7% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · total flat (37.5→37.5) · edge lacks RLM / money-ticket / steam confirmation</td></tr>
+<tr><td>spread</td><td>SEA +4.5 (spread) -108</td><td>fanduel</td><td class='pending'>12.9%</td><td>—</td><td class='rationale-cell'>We project SEA +4.5 on the spread at 58.6% true probability vs 50.2% implied at fanduel — about 12.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No clear reverse line movement on this market. · edge lacks RLM / money-ticket / steam confirmation</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans TEN (handle minus tickets +4% on that side). Total: sharp money leans Over (handle minus tickets +17% on that side). Moneyline: sharp money leans SEA (handle minus tickets +48% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line -4.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>TEN</td><td>21%</td><td>25%</td><td class='pos'>+4%</td></tr><tr><td>SEA</td><td>79%</td><td>75%</td><td class='pos'>-4%</td></tr></tbody></table></div><div class='phase-sub'>total line 37.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>38%</td><td>55%</td><td class='pos'>+17%</td></tr><tr><td>Under</td><td>62%</td><td>45%</td><td class='pos'>-17%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>TEN</td><td>56%</td><td>8%</td><td class='pos'>-48%</td></tr><tr><td>SEA</td><td>44%</td><td>92%</td><td class='pos'>+48%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>TEN (61%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor TEN (line -2.98826). Model spread (home) is -2.99 (negative = home favored). · 61% confidence</td></tr><tr><td><b>Sharp line</b></td><td>SEA (50%)</td><td class='stage-why'>Pinnacle / sharp books lean toward SEA (line +4.5). pinnacle no-vig 50.2% @ -109 · 50% confidence</td></tr><tr><td><b>Public tickets</b></td><td>SEA (79%)</td><td class='stage-why'>Most bet tickets are on SEA (line -4.5). tickets home=21% away=79% · 79% confidence</td></tr><tr><td><b>Sharp money</b></td><td>SEA (75%)</td><td class='stage-why'>Most handle (dollars) is on SEA (line -4.5). money home=25% away=75% (gap vs tickets -4% on away) · 75% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>TEN (54%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to TEN. +4% money vs tickets on TEN · 54% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>line flat (-4.5→-4.5)</td></tr><tr><td><b>Full system</b></td><td>TEN (49%)</td><td class='stage-why'>Validated system play: TEN. model lean only — no confirming market stage · 49% confidence</td></tr></tbody></table></div>
+        </div>
+      </div>
 </div>
 
 <div id="tab-stages" class="content">
   <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">—</div><div class="stat-label">Sharp ≠ Public games</div></div>
-    <div class="stat-card"><div class="stat-val">—</div><div class="stat-label">RLM games</div></div>
+    <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">Sharp ≠ Public games</div></div>
+    <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">RLM games</div></div>
   </div>
   <div class='phase-note'>No games on this slate where sharp books disagree with public ticket %.</div><div class='phase-note' style='margin-top:10px'>No RLM signals on this slate (needs an opening line vs current — stored on first pipeline run).</div>
   <div class="section-label">Stage Records (settled)</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
-    <tbody><tr><td><b>hybrid</b></td><td>90-68</td><td>57%</td><td>125</td></tr>
-<tr><td><b>model</b></td><td>89-69</td><td>56%</td><td>125</td></tr>
-<tr><td><b>sharp</b></td><td>7-6</td><td>54%</td><td>14</td></tr>
-<tr><td><b>money</b></td><td>3-3</td><td>50%</td><td>9</td></tr>
-<tr><td><b>public</b></td><td>4-2</td><td>67%</td><td>9</td></tr>
-<tr><td><b>sharp_edge</b></td><td>2-4</td><td>33%</td><td>6</td></tr></tbody>
+    <tbody><tr><td colspan='4'>Stage records appear after games settle.</td></tr></tbody>
   </table></div>
   <div class="section-label">Why Is Our Model Wrong? (disagreement log)</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Category</th><th>Count</th><th>Record · Hit %</th></tr></thead>
-    <tbody><tr><td><b>model_deficiency</b></td><td>416</td><td>1-0 · 100%</td></tr>
-<tr><td><b>unknown</b></td><td>222</td><td>0-0 · —</td></tr>
-<tr><td><b>market_overreaction</b></td><td>1</td><td>0-0 · —</td></tr></tbody>
+    <tbody><tr><td colspan='3'>No logged disagreements yet. They appear when the model differs from the market beyond the threshold.</td></tr></tbody>
   </table></div>
   <div class="section-label">Per-Game Stage Winners</div>
   <div class="table-wrap"><table>
     <thead><tr>
       <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
     </tr></thead>
-    <tbody><tr><td>CAR @ BUF</td><td><b>BUF</b></td><td><b>CAR</b></td><td><b>BUF</b></td><td><b>BUF</b></td><td><b>CAR</b></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>fade pub</td></tr>
-<tr><td>CLE @ CHI</td><td><b>CHI</b></td><td><b>CHI</b></td><td><b>CHI</b></td><td><b>CHI</b></td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model, sharp, public, money, sharp_edge</td></tr>
-<tr><td>MIN @ NYG</td><td><b>NYG</b></td><td><b>MIN</b></td><td><b>MIN</b></td><td><b>NYG</b></td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model, money, sharp_edge</td></tr>
-<tr><td>JAX @ NO</td><td><b>NO</b></td><td><b>NO</b></td><td><b>JAX</b></td><td><b>JAX</b></td><td><b>NO</b></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>fade pub</td></tr>
-<tr><td>LAR @ KC</td><td><b>KC</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td class='pos'><b>KC</b></td><td>model</td></tr>
-<tr><td>PHI @ BAL</td><td><b>BAL</b></td><td><b>PHI</b></td><td><b>BAL</b></td><td><b>BAL</b></td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>fade pub</td></tr>
-<tr><td>DAL @ SEA</td><td><b>SEA</b></td><td><b>DAL</b></td><td><b>DAL</b></td><td><b>DAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>NE @ SEA</td><td><b>SEA</b></td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>SF @ LAR</td><td><b>LAR</b></td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model, sharp</td></tr>
-<tr><td>ATL @ PIT</td><td><b>PIT</b></td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PIT</b></td><td>model, sharp</td></tr>
-<tr><td>BAL @ IND</td><td><b>IND</b></td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model, sharp</td></tr>
-<tr><td>BUF @ HOU</td><td><b>HOU</b></td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model, sharp</td></tr>
-<tr><td>CHI @ CAR</td><td><b>CHI</b></td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model, sharp</td></tr>
-<tr><td>TB @ CIN</td><td><b>CIN</b></td><td><b>CIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CIN</b></td><td>model, sharp</td></tr>
-<tr><td>CLE @ JAX</td><td><b>JAX</b></td><td><b>CLE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>NO @ DET</td><td><b>DET</b></td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>NYJ @ TEN</td><td><b>TEN</b></td><td><b>TEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TEN</b></td><td>model, sharp</td></tr>
-<tr><td>ARI @ LAC</td><td><b>LAC</b></td><td><b>ARI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAC</b></td><td>model</td></tr>
-<tr><td>GB @ MIN</td><td><b>MIN</b></td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model, sharp</td></tr>
-<tr><td>MIA @ LV</td><td><b>LV</b></td><td><b>LV</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LV</b></td><td>model, sharp</td></tr>
-<tr><td>WAS @ PHI</td><td><b>PHI</b></td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model, sharp</td></tr>
-<tr><td>DAL @ NYG</td><td><b>NYG</b></td><td><b>DAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>DEN @ KC</td><td><b>DEN</b></td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model, sharp</td></tr>
-<tr><td>DET @ BUF</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>CAR @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>NO @ BAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>MIN @ CHI</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>CIN @ HOU</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>CLE @ TB</td><td><b>TB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TB</b></td><td>model</td></tr>
-<tr><td>GB @ NYJ</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>PIT @ NE</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>PHI @ TEN</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>JAX @ DEN</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>LV @ LAC</td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAC</b></td><td>model</td></tr>
-<tr><td>SEA @ ARI</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>WAS @ DAL</td><td><b>DAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DAL</b></td><td>model</td></tr>
-<tr><td>MIA @ SF</td><td><b>SF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SF</b></td><td>model</td></tr>
-<tr><td>IND @ KC</td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KC</b></td><td>model</td></tr>
-<tr><td>NYG @ LAR</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>ATL @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>LAC @ BUF</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>CAR @ CLE</td><td><b>CLE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CLE</b></td><td>model</td></tr>
-<tr><td>CIN @ PIT</td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PIT</b></td><td>model</td></tr>
-<tr><td>NYJ @ DET</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>HOU @ IND</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>NE @ JAX</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>KC @ MIA</td><td><b>MIA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIA</b></td><td>model</td></tr>
-<tr><td>TEN @ NYG</td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>SEA @ WAS</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>ARI @ SF</td><td><b>SF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SF</b></td><td>model</td></tr>
-<tr><td>MIN @ TB</td><td><b>TB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TB</b></td><td>model</td></tr>
-<tr><td>BAL @ DAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>LV @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>LAR @ DEN</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>PHI @ CHI</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>PIT @ CLE</td><td><b>CLE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CLE</b></td><td>model</td></tr>
-<tr><td>IND @ WAS</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>ARI @ NYG</td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>TEN @ BAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>NE @ BUF</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>NYJ @ CHI</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>JAX @ CIN</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>DAL @ HOU</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>GB @ TB</td><td><b>TB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TB</b></td><td>model</td></tr>
-<tr><td>LAR @ PHI</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>MIA @ MIN</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>DEN @ SF</td><td><b>SF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SF</b></td><td>model</td></tr>
-<tr><td>KC @ LV</td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KC</b></td><td>model</td></tr>
-<tr><td>LAC @ SEA</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>DET @ CAR</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>ATL @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>TB @ DAL</td><td><b>DAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DAL</b></td><td>model</td></tr>
-<tr><td>PHI @ JAX</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>CIN @ MIA</td><td><b>MIA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIA</b></td><td>model</td></tr>
-<tr><td>CLE @ NYJ</td><td><b>CLE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CLE</b></td><td>model</td></tr>
-<tr><td>HOU @ TEN</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>IND @ PIT</td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PIT</b></td><td>model</td></tr>
-<tr><td>LV @ NE</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>MIN @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>NYG @ WAS</td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>DEN @ LAC</td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAC</b></td><td>model</td></tr>
-<tr><td>DET @ ARI</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>CHI @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>SF @ SEA</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>BAL @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>BUF @ LAR</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>SEA @ DEN</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>HOU @ JAX</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>CHI @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>BAL @ CLE</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>CAR @ PHI</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>TEN @ IND</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>NYJ @ NE</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>NO @ NYG</td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>PIT @ TB</td><td><b>TB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TB</b></td><td>model</td></tr>
-<tr><td>ARI @ LAR</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>BUF @ LV</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>LAC @ KC</td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KC</b></td><td>model</td></tr>
-<tr><td>DAL @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>WAS @ SF</td><td><b>SF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SF</b></td><td>model</td></tr>
-<tr><td>NE @ CHI</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>PIT @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>SF @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>CIN @ BAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>TB @ CAR</td><td><b>CAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CAR</b></td><td>model</td></tr>
-<tr><td>CLE @ TEN</td><td><b>TEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TEN</b></td><td>model</td></tr>
-<tr><td>NYG @ HOU</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>IND @ MIN</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>MIA @ NYJ</td><td><b>MIA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIA</b></td><td>model</td></tr>
-<tr><td>DEN @ ARI</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>GB @ DET</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>LAR @ LV</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>KC @ SEA</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><b>KC</b></td><td><b>KC</b></td><td><b>KC</b></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>DAL @ PHI</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>CAR @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>ARI @ DAL</td><td><b>DAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DAL</b></td><td>model</td></tr>
-<tr><td>ATL @ TB</td><td><b>TB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TB</b></td><td>model</td></tr>
-<tr><td>BAL @ BUF</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>TEN @ CIN</td><td><b>CIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CIN</b></td><td>model</td></tr>
-<tr><td>CLE @ PIT</td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PIT</b></td><td>model</td></tr>
-<tr><td>MIN @ DET</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>IND @ JAX</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>LV @ NYJ</td><td><b>NYJ</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYJ</b></td><td>model</td></tr>
-<tr><td>LAC @ LAR</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><b>LAC</b></td><td><b>LAC</b></td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>KC @ DEN</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>NE @ MIA</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>PHI @ WAS</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>CHI @ SEA</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>JAX @ BAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>CIN @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>DEN @ CAR</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>CLE @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>DAL @ IND</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>DET @ MIA</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>NYJ @ KC</td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KC</b></td><td>model</td></tr>
-<tr><td>LAR @ WAS</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>NYG @ PHI</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>HOU @ LAC</td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td><b>LAC</b></td><td><b>HOU</b></td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>money, sharp_edge</td></tr>
-<tr><td>LV @ SF</td><td><b>SF</b></td><td><span class='pending'>—</span></td><td><b>SF</b></td><td><b>SF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SF</b></td><td>model, public, money</td></tr>
-<tr><td>ARI @ SEA</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>GB @ NE</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>TB @ CHI</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>BUF @ MIN</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>WAS @ NYG</td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>NE @ DET</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>KC @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>BUF @ NYJ</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>CAR @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>HOU @ CLE</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>MIN @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>MIA @ IND</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>JAX @ TEN</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>LAR @ ARI</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>SEA @ LV</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>SF @ DAL</td><td><b>DAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DAL</b></td><td>model</td></tr>
-<tr><td>PIT @ CIN</td><td><b>CIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CIN</b></td><td>model</td></tr>
-<tr><td>LAC @ BAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>IND @ HOU</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>ARI @ KC</td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KC</b></td><td>model</td></tr>
-<tr><td>BAL @ CAR</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>MIA @ BUF</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>NO @ CHI</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>TEN @ DAL</td><td><b>DAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DAL</b></td><td>model</td></tr>
-<tr><td>TB @ DET</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>JAX @ NYG</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>NYJ @ LAC</td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAC</b></td><td>model</td></tr>
-<tr><td>LV @ DEN</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>PIT @ PHI</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>MIN @ SF</td><td><b>SF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SF</b></td><td>model</td></tr>
-<tr><td>CIN @ WAS</td><td><b>WAS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>WAS</b></td><td>model</td></tr>
-<tr><td>GB @ LAR</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>CHI @ DET</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>PHI @ DAL</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>KC @ BUF</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>DEN @ PIT</td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PIT</b></td><td>model</td></tr>
-<tr><td>ATL @ MIN</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>BAL @ HOU</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>NO @ CIN</td><td><b>CIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CIN</b></td><td>model</td></tr>
-<tr><td>LV @ CLE</td><td><b>CLE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CLE</b></td><td>model</td></tr>
-<tr><td>NYG @ IND</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>TEN @ JAX</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>NYJ @ MIA</td><td><b>MIA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIA</b></td><td>model</td></tr>
-<tr><td>WAS @ ARI</td><td><b>ARI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ARI</b></td><td>model</td></tr>
-<tr><td>SEA @ SF</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>NE @ LAC</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>CAR @ TB</td><td><b>TB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TB</b></td><td>model</td></tr>
-<tr><td>KC @ LAR</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>DET @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>JAX @ CHI</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>CIN @ CLE</td><td><b>CLE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CLE</b></td><td>model</td></tr>
-<tr><td>MIA @ DEN</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>GB @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>LAC @ TB</td><td><b>TB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TB</b></td><td>model</td></tr>
-<tr><td>SF @ NYG</td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>WAS @ TEN</td><td><b>TEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TEN</b></td><td>model</td></tr>
-<tr><td>PHI @ ARI</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>BUF @ NE</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>CAR @ MIN</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>HOU @ PIT</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>DAL @ SEA</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>MIN @ NE</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>ATL @ CLE</td><td><b>CLE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CLE</b></td><td>model</td></tr>
-<tr><td>TB @ BAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>NO @ CAR</td><td><b>CAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CAR</b></td><td>model</td></tr>
-<tr><td>CHI @ MIA</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>DEN @ NYJ</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>TEN @ DET</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>HOU @ WAS</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>IND @ PHI</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>LAC @ LV</td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAC</b></td><td>model</td></tr>
-<tr><td>KC @ CIN</td><td><b>CIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CIN</b></td><td>model</td></tr>
-<tr><td>LAR @ SF</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>NYG @ SEA</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>BUF @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>PIT @ JAX</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>SF @ LAC</td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAC</b></td><td>model</td></tr>
-<tr><td>SEA @ PHI</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>CHI @ BUF</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>ATL @ WAS</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>BAL @ PIT</td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PIT</b></td><td>model</td></tr>
-<tr><td>CIN @ CAR</td><td><b>CAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CAR</b></td><td>model</td></tr>
-<tr><td>CLE @ NYG</td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>MIA @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>JAX @ HOU</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>IND @ TEN</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>NO @ TB</td><td><b>TB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TB</b></td><td>model</td></tr>
-<tr><td>NYJ @ ARI</td><td><b>ARI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ARI</b></td><td>model</td></tr>
-<tr><td>DAL @ LAR</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>DEN @ LV</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>DET @ MIN</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>NE @ KC</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>HOU @ PHI</td><td><b>PHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PHI</b></td><td>model</td></tr>
-<tr><td>GB @ CHI</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>BUF @ DEN</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>LAR @ SEA</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>ARI @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>TB @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>CLE @ BAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>CAR @ PIT</td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PIT</b></td><td>model</td></tr>
-<tr><td>CIN @ IND</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>TEN @ LV</td><td><b>LV</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LV</b></td><td>model</td></tr>
-<tr><td>LAC @ MIA</td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAC</b></td><td>model</td></tr>
-<tr><td>WAS @ MIN</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>NE @ NYJ</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>SF @ KC</td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KC</b></td><td>model</td></tr>
-<tr><td>JAX @ DAL</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>NYG @ DET</td><td><b>DET</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DET</b></td><td>model</td></tr>
-<tr><td>BAL @ CIN</td><td><b>CIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CIN</b></td><td>model</td></tr>
-<tr><td>NO @ ATL</td><td><b>ATL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ATL</b></td><td>model</td></tr>
-<tr><td>BUF @ MIA</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>SEA @ CAR</td><td><b>SEA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SEA</b></td><td>model</td></tr>
-<tr><td>IND @ CLE</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>NYG @ DAL</td><td><b>DAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DAL</b></td><td>model</td></tr>
-<tr><td>DEN @ NE</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>WAS @ JAX</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>LAR @ TB</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>MIN @ NYJ</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>PIT @ TEN</td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PIT</b></td><td>model</td></tr>
-<tr><td>LV @ ARI</td><td><b>ARI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ARI</b></td><td>model</td></tr>
-<tr><td>DET @ CHI</td><td><b>CHI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHI</b></td><td>model</td></tr>
-<tr><td>KC @ LAC</td><td><b>LAC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAC</b></td><td>model</td></tr>
-<tr><td>PHI @ SF</td><td><b>SF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SF</b></td><td>model</td></tr>
-<tr><td>HOU @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>ATL @ CAR</td><td><b>CAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CAR</b></td><td>model</td></tr>
-<tr><td>PIT @ BAL</td><td><b>BAL</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BAL</b></td><td>model</td></tr>
-<tr><td>NYJ @ BUF</td><td><b>BUF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
-<tr><td>CHI @ MIN</td><td><b>MIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIN</b></td><td>model</td></tr>
-<tr><td>CLE @ CIN</td><td><b>CIN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CIN</b></td><td>model</td></tr>
-<tr><td>DAL @ WAS</td><td><b>WAS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>WAS</b></td><td>model</td></tr>
-<tr><td>LAC @ DEN</td><td><b>DEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DEN</b></td><td>model</td></tr>
-<tr><td>DET @ GB</td><td><b>GB</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GB</b></td><td>model</td></tr>
-<tr><td>TEN @ HOU</td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>model</td></tr>
-<tr><td>JAX @ IND</td><td><b>JAX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JAX</b></td><td>model</td></tr>
-<tr><td>LV @ KC</td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KC</b></td><td>model</td></tr>
-<tr><td>MIA @ NE</td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>model</td></tr>
-<tr><td>TB @ NO</td><td><b>NO</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NO</b></td><td>model</td></tr>
-<tr><td>PHI @ NYG</td><td><b>NYG</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NYG</b></td><td>model</td></tr>
-<tr><td>SF @ ARI</td><td><b>ARI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ARI</b></td><td>model</td></tr>
-<tr><td>SEA @ LAR</td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model</td></tr>
-<tr><td>PIT @ BUF</td><td><b>BUF</b></td><td><b>BUF</b></td><td><b>BUF</b></td><td><b>PIT</b></td><td><b>PIT</b></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model, sharp, public</td></tr>
-<tr><td>NE @ CLE</td><td><b>NE</b></td><td><b>CLE</b></td><td><b>NE</b></td><td><b>NE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NE</b></td><td>fade pub</td></tr>
-<tr><td>SF @ LV</td><td><b>SF</b></td><td><b>LV</b></td><td><b>SF</b></td><td><b>SF</b></td><td><b>SF</b></td><td><span class='pending'>—</span></td><td class='pos'><b>SF</b></td><td>fade pub</td></tr>
-<tr><td>LAR @ LAC</td><td><b>LAR</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><b>LAR</b></td><td><span class='pending'>—</span></td><td class='pos'><b>LAR</b></td><td>model, sharp, public, money, sharp_edge</td></tr></tbody>
+    <tbody><tr><td>SEA @ TEN</td><td><b>TEN</b></td><td><b>SEA</b></td><td><b>SEA</b></td><td><b>SEA</b></td><td><b>TEN</b></td><td><span class='pending'>—</span></td><td class='pos'><b>TEN</b></td><td>model, sharp_edge</td></tr></tbody>
   </table></div>
   <p class="footer" style="padding:12px 0">Each column is an independent pick. Hybrid is the full system; compare it to model / sharp / public / money / RLM.</p>
-</div>
-
-<div id="tab-ledger" class="content">
-  <div class="section-label">By Week</div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Week</th><th>Record</th><th>Pending</th><th>PnL</th></tr></thead>
-    <tbody><tr><td>? W?</td><td>2-1</td><td>1</td><td class='pos'>+1.66u</td></tr></tbody>
-  </table></div>
-  <div class="section-label">All Plays</div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
-    <tbody><tr><td>2026-08-28</td><td>KC @ SEA</td><td>SEA (ML) -175</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-16</td><td>HOU @ LAC</td><td>HOU (ML) +120</td><td>1.5u</td><td class='win'>WIN</td><td>HOU 20 – LAC 16</td><td class='pending'>—</td><td class='pos'>+1.8</td></tr>
-<tr><td>2026-08-16</td><td>HOU @ LAC</td><td>HOU +2.5 (spread) -110</td><td>1.5u</td><td class='win'>WIN</td><td>HOU 20 – LAC 16</td><td class='pending'>—</td><td class='pos'>+1.3636</td></tr>
-<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -110</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='pending'>—</td><td class='neg'>-1.5</td></tr></tbody>
-  </table></div>
 </div>
 
 <div id="tab-ratings" class="content">
@@ -466,7 +160,38 @@
   <div class="section-label">Power Ratings</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
-    <tbody><tr><td colspan='4'>Run pipeline to populate ratings.</td></tr></tbody>
+    <tbody><tr><td><b>KC</b></td><td class='pos'>0.120</td><td>0.080</td><td>0.040</td></tr>
+<tr><td><b>BUF</b></td><td class='pos'>0.110</td><td>0.060</td><td>0.050</td></tr>
+<tr><td><b>ARI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>ATL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>BAL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CAR</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CHI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CIN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CLE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>DAL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>DEN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>DET</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>GB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>HOU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>IND</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>JAX</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>LAC</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>LAR</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>LV</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>MIA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>MIN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>NE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>NO</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>NYG</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>NYJ</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>PHI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>PIT</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>SEA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>SF</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>TB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>TEN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>WAS</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr></tbody>
   </table></div>
 </div>
 
@@ -475,669 +200,84 @@
     <div class="stat-card"><div class="stat-val">0-0</div><div class="stat-label">CFB Record</div></div>
     <div class="stat-card"><div class="stat-val">—</div><div class="stat-label">Win %</div></div>
     <div class="stat-card"><div class="stat-val pos">+0.0u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">Live pipeline</div><div class="stat-label">Mode</div></div>
+    <div class="stat-card"><div class="stat-val">DEMO data</div><div class="stat-label">Mode</div></div>
   </div>
   <div class="section-label">Closing Line Value</div>
   <p class="phase-note" style="padding:6px 0">Closing Line Value appears here once plays are graded against their closing line (captured at the T-1h pregame run).</p>
-  <div class="section-label">NCAAF Open / Latest Plays · 7 pending · 7 total</div>
+  <div class="section-label">NCAAF Open / Latest Plays · 0 pending · 0 total</div>
   
       <div class="play-card sharp-play">
         <div class="card-top">
           <div class="card-left">
             <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">UNC (ML) +210</div>
-            <div class="play-subtitle">Sat Aug 29, 12:00 PM ET · UNC @ TCU · marathonbet</div>
+            <div class="play-title">ALA -2.5 (spread) -105</div>
+            <div class="play-subtitle">Fri Aug 28, 7:31 AM ET · ALA @ UGA · draftkings</div>
           </div>
           <div class="units-badge">1.5u</div>
         </div>
-        <span class="card-result pending">PENDING</span>
+        <span class="card-result pending">OPEN</span>
         <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">29.1%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">41.6%</span></div>
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">8.4%</span></div>
+          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">55.5%</span></div>
           
         </div>
         <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
+          <div class="conf-track"><div class="conf-fill" style="width:92%;background:#f4820a;"></div></div>
         </div>
         <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
           <span class="arrow">▶</span><span>Rationale</span>
         </div>
-        <div class="rationale-body">We project UNC ML on the moneyline at 41.6% true probability vs 25.9% implied at marathonbet — about 29.1% expected value.</div>
+        <div class="rationale-body">We project ALA -2.5 on the spread at 55.5% true probability vs 49.6% implied at draftkings — about 8.4% expected value.<br>On this side, 56% of handle vs 32% of tickets (+24% handle-minus-tickets gap) — sharp money signal.<br>Reverse line movement: public 68% home but line 1.5→2.5 toward away<br>Sharp money confirms this side (handle % well above ticket %).<br>Reverse line movement supports this side — line moved against the public.</div>
       </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">FSU +2.5 (spread) -112</div>
-            <div class="play-subtitle">Mon Sep 7, 7:30 PM ET · SMU @ FSU · leovegas_se</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">21.5%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">64.2%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">We project FSU +2.5 on the spread at 64.2% true probability vs 49.9% implied at leovegas_se — about 21.5% expected value.</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">CLEM (ML) +300</div>
-            <div class="play-subtitle">Sat Sep 5, 7:30 PM ET · CLEM @ LSU · espnbet</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">18.0%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">29.5%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">We project CLEM ML on the moneyline at 29.5% true probability vs 23.3% implied at espnbet — about 18.0% expected value.</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">FSU (ML) +110</div>
-            <div class="play-subtitle">Mon Sep 7, 7:30 PM ET · SMU @ FSU · leovegas_se</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">15.6%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">55.0%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:99%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">We project FSU ML on the moneyline at 55.0% true probability vs 44.9% implied at leovegas_se — about 15.6% expected value.</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">LOU (ML) +195</div>
-            <div class="play-subtitle">Sun Sep 6, 7:30 PM ET · LOU @ MISS · leovegas_se</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">4.5%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">35.4%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:72%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">We project LOU ML on the moneyline at 35.4% true probability vs 31.4% implied at leovegas_se — about 4.5% expected value.</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">OVER +50.5 (total) -120</div>
-            <div class="play-subtitle">Sun Sep 6, 4:00 PM ET · WSU @ WASH · fliff</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">3.0%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">56.2%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:65%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">We project OVER 50.5 on the total at 56.2% true probability vs 51.1% implied at fliff — about 3.0% expected value.</div>
-      </div>
-
-      <div class="play-card sharp-play">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge badge-play">Sharp Play</span>
-            <div class="play-title">NCST (ML) +160</div>
-            <div class="play-subtitle">Sat Aug 29, 3:30 PM ET · NCST @ UVA · betanysports</div>
-          </div>
-          <div class="units-badge">1.5u</div>
-        </div>
-        <span class="card-result pending">PENDING</span>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">2.8%</span></div>
-          <div class="meta-item"><span class="meta-label">P_true </span><span class="meta-val">39.5%</span></div>
-          
-        </div>
-        <div class="conf-bar">
-          <div class="conf-track"><div class="conf-fill" style="width:64%;background:#f4820a;"></div></div>
-        </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">We project NCST ML on the moneyline at 39.5% true probability vs 37.6% implied at betanysports — about 2.8% expected value.</div>
-      </div>
-  <div class="section-label">NCAAF Ledger</div>
+  <div class="section-label">This Week's Ledger · 0 pending</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
-    <tbody><tr><td>2026-08-28</td><td>NCST @ UVA</td><td>NCST (ML) +160</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-28</td><td>WSU @ WASH</td><td>OVER +50.5 (total) -120</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-28</td><td>LOU @ MISS</td><td>LOU (ML) +195</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-28</td><td>SMU @ FSU</td><td>FSU (ML) +110</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-28</td><td>CLEM @ LSU</td><td>CLEM (ML) +300</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-28</td><td>SMU @ FSU</td><td>FSU +2.5 (spread) -112</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-28</td><td>UNC @ TCU</td><td>UNC (ML) +210</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr></tbody>
+    <tbody><tr><td colspan='8'>No plays in ledger yet.</td></tr></tbody>
   </table></div>
   <div class="section-label">NCAAF Stage Records</div>
   <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">8</div><div class="stat-label">Sharp vs Public</div></div>
-    <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">RLM Games</div></div>
+    <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">Sharp vs Public</div></div>
+    <div class="stat-card"><div class="stat-val">1</div><div class="stat-label">RLM Games</div></div>
   </div>
   <div class="table-wrap"><table>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
-    <tbody><tr><td><b>hybrid</b></td><td>0-0</td><td>—</td><td>111</td></tr>
-<tr><td><b>model</b></td><td>0-0</td><td>—</td><td>111</td></tr>
-<tr><td><b>sharp</b></td><td>0-0</td><td>—</td><td>45</td></tr>
-<tr><td><b>money</b></td><td>0-0</td><td>—</td><td>17</td></tr>
-<tr><td><b>public</b></td><td>0-0</td><td>—</td><td>17</td></tr>
-<tr><td><b>sharp_edge</b></td><td>0-0</td><td>—</td><td>17</td></tr></tbody>
+    <tbody><tr><td colspan='4'>Stage records appear after games settle.</td></tr></tbody>
   </table></div>
   <div class="section-label">NCAAF Per-Game Stage Winners</div>
   <div class="table-wrap"><table>
     <thead><tr>
       <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
     </tr></thead>
-    <tbody><tr><td>UNC @ TCU</td><td><b>TCU</b></td><td><b>TCU</b></td><td><b>TCU</b></td><td><b>TCU</b></td><td><b>TCU</b></td><td><span class='pending'>—</span></td><td class='pos'><b>UNC</b></td><td>—</td></tr>
-<tr><td>SAN JOSE STATE @ USC</td><td><b>USC</b></td><td><b>USC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>USC</b></td><td>model, sharp</td></tr>
-<tr><td>NCST @ UVA</td><td><b>UVA</b></td><td><b>NCST</b></td><td><b>NCST</b></td><td><b>NCST</b></td><td><b>NCST</b></td><td><span class='pending'>—</span></td><td class='pos'><b>NCST</b></td><td>sharp, public, money, sharp_edge</td></tr>
-<tr><td>JACKSONVILLE STATE @ NORTH DAKOTA STATE BISON</td><td><b>NORTH DAKOTA STATE BISON</b></td><td><b>JACKSONVILLE STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NORTH DAKOTA STATE BISON</b></td><td>model</td></tr>
-<tr><td>SACRAMENTO STATE HORNETS @ EASTERN MICHIGAN</td><td><b>EASTERN MICHIGAN</b></td><td><b>SACRAMENTO STATE HORNETS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>EASTERN MICHIGAN</b></td><td>model</td></tr>
-<tr><td>NEW MEXICO STATE @ FSU</td><td><b>FSU</b></td><td><b>NEW MEXICO STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>FSU</b></td><td>model</td></tr>
-<tr><td>HAWAII @ STAN</td><td><b>STAN</b></td><td><b>HAWAII</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>STAN</b></td><td>model</td></tr>
-<tr><td>MEM @ UNLV</td><td><b>UNLV</b></td><td><b>MEM</b></td><td><b>MEM</b></td><td><b>MEM</b></td><td><b>MEM</b></td><td><span class='pending'>—</span></td><td class='pos'><b>UNLV</b></td><td>model</td></tr>
-<tr><td>UMASS MINUTEMEN @ RUT</td><td><b>RUT</b></td><td><b>UMASS MINUTEMEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>RUT</b></td><td>model</td></tr>
-<tr><td>AKRON ZIPS @ WAKE</td><td><b>WAKE</b></td><td><b>WAKE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>WAKE</b></td><td>model, sharp</td></tr>
-<tr><td>ALBANY @ BUFFALO BULLS</td><td><b>BUFFALO BULLS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUFFALO BULLS</b></td><td>model</td></tr>
-<tr><td>BETHUNE-COOKMAN @ UCF</td><td><b>UCF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>UCF</b></td><td>model</td></tr>
-<tr><td>MERRIMACK @ DELAWARE BLUE HENS</td><td><b>DELAWARE BLUE HENS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>DELAWARE BLUE HENS</b></td><td>model</td></tr>
-<tr><td>WEST GEORGIA WOLVES @ KENNESAW STATE OWLS</td><td><b>KENNESAW STATE OWLS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KENNESAW STATE OWLS</b></td><td>model</td></tr>
-<tr><td>ARKANSAS PINE BLUFF GOLDEN @ MIZZ</td><td><b>MIZZ</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIZZ</b></td><td>model</td></tr>
-<tr><td>COLO @ GT</td><td><b>GT</b></td><td><b>COLO</b></td><td><b>GT</b></td><td><b>GT</b></td><td><b>GT</b></td><td><span class='pending'>—</span></td><td class='pos'><b>GT</b></td><td>fade pub</td></tr>
-<tr><td>EASTERN ILLINOIS @ MINN</td><td><b>MINN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MINN</b></td><td>model</td></tr>
-<tr><td>IDAHO VANDALS @ UTAH</td><td><b>UTAH</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>UTAH</b></td><td>model</td></tr>
-<tr><td>UAB BLAZERS @ ILL</td><td><b>ILL</b></td><td><b>UAB BLAZERS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ILL</b></td><td>model</td></tr>
-<tr><td>SAN JOSE STATE @ EASTERN MICHIGAN</td><td><b>EASTERN MICHIGAN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>EASTERN MICHIGAN</b></td><td>model</td></tr>
-<tr><td>NORTH CAROLINA A&amp;T @ GEORGIA STATE</td><td><b>GEORGIA STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GEORGIA STATE</b></td><td>model</td></tr>
-<tr><td>INDIANA STATE SYCAMORES @ PUR</td><td><b>PUR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PUR</b></td><td>model</td></tr>
-<tr><td>LIU SHARKS @ KU</td><td><b>KU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KU</b></td><td>model</td></tr>
-<tr><td>TOLEDO @ MSU</td><td><b>MSU</b></td><td><b>MSU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MSU</b></td><td>model, sharp</td></tr>
-<tr><td>UTEP MINERS @ OU</td><td><b>OU</b></td><td><b>OU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>OU</b></td><td>model, sharp</td></tr>
-<tr><td>FRES @ USC</td><td><b>USC</b></td><td><span class='pending'>—</span></td><td><b>FRES</b></td><td><b>USC</b></td><td><b>USC</b></td><td><span class='pending'>—</span></td><td class='pos'><b>USC</b></td><td>model, money, sharp_edge</td></tr>
-<tr><td>MIA @ STAN</td><td><b>STAN</b></td><td><span class='pending'>—</span></td><td><b>MIA</b></td><td><b>MIA</b></td><td><b>MIA</b></td><td><span class='pending'>—</span></td><td class='pos'><b>STAN</b></td><td>model</td></tr>
-<tr><td>EAST CAROLINA PIRATES @ ALA</td><td><b>ALA</b></td><td><b>ALA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ALA</b></td><td>model, sharp</td></tr>
-<tr><td>BRYANT @ ARMY</td><td><b>ARMY</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ARMY</b></td><td>model</td></tr>
-<tr><td>TARLETON STATE TEXANS @ BOWLING GREEN</td><td><b>BOWLING GREEN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BOWLING GREEN</b></td><td>model</td></tr>
-<tr><td>COASTAL CAROLINA CHANTICLEERS @ WVU</td><td><b>WVU</b></td><td><b>COASTAL CAROLINA CHANTICLEERS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>WVU</b></td><td>model</td></tr>
-<tr><td>ORST @ HOU</td><td><b>HOU</b></td><td><b>HOU</b></td><td><b>ORST</b></td><td><b>HOU</b></td><td><b>HOU</b></td><td><span class='pending'>—</span></td><td class='pos'><b>HOU</b></td><td>fade pub</td></tr>
-<tr><td>NORTH TEXAS @ IND</td><td><b>IND</b></td><td><b>NORTH TEXAS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>LIB @ JMU</td><td><b>JMU</b></td><td><b>JMU</b></td><td><b>JMU</b></td><td><b>JMU</b></td><td><b>LIB</b></td><td><span class='pending'>—</span></td><td class='pos'><b>JMU</b></td><td>model, sharp, public, money</td></tr>
-<tr><td>LAFAYETTE LEOPARDS @ UCONN</td><td><b>UCONN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>UCONN</b></td><td>model</td></tr>
-<tr><td>MIAMI (OH) REDHAWKS @ PITT</td><td><b>PITT</b></td><td><b>MIAMI (OH) REDHAWKS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PITT</b></td><td>model</td></tr>
-<tr><td>OHIO @ NEB</td><td><b>NEB</b></td><td><b>NEB</b></td><td><b>OHIO</b></td><td><b>NEB</b></td><td><b>NEB</b></td><td><span class='pending'>—</span></td><td class='pos'><b>NEB</b></td><td>fade pub</td></tr>
-<tr><td>NEW HAMPSHIRE @ SYR</td><td><b>SYR</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SYR</b></td><td>model</td></tr>
-<tr><td>BALL STATE @ OSU</td><td><b>OSU</b></td><td><b>BALL STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>OSU</b></td><td>model</td></tr>
-<tr><td>KENT STATE GOLDEN FLASHES @ SCAR</td><td><b>SCAR</b></td><td><b>KENT STATE GOLDEN FLASHES</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SCAR</b></td><td>model</td></tr>
-<tr><td>DUQUESNE DUKES @ AF</td><td><b>AF</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>AF</b></td><td>model</td></tr>
-<tr><td>SOUTHEAST MISSOURI STATE REDHAWKS @ ISU</td><td><b>ISU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ISU</b></td><td>model</td></tr>
-<tr><td>YOUNGSTOWN ST PENGUINS @ UK</td><td><b>UK</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>UK</b></td><td>model</td></tr>
-<tr><td>RHODE ISLAND RAMS @ TEMPLE OWLS</td><td><b>TEMPLE OWLS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TEMPLE OWLS</b></td><td>model</td></tr>
-<tr><td>TENNESSEE STATE @ UGA</td><td><b>UGA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>UGA</b></td><td>model</td></tr>
-<tr><td>MAINE BLACK @ APPALACHIAN STATE</td><td><b>APPALACHIAN STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>APPALACHIAN STATE</b></td><td>model</td></tr>
-<tr><td>BAY @ AUB</td><td><b>AUB</b></td><td><b>BAY</b></td><td><b>AUB</b></td><td><b>AUB</b></td><td><b>AUB</b></td><td><span class='pending'>—</span></td><td class='pos'><b>AUB</b></td><td>fade pub</td></tr>
-<tr><td>BSU @ ORE</td><td><b>ORE</b></td><td><b>BSU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ORE</b></td><td>model</td></tr>
-<tr><td>BC @ CIN</td><td><b>CIN</b></td><td><b>BC</b></td><td><b>CIN</b></td><td><b>BC</b></td><td><b>BC</b></td><td><span class='pending'>—</span></td><td class='pos'><b>CIN</b></td><td>fade pub</td></tr>
-<tr><td>CITADEL @ CHARLOTTE 49ERS</td><td><b>CHARLOTTE 49ERS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>CHARLOTTE 49ERS</b></td><td>model</td></tr>
-<tr><td>TULN @ DUKE</td><td><b>DUKE</b></td><td><b>TULN</b></td><td><b>DUKE</b></td><td><b>DUKE</b></td><td><b>DUKE</b></td><td><span class='pending'>—</span></td><td class='pos'><b>DUKE</b></td><td>fade pub</td></tr>
-<tr><td>FORDHAM RAMS @ NORTH DAKOTA STATE BISON</td><td><b>NORTH DAKOTA STATE BISON</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NORTH DAKOTA STATE BISON</b></td><td>model</td></tr>
-<tr><td>FURMAN PALADINS @ TENN</td><td><b>TENN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TENN</b></td><td>model</td></tr>
-<tr><td>MARSHALL @ PSU</td><td><b>PSU</b></td><td><b>PSU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>PSU</b></td><td>model, sharp</td></tr>
-<tr><td>TOWSON @ NAVY</td><td><b>NAVY</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NAVY</b></td><td>model</td></tr>
-<tr><td>TEXAS STATE @ TEX</td><td><b>TEX</b></td><td><b>TEXAS STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TEX</b></td><td>model</td></tr>
-<tr><td>UT RIO GRANDE VALLEY VAQUEROS @ UTSA ROADRUNNERS</td><td><b>UTSA ROADRUNNERS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>UTSA ROADRUNNERS</b></td><td>model</td></tr>
-<tr><td>OKST @ TULSA GOLDEN HURRICANE</td><td><b>TULSA GOLDEN HURRICANE</b></td><td><b>OKST</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TULSA GOLDEN HURRICANE</b></td><td>model</td></tr>
-<tr><td>NORTH ALABAMA @ ARK</td><td><b>ARK</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ARK</b></td><td>model</td></tr>
-<tr><td>NORTHERN ILLINOIS @ IOWA</td><td><b>IOWA</b></td><td><b>NORTHERN ILLINOIS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IOWA</b></td><td>model</td></tr>
-<tr><td>ALCORN STATE BRAVES @ SOUTHERN MISSISSIPPI</td><td><b>SOUTHERN MISSISSIPPI</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SOUTHERN MISSISSIPPI</b></td><td>model</td></tr>
-<tr><td>WYOMING @ COLORADO STATE RAMS</td><td><b>COLORADO STATE RAMS</b></td><td><b>WYOMING</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>COLORADO STATE RAMS</b></td><td>model</td></tr>
-<tr><td>NORFOLK STATE @ OLD DOMINION MONARCHS</td><td><b>OLD DOMINION MONARCHS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>OLD DOMINION MONARCHS</b></td><td>model</td></tr>
-<tr><td>ABILENE CHRISTIAN @ TTU</td><td><b>TTU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TTU</b></td><td>model</td></tr>
-<tr><td>ARKANSAS STATE RED WOLVES @ MEM</td><td><b>MEM</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MEM</b></td><td>model</td></tr>
-<tr><td>AUSTIN PEAY GOVERNORS @ VAN</td><td><b>VAN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>VAN</b></td><td>model</td></tr>
-<tr><td>CHARLESTON SOUTHERN BUCCANEERS @ GEORGIA SOUTHERN</td><td><b>GEORGIA SOUTHERN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>GEORGIA SOUTHERN</b></td><td>model</td></tr>
-<tr><td>EASTERN KENTUCKY COLONELS @ JACKSONVILLE STATE</td><td><b>JACKSONVILLE STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>JACKSONVILLE STATE</b></td><td>model</td></tr>
-<tr><td>FLORIDA INTERNATIONAL @ SOUTH FLORIDA BULLS</td><td><b>SOUTH FLORIDA BULLS</b></td><td><b>SOUTH FLORIDA BULLS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SOUTH FLORIDA BULLS</b></td><td>model, sharp</td></tr>
-<tr><td>HOUSTON BAPTIST @ RICE OWLS</td><td><b>RICE OWLS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>RICE OWLS</b></td><td>model</td></tr>
-<tr><td>IDAHO STATE BENGALS @ UTAH STATE</td><td><b>UTAH STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>UTAH STATE</b></td><td>model</td></tr>
-<tr><td>NICHOLLS STATE COLONELS @ KSU</td><td><b>KSU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KSU</b></td><td>model</td></tr>
-<tr><td>WESTERN MICHIGAN @ MICH</td><td><b>MICH</b></td><td><b>MICH</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MICH</b></td><td>model, sharp</td></tr>
-<tr><td>MURRAY STATE RACERS @ MIDDLE TENNESSEE</td><td><b>MIDDLE TENNESSEE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIDDLE TENNESSEE</b></td><td>model</td></tr>
-<tr><td>MISSOURI STATE @ TAMU</td><td><b>TAMU</b></td><td><b>TAMU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TAMU</b></td><td>model, sharp</td></tr>
-<tr><td>SAM HOUSTON STATE BEARKATS @ TROY</td><td><b>TROY</b></td><td><b>SAM HOUSTON STATE BEARKATS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TROY</b></td><td>model</td></tr>
-<tr><td>SOUTHEASTERN LOUISIANA @ SOUTH ALABAMA JAGUARS</td><td><b>SOUTH ALABAMA JAGUARS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SOUTH ALABAMA JAGUARS</b></td><td>model</td></tr>
-<tr><td>CLEM @ LSU</td><td><b>LSU</b></td><td><b>CLEM</b></td><td><b>CLEM</b></td><td><b>CLEM</b></td><td><b>LSU</b></td><td><span class='pending'>—</span></td><td class='pos'><b>CLEM</b></td><td>sharp, public, money</td></tr>
-<tr><td>NORTHWESTERN STATE DEMONS @ LOUISIANA TECH</td><td><b>LOUISIANA TECH</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LOUISIANA TECH</b></td><td>model</td></tr>
-<tr><td>UL MONROE WARHAWKS @ MSST</td><td><b>MSST</b></td><td><b>MSST</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MSST</b></td><td>model, sharp</td></tr>
-<tr><td>VMI KEYDETS @ VT</td><td><b>VT</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>VT</b></td><td>model</td></tr>
-<tr><td>FLORIDA ATLANTIC OWLS @ FLA</td><td><b>FLA</b></td><td><b>FLA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>FLA</b></td><td>model, sharp</td></tr>
-<tr><td>UTAH TECH TRAILBLAZERS @ BYU</td><td><b>BYU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BYU</b></td><td>model</td></tr>
-<tr><td>LAMAR @ LOUISIANA RAGIN CAJUNS</td><td><b>LOUISIANA RAGIN CAJUNS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>LOUISIANA RAGIN CAJUNS</b></td><td>model</td></tr>
-<tr><td>SOUTH DAKOTA STATE JACKRABBITS @ NW</td><td><b>NW</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NW</b></td><td>model</td></tr>
-<tr><td>MERCYHURST LAKERS @ NEW MEXICO STATE</td><td><b>NEW MEXICO STATE</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NEW MEXICO STATE</b></td><td>model</td></tr>
-<tr><td>NORTHERN ARIZONA LUMBERJACKS @ ARIZ</td><td><b>ARIZ</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ARIZ</b></td><td>model</td></tr>
-<tr><td>PORTLAND STATE VIKINGS @ SDSU</td><td><b>SDSU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SDSU</b></td><td>model</td></tr>
-<tr><td>MORGAN STATE @ ASU</td><td><b>ASU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ASU</b></td><td>model</td></tr>
-<tr><td>CENTRAL MICHIGAN @ NEW MEXICO LOBOS</td><td><b>NEW MEXICO LOBOS</b></td><td><b>CENTRAL MICHIGAN</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NEW MEXICO LOBOS</b></td><td>model</td></tr>
-<tr><td>UNLV @ HAWAII</td><td><b>HAWAII</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>HAWAII</b></td><td>model</td></tr>
-<tr><td>MISSISSIPPI VALLEY STATE DELTA DEVILS @ SACRAMENTO STATE HORNETS</td><td><b>SACRAMENTO STATE HORNETS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>SACRAMENTO STATE HORNETS</b></td><td>model</td></tr>
-<tr><td>UCLA @ CAL</td><td><b>CAL</b></td><td><b>UCLA</b></td><td><b>CAL</b></td><td><b>CAL</b></td><td><b>CAL</b></td><td><span class='pending'>—</span></td><td class='pos'><b>CAL</b></td><td>fade pub</td></tr>
-<tr><td>WESTERN KENTUCKY HILLTOPPERS @ NEVADA WOLF PACK</td><td><b>NEVADA WOLF PACK</b></td><td><b>WESTERN KENTUCKY HILLTOPPERS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>NEVADA WOLF PACK</b></td><td>model</td></tr>
-<tr><td>WSU @ WASH</td><td><b>WASH</b></td><td><b>WASH</b></td><td><b>WSU</b></td><td><b>WSU</b></td><td><b>WSU</b></td><td><span class='pending'>—</span></td><td class='pos'><b>WASH</b></td><td>fade pub</td></tr>
-<tr><td>LOU @ MISS</td><td><b>MISS</b></td><td><b>MISS</b></td><td><b>MISS</b></td><td><b>MISS</b></td><td><b>MISS</b></td><td><span class='pending'>—</span></td><td class='pos'><b>LOU</b></td><td>—</td></tr>
-<tr><td>WISC @ ND</td><td><b>ND</b></td><td><b>WISC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ND</b></td><td>model</td></tr>
-<tr><td>SMU @ FSU</td><td><b>FSU</b></td><td><span class='pending'>—</span></td><td><b>SMU</b></td><td><b>FSU</b></td><td><b>FSU</b></td><td><span class='pending'>—</span></td><td class='pos'><b>FSU</b></td><td>model, money, sharp_edge</td></tr>
-<tr><td>MIZZ @ KU</td><td><b>KU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>KU</b></td><td>model</td></tr>
-<tr><td>ARK @ UTAH</td><td><b>UTAH</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>UTAH</b></td><td>model</td></tr>
-<tr><td>OU @ MICH</td><td><b>MICH</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MICH</b></td><td>model</td></tr>
-<tr><td>ORE @ OKST</td><td><b>OKST</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>OKST</b></td><td>model</td></tr>
-<tr><td>ISU @ IOWA</td><td><b>IOWA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IOWA</b></td><td>model</td></tr>
-<tr><td>OSU @ TEX</td><td><b>TEX</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>TEX</b></td><td>model</td></tr>
-<tr><td>UGA @ ARK</td><td><b>ARK</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ARK</b></td><td>model</td></tr>
-<tr><td>LSU @ MISS</td><td><b>MISS</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MISS</b></td><td>model</td></tr>
-<tr><td>TEX @ OU</td><td><b>OU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>OU</b></td><td>model</td></tr>
-<tr><td>UGA @ ALA</td><td><b>ALA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>ALA</b></td><td>model</td></tr>
-<tr><td>OSU @ IND</td><td><b>IND</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>IND</b></td><td>model</td></tr>
-<tr><td>MIA @ ND</td><td><b>MIA</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>MIA</b></td><td>model</td></tr>
-<tr><td>MICH @ OSU</td><td><b>OSU</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>OSU</b></td><td>model</td></tr></tbody>
+    <tbody><tr><td>ALA @ UGA</td><td><b>ALA</b></td><td><b>UGA</b></td><td><b>UGA</b></td><td><b>ALA</b></td><td><b>ALA</b></td><td><b>ALA</b></td><td class='pos'><b>ALA</b></td><td>RLM</td></tr></tbody>
   </table></div>
   <div class="section-label">NCAAF Power Ratings</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
-    <tbody><tr><td><b>OSU</b></td><td class='pos'>0.154</td><td>0.063</td><td>0.091</td></tr>
-<tr><td><b>VAN</b></td><td class='pos'>0.139</td><td>0.202</td><td>-0.062</td></tr>
-<tr><td><b>SMU</b></td><td class='pos'>0.133</td><td>0.071</td><td>0.062</td></tr>
-<tr><td><b>ST. THOMAS (MN)</b></td><td class='pos'>0.126</td><td>0.094</td><td>0.032</td></tr>
-<tr><td><b>TEX</b></td><td class='pos'>0.121</td><td>0.077</td><td>0.044</td></tr>
-<tr><td><b>JACKSON STATE</b></td><td class='pos'>0.113</td><td>0.090</td><td>0.023</td></tr>
-<tr><td><b>ARIZ</b></td><td class='pos'>0.112</td><td>0.030</td><td>0.082</td></tr>
-<tr><td><b>AUB</b></td><td class='pos'>0.105</td><td>0.065</td><td>0.040</td></tr>
-<tr><td><b>NEW MEXICO STATE</b></td><td class='pos'>0.105</td><td>-0.009</td><td>0.114</td></tr>
-<tr><td><b>TAMU</b></td><td class='pos'>0.104</td><td>0.032</td><td>0.072</td></tr>
-<tr><td><b>ALABAMA STATE</b></td><td class='pos'>0.103</td><td>0.145</td><td>-0.042</td></tr>
-<tr><td><b>MIA</b></td><td class='pos'>0.101</td><td>0.053</td><td>0.048</td></tr>
-<tr><td><b>UTAH</b></td><td class='pos'>0.101</td><td>0.110</td><td>-0.009</td></tr>
-<tr><td><b>FLA</b></td><td class='pos'>0.099</td><td>0.059</td><td>0.040</td></tr>
-<tr><td><b>UNLV</b></td><td class='pos'>0.098</td><td>0.107</td><td>-0.008</td></tr>
-<tr><td><b>HARVARD</b></td><td class='pos'>0.097</td><td>0.129</td><td>-0.032</td></tr>
-<tr><td><b>SOUTH DAKOTA STATE</b></td><td class='pos'>0.096</td><td>0.063</td><td>0.033</td></tr>
-<tr><td><b>JMU</b></td><td class='pos'>0.095</td><td>0.065</td><td>0.030</td></tr>
-<tr><td><b>UK</b></td><td class='pos'>0.094</td><td>0.059</td><td>0.035</td></tr>
-<tr><td><b>BYU</b></td><td class='pos'>0.093</td><td>0.067</td><td>0.026</td></tr>
-<tr><td><b>VILLANOVA</b></td><td class='pos'>0.093</td><td>0.033</td><td>0.060</td></tr>
-<tr><td><b>GT</b></td><td class='pos'>0.089</td><td>0.124</td><td>-0.035</td></tr>
-<tr><td><b>PRESBYTERIAN</b></td><td class='pos'>0.089</td><td>0.040</td><td>0.049</td></tr>
-<tr><td><b>UCF</b></td><td class='pos'>0.089</td><td>0.028</td><td>0.061</td></tr>
-<tr><td><b>TTU</b></td><td class='pos'>0.086</td><td>-0.065</td><td>0.151</td></tr>
-<tr><td><b>MEM</b></td><td class='pos'>0.086</td><td>0.082</td><td>0.004</td></tr>
-<tr><td><b>HAWAI'I</b></td><td class='pos'>0.086</td><td>0.049</td><td>0.037</td></tr>
-<tr><td><b>EAST CAROLINA</b></td><td class='pos'>0.082</td><td>0.029</td><td>0.053</td></tr>
-<tr><td><b>KENNESAW STATE</b></td><td class='pos'>0.081</td><td>0.083</td><td>-0.001</td></tr>
-<tr><td><b>COLO</b></td><td class='pos'>0.081</td><td>0.001</td><td>0.080</td></tr>
-<tr><td><b>UNC</b></td><td class='pos'>0.081</td><td>0.025</td><td>0.056</td></tr>
-<tr><td><b>KSU</b></td><td class='pos'>0.076</td><td>0.060</td><td>0.016</td></tr>
-<tr><td><b>MISS</b></td><td class='pos'>0.076</td><td>0.100</td><td>-0.025</td></tr>
-<tr><td><b>UTSA</b></td><td class='pos'>0.075</td><td>0.070</td><td>0.005</td></tr>
-<tr><td><b>UGA</b></td><td class='pos'>0.075</td><td>0.046</td><td>0.029</td></tr>
-<tr><td><b>ASU</b></td><td class='pos'>0.074</td><td>0.011</td><td>0.063</td></tr>
-<tr><td><b>LSU</b></td><td class='pos'>0.074</td><td>0.005</td><td>0.069</td></tr>
-<tr><td><b>USC</b></td><td class='pos'>0.073</td><td>0.090</td><td>-0.016</td></tr>
-<tr><td><b>IND</b></td><td class='pos'>0.073</td><td>0.067</td><td>0.007</td></tr>
-<tr><td><b>TARLETON STATE</b></td><td class='pos'>0.072</td><td>0.072</td><td>0.001</td></tr>
-<tr><td><b>BROWN</b></td><td class='pos'>0.072</td><td>0.045</td><td>0.026</td></tr>
-<tr><td><b>SOUTHEAST MISSOURI STATE</b></td><td class='pos'>0.071</td><td>-0.003</td><td>0.073</td></tr>
-<tr><td><b>SOUTHERN MISS</b></td><td class='pos'>0.069</td><td>0.020</td><td>0.049</td></tr>
-<tr><td><b>SDSU</b></td><td class='pos'>0.069</td><td>-0.034</td><td>0.104</td></tr>
-<tr><td><b>RHODE ISLAND</b></td><td class='pos'>0.069</td><td>0.055</td><td>0.014</td></tr>
-<tr><td><b>COASTAL CAROLINA</b></td><td class='pos'>0.069</td><td>0.019</td><td>0.050</td></tr>
-<tr><td><b>MISSOURI STATE</b></td><td class='pos'>0.068</td><td>0.104</td><td>-0.036</td></tr>
-<tr><td><b>FSU</b></td><td class='pos'>0.068</td><td>0.077</td><td>-0.009</td></tr>
-<tr><td><b>FLORIDA INTERNATIONAL</b></td><td class='pos'>0.066</td><td>-0.016</td><td>0.082</td></tr>
-<tr><td><b>NORTH TEXAS</b></td><td class='pos'>0.065</td><td>0.143</td><td>-0.077</td></tr>
-<tr><td><b>TENNESSEE TECH</b></td><td class='pos'>0.064</td><td>-0.000</td><td>0.064</td></tr>
-<tr><td><b>TOLEDO</b></td><td class='pos'>0.063</td><td>-0.021</td><td>0.084</td></tr>
-<tr><td><b>CIN</b></td><td class='pos'>0.062</td><td>0.077</td><td>-0.014</td></tr>
-<tr><td><b>DELAWARE</b></td><td class='pos'>0.061</td><td>0.072</td><td>-0.011</td></tr>
-<tr><td><b>CAL POLY</b></td><td class='pos'>0.061</td><td>0.018</td><td>0.043</td></tr>
-<tr><td><b>SYR</b></td><td class='pos'>0.059</td><td>-0.003</td><td>0.062</td></tr>
-<tr><td><b>VT</b></td><td class='pos'>0.059</td><td>0.075</td><td>-0.017</td></tr>
-<tr><td><b>MONMOUTH</b></td><td class='pos'>0.058</td><td>0.124</td><td>-0.067</td></tr>
-<tr><td><b>USF</b></td><td class='pos'>0.057</td><td>0.055</td><td>0.002</td></tr>
-<tr><td><b>SACRAMENTO STATE</b></td><td class='pos'>0.055</td><td>0.039</td><td>0.016</td></tr>
-<tr><td><b>PSU</b></td><td class='pos'>0.055</td><td>0.037</td><td>0.018</td></tr>
-<tr><td><b>TENN</b></td><td class='pos'>0.054</td><td>0.108</td><td>-0.054</td></tr>
-<tr><td><b>PITT</b></td><td class='pos'>0.054</td><td>-0.036</td><td>0.089</td></tr>
-<tr><td><b>BAY</b></td><td class='pos'>0.053</td><td>0.035</td><td>0.018</td></tr>
-<tr><td><b>STAN</b></td><td class='pos'>0.053</td><td>0.016</td><td>0.037</td></tr>
-<tr><td><b>COLUMBIA</b></td><td class='pos'>0.051</td><td>0.040</td><td>0.011</td></tr>
-<tr><td><b>LOUISIANA TECH</b></td><td class='pos'>0.050</td><td>-0.011</td><td>0.061</td></tr>
-<tr><td><b>WYOMING</b></td><td class='pos'>0.049</td><td>-0.050</td><td>0.099</td></tr>
-<tr><td><b>UTAH STATE</b></td><td class='pos'>0.048</td><td>0.045</td><td>0.003</td></tr>
-<tr><td><b>WESTERN KENTUCKY</b></td><td class='pos'>0.047</td><td>-0.009</td><td>0.057</td></tr>
-<tr><td><b>TCU</b></td><td class='pos'>0.047</td><td>0.048</td><td>-0.001</td></tr>
-<tr><td><b>SOUTHERN UTAH</b></td><td class='pos'>0.046</td><td>0.069</td><td>-0.022</td></tr>
-<tr><td><b>SE LOUISIANA</b></td><td class='pos'>0.046</td><td>0.001</td><td>0.045</td></tr>
-<tr><td><b>ALA</b></td><td class='pos'>0.045</td><td>-0.001</td><td>0.046</td></tr>
-<tr><td><b>DAYTON</b></td><td class='pos'>0.045</td><td>-0.011</td><td>0.056</td></tr>
-<tr><td><b>NORTHERN IOWA</b></td><td class='pos'>0.045</td><td>0.007</td><td>0.038</td></tr>
-<tr><td><b>LEHIGH</b></td><td class='pos'>0.044</td><td>0.030</td><td>0.014</td></tr>
-<tr><td><b>JACKSONVILLE STATE</b></td><td class='pos'>0.042</td><td>0.020</td><td>0.022</td></tr>
-<tr><td><b>IOWA</b></td><td class='pos'>0.042</td><td>-0.014</td><td>0.056</td></tr>
-<tr><td><b>INCARNATE WORD</b></td><td class='pos'>0.041</td><td>-0.007</td><td>0.048</td></tr>
-<tr><td><b>OU</b></td><td class='pos'>0.040</td><td>-0.065</td><td>0.105</td></tr>
-<tr><td><b>GEORGIA SOUTHERN</b></td><td class='pos'>0.040</td><td>0.084</td><td>-0.044</td></tr>
-<tr><td><b>MONTANA</b></td><td class='pos'>0.038</td><td>0.130</td><td>-0.091</td></tr>
-<tr><td><b>LOU</b></td><td class='pos'>0.037</td><td>0.004</td><td>0.033</td></tr>
-<tr><td><b>RICHMOND</b></td><td class='pos'>0.036</td><td>-0.025</td><td>0.061</td></tr>
-<tr><td><b>MERCER</b></td><td class='pos'>0.035</td><td>0.066</td><td>-0.030</td></tr>
-<tr><td><b>MIZZ</b></td><td class='pos'>0.035</td><td>-0.009</td><td>0.044</td></tr>
-<tr><td><b>KU</b></td><td class='pos'>0.035</td><td>0.061</td><td>-0.026</td></tr>
-<tr><td><b>ISU</b></td><td class='pos'>0.035</td><td>-0.028</td><td>0.062</td></tr>
-<tr><td><b>WEST GEORGIA</b></td><td class='pos'>0.034</td><td>-0.016</td><td>0.049</td></tr>
-<tr><td><b>SAN JOSÉ STATE</b></td><td class='pos'>0.033</td><td>-0.005</td><td>0.038</td></tr>
-<tr><td><b>NORTH DAKOTA</b></td><td class='pos'>0.032</td><td>-0.037</td><td>0.069</td></tr>
-<tr><td><b>TEMPLE</b></td><td class='pos'>0.031</td><td>0.064</td><td>-0.034</td></tr>
-<tr><td><b>SACRED HEART</b></td><td class='pos'>0.031</td><td>0.078</td><td>-0.048</td></tr>
-<tr><td><b>UTEP</b></td><td class='pos'>0.030</td><td>-0.010</td><td>0.040</td></tr>
-<tr><td><b>STEPHEN F. AUSTIN</b></td><td class='pos'>0.030</td><td>0.033</td><td>-0.003</td></tr>
-<tr><td><b>TEXAS STATE</b></td><td class='pos'>0.029</td><td>0.039</td><td>-0.009</td></tr>
-<tr><td><b>MORGAN STATE</b></td><td class='pos'>0.029</td><td>-0.053</td><td>0.082</td></tr>
-<tr><td><b>MARSHALL</b></td><td class='pos'>0.028</td><td>-0.005</td><td>0.033</td></tr>
-<tr><td><b>DELAWARE STATE</b></td><td class='pos'>0.028</td><td>0.039</td><td>-0.012</td></tr>
-<tr><td><b>MARIST</b></td><td class='pos'>0.026</td><td>-0.007</td><td>0.033</td></tr>
-<tr><td><b>NCST</b></td><td class='pos'>0.026</td><td>0.051</td><td>-0.025</td></tr>
-<tr><td><b>APP STATE</b></td><td class='pos'>0.025</td><td>0.022</td><td>0.003</td></tr>
-<tr><td><b>WASH</b></td><td class='pos'>0.025</td><td>-0.016</td><td>0.041</td></tr>
-<tr><td><b>NEW HAVEN</b></td><td class='pos'>0.025</td><td>-0.007</td><td>0.031</td></tr>
-<tr><td><b>BSU</b></td><td class='pos'>0.024</td><td>-0.004</td><td>0.028</td></tr>
-<tr><td><b>PRINCETON</b></td><td class='pos'>0.024</td><td>-0.039</td><td>0.062</td></tr>
-<tr><td><b>HOU</b></td><td class='pos'>0.023</td><td>0.041</td><td>-0.018</td></tr>
-<tr><td><b>NAVY</b></td><td class='pos'>0.022</td><td>0.038</td><td>-0.016</td></tr>
-<tr><td><b>UCLA</b></td><td class='pos'>0.021</td><td>0.031</td><td>-0.010</td></tr>
-<tr><td><b>TENNESSEE STATE</b></td><td class='pos'>0.021</td><td>-0.078</td><td>0.099</td></tr>
-<tr><td><b>SOUTH CAROLINA STATE</b></td><td class='pos'>0.021</td><td>0.015</td><td>0.005</td></tr>
-<tr><td><b>NEVADA</b></td><td class='pos'>0.020</td><td>0.020</td><td>0.000</td></tr>
-<tr><td><b>CENTRAL CONNECTICUT</b></td><td class='pos'>0.020</td><td>0.030</td><td>-0.010</td></tr>
-<tr><td><b>SOUTH DAKOTA</b></td><td class='pos'>0.019</td><td>0.083</td><td>-0.064</td></tr>
-<tr><td><b>HAMPTON</b></td><td class='pos'>0.018</td><td>0.043</td><td>-0.024</td></tr>
-<tr><td><b>EASTERN MICHIGAN</b></td><td class='pos'>0.018</td><td>0.042</td><td>-0.023</td></tr>
-<tr><td><b>MIDDLE TENNESSEE</b></td><td class='pos'>0.018</td><td>0.020</td><td>-0.002</td></tr>
-<tr><td><b>WAKE</b></td><td class='pos'>0.017</td><td>-0.057</td><td>0.073</td></tr>
-<tr><td><b>IDAHO</b></td><td class='pos'>0.017</td><td>0.022</td><td>-0.005</td></tr>
-<tr><td><b>ARMY</b></td><td class='pos'>0.016</td><td>0.025</td><td>-0.009</td></tr>
-<tr><td><b>BETHUNE-COOKMAN</b></td><td class='pos'>0.015</td><td>0.064</td><td>-0.048</td></tr>
-<tr><td><b>MONTANA STATE</b></td><td class='pos'>0.015</td><td>0.048</td><td>-0.033</td></tr>
-<tr><td><b>MD</b></td><td class='pos'>0.014</td><td>0.002</td><td>0.013</td></tr>
-<tr><td><b>WEBBER INTERNATIONAL</b></td><td class='pos'>0.014</td><td>-0.006</td><td>0.020</td></tr>
-<tr><td><b>NORTH CAROLINA CENTRAL</b></td><td class='pos'>0.012</td><td>-0.000</td><td>0.013</td></tr>
-<tr><td><b>YALE</b></td><td class='pos'>0.011</td><td>0.000</td><td>0.011</td></tr>
-<tr><td><b>NEB</b></td><td class='pos'>0.011</td><td>0.047</td><td>-0.036</td></tr>
-<tr><td><b>UCONN</b></td><td class='pos'>0.011</td><td>0.114</td><td>-0.102</td></tr>
-<tr><td><b>COLORADO STATE</b></td><td class='pos'>0.011</td><td>0.048</td><td>-0.038</td></tr>
-<tr><td><b>UVA</b></td><td class='pos'>0.010</td><td>-0.083</td><td>0.093</td></tr>
-<tr><td><b>FLORIDA ATLANTIC</b></td><td class='pos'>0.010</td><td>0.057</td><td>-0.047</td></tr>
-<tr><td><b>GRAMBLING</b></td><td class='pos'>0.008</td><td>-0.069</td><td>0.077</td></tr>
-<tr><td><b>SOUTH ALABAMA</b></td><td class='pos'>0.008</td><td>0.036</td><td>-0.029</td></tr>
-<tr><td><b>AUSTIN PEAY</b></td><td class='pos'>0.007</td><td>0.014</td><td>-0.007</td></tr>
-<tr><td><b>NORFOLK STATE</b></td><td class='pos'>0.006</td><td>-0.007</td><td>0.013</td></tr>
-<tr><td><b>UT RIO GRANDE VALLEY</b></td><td class='pos'>0.006</td><td>0.025</td><td>-0.019</td></tr>
-<tr><td><b>ORE</b></td><td class='pos'>0.006</td><td>0.044</td><td>-0.038</td></tr>
-<tr><td><b>OHIO</b></td><td class='pos'>0.006</td><td>0.021</td><td>-0.015</td></tr>
-<tr><td><b>MAINE</b></td><td class='pos'>0.005</td><td>-0.035</td><td>0.040</td></tr>
-<tr><td><b>NORTH CAROLINA A&amp;T</b></td><td class='pos'>0.003</td><td>0.026</td><td>-0.024</td></tr>
-<tr><td><b>DRAKE</b></td><td class='pos'>0.002</td><td>-0.005</td><td>0.008</td></tr>
-<tr><td><b>CLEM</b></td><td class='pos'>0.002</td><td>-0.028</td><td>0.030</td></tr>
-<tr><td><b>ABILENE CHRISTIAN</b></td><td class='pos'>0.002</td><td>0.011</td><td>-0.009</td></tr>
-<tr><td><b>MIAMI (OH)</b></td><td class='pos'>0.001</td><td>-0.024</td><td>0.025</td></tr>
-<tr><td><b>CHATTANOOGA</b></td><td class='pos'>0.001</td><td>0.046</td><td>-0.045</td></tr>
-<tr><td><b>SIOUX FALLS</b></td><td class='pos'>0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>CLARK ATLANTA</b></td><td class='pos'>0.000</td><td>0.000</td><td>-0.000</td></tr>
-<tr><td><b>BLACK HILLS STATE</b></td><td class='pos'>0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>WINSTON-SALEM</b></td><td class='pos'>0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>HARDING UNIVERSITY</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CORTLAND</b></td><td class='pos'>0.000</td><td>0.000</td><td>-0.000</td></tr>
-<tr><td><b>TEXAS COLLEGE</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>NORTHWESTERN (IA)</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>NORTH CENTRAL COLLEGE</b></td><td class='pos'>-0.000</td><td>0.000</td><td>-0.000</td></tr>
-<tr><td><b>TAYLOR</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>POST UNIVERSITY</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>LAURINBURG</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>NORTH AMERICAN UNIVERSITY</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>COLORADO SCHOOL OF MINES</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>INDIANA WESLEYAN</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>AUGUSTANA UNIVERSITY (SD)</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>ST. ANSELM</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>ROOSEVELT</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>EDINBORO UNIVERSITY</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>VIRGINIA UNION</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>CENTRAL WASHINGTON</b></td><td class='pos'>-0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>GEORGETOWN COLLEGE KENTUCKY</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>NORTHERN STATE</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>CATAWBA</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>NORTH GREENVILLE</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>WEST VIRGINIA WESLEYAN</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>0.000</td></tr>
-<tr><td><b>SHORTER</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>POINT UNIVERSITY</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>UVA WISE</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>AVE MARIA UNIVERSITY</b></td><td class='neg'>-0.000</td><td>-0.000</td><td>-0.000</td></tr>
-<tr><td><b>SAGINAW VALLEY STATE</b></td><td class='neg'>-0.001</td><td>-0.003</td><td>0.001</td></tr>
-<tr><td><b>WESTERN CAROLINA</b></td><td class='neg'>-0.002</td><td>0.058</td><td>-0.060</td></tr>
-<tr><td><b>HOLY CROSS</b></td><td class='neg'>-0.002</td><td>-0.086</td><td>0.083</td></tr>
-<tr><td><b>EASTERN KENTUCKY</b></td><td class='neg'>-0.003</td><td>-0.074</td><td>0.071</td></tr>
-<tr><td><b>STONEHILL</b></td><td class='neg'>-0.003</td><td>-0.016</td><td>0.013</td></tr>
-<tr><td><b>BOWIE STATE</b></td><td class='neg'>-0.004</td><td>-0.004</td><td>0.001</td></tr>
-<tr><td><b>UL MONROE</b></td><td class='neg'>-0.004</td><td>0.007</td><td>-0.011</td></tr>
-<tr><td><b>ADRIAN</b></td><td class='neg'>-0.004</td><td>-0.025</td><td>0.021</td></tr>
-<tr><td><b>RUT</b></td><td class='neg'>-0.005</td><td>0.098</td><td>-0.103</td></tr>
-<tr><td><b>MSST</b></td><td class='neg'>-0.005</td><td>0.033</td><td>-0.038</td></tr>
-<tr><td><b>LAMAR</b></td><td class='neg'>-0.005</td><td>-0.074</td><td>0.069</td></tr>
-<tr><td><b>NEW MEXICO</b></td><td class='neg'>-0.006</td><td>-0.017</td><td>0.011</td></tr>
-<tr><td><b>CHADRON ST</b></td><td class='neg'>-0.006</td><td>-0.011</td><td>0.004</td></tr>
-<tr><td><b>NICHOLLS</b></td><td class='neg'>-0.006</td><td>0.003</td><td>-0.009</td></tr>
-<tr><td><b>SAN DIEGO</b></td><td class='neg'>-0.007</td><td>0.014</td><td>-0.021</td></tr>
-<tr><td><b>TULN</b></td><td class='neg'>-0.007</td><td>0.014</td><td>-0.021</td></tr>
-<tr><td><b>STETSON</b></td><td class='neg'>-0.008</td><td>-0.043</td><td>0.035</td></tr>
-<tr><td><b>NORTHERN MICHIGAN</b></td><td class='neg'>-0.008</td><td>-0.015</td><td>0.006</td></tr>
-<tr><td><b>TROY</b></td><td class='neg'>-0.009</td><td>-0.106</td><td>0.097</td></tr>
-<tr><td><b>NW</b></td><td class='neg'>-0.010</td><td>0.000</td><td>-0.010</td></tr>
-<tr><td><b>ALLEN</b></td><td class='neg'>-0.010</td><td>0.006</td><td>-0.017</td></tr>
-<tr><td><b>PENNSYLVANIA</b></td><td class='neg'>-0.011</td><td>0.053</td><td>-0.064</td></tr>
-<tr><td><b>ILL</b></td><td class='neg'>-0.012</td><td>0.023</td><td>-0.035</td></tr>
-<tr><td><b>BUFFALO</b></td><td class='neg'>-0.012</td><td>-0.066</td><td>0.054</td></tr>
-<tr><td><b>SOUTHERN ILLINOIS</b></td><td class='neg'>-0.013</td><td>0.047</td><td>-0.060</td></tr>
-<tr><td><b>ELIZABETH CITY STATE</b></td><td class='neg'>-0.013</td><td>-0.006</td><td>-0.006</td></tr>
-<tr><td><b>CAL</b></td><td class='neg'>-0.013</td><td>0.026</td><td>-0.039</td></tr>
-<tr><td><b>DUKE</b></td><td class='neg'>-0.014</td><td>0.098</td><td>-0.112</td></tr>
-<tr><td><b>BRYANT</b></td><td class='neg'>-0.014</td><td>-0.007</td><td>-0.007</td></tr>
-<tr><td><b>LONG ISLAND UNIVERSITY</b></td><td class='neg'>-0.014</td><td>-0.083</td><td>0.069</td></tr>
-<tr><td><b>PUR</b></td><td class='neg'>-0.014</td><td>0.017</td><td>-0.032</td></tr>
-<tr><td><b>ORST</b></td><td class='neg'>-0.014</td><td>-0.051</td><td>0.037</td></tr>
-<tr><td><b>LOUISIANA</b></td><td class='neg'>-0.014</td><td>0.001</td><td>-0.015</td></tr>
-<tr><td><b>EDWARD WATERS</b></td><td class='neg'>-0.015</td><td>-0.023</td><td>0.008</td></tr>
-<tr><td><b>UC DAVIS</b></td><td class='neg'>-0.015</td><td>0.071</td><td>-0.086</td></tr>
-<tr><td><b>CORNELL</b></td><td class='neg'>-0.015</td><td>-0.034</td><td>0.019</td></tr>
-<tr><td><b>ARK</b></td><td class='neg'>-0.015</td><td>0.059</td><td>-0.075</td></tr>
-<tr><td><b>SAMFORD</b></td><td class='neg'>-0.015</td><td>-0.084</td><td>0.069</td></tr>
-<tr><td><b>INDIANA STATE</b></td><td class='neg'>-0.016</td><td>0.012</td><td>-0.028</td></tr>
-<tr><td><b>WESTERN ILLINOIS</b></td><td class='neg'>-0.016</td><td>-0.012</td><td>-0.004</td></tr>
-<tr><td><b>HANOVER COLLEGE</b></td><td class='neg'>-0.017</td><td>-0.026</td><td>0.009</td></tr>
-<tr><td><b>KENTUCKY CHRISTIAN</b></td><td class='neg'>-0.018</td><td>0.008</td><td>-0.026</td></tr>
-<tr><td><b>MCKENDREE</b></td><td class='neg'>-0.018</td><td>-0.018</td><td>0.001</td></tr>
-<tr><td><b>PACE</b></td><td class='neg'>-0.018</td><td>-0.030</td><td>0.012</td></tr>
-<tr><td><b>LIB</b></td><td class='neg'>-0.019</td><td>0.025</td><td>-0.044</td></tr>
-<tr><td><b>ERSKINE</b></td><td class='neg'>-0.019</td><td>-0.017</td><td>-0.003</td></tr>
-<tr><td><b>FORDHAM</b></td><td class='neg'>-0.020</td><td>-0.099</td><td>0.079</td></tr>
-<tr><td><b>TEXAS SOUTHERN</b></td><td class='neg'>-0.021</td><td>0.006</td><td>-0.028</td></tr>
-<tr><td><b>UPPER IOWA UNIVERSITY</b></td><td class='neg'>-0.022</td><td>-0.016</td><td>-0.005</td></tr>
-<tr><td><b>VIRGINIA ST</b></td><td class='neg'>-0.022</td><td>-0.022</td><td>0.000</td></tr>
-<tr><td><b>AF</b></td><td class='neg'>-0.022</td><td>0.044</td><td>-0.067</td></tr>
-<tr><td><b>WISC</b></td><td class='neg'>-0.022</td><td>-0.115</td><td>0.093</td></tr>
-<tr><td><b>WEST LIBERTY</b></td><td class='neg'>-0.023</td><td>-0.023</td><td>-0.000</td></tr>
-<tr><td><b>NORTH ALABAMA</b></td><td class='neg'>-0.023</td><td>0.022</td><td>-0.045</td></tr>
-<tr><td><b>EASTERN WASHINGTON</b></td><td class='neg'>-0.023</td><td>-0.074</td><td>0.051</td></tr>
-<tr><td><b>MICH</b></td><td class='neg'>-0.024</td><td>0.023</td><td>-0.047</td></tr>
-<tr><td><b>BOWLING GREEN</b></td><td class='neg'>-0.024</td><td>-0.071</td><td>0.047</td></tr>
-<tr><td><b>CHARLOTTE</b></td><td class='neg'>-0.025</td><td>-0.079</td><td>0.054</td></tr>
-<tr><td><b>LINCOLN (PA)</b></td><td class='neg'>-0.026</td><td>-0.031</td><td>0.005</td></tr>
-<tr><td><b>NORTHERN ARIZONA</b></td><td class='neg'>-0.026</td><td>0.013</td><td>-0.039</td></tr>
-<tr><td><b>WVU</b></td><td class='neg'>-0.026</td><td>-0.037</td><td>0.011</td></tr>
-<tr><td><b>EAST TEXAS A&amp;M</b></td><td class='neg'>-0.027</td><td>-0.022</td><td>-0.005</td></tr>
-<tr><td><b>HOWARD</b></td><td class='neg'>-0.029</td><td>-0.101</td><td>0.072</td></tr>
-<tr><td><b>DUQUESNE</b></td><td class='neg'>-0.029</td><td>-0.007</td><td>-0.022</td></tr>
-<tr><td><b>NORTHEASTERN STATE</b></td><td class='neg'>-0.030</td><td>-0.019</td><td>-0.011</td></tr>
-<tr><td><b>KENTUCKY STATE</b></td><td class='neg'>-0.030</td><td>0.004</td><td>-0.034</td></tr>
-<tr><td><b>CENTRAL ARKANSAS</b></td><td class='neg'>-0.030</td><td>0.008</td><td>-0.038</td></tr>
-<tr><td><b>MSU</b></td><td class='neg'>-0.031</td><td>-0.031</td><td>0.000</td></tr>
-<tr><td><b>THE CITADEL</b></td><td class='neg'>-0.031</td><td>0.016</td><td>-0.047</td></tr>
-<tr><td><b>AMERICAN INTERNATIONAL</b></td><td class='neg'>-0.031</td><td>-0.043</td><td>0.012</td></tr>
-<tr><td><b>TULSA</b></td><td class='neg'>-0.031</td><td>-0.009</td><td>-0.023</td></tr>
-<tr><td><b>OLD DOMINION</b></td><td class='neg'>-0.032</td><td>-0.091</td><td>0.060</td></tr>
-<tr><td><b>WSU</b></td><td class='neg'>-0.032</td><td>-0.032</td><td>0.000</td></tr>
-<tr><td><b>MOREHEAD STATE</b></td><td class='neg'>-0.032</td><td>-0.029</td><td>-0.004</td></tr>
-<tr><td><b>MILES COLLEGE</b></td><td class='neg'>-0.033</td><td>-0.030</td><td>-0.003</td></tr>
-<tr><td><b>VALPARAISO</b></td><td class='neg'>-0.034</td><td>-0.022</td><td>-0.012</td></tr>
-<tr><td><b>EASTERN ILLINOIS</b></td><td class='neg'>-0.035</td><td>-0.064</td><td>0.029</td></tr>
-<tr><td><b>TOWSON</b></td><td class='neg'>-0.036</td><td>-0.006</td><td>-0.030</td></tr>
-<tr><td><b>CENTRAL MICHIGAN</b></td><td class='neg'>-0.037</td><td>-0.065</td><td>0.029</td></tr>
-<tr><td><b>MISSISSIPPI VALLEY STATE</b></td><td class='neg'>-0.037</td><td>-0.056</td><td>0.019</td></tr>
-<tr><td><b>LANE COLLEGE</b></td><td class='neg'>-0.038</td><td>-0.043</td><td>0.005</td></tr>
-<tr><td><b>NORTHERN ILLINOIS</b></td><td class='neg'>-0.039</td><td>-0.038</td><td>-0.002</td></tr>
-<tr><td><b>YOUNGSTOWN STATE</b></td><td class='neg'>-0.040</td><td>0.122</td><td>-0.162</td></tr>
-<tr><td><b>ALABAMA A&amp;M</b></td><td class='neg'>-0.040</td><td>-0.054</td><td>0.014</td></tr>
-<tr><td><b>KENT STATE</b></td><td class='neg'>-0.040</td><td>-0.007</td><td>-0.033</td></tr>
-<tr><td><b>LITTLE ROCK</b></td><td class='neg'>-0.041</td><td>-0.040</td><td>-0.001</td></tr>
-<tr><td><b>FAYETTEVILLE STATE</b></td><td class='neg'>-0.041</td><td>-0.020</td><td>-0.021</td></tr>
-<tr><td><b>COLGATE</b></td><td class='neg'>-0.042</td><td>0.018</td><td>-0.060</td></tr>
-<tr><td><b>BUTLER</b></td><td class='neg'>-0.042</td><td>-0.006</td><td>-0.036</td></tr>
-<tr><td><b>WILLIAM &amp; MARY</b></td><td class='neg'>-0.042</td><td>0.040</td><td>-0.081</td></tr>
-<tr><td><b>MERRIMACK</b></td><td class='neg'>-0.042</td><td>-0.013</td><td>-0.028</td></tr>
-<tr><td><b>WOFFORD</b></td><td class='neg'>-0.042</td><td>-0.089</td><td>0.047</td></tr>
-<tr><td><b>EAST TENNESSEE STATE</b></td><td class='neg'>-0.042</td><td>0.001</td><td>-0.043</td></tr>
-<tr><td><b>WESTERN OREGON</b></td><td class='neg'>-0.042</td><td>-0.026</td><td>-0.016</td></tr>
-<tr><td><b>GEORGIA STATE</b></td><td class='neg'>-0.042</td><td>-0.000</td><td>-0.042</td></tr>
-<tr><td><b>BENTLEY</b></td><td class='neg'>-0.043</td><td>-0.027</td><td>-0.015</td></tr>
-<tr><td><b>MINN</b></td><td class='neg'>-0.043</td><td>-0.038</td><td>-0.005</td></tr>
-<tr><td><b>BC</b></td><td class='neg'>-0.044</td><td>0.005</td><td>-0.049</td></tr>
-<tr><td><b>CENTRAL STATE (OH)</b></td><td class='neg'>-0.044</td><td>-0.055</td><td>0.011</td></tr>
-<tr><td><b>SCAR</b></td><td class='neg'>-0.044</td><td>-0.060</td><td>0.016</td></tr>
-<tr><td><b>STONY BROOK</b></td><td class='neg'>-0.045</td><td>-0.044</td><td>-0.001</td></tr>
-<tr><td><b>GREENSBORO COLLEGE</b></td><td class='neg'>-0.045</td><td>-0.040</td><td>-0.005</td></tr>
-<tr><td><b>ELON</b></td><td class='neg'>-0.045</td><td>-0.041</td><td>-0.004</td></tr>
-<tr><td><b>ROBERT MORRIS</b></td><td class='neg'>-0.045</td><td>-0.060</td><td>0.015</td></tr>
-<tr><td><b>NORTH DAKOTA STATE</b></td><td class='neg'>-0.045</td><td>-0.018</td><td>-0.028</td></tr>
-<tr><td><b>FLORIDA A&amp;M</b></td><td class='neg'>-0.045</td><td>0.049</td><td>-0.094</td></tr>
-<tr><td><b>LOUISIANA COLLEGE</b></td><td class='neg'>-0.045</td><td>-0.015</td><td>-0.030</td></tr>
-<tr><td><b>TEXAS WESLEYAN</b></td><td class='neg'>-0.046</td><td>-0.045</td><td>-0.001</td></tr>
-<tr><td><b>BALL STATE</b></td><td class='neg'>-0.048</td><td>-0.085</td><td>0.038</td></tr>
-<tr><td><b>SAM HOUSTON</b></td><td class='neg'>-0.048</td><td>-0.044</td><td>-0.004</td></tr>
-<tr><td><b>UT MARTIN</b></td><td class='neg'>-0.048</td><td>-0.005</td><td>-0.043</td></tr>
-<tr><td><b>FERRUM</b></td><td class='neg'>-0.048</td><td>-0.044</td><td>-0.005</td></tr>
-<tr><td><b>PRAIRIE VIEW A&amp;M</b></td><td class='neg'>-0.049</td><td>0.010</td><td>-0.058</td></tr>
-<tr><td><b>GARDNER-WEBB</b></td><td class='neg'>-0.049</td><td>-0.016</td><td>-0.033</td></tr>
-<tr><td><b>WEBER STATE</b></td><td class='neg'>-0.054</td><td>-0.066</td><td>0.012</td></tr>
-<tr><td><b>NORTHERN COLORADO</b></td><td class='neg'>-0.054</td><td>-0.057</td><td>0.003</td></tr>
-<tr><td><b>UAB</b></td><td class='neg'>-0.055</td><td>-0.002</td><td>-0.052</td></tr>
-<tr><td><b>ST. FRANCIS (PA)</b></td><td class='neg'>-0.055</td><td>-0.101</td><td>0.046</td></tr>
-<tr><td><b>MERCYHURST</b></td><td class='neg'>-0.056</td><td>-0.003</td><td>-0.053</td></tr>
-<tr><td><b>ARKANSAS STATE</b></td><td class='neg'>-0.056</td><td>-0.005</td><td>-0.051</td></tr>
-<tr><td><b>CHARLESTON SOUTHERN</b></td><td class='neg'>-0.056</td><td>-0.075</td><td>0.018</td></tr>
-<tr><td><b>CUMBERLAND (TN)</b></td><td class='neg'>-0.057</td><td>-0.029</td><td>-0.028</td></tr>
-<tr><td><b>MCNEESE</b></td><td class='neg'>-0.058</td><td>-0.040</td><td>-0.018</td></tr>
-<tr><td><b>FRES</b></td><td class='neg'>-0.059</td><td>-0.142</td><td>0.084</td></tr>
-<tr><td><b>THOMAS MORE COLLEGE</b></td><td class='neg'>-0.059</td><td>-0.055</td><td>-0.004</td></tr>
-<tr><td><b>LAFAYETTE</b></td><td class='neg'>-0.059</td><td>0.022</td><td>-0.081</td></tr>
-<tr><td><b>BLUEFIELD</b></td><td class='neg'>-0.060</td><td>-0.026</td><td>-0.034</td></tr>
-<tr><td><b>HOUSTON CHRISTIAN</b></td><td class='neg'>-0.060</td><td>-0.085</td><td>0.025</td></tr>
-<tr><td><b>SAVANNAH ST</b></td><td class='neg'>-0.061</td><td>-0.066</td><td>0.004</td></tr>
-<tr><td><b>ILLINOIS STATE</b></td><td class='neg'>-0.062</td><td>-0.000</td><td>-0.062</td></tr>
-<tr><td><b>IDAHO STATE</b></td><td class='neg'>-0.064</td><td>0.022</td><td>-0.086</td></tr>
-<tr><td><b>OKST</b></td><td class='neg'>-0.072</td><td>-0.057</td><td>-0.016</td></tr>
-<tr><td><b>BUCKNELL</b></td><td class='neg'>-0.073</td><td>-0.001</td><td>-0.072</td></tr>
-<tr><td><b>AKRON</b></td><td class='neg'>-0.075</td><td>-0.056</td><td>-0.019</td></tr>
-<tr><td><b>RICE</b></td><td class='neg'>-0.078</td><td>-0.088</td><td>0.011</td></tr>
-<tr><td><b>DARTMOUTH</b></td><td class='neg'>-0.079</td><td>-0.036</td><td>-0.043</td></tr>
-<tr><td><b>TUSKEGEE</b></td><td class='neg'>-0.080</td><td>-0.015</td><td>-0.064</td></tr>
-<tr><td><b>FURMAN</b></td><td class='neg'>-0.080</td><td>-0.042</td><td>-0.039</td></tr>
-<tr><td><b>UTAH TECH</b></td><td class='neg'>-0.081</td><td>-0.080</td><td>-0.001</td></tr>
-<tr><td><b>UALBANY</b></td><td class='neg'>-0.081</td><td>-0.077</td><td>-0.004</td></tr>
-<tr><td><b>NEW HAMPSHIRE</b></td><td class='neg'>-0.085</td><td>-0.013</td><td>-0.071</td></tr>
-<tr><td><b>CAMPBELL</b></td><td class='neg'>-0.087</td><td>-0.026</td><td>-0.061</td></tr>
-<tr><td><b>ND</b></td><td class='neg'>-0.087</td><td>0.002</td><td>-0.089</td></tr>
-<tr><td><b>MURRAY STATE</b></td><td class='neg'>-0.088</td><td>0.011</td><td>-0.099</td></tr>
-<tr><td><b>MASSACHUSETTS</b></td><td class='neg'>-0.090</td><td>-0.032</td><td>-0.058</td></tr>
-<tr><td><b>MOREHOUSE COLLEGE</b></td><td class='neg'>-0.090</td><td>-0.047</td><td>-0.043</td></tr>
-<tr><td><b>VMI</b></td><td class='neg'>-0.090</td><td>-0.024</td><td>-0.067</td></tr>
-<tr><td><b>ALCORN STATE</b></td><td class='neg'>-0.092</td><td>-0.091</td><td>-0.001</td></tr>
-<tr><td><b>SUL ROSS STATE</b></td><td class='neg'>-0.096</td><td>-0.065</td><td>-0.031</td></tr>
-<tr><td><b>DAVIDSON</b></td><td class='neg'>-0.098</td><td>-0.029</td><td>-0.069</td></tr>
-<tr><td><b>LINDENWOOD</b></td><td class='neg'>-0.101</td><td>-0.049</td><td>-0.051</td></tr>
-<tr><td><b>WAGNER</b></td><td class='neg'>-0.101</td><td>-0.099</td><td>-0.002</td></tr>
-<tr><td><b>WESTERN CONNECTICUT ST</b></td><td class='neg'>-0.102</td><td>-0.054</td><td>-0.048</td></tr>
-<tr><td><b>NORTHWESTERN STATE</b></td><td class='neg'>-0.102</td><td>-0.056</td><td>-0.047</td></tr>
-<tr><td><b>VIRGINIA UNIVERSITY OF LYNCHBURG</b></td><td class='neg'>-0.105</td><td>-0.079</td><td>-0.027</td></tr>
-<tr><td><b>SOUTHERN CONNECTICUT STATE</b></td><td class='neg'>-0.106</td><td>-0.035</td><td>-0.070</td></tr>
-<tr><td><b>LANGSTON UNIVERSITY</b></td><td class='neg'>-0.107</td><td>-0.064</td><td>-0.044</td></tr>
-<tr><td><b>SOUTHERN</b></td><td class='neg'>-0.108</td><td>-0.050</td><td>-0.058</td></tr>
-<tr><td><b>GEORGETOWN</b></td><td class='neg'>-0.110</td><td>-0.111</td><td>0.002</td></tr>
-<tr><td><b>PORTLAND STATE</b></td><td class='neg'>-0.127</td><td>-0.056</td><td>-0.070</td></tr>
-<tr><td><b>ARKANSAS-PINE BLUFF</b></td><td class='neg'>-0.147</td><td>-0.050</td><td>-0.098</td></tr>
-<tr><td><b>WESTERN MICHIGAN</b></td><td class='neg'>-0.188</td><td>-0.128</td><td>-0.060</td></tr>
-<tr><td><b>WARNER UNIVERSITY</b></td><td class='neg'>-0.203</td><td>-0.154</td><td>-0.049</td></tr>
-<tr><td><b>LINCOLN (CA)</b></td><td class='neg'>-0.225</td><td>-0.146</td><td>-0.079</td></tr></tbody>
+    <tbody><tr><td><b>ALA</b></td><td class='pos'>0.280</td><td>0.220</td><td>0.120</td></tr>
+<tr><td><b>OSU</b></td><td class='pos'>0.130</td><td>0.090</td><td>0.040</td></tr>
+<tr><td><b>MICH</b></td><td class='pos'>0.110</td><td>0.050</td><td>0.060</td></tr>
+<tr><td><b>UGA</b></td><td class='pos'>0.060</td><td>0.040</td><td>0.030</td></tr>
+<tr><td><b>TEX</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>OU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>ORE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>PSU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CLEM</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>ND</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>LSU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>FSU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>MIA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>USC</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>UCLA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>WASH</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>TENN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>TAMU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>FLA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>AUB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr></tbody>
   </table></div>
 </div>
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>
-Source: ledger.json · ncaaf_ledger.json · record.json</p>
+Source: ncaaf_ledger.json · ncaaf_record.json · latest signals</p>
 <script>
 function showTab(name, el) {
   document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));

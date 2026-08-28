@@ -44,6 +44,19 @@ def test_filter_events_college_week_excludes_next_week():
     assert out[0]["event_id"] == "a"
 
 
+def test_filter_plays_college_week():
+    now = datetime(2026, 8, 28, 14, 0, tzinfo=timezone.utc)
+    plays = [
+        {"kickoff": "2026-08-29T16:00:00+00:00", "home_team": "TCU"},
+        {"kickoff": "2026-09-05T16:00:00+00:00", "home_team": "OSU"},
+    ]
+    from sharp_scout.utils.slate import filter_plays_college_week
+
+    out = filter_plays_college_week(plays, now=now)
+    assert len(out) == 1
+    assert out[0]["home_team"] == "TCU"
+
+
 def test_line_plan_includes_open_and_prekick_runs():
     now = datetime(2026, 8, 28, 14, 0, tzinfo=timezone.utc)
     events = [

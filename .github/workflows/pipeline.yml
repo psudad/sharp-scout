@@ -58,10 +58,6 @@ jobs:
           echo "ACTION_NETWORK_COOKIE=${{ secrets.ACTION_NETWORK_COOKIE }}" >> $GITHUB_ENV
           echo "MONTE_CARLO_SIMS=5000" >> $GITHUB_ENV
 
-      - name: Settle prior plays
-        continue-on-error: true
-        run: python scripts/settle_plays.py
-
       - name: Refit probability calibration
         # Self-updates data/calibration.json from settled history. No-op / identity
         # until enough plays have graded; safe to run every pipeline execution.
@@ -76,7 +72,7 @@ jobs:
           FRESH_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.fresh_ledger || false }}
         run: |
           if [ "$TODAY_INPUT" = "true" ]; then
-            ARGS="--build-site"
+            ARGS="--build-site --no-ledger"
             if [ "$FRESH_INPUT" = "true" ]; then ARGS="$ARGS --fresh-ledger"; fi
             if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
               ARGS="$ARGS --demo --skip-pbp"
@@ -86,7 +82,7 @@ jobs:
             python scripts/run_today_slate.py $ARGS
             exit 0
           fi
-          ARGS="--build-site"
+          ARGS="--build-site --no-ledger"
           if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
             ARGS="$ARGS --demo --skip-pbp"
             echo "Running in demo mode (no ODDS_API_KEY or demo requested)"
@@ -95,15 +91,15 @@ jobs:
           fi
           python scripts/run_pipeline.py $ARGS
 
-      - name: Commit ledger + site
+      - name: Commit site + shared data
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ledger.json data/line_history.json data/calibration.json docs/ 2>/dev/null || git add data/ledger.json docs/
+          git add data/line_history.json data/calibration.json docs/ 2>/dev/null || git add docs/
           if git diff --staged --quiet; then
-            echo "No ledger/site changes"
+            echo "No site changes"
           else
-            git commit -m "chore: update ledger and GitHub Pages site"
+            git commit -m "chore: update NFL site and shared data"
             git push
           fi
 

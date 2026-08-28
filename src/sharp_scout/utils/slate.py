@@ -64,3 +64,20 @@ def filter_events_college_week(
             continue
         out.append(ev)
     return out
+
+
+def filter_plays_college_week(
+    plays: list[dict[str, Any]],
+    *,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Keep ledger plays whose kickoff falls in the current college week."""
+    start, end = college_week_bounds(now)
+    out: list[dict[str, Any]] = []
+    for play in plays:
+        kickoff = parse_commence(play.get("kickoff") or play.get("commence_time"))
+        if kickoff is None:
+            continue
+        if start <= kickoff <= end:
+            out.append(play)
+    return out

@@ -20,6 +20,7 @@ from sharp_scout.copy.explain import (
 )
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.sports import NCAAF
+from sharp_scout.utils.slate import filter_plays_college_week
 
 DOCS_DIR = ROOT / "docs"
 
@@ -125,22 +126,15 @@ def build_site(
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
 
-    # Prefer live validated signals for "this week" board if present
+    # NFL: signals-only board (no ledger tracking). CFB keeps a cumulative ledger.
     live_plays = collapse_best_signals(signals.get("plays") or [], only_passed=True)
+    plays_html = _render_play_cards([], live_fallback=live_plays)
 
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    win_pct = f"{record['win_pct'] * 100:.1f}%" if record["win_pct"] is not None else "—"
-    pnl = record["pnl_units"]
-    pnl_cls = "pos" if pnl >= 0 else "neg"
-    pnl_s = f"+{pnl}" if pnl >= 0 else str(pnl)
-
-    plays_html = _render_play_cards(pending_sorted, live_fallback=live_plays)
-    ledger_rows = _render_ledger_rows(settled_sorted + pending_sorted)
-    week_rows = _render_week_rows(record.get("by_week") or {})
+    nfl_signal_count = len(live_plays)
+    demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
-
     stage_cards = signals.get("stage_picks") or ledger.get("stage_cards") or []
-    clv_banner_html = _render_clv_banner(record.get("clv"))
     disagreement_rows = _render_disagreement_rows(record.get("disagreements"))
     stage_rows = _render_stage_rows(stage_cards)
     stage_record_rows = _render_stage_record_rows(record.get("stage_records") or {})
@@ -171,39 +165,32 @@ def build_site(
     ncaaf_pnl = ncaaf_record["pnl_units"]
     ncaaf_pnl_cls = "pos" if ncaaf_pnl >= 0 else "neg"
     ncaaf_pnl_s = f"+{ncaaf_pnl}" if ncaaf_pnl >= 0 else str(ncaaf_pnl)
-    ncaaf_settled = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") != "pending"]
-    ncaaf_settled_sorted = sorted(
-        ncaaf_settled, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True
+    ncaaf_week_plays = filter_plays_college_week(ncaaf_ledger.get("plays") or [])
+    ncaaf_week_pending = [p for p in ncaaf_week_plays if (p.get("status") or "pending") == "pending"]
+    ncaaf_week_settled = [p for p in ncaaf_week_plays if (p.get("status") or "pending") != "pending"]
+    ncaaf_week_settled_sorted = sorted(
+        ncaaf_week_settled, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True
     )
-    ncaaf_pending_sorted = sorted(
-        collapse_best_signals(ncaaf_pending),
+    ncaaf_week_pending_sorted = sorted(
+        collapse_best_signals(ncaaf_week_pending),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
     ncaaf_clv_banner_html = _render_clv_banner(ncaaf_record.get("clv"))
-    ncaaf_ledger_rows = _render_ledger_rows(ncaaf_settled_sorted + ncaaf_pending_sorted)
+    ncaaf_ledger_rows = _render_ledger_rows(ncaaf_week_settled_sorted + ncaaf_week_pending_sorted)
 
     html = SITE_TEMPLATE.format(
         generated=generated,
-        record=record["record"],
-        win_pct=win_pct,
-        pnl=pnl_s,
-        pnl_cls=pnl_cls,
-        bankroll=record["bankroll_units"],
-        pending=record["pending"],
-        n_plays=record["n_plays"],
+        nfl_signal_count=nfl_signal_count,
+        demo_note=demo_note,
         plays_html=plays_html,
-        ledger_rows=ledger_rows,
-        week_rows=week_rows,
         ratings_rows=ratings_rows,
         stage_rows=stage_rows,
         stage_record_rows=stage_record_rows,
-        clv_banner_html=clv_banner_html,
         disagreement_rows=disagreement_rows,
         games_html=games_html,
         fade_n=fade_n,
         rlm_n=rlm_n,
         stage_highlights_html=stage_highlights_html,
-        demo_note="DEMO data" if signals.get("demo") else "Live pipeline",
         ncaaf_record=ncaaf_record["record"],
         ncaaf_win_pct=ncaaf_win_pct,
         ncaaf_pnl=ncaaf_pnl_s,
@@ -219,6 +206,7 @@ def build_site(
         ncaaf_demo_note="DEMO data" if ncaaf_signals.get("demo") else "Live pipeline",
         ncaaf_clv_banner_html=ncaaf_clv_banner_html,
         ncaaf_ledger_rows=ncaaf_ledger_rows,
+        ncaaf_week_pending=len(ncaaf_week_pending),
     )
     (out / "index.html").write_text(html)
 
@@ -776,28 +764,20 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <div class="header">
   <h1>Sharp Scout</h1>
   <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
-  <span class="pill">{record} · {pnl}u · {demo_note}</span>
+  <span class="pill">CFB {ncaaf_record} · {ncaaf_pnl}u · {ncaaf_demo_note}</span>
   <p style="margin-top:8px">Updated {generated}</p>
 </div>
 <div class="tabs">
-  <div class="tab active" onclick="showTab('plays', this)">Plays</div>
+  <div class="tab active" onclick="showTab('plays', this)">NFL</div>
   <div class="tab" onclick="showTab('games', this)">Games</div>
   <div class="tab" onclick="showTab('stages', this)">Stages</div>
-  <div class="tab" onclick="showTab('ledger', this)">Ledger</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
   <div class="tab" onclick="showTab('cfb', this)">CFB</div>
 </div>
 
 <div id="tab-plays" class="content active">
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">{record}</div><div class="stat-label">Record</div></div>
-    <div class="stat-card"><div class="stat-val">{win_pct}</div><div class="stat-label">Win %</div></div>
-    <div class="stat-card"><div class="stat-val {pnl_cls}">{pnl}u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">{bankroll}u</div><div class="stat-label">Bankroll</div></div>
-  </div>
-  <div class="section-label">Closing Line Value</div>
-  {clv_banner_html}
-  <div class="section-label">Open / Latest Plays · {pending} pending · {n_plays} total</div>
+  <p class="phase-note" style="padding:8px 0">NFL signals only — no ledger tracking. Latest validated plays from the most recent pipeline run.</p>
+  <div class="section-label">Latest NFL Signals · {nfl_signal_count} plays</div>
   {plays_html}
 </div>
 
@@ -832,19 +812,6 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <p class="footer" style="padding:12px 0">Each column is an independent pick. Hybrid is the full system; compare it to model / sharp / public / money / RLM.</p>
 </div>
 
-<div id="tab-ledger" class="content">
-  <div class="section-label">By Week</div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Week</th><th>Record</th><th>Pending</th><th>PnL</th></tr></thead>
-    <tbody>{week_rows}</tbody>
-  </table></div>
-  <div class="section-label">All Plays</div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
-    <tbody>{ledger_rows}</tbody>
-  </table></div>
-</div>
-
 <div id="tab-ratings" class="content">
   <p class="phase-note" style="padding:8px 0">Power ratings from nflverse play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
   <div class="section-label">Power Ratings</div>
@@ -865,7 +832,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {ncaaf_clv_banner_html}
   <div class="section-label">NCAAF Open / Latest Plays · {ncaaf_pending} pending · {ncaaf_n_plays} total</div>
   {ncaaf_plays_html}
-  <div class="section-label">NCAAF Ledger</div>
+  <div class="section-label">This Week's Ledger · {ncaaf_week_pending} pending</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{ncaaf_ledger_rows}</tbody>
@@ -894,7 +861,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>
-Source: ledger.json · ncaaf_ledger.json · record.json</p>
+Source: ncaaf_ledger.json · ncaaf_record.json · latest signals</p>
 <script>
 function showTab(name, el) {{
   document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));

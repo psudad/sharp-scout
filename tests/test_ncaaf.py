@@ -96,7 +96,7 @@ def test_site_includes_cfb_tab(tmp_path: Path):
     html = (out / "index.html").read_text()
     assert "showTab('cfb'" in html
     assert "NCAAF" in html
-    assert "NCAAF Ledger" in html
+    assert "This Week's Ledger" in html
     assert "Closing Line Value" in html
     assert (out / "ncaaf_ledger.json").exists()
     assert (out / "ncaaf_record.json").exists()

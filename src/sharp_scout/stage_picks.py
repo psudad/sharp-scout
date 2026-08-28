@@ -443,9 +443,10 @@ def build_slate_stage_picks(
         sim = sims.get(eid)
         if sim is None:
             continue
-        cards.append(
-            build_game_stage_card(ev, sim, splits, validated_signals, market=market).to_dict()
-        )
+        row = build_game_stage_card(ev, sim, splits, validated_signals, market=market).to_dict()
+        row["kickoff"] = ev.get("commence_time")
+        row["commence_time"] = ev.get("commence_time")
+        cards.append(row)
     return cards
 
 

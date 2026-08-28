@@ -73,3 +73,16 @@ def test_line_plan_includes_open_and_prekick_runs():
     pre = [r for r in plan["runs"] if r["kind"] == "prekick"]
     assert len(pre) == 3
     assert all(r["window_hours"] in (6.0, 4.0, 1.0) for r in pre)
+
+
+def test_group_stage_cards_by_college_week():
+    from sharp_scout.utils.slate import group_stage_cards_by_college_week
+
+    cards = [
+        {"event_id": "a", "kickoff": "2026-08-29T16:00:00+00:00", "away_team": "UNC"},
+        {"event_id": "b", "kickoff": "2026-09-05T16:00:00+00:00", "away_team": "OSU"},
+    ]
+    grouped = group_stage_cards_by_college_week(cards)
+    assert len(grouped) == 2
+    assert grouped[0][1][0]["away_team"] == "OSU"
+    assert grouped[1][1][0]["away_team"] == "UNC"

@@ -296,6 +296,8 @@ def append_stage_cards(
             if old.get("status") not in (None, "pending"):
                 continue
             row["created_at"] = old.get("created_at") or row["created_at"]
+            if not row.get("kickoff"):
+                row["kickoff"] = old.get("kickoff") or old.get("commence_time")
             ledger["stage_cards"][existing[key]] = row
         else:
             ledger.setdefault("stage_cards", []).append(row)

@@ -20,6 +20,12 @@ from sharp_scout.copy.explain import (
 )
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.sports import NCAAF
+from sharp_scout.utils.slate import (
+    college_week_label,
+    filter_plays_college_week,
+    group_stage_cards_by_college_week,
+    parse_commence,
+)
 
 DOCS_DIR = ROOT / "docs"
 
@@ -133,7 +139,7 @@ def build_site(
     nfl_signal_count = len(live_plays)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
-    stage_cards = signals.get("stage_picks") or ledger.get("stage_cards") or []
+    stage_cards = signals.get("stage_picks") or []
     disagreement_rows = _render_disagreement_rows(record.get("disagreements"))
     stage_rows = _render_stage_rows(stage_cards)
     stage_record_rows = _render_stage_record_rows(record.get("stage_records") or {})
@@ -151,10 +157,19 @@ def build_site(
     )
 
     ncaaf_pending = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") == "pending"]
-    ncaaf_live = collapse_best_signals(ncaaf_signals.get("plays") or [], only_passed=True)
-    ncaaf_plays_html = _render_play_cards(ncaaf_pending, live_fallback=ncaaf_live)
-    ncaaf_stage_cards = ncaaf_signals.get("stage_picks") or ncaaf_ledger.get("stage_cards") or []
-    ncaaf_stage_rows = _render_stage_rows(ncaaf_stage_cards)
+    ncaaf_week_plays = filter_plays_college_week(ncaaf_pending)
+    ncaaf_week_plays_sorted = sorted(
+        collapse_best_signals(ncaaf_week_plays),
+        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
+    ncaaf_plays_html = _render_play_cards(ncaaf_week_plays_sorted, live_fallback=[])
+    ncaaf_stage_cards = _merge_stage_cards(
+        ncaaf_ledger.get("stage_cards") or [],
+        ncaaf_signals.get("stage_picks") or [],
+        games=ncaaf_signals.get("games") or [],
+        plays=ncaaf_ledger.get("plays") or [],
+    )
+    ncaaf_stage_weeks_html = _render_stage_weeks_html(ncaaf_stage_cards)
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
     ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
     ncaaf_ratings_rows = _render_ratings(ncaaf_signals.get("ratings") or [])
@@ -195,7 +210,8 @@ def build_site(
         ncaaf_pending=ncaaf_record["pending"],
         ncaaf_n_plays=ncaaf_record["n_plays"],
         ncaaf_plays_html=ncaaf_plays_html,
-        ncaaf_stage_rows=ncaaf_stage_rows,
+        ncaaf_week_play_count=len(ncaaf_week_plays_sorted),
+        ncaaf_stage_weeks_html=ncaaf_stage_weeks_html,
         ncaaf_stage_record_rows=ncaaf_stage_record_rows,
         ncaaf_fade_n=ncaaf_stage_summary.get("fade_public_games", "—"),
         ncaaf_rlm_n=ncaaf_stage_summary.get("rlm_games", "—"),
@@ -603,6 +619,79 @@ def _pick_cell(pick: dict | None) -> str:
     return f"<b>{_esc(pick.get('team'))}</b>"
 
 
+def _stage_card_key(card: dict[str, Any]) -> str:
+    return f"{card.get('event_id')}|{card.get('market') or 'spread'}"
+
+
+def _enrich_stage_kickoffs(
+    cards: list[dict[str, Any]],
+    *,
+    games: list[dict[str, Any]] | None = None,
+    plays: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    kick_by_event: dict[str, str] = {}
+    for src in games or []:
+        eid = str(src.get("event_id") or "")
+        if eid and src.get("commence_time"):
+            kick_by_event[eid] = str(src["commence_time"])
+    for src in plays or []:
+        eid = str(src.get("event_id") or "")
+        kick = src.get("kickoff") or src.get("commence_time")
+        if eid and kick:
+            kick_by_event[eid] = str(kick)
+    out: list[dict[str, Any]] = []
+    for card in cards:
+        row = dict(card)
+        if not row.get("kickoff"):
+            row["kickoff"] = kick_by_event.get(str(row.get("event_id") or ""))
+        out.append(row)
+    return out
+
+
+def _merge_stage_cards(
+    ledger_cards: list[dict[str, Any]],
+    signal_cards: list[dict[str, Any]],
+    *,
+    games: list[dict[str, Any]] | None = None,
+    plays: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Ledger holds the full slate history; latest signals refresh in-place."""
+    merged: dict[str, dict[str, Any]] = {}
+    for card in ledger_cards:
+        merged[_stage_card_key(card)] = dict(card)
+    for card in signal_cards:
+        key = _stage_card_key(card)
+        if key in merged:
+            old = merged[key]
+            merged[key] = {**old, **card, "created_at": old.get("created_at") or card.get("created_at")}
+        else:
+            merged[key] = dict(card)
+    return _enrich_stage_kickoffs(list(merged.values()), games=games, plays=plays)
+
+
+def _render_stage_weeks_html(cards: list[dict]) -> str:
+    if not cards:
+        return '<div class="empty">No stage picks yet. Run the NCAAF pipeline.</div>'
+    parts: list[str] = []
+    for week_start, week_cards in group_stage_cards_by_college_week(cards):
+        label = college_week_label(week_start)
+        sorted_cards = sorted(
+            week_cards,
+            key=lambda c: kickoff_sort_key(c.get("kickoff") or c.get("commence_time") or c.get("created_at")),
+        )
+        rows = _render_stage_rows(sorted_cards)
+        parts.append(
+            f'<div class="week-block">'
+            f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)} · {len(sorted_cards)} games</div>'
+            f'<div class="table-wrap"><table>'
+            f"<thead><tr>"
+            f"<th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th>"
+            f"<th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>"
+            f"</tr></thead><tbody>{rows}</tbody></table></div></div>"
+        )
+    return "".join(parts)
+
+
 def _render_stage_rows(cards: list[dict]) -> str:
     if not cards:
         return "<tr><td colspan='9'>No stage picks yet. Run the pipeline.</td></tr>"
@@ -826,14 +915,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </div>
   <div class="section-label">Closing Line Value</div>
   {ncaaf_clv_banner_html}
-  <div class="section-label">NCAAF Open / Latest Plays · {ncaaf_pending} pending · {ncaaf_n_plays} total</div>
+  <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
   {ncaaf_plays_html}
-  <div class="section-label">NCAAF Ledger · {ncaaf_pending} pending · {ncaaf_n_plays} total</div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
-    <tbody>{ncaaf_ledger_rows}</tbody>
-  </table></div>
-  <div class="section-label">NCAAF Stage Records</div>
+  <div class="section-label">NCAAF Pregame Stage Winners</div>
+  <p class="phase-note" style="padding:4px 0 10px">Every game on the slate — model, sharp, public, money, diff, RLM, and hybrid picks. Newest college week at top.</p>
+  {ncaaf_stage_weeks_html}
+  <div class="section-label">NCAAF Stage Records (season)</div>
   <div class="summary-grid">
     <div class="stat-card"><div class="stat-val">{ncaaf_fade_n}</div><div class="stat-label">Sharp vs Public</div></div>
     <div class="stat-card"><div class="stat-val">{ncaaf_rlm_n}</div><div class="stat-label">RLM Games</div></div>
@@ -842,12 +929,10 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
     <tbody>{ncaaf_stage_record_rows}</tbody>
   </table></div>
-  <div class="section-label">NCAAF Per-Game Stage Winners</div>
+  <div class="section-label">NCAAF Ledger · {ncaaf_pending} pending · {ncaaf_n_plays} total</div>
   <div class="table-wrap"><table>
-    <thead><tr>
-      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
-    </tr></thead>
-    <tbody>{ncaaf_stage_rows}</tbody>
+    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
+    <tbody>{ncaaf_ledger_rows}</tbody>
   </table></div>
   <div class="section-label">NCAAF Power Ratings</div>
   <div class="table-wrap"><table>

@@ -81,3 +81,32 @@ def filter_plays_college_week(
         if start <= kickoff <= end:
             out.append(play)
     return out
+
+
+def college_week_label(week_start: datetime) -> str:
+    """Human label for a college week (Tue–Mon ET)."""
+    start_et = _as_utc(week_start).astimezone(ET)
+    end_et = (start_et + timedelta(days=6)).replace(hour=23, minute=59)
+    if start_et.year == end_et.year:
+        return f"{start_et.strftime('%b %d')} – {end_et.strftime('%b %d, %Y')}"
+    return f"{start_et.strftime('%b %d, %Y')} – {end_et.strftime('%b %d, %Y')}"
+
+
+def group_stage_cards_by_college_week(
+    cards: list[dict[str, Any]],
+) -> list[tuple[datetime, list[dict[str, Any]]]]:
+    """Group stage cards by college week; newest weeks first."""
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    starts: dict[str, datetime] = {}
+    for card in cards:
+        kickoff = parse_commence(
+            card.get("kickoff") or card.get("commence_time") or card.get("created_at")
+        )
+        if kickoff is None:
+            continue
+        start, _end = college_week_bounds(kickoff)
+        key = start.isoformat()
+        buckets.setdefault(key, []).append(card)
+        starts[key] = start
+    ordered = sorted(starts.keys(), reverse=True)
+    return [(starts[k], buckets[k]) for k in ordered]

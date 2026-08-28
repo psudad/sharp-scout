@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sharp Scout — NFL</title>
+<meta name="description" content="Sharp Scout NFL hybrid model plays and record">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+  .header { background: linear-gradient(135deg, #0d1b3e 0%, #1a2f5e 100%); padding: 20px 16px 16px; border-bottom: 3px solid #f4820a; }
+  .header h1 { font-size: 22px; font-weight: 800; color: #fff; }
+  .header p { color: #94a3b8; font-size: 13px; margin-top: 6px; }
+  .pill { display: inline-block; margin-top: 8px; background: #0d2a1a; border: 1px solid #4ade80; color: #4ade80; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+  .tabs { position: sticky; top: 0; z-index: 10; display: flex; background: #161b22; border-bottom: 1px solid #30363d; }
+  .tab { flex: 1; padding: 14px; text-align: center; cursor: pointer; color: #8b949e; font-size: 13px; font-weight: 600; border-bottom: 3px solid transparent; }
+  .tab.active { color: #f4820a; border-bottom-color: #f4820a; }
+  .content { display: none; padding: 16px; max-width: 900px; margin: 0 auto; }
+  .content.active { display: block; }
+  .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }
+  @media (min-width: 700px) { .summary-grid { grid-template-columns: repeat(4, 1fr); } }
+  .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px 10px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 800; }
+  .stat-label { font-size: 10px; color: #8b949e; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #f4820a; text-transform: uppercase; margin: 18px 0 10px; }
+  .play-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; }
+  .play-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .sharp-play::before { background: #f4820a; }
+  .sharp-lean::before { background: #facc15; }
+  .candidate::before { background: #60a5fa; }
+  .card-top { display: flex; justify-content: space-between; gap: 8px; }
+  .tier-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; margin-bottom: 4px; }
+  .badge-play { background: #f4820a; color: #fff; }
+  .badge-lean { background: #facc15; color: #000; }
+  .badge-cand { background: #60a5fa; color: #fff; }
+  .play-title { font-size: 18px; font-weight: 800; }
+  .play-subtitle { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .units-badge { background: #0d1b3e; border: 1px solid #f4820a; color: #f4820a; padding: 6px 12px; border-radius: 8px; font-weight: 800; height: fit-content; }
+  .card-result { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-top: 8px; }
+  .card-result.win { background: #0d2a1a; border: 1px solid #4ade80; color: #4ade80; }
+  .card-result.loss { background: #2a0d0d; border: 1px solid #f87171; color: #f87171; }
+  .card-result.pending { background: #1e2040; border: 1px solid #2d3a5c; color: #93c5fd; }
+  .play-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 10px; font-size: 12px; }
+  .meta-label { color: #8b949e; }
+  .meta-val { font-weight: 600; }
+  .conf-track { background: #21262d; border-radius: 4px; height: 5px; margin-top: 10px; }
+  .conf-fill { height: 5px; border-radius: 4px; }
+  .rationale-toggle { margin-top: 10px; color: #8b949e; font-size: 12px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
+  .rationale-toggle.open .arrow { transform: rotate(90deg); }
+  .rationale-body { display: none; font-size: 12px; color: #cbd5e1; margin-top: 8px; line-height: 1.65; border-top: 1px solid #21262d; padding-top: 8px; }
+  .rationale-body.open { display: block; }
+  .rationale-cell { font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 320px; }
+  .stage-why { font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 420px; }
+  .splits-summary { color: #e2e8f0; margin-bottom: 8px; }
+  .table-wrap { overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }
+  th { background: #161b22; color: #8b949e; text-align: left; padding: 10px; border-bottom: 1px solid #30363d; }
+  td { padding: 9px 10px; border-bottom: 1px solid #21262d; }
+  .win { color: #4ade80; font-weight: 700; }
+  .loss { color: #f87171; font-weight: 700; }
+  .pending { color: #94a3b8; }
+  .pos { color: #4ade80; font-weight: 600; }
+  .neg { color: #f87171; font-weight: 600; }
+  .empty { color: #8b949e; text-align: center; padding: 28px 8px; }
+  .game-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .game-head { margin-bottom: 10px; }
+  .game-title { font-size: 18px; font-weight: 800; }
+  .game-kick { font-size: 11px; color: #8b949e; margin-top: 4px; }
+  .phase-block { margin-top: 12px; border-top: 1px solid #21262d; padding-top: 10px; }
+  .phase-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #f4820a; text-transform: uppercase; margin-bottom: 6px; }
+  .phase-note { font-size: 12px; color: #94a3b8; margin: 4px 0; line-height: 1.5; }
+  .phase-sub { font-size: 11px; font-weight: 700; color: #8b949e; margin: 8px 0 4px; }
+  .footer { color: #4b5563; font-size: 11px; padding: 24px 16px; text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Sharp Scout</h1>
+  <p>NFL hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
+  <span class="pill">2-1 · +1.66u · Live pipeline</span>
+  <p style="margin-top:8px">Updated 2026-08-23 16:38 UTC</p>
+</div>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('plays', this)">Plays</div>
+  <div class="tab" onclick="showTab('games', this)">Games</div>
+  <div class="tab" onclick="showTab('stages', this)">Stages</div>
+  <div class="tab" onclick="showTab('ledger', this)">Ledger</div>
+  <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
+</div>
+
+<div id="tab-plays" class="content active">
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-val">2-1</div><div class="stat-label">Record</div></div>
+    <div class="stat-card"><div class="stat-val">66.7%</div><div class="stat-label">Win %</div></div>
+    <div class="stat-card"><div class="stat-val pos">+1.66u</div><div class="stat-label">Profit</div></div>
+    <div class="stat-card"><div class="stat-val">101.66u</div><div class="stat-label">Bankroll</div></div>
+  </div>
+  <div class="section-label">Closing Line Value</div>
+  <p class="phase-note" style="padding:6px 0">Closing Line Value appears here once plays are graded against their closing line (captured at the T-1h pregame run).</p>
+  <div class="section-label">Open / Latest Plays · 0 pending · 3 total</div>
+  <div class="empty">No open plays. Run the pipeline to generate signals.</div>
+</div>
+
+<div id="tab-games" class="content">
+  <p class="phase-note" style="padding:12px 0">Per-game pipeline output: EPA model → Monte Carlo → market EV → money/ticket splits → stage picks.</p>
+  
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">SEA @ TEN</div>
+          <div class="game-kick">Sun Aug 23, 8:00 PM ET</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>SEA</b>: power 0.000 · off 0.000 · def 0.000</p>
+          <p class="phase-note"><b>TEN</b>: power 0.000 · off 0.000 · def 0.000</p>
+          <p class="phase-note">Model spread (home): <b>-2.99</b> ·
+            total <b>45.00</b> · P(home win) <b>61.0%</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody><tr><td>total</td><td>OVER +37.5 (total) -110</td><td>fanduel</td><td class='pending'>48.7%</td><td>—</td><td class='rationale-cell'>We project OVER 37.5 on the total at 77.9% true probability vs 50.0% implied at fanduel — about 48.7% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · total flat (37.5→37.5) · edge lacks RLM / money-ticket / steam confirmation</td></tr>
+<tr><td>spread</td><td>SEA +4.5 (spread) -108</td><td>fanduel</td><td class='pending'>12.9%</td><td>—</td><td class='rationale-cell'>We project SEA +4.5 on the spread at 58.6% true probability vs 50.2% implied at fanduel — about 12.9% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No clear reverse line movement on this market. · edge lacks RLM / money-ticket / steam confirmation</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans TEN (handle minus tickets +4% on that side). Total: sharp money leans Over (handle minus tickets +17% on that side). Moneyline: sharp money leans SEA (handle minus tickets +48% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line -4.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>TEN</td><td>21%</td><td>25%</td><td class='pos'>+4%</td></tr><tr><td>SEA</td><td>79%</td><td>75%</td><td class='pos'>-4%</td></tr></tbody></table></div><div class='phase-sub'>total line 37.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>38%</td><td>55%</td><td class='pos'>+17%</td></tr><tr><td>Under</td><td>62%</td><td>45%</td><td class='pos'>-17%</td></tr></tbody></table></div><div class='phase-sub'>moneyline</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>TEN</td><td>56%</td><td>8%</td><td class='pos'>-48%</td></tr><tr><td>SEA</td><td>44%</td><td>92%</td><td class='pos'>+48%</td></tr></tbody></table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>TEN (61%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor TEN (line -2.98826). Model spread (home) is -2.99 (negative = home favored). · 61% confidence</td></tr><tr><td><b>Sharp line</b></td><td>SEA (50%)</td><td class='stage-why'>Pinnacle / sharp books lean toward SEA (line +4.5). pinnacle no-vig 50.2% @ -109 · 50% confidence</td></tr><tr><td><b>Public tickets</b></td><td>SEA (79%)</td><td class='stage-why'>Most bet tickets are on SEA (line -4.5). tickets home=21% away=79% · 79% confidence</td></tr><tr><td><b>Sharp money</b></td><td>SEA (75%)</td><td class='stage-why'>Most handle (dollars) is on SEA (line -4.5). money home=25% away=75% (gap vs tickets -4% on away) · 75% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>TEN (54%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to TEN. +4% money vs tickets on TEN · 54% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>line flat (-4.5→-4.5)</td></tr><tr><td><b>Full system</b></td><td>TEN (49%)</td><td class='stage-why'>Validated system play: TEN. model lean only — no confirming market stage · 49% confidence</td></tr></tbody></table></div>
+        </div>
+      </div>
+</div>
+
+<div id="tab-stages" class="content">
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">Sharp ≠ Public games</div></div>
+    <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">RLM games</div></div>
+  </div>
+  <div class='phase-note'>No games on this slate where sharp books disagree with public ticket %.</div><div class='phase-note' style='margin-top:10px'>No RLM signals on this slate (needs an opening line vs current — stored on first pipeline run).</div>
+  <div class="section-label">Stage Records (settled)</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
+    <tbody><tr><td><b>hybrid</b></td><td>89-68</td><td>57%</td><td>122</td></tr>
+<tr><td><b>model</b></td><td>88-69</td><td>56%</td><td>122</td></tr>
+<tr><td><b>sharp</b></td><td>6-6</td><td>50%</td><td>11</td></tr>
+<tr><td><b>money</b></td><td>3-2</td><td>60%</td><td>4</td></tr>
+<tr><td><b>public</b></td><td>3-2</td><td>60%</td><td>4</td></tr>
+<tr><td><b>sharp_edge</b></td><td>2-3</td><td>40%</td><td>3</td></tr></tbody>
+  </table></div>
+  <div class="section-label">Why Is Our Model Wrong? (disagreement log)</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Category</th><th>Count</th><th>Record · Hit %</th></tr></thead>
+    <tbody><tr><td><b>model_deficiency</b></td><td>404</td><td>0-0 · —</td></tr>
+<tr><td><b>unknown</b></td><td>221</td><td>0-0 · —</td></tr></tbody>
+  </table></div>
+  <div class="section-label">Per-Game Stage Winners</div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
+    </tr></thead>
+    <tbody><tr><td>SEA @ TEN</td><td><b>TEN</b></td><td><b>SEA</b></td><td><b>SEA</b></td><td><b>SEA</b></td><td><b>TEN</b></td><td><span class='pending'>—</span></td><td class='pos'><b>TEN</b></td><td>model, sharp_edge</td></tr></tbody>
+  </table></div>
+  <p class="footer" style="padding:12px 0">Each column is an independent pick. Hybrid is the full system; compare it to model / sharp / public / money / RLM.</p>
+</div>
+
+<div id="tab-ledger" class="content">
+  <div class="section-label">By Week</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Week</th><th>Record</th><th>Pending</th><th>PnL</th></tr></thead>
+    <tbody><tr><td>? W?</td><td>2-1</td><td>0</td><td class='pos'>+1.66u</td></tr></tbody>
+  </table></div>
+  <div class="section-label">All Plays</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
+    <tbody><tr><td>2026-08-16</td><td>HOU @ LAC</td><td>HOU (ML) +120</td><td>1.5u</td><td class='win'>WIN</td><td>HOU 20 – LAC 16</td><td class='pending'>—</td><td class='pos'>+1.8</td></tr>
+<tr><td>2026-08-16</td><td>HOU @ LAC</td><td>HOU +2.5 (spread) -110</td><td>1.5u</td><td class='win'>WIN</td><td>HOU 20 – LAC 16</td><td class='pending'>—</td><td class='pos'>+1.3636</td></tr>
+<tr><td>2026-08-15</td><td>MIN @ NYG</td><td>NYG +1.5 (spread) -110</td><td>1.5u</td><td class='loss'>LOSS</td><td>MIN 16 – NYG 13</td><td class='pending'>—</td><td class='neg'>-1.5</td></tr></tbody>
+  </table></div>
+</div>
+
+<div id="tab-ratings" class="content">
+  <p class="phase-note" style="padding:8px 0">Power ratings from nflverse play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
+  <div class="section-label">Power Ratings</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
+    <tbody><tr><td><b>KC</b></td><td class='pos'>0.120</td><td>0.080</td><td>0.040</td></tr>
+<tr><td><b>BUF</b></td><td class='pos'>0.110</td><td>0.060</td><td>0.050</td></tr>
+<tr><td><b>ARI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>ATL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>BAL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CAR</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CHI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CIN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>CLE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>DAL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>DEN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>DET</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>GB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>HOU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>IND</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>JAX</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>LAC</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>LAR</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>LV</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>MIA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>MIN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>NE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>NO</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>NYG</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>NYJ</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>PHI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>PIT</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>SEA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>SF</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>TB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>TEN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
+<tr><td><b>WAS</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr></tbody>
+  </table></div>
+</div>
+
+<p class="footer">Signals only — no auto-betting. Data: nflverse · The Odds API · Action Network.<br>
+Source: ledger.json · record.json</p>
+<script>
+function showTab(name, el) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

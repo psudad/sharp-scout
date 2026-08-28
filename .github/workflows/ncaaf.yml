@@ -7,6 +7,8 @@ on:
   schedule:
     # Tuesday–Saturday 15:00 UTC — midweek slate + Thu–Sat kickoffs
     - cron: "0 15 * * 2-6"
+    # Friday/Saturday 22:00 UTC — late refresh before major kickoffs
+    - cron: "0 22 * * 5,6"
     # Sunday 12:00 UTC — settle Saturday night
     - cron: "0 12 * * 0"
   workflow_dispatch:
@@ -72,7 +74,7 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ncaaf_ledger.json docs/
+          git add data/ncaaf_ledger.json data/line_history.json docs/
           if git diff --staged --quiet; then
             echo "No NCAAF ledger/site changes"
           else

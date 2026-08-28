@@ -92,6 +92,15 @@ def run_ncaaf_pipeline(
             logger.warning("AN NCAAF failed: %s", exc)
             splits = mock_ncaaf_splits()
 
+    # Timestamped sharp lines → shared line_history.json (CLV closing lines + steam).
+    if not demo and settings.odds_api_key and events:
+        try:
+            from sharp_scout.data.line_store import record_snapshot
+
+            record_snapshot(events)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("NCAAF line snapshot skipped: %s", exc)
+
     game_results: list[dict[str, Any]] = []
     all_signals: list[dict[str, Any]] = []
     sims_by_event: dict[str, Any] = {}

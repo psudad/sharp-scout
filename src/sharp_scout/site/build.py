@@ -171,6 +171,16 @@ def build_site(
     ncaaf_pnl = ncaaf_record["pnl_units"]
     ncaaf_pnl_cls = "pos" if ncaaf_pnl >= 0 else "neg"
     ncaaf_pnl_s = f"+{ncaaf_pnl}" if ncaaf_pnl >= 0 else str(ncaaf_pnl)
+    ncaaf_settled = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") != "pending"]
+    ncaaf_settled_sorted = sorted(
+        ncaaf_settled, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True
+    )
+    ncaaf_pending_sorted = sorted(
+        collapse_best_signals(ncaaf_pending),
+        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
+    ncaaf_clv_banner_html = _render_clv_banner(ncaaf_record.get("clv"))
+    ncaaf_ledger_rows = _render_ledger_rows(ncaaf_settled_sorted + ncaaf_pending_sorted)
 
     html = SITE_TEMPLATE.format(
         generated=generated,
@@ -207,6 +217,8 @@ def build_site(
         ncaaf_rlm_n=ncaaf_stage_summary.get("rlm_games", "—"),
         ncaaf_ratings_rows=ncaaf_ratings_rows,
         ncaaf_demo_note="DEMO data" if ncaaf_signals.get("demo") else "Live pipeline",
+        ncaaf_clv_banner_html=ncaaf_clv_banner_html,
+        ncaaf_ledger_rows=ncaaf_ledger_rows,
     )
     (out / "index.html").write_text(html)
 
@@ -849,8 +861,15 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <div class="stat-card"><div class="stat-val {ncaaf_pnl_cls}">{ncaaf_pnl}u</div><div class="stat-label">Profit</div></div>
     <div class="stat-card"><div class="stat-val">{ncaaf_demo_note}</div><div class="stat-label">Mode</div></div>
   </div>
+  <div class="section-label">Closing Line Value</div>
+  {ncaaf_clv_banner_html}
   <div class="section-label">NCAAF Open / Latest Plays · {ncaaf_pending} pending · {ncaaf_n_plays} total</div>
   {ncaaf_plays_html}
+  <div class="section-label">NCAAF Ledger</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
+    <tbody>{ncaaf_ledger_rows}</tbody>
+  </table></div>
   <div class="section-label">NCAAF Stage Records</div>
   <div class="summary-grid">
     <div class="stat-card"><div class="stat-val">{ncaaf_fade_n}</div><div class="stat-label">Sharp vs Public</div></div>

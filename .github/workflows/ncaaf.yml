@@ -1,7 +1,7 @@
 name: NCAAF Pipeline + Ledger
 
 # Runs the college football signal pipeline, settles completed games, rebuilds docs/.
-# Requires repo secrets: ODDS_API_KEY (required), ACTION_NETWORK_COOKIE (optional).
+# Requires repo secrets: ODDS_API_KEY (required), ACTION_NETWORK_TOKEN (optional splits).
 
 on:
   schedule:
@@ -46,6 +46,7 @@ jobs:
       - name: Configure env
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
+          echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
           echo "ACTION_NETWORK_COOKIE=${{ secrets.ACTION_NETWORK_COOKIE }}" >> $GITHUB_ENV
           echo "MONTE_CARLO_SIMS=5000" >> $GITHUB_ENV
 

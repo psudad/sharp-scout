@@ -15,12 +15,18 @@ from sharp_scout.config import get_settings  # noqa: E402
 from sharp_scout.data.line_store import LINE_HISTORY_PATH, load_history, record_snapshot  # noqa: E402
 from sharp_scout.data.odds_api import OddsClient, mock_ncaaf_odds_events, mock_odds_events  # noqa: E402
 from sharp_scout.sports import get_sport  # noqa: E402
+from sharp_scout.utils.slate import filter_events_college_week  # noqa: E402
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Record sharp line snapshots for CLV / steam")
     p.add_argument("--sport", choices=["nfl", "ncaaf"], default="nfl")
     p.add_argument("--demo", action="store_true", help="Use mock odds (no API key)")
+    p.add_argument(
+        "--week-only",
+        action="store_true",
+        help="NCAAF: only games in the current college week (Tue–Mon ET)",
+    )
     args = p.parse_args()
 
     sport = get_sport(args.sport)
@@ -31,6 +37,9 @@ def main() -> None:
         events = mock_ncaaf_odds_events() if sport.key == "ncaaf" else mock_odds_events()
     else:
         events = OddsClient(sport=sport.key).fetch_odds()
+
+    if args.week_only and sport.key == "ncaaf":
+        events = filter_events_college_week(events)
 
     record_snapshot(events)
     after = sum(len(v) for v in load_history().values())

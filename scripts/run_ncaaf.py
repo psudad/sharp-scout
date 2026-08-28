@@ -23,6 +23,11 @@ def main() -> None:
     p.add_argument("--build-site", action="store_true", help="Regenerate docs/ for GitHub Pages")
     p.add_argument("--season", type=int, default=None)
     p.add_argument("--week", type=int, default=None)
+    p.add_argument(
+        "--all-games",
+        action="store_true",
+        help="Include all posted Odds API games (default: current college week only)",
+    )
     args = p.parse_args()
 
     result = run_ncaaf_pipeline(
@@ -33,6 +38,7 @@ def main() -> None:
         build_pages=args.build_site,
         season=args.season,
         week=args.week,
+        week_only=not args.all_games,
     )
     summary = {
         "generated_at": result["generated_at"],

@@ -24,6 +24,7 @@ from sharp_scout.phase3.market import discover_edges
 from sharp_scout.phase4.filters import attach_filters
 from sharp_scout.sports import NCAAF
 from sharp_scout.utils.odds import setup_logging
+from sharp_scout.utils.slate import filter_events_college_week
 from sharp_scout.utils.teams import NCAAF_DEMO_TEAMS
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ def run_ncaaf_pipeline(
     build_pages: bool = False,
     season: int | None = None,
     week: int | None = None,
+    week_only: bool = True,
 ) -> dict[str, Any]:
     """Same sequence as NFL: ratings → Monte Carlo → market EV → split filter."""
     settings = get_settings()
@@ -79,6 +81,15 @@ def run_ncaaf_pipeline(
         except Exception as exc:  # noqa: BLE001
             logger.error("NCAAF odds fetch failed (%s); using demo events", exc)
             events = mock_ncaaf_odds_events()
+
+    if week_only and not demo and events:
+        before = len(events)
+        events = filter_events_college_week(events)
+        logger.info(
+            "College week filter: %d → %d games (Tue–Mon ET)",
+            before,
+            len(events),
+        )
 
     if demo or not events:
         splits = mock_ncaaf_splits()

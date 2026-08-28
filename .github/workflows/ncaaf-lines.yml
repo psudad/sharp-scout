@@ -1,17 +1,25 @@
 name: NCAAF Line Snapshots (CLV)
 
-# Hourly sharp-book line capture for college football — feeds closing-line value
-# at settlement without re-running the full ratings pipeline.
+# Schedule-driven sharp line capture for college football:
+#   • Tuesday 10:00 ET — rebuild plan + opening lines for the college week
+#   • Hourly gate — only calls the Odds API when a game is at T-6h / T-4h / T-1h
+#
 # Requires repo secret: ODDS_API_KEY
 
 on:
   schedule:
-    # Wed–Sat hourly — weeknight games + Saturday slates
-    - cron: "0 * * * 3-6"
+    # Tuesday 14:00 UTC (~10:00 ET) — weekly opening lines + refresh plan
+    - cron: "0 14 * * 2"
+    # Hourly — exits in seconds unless a planned window is due
+    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
-      demo:
-        description: "Demo mode (mock odds)"
+      force:
+        description: "Force snapshot now (ignore plan gate)"
+        type: boolean
+        default: false
+      rebuild_plan:
+        description: "Rebuild ncaaf_line_plan.json before snapshot"
         type: boolean
         default: false
 
@@ -39,25 +47,41 @@ jobs:
       - name: Configure env
         run: echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
 
-      - name: Record NCAAF sharp lines
-        env:
-          DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
+      - name: Tuesday — rebuild plan and capture opening lines
+        if: github.event.schedule == '0 14 * * 2' || (github.event_name == 'workflow_dispatch' && inputs.rebuild_plan)
         run: |
-          if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
-            echo "Skipping live snapshot (demo or missing ODDS_API_KEY)"
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "No ODDS_API_KEY — skipping"
             exit 0
           fi
-          python scripts/record_line_snapshots.py --sport ncaaf
+          python scripts/plan_ncaaf_snapshots.py
+          python scripts/record_line_snapshots.py --sport ncaaf --week-only
 
-      - name: Commit line history
+      - name: Gate — skip hour if no snapshot window due
+        id: gate
+        if: github.event_name == 'schedule' && github.event.schedule != '0 14 * * 2'
+        run: python scripts/check_ncaaf_snapshot_plan.py
+
+      - name: Run due pre-kick line snapshots
+        if: |
+          (github.event_name == 'workflow_dispatch' && inputs.force) ||
+          (steps.gate.outputs.run == 'true')
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "No ODDS_API_KEY — skipping"
+            exit 0
+          fi
+          python scripts/record_line_snapshots.py --sport ncaaf --week-only
+
+      - name: Commit plan + line history
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/line_history.json
+          git add data/ncaaf_line_plan.json data/line_history.json 2>/dev/null || git add data/line_history.json
           if git diff --staged --quiet; then
-            echo "No line history changes"
+            echo "No plan/line history changes"
           else
-            git commit -m "chore: NCAAF line snapshots for CLV"
+            git commit -m "chore: NCAAF line snapshots (scheduled)"
             git pull --rebase origin main
             git push
           fi

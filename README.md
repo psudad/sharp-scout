@@ -35,7 +35,8 @@ python scripts/run_ncaaf.py --build-site
 
 # On-demand refresh (settle + both sports + rebuild site)
 python scripts/refresh_board.py
-# Or trigger in GitHub: Actions → "Refresh Board (on demand)" → Run workflow
+# From your phone: GitHub app → psudad/sharp-scout → Actions →
+#   "Refresh Board (on demand)" → Run workflow (defaults: NFL + CFB on)
 
 # Preseason / manual pasted odds (The Odds API has no preseason) + live Action Network splits
 python scripts/run_manual_slate.py data/manual_slate.example.json --date 20260814 --skip-pbp --build-site

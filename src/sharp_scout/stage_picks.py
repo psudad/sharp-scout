@@ -26,7 +26,7 @@ from sharp_scout.utils.odds import american_to_implied_prob
 Side = Literal["home", "away"]
 MarketFocus = Literal["spread", "h2h"]
 
-STAGES = ("model", "sharp", "public", "money", "rlm", "hybrid")
+STAGES = ("model", "sharp", "public", "money", "sharp_edge", "rlm", "hybrid")
 
 
 @dataclass
@@ -118,7 +118,7 @@ def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread")
         _team(side, home, away),
         float(sim.model_spread),
         conf,
-        f"S_mod={sim.model_spread:+.1f} (home perspective)",
+        f"S_mod={sim.model_spread:+.2f} (home perspective)",
     )
 
 
@@ -185,6 +185,50 @@ def pick_money(split_game: dict[str, Any] | None, home: str, away: str, market: 
         block.get("current_line"),
         max(hm, am),
         reason,
+    )
+
+
+def pick_sharp_edge(
+    split_game: dict[str, Any] | None,
+    home: str,
+    away: str,
+    market: str = "spread",
+) -> StagePick:
+    """Action Network Diff: side with the largest positive money − ticket %."""
+    from sharp_scout.data.splits_board import build_market_board
+
+    if not split_game:
+        return StagePick("sharp_edge", market, None, None, reason="no Action Network row", available=False)
+    mkey = {"spread": "spread", "h2h": "moneyline"}.get(market, market)
+    if mkey not in ("spread", "moneyline", "total"):
+        mkey = "spread"
+    block = (split_game.get("markets") or {}).get(mkey) or {}
+    board = build_market_board(block, market=mkey, home_team=home, away_team=away)  # type: ignore[arg-type]
+    edge = board.get("sharp_edge") or {}
+    if not edge.get("available"):
+        return StagePick(
+            "sharp_edge",
+            market,
+            None,
+            None,
+            reason=edge.get("reason") or "no sharp-edge diff",
+            available=False,
+        )
+    side = edge.get("side")
+    if side not in ("home", "away", "over", "under"):
+        return StagePick("sharp_edge", market, None, None, reason="unparsed sharp-edge side", available=False)
+    team = edge.get("team")
+    if side in ("home", "away"):
+        team = _team(side, home, away)
+    conf = min(0.99, 0.5 + float(edge.get("diff_pct") or 0))
+    return StagePick(
+        "sharp_edge",
+        market,
+        side,  # type: ignore[arg-type]
+        team,
+        block.get("current_line"),
+        conf,
+        edge.get("reason") or "",
     )
 
 
@@ -293,6 +337,7 @@ def build_game_stage_card(
     sharp = pick_sharp(event, home, away, market=market)
     public = pick_public(split, home, away, market=market)
     money = pick_money(split, home, away, market=market)
+    sharp_edge = pick_sharp_edge(split, home, away, market=market)
     rlm = pick_rlm(split, home, away) if market == "spread" else StagePick(
         "rlm", market, None, None, reason="RLM is spread-only", available=False
     )
@@ -311,6 +356,7 @@ def build_game_stage_card(
         "sharp": sharp,
         "public": public,
         "money": money,
+        "sharp_edge": sharp_edge,
         "rlm": rlm,
         "hybrid": hybrid,
     }
@@ -409,7 +455,10 @@ def summarize_stage_slate(cards: list[dict[str, Any]]) -> dict[str, Any]:
     total = {s: 0 for s in STAGES if s != "hybrid"}
     fade_public = 0
     rlm_games = 0
+    fade_public_list: list[dict[str, Any]] = []
+    rlm_list: list[dict[str, Any]] = []
     for c in cards:
+        matchup = f"{c.get('away_team')}@{c.get('home_team')}"
         for s in agree:
             p = (c.get("picks") or {}).get(s) or {}
             h = (c.get("picks") or {}).get("hybrid") or {}
@@ -420,15 +469,36 @@ def summarize_stage_slate(cards: list[dict[str, Any]]) -> dict[str, Any]:
         svp = (c.get("agreement") or {}).get("sharp_vs_public") or {}
         if svp.get("fade_public"):
             fade_public += 1
+            fade_public_list.append(
+                {
+                    "matchup": matchup,
+                    "away_team": c.get("away_team"),
+                    "home_team": c.get("home_team"),
+                    "sharp_team": svp.get("sharp"),
+                    "public_team": svp.get("public"),
+                }
+            )
         if (c.get("agreement") or {}).get("rlm_active"):
             rlm_games += 1
+            rlm_pick = (c.get("picks") or {}).get("rlm") or {}
+            rlm_list.append(
+                {
+                    "matchup": matchup,
+                    "away_team": c.get("away_team"),
+                    "home_team": c.get("home_team"),
+                    "rlm_team": rlm_pick.get("team"),
+                    "reason": rlm_pick.get("reason"),
+                }
+            )
     return {
         "n_games": len(cards),
         "hybrid_agreement_rate": {
             s: (agree[s] / total[s] if total[s] else None) for s in agree
         },
         "fade_public_games": fade_public,
+        "fade_public_matchups": fade_public_list,
         "rlm_games": rlm_games,
+        "rlm_matchups": rlm_list,
     }
 
 

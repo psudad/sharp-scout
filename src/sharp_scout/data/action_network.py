@@ -23,19 +23,34 @@ from sharp_scout.utils.odds import normalize_team
 
 logger = logging.getLogger(__name__)
 
-SCOREBOARD_TMPL = "https://api.actionnetwork.com/web/v2/scoreboard/{league}"
+# Public-betting endpoint carries ticket/money bet_info per book.
+SCOREBOARD_TMPL = "https://api.actionnetwork.com/web/v2/scoreboard/publicbetting/{league}"
 
 # Books that commonly include public betting bet_info (DK, FanDuel, Caesars, etc.)
-DEFAULT_BOOK_IDS = "15,30,68,75,69,71,123,19"
+DEFAULT_BOOK_IDS = "15,30,255,3547,280,3,11,14,4727,4795,68,122"
 
 
 class ActionNetworkClient:
-    def __init__(self, cookie: str | None = None, league: str | SportConfig = "nfl") -> None:
+    def __init__(
+        self,
+        cookie: str | None = None,
+        token: str | None = None,
+        league: str | SportConfig = "nfl",
+    ) -> None:
         settings = get_settings()
         self.cookie = cookie if cookie is not None else settings.action_network_cookie
+        self.token = token if token is not None else settings.action_network_token
         self.sport = league if isinstance(league, SportConfig) else get_sport(league)
         self.league = self.sport.action_league
         self.norm_sport = self.sport.key
+
+    @property
+    def auth_mode(self) -> str:
+        if self.token:
+            return "token"
+        if self.cookie:
+            return "cookie"
+        return "anonymous"
 
     def _headers(self) -> dict[str, str]:
         h = {
@@ -47,17 +62,20 @@ class ActionNetworkClient:
             "Origin": "https://www.actionnetwork.com",
             "Referer": self.sport.action_referer,
         }
+        # Bearer JWT is the reliable path for money %; cookie is a fallback.
+        if self.token:
+            h["Authorization"] = self.token
         if self.cookie:
             h["Cookie"] = self.cookie
         return h
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
     def fetch_scoreboard(self, date: str | None = None) -> list[dict[str, Any]]:
-        """Fetch league scoreboard with odds + public betting when available.
+        """Fetch league public-betting scoreboard (ticket/money %) per book.
 
         `date` format: YYYYMMDD. Defaults to AN's current slate.
         """
-        params: dict[str, Any] = {"bookIds": DEFAULT_BOOK_IDS}
+        params: dict[str, Any] = {"bookIds": DEFAULT_BOOK_IDS, "periods": "event"}
         if date:
             params["date"] = date
         try:
@@ -97,10 +115,12 @@ class ActionNetworkClient:
                         "matchup": f"{g.get('away_team')}@{g.get('home_team')}",
                         "spread": spread,
                         "num_bets": g.get("raw_num_bets"),
-                        "auth_mode": "cookie" if self.cookie else "anonymous",
+                        "auth_mode": self.auth_mode,
                     }
                 )
         return {
+            "auth_mode": self.auth_mode,
+            "token_configured": bool(self.token),
             "cookie_configured": bool(self.cookie),
             "cookie_length": len(self.cookie or ""),
             "n_games": len(games),
@@ -113,8 +133,9 @@ class ActionNetworkClient:
                 if with_money and with_tickets
                 else (
                     "No money % in response. Log into Action Network Pro/EDGE in a browser, "
-                    "copy the Cookie header from a scoreboard/public-betting request, "
-                    "set ACTION_NETWORK_COOKIE (local .env + GitHub Actions secret)."
+                    "copy the Authorization bearer token from a scoreboard/publicbetting request "
+                    "(DevTools → Network → Copy as cURL), and set ACTION_NETWORK_TOKEN "
+                    "(local .env + GitHub Actions secret). Cookie auth also works as a fallback."
                 )
             ),
         }

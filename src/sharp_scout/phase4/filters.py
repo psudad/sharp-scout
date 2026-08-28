@@ -147,19 +147,33 @@ def validate_edge(
     flags["rlm"] = ok_rlm
     notes.append(rlm_note)
 
-    confirmed = flags["money_split"] or flags["rlm"]
+    # Steam: sharp line velocity across books (from timestamped line history).
+    ok_steam = False
+    try:
+        from sharp_scout.phase4.steam import steam_signal
+
+        steam = steam_signal(edge.event_id, edge.market, edge.side)
+        ok_steam = bool(steam.get("steam"))
+        if ok_steam or steam.get("n_books"):
+            notes.append(steam.get("note") or "")
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("steam check skipped: %s", exc)
+    flags["steam"] = ok_steam
+
+    confirmed = flags["money_split"] or flags["rlm"] or flags["steam"]
     if not flags["ev_ok"]:
         return FilterResult(passed=False, notes=notes, flags=flags, tier="rejected")
 
     if require_confirmation and not confirmed:
         return FilterResult(
             passed=False,
-            notes=notes + ["edge lacks RLM or money/ticket confirmation"],
+            notes=notes + ["edge lacks RLM / money-ticket / steam confirmation"],
             flags=flags,
             tier="rejected",
         )
 
-    if flags["money_split"] and flags["rlm"] and edge.edge >= 0.03:
+    n_confirms = sum(1 for k in ("money_split", "rlm", "steam") if flags[k])
+    if n_confirms >= 2 and edge.edge >= 0.03:
         tier = "play"
     elif confirmed:
         tier = "play" if edge.edge >= 0.025 else "lean"

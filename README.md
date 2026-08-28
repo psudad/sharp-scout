@@ -9,7 +9,7 @@ Architecture runs bottom-up first so market data filters model edges instead of 
 3. **Market model** — Pinnacle (and Circa when present) no-vig odds via [The Odds API](https://the-odds-api.com) → EV
 4. **Split filter** — Action Network ticket/money % + reverse line movement confirmation
 
-Validated plays are stored in [`data/ledger.json`](data/ledger.json) and published to **GitHub Pages** under [`docs/`](docs/).
+Validated plays are stored in [`data/ledger.json`](data/ledger.json) (NFL) / [`data/ncaaf_ledger.json`](data/ncaaf_ledger.json) (NCAAF) and published to **GitHub Pages** under [`docs/`](docs/).
 
 ## Quick start
 
@@ -19,7 +19,7 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env
 # Add ODDS_API_KEY (required for live odds)
-# Optional: ACTION_NETWORK_COOKIE (Pro/EDGE session) for richer splits
+# Preferred: ACTION_NETWORK_TOKEN (Bearer JWT); fallback: ACTION_NETWORK_COOKIE
 python scripts/diagnose_action_network.py   # verify money/ticket %
 
 # Demo run + rebuild Pages site (NFL)
@@ -32,6 +32,9 @@ python scripts/diagnose_action_network.py --league ncaaf
 # Live run
 python scripts/run_pipeline.py --build-site
 python scripts/run_ncaaf.py --build-site
+
+# Preseason / manual pasted odds (The Odds API has no preseason) + live Action Network splits
+python scripts/run_manual_slate.py data/manual_slate.example.json --date 20260814 --skip-pbp --build-site
 
 # Settle completed games (nflverse / cfbfastR scores) and refresh site
 python scripts/settle_plays.py --build-site
@@ -74,6 +77,7 @@ For each game the pipeline also picks a side from **each data stage** independen
 | `sharp` | Pinnacle/Circa no-vig favorite |
 | `public` | Ticket-% majority |
 | `money` | Handle-% majority |
+| `sharp_edge` | Largest positive money − ticket % (Action Network Diff) |
 | `rlm` | Reverse line movement side (when present) |
 | `hybrid` | Full system validated play, else model+confirmations |
 
@@ -92,15 +96,51 @@ Props reuse the same ledger/Pages board with a separate engine:
 python scripts/run_props.py --demo --build-site
 ```
 
-## Pregame schedule (T-12h / T-3h / T-1h)
+## Quant 2.0 features (CLV, steam, disagreement, calibration, matchup engine)
 
-`scripts/run_pregame.py` checks upcoming kickoffs and fires **sides + props** when a game is within ±25 minutes of 12h, 3h, or 1h before kickoff. Fired windows are recorded in `data/schedule_state.json` so each window runs once.
+Layered on top of the four-phase baseline (see `plans/quant-2.0-upgrade-plan.md`). All run
+at ~$0 recurring cost on GitHub Actions.
 
-GitHub Action **Pregame Windows** runs every 30 minutes on `main`.
+- **Closing Line Value (CLV)** — `ledger/clv.py`. Every play is graded against the sharp
+  closing line (captured from the timestamped line store at the T-1h pregame run). Points +
+  price-based CLV appear on the ledger and a summary banner on the Plays tab. This is the
+  earliest proof the process beats the market.
+- **Steam detection** — `phase4/steam.py`. Sharp line *velocity × breadth* across books,
+  a Phase-4 confirmation flag alongside RLM and money/ticket splits. Reads the shared
+  timestamped history in `data/line_store.py`.
+- **"Why is our model wrong?"** — `analysis/disagreement.py`. Logs every material
+  model-vs-market gap with an auto-classified cause (weather, QB, injury, public bias,
+  market overreaction, model deficiency, …) and learns each category's hit rate over time.
+- **Calibration + walk-forward backtest** — `analysis/calibration.py`,
+  `backtest/walk_forward.py`. Fits an isotonic/Platt calibrator from settled history
+  (applied at edge discovery; identity until fit) and replays weeks without look-ahead.
 
 ```bash
+python scripts/fit_calibration.py     # fit data/calibration.json from the ledger
+python scripts/backtest.py            # walk-forward over the ledger (or --records-json)
+```
+
+- **Matchup-interaction engine** — `phase1/scheme.py`, `phase1/matchup_ml.py`. A **bounded
+  residual layer** on top of the additive `matchup_means()` (never a replacement). Uses
+  scikit-learn gradient boosting by default (no new runtime dep); LightGBM + nflverse scheme
+  enrichment are optional via `pip install -e ".[ml]"`. No trained model → zero adjustment.
+
+```bash
+python scripts/train_matchup.py --season 2022 --season 2023 --season 2024
+```
+
+## Pregame schedule (T-12h / T-3h / T-1h)
+
+`scripts/run_pregame.py` fires **sides + props** when a game is within ±25 minutes of 12h, 3h, or 1h before kickoff. Fired windows are recorded in `data/schedule_state.json` so each window runs once.
+
+Weekly run times are built from the nflverse schedule (`games.csv`) into `data/pregame_run_plan.json`:
+
+```bash
+python scripts/plan_pregame_runs.py   # refresh plan from NFL schedule
 python scripts/run_pregame.py --demo
 ```
+
+GitHub Action **Pregame Windows** checks the run plan hourly on Thu–Mon (most hours exit in seconds). Full pipeline runs only when a planned window is due — typically ~3 runs per kickoff slot (1pm / 4pm / 8pm ET Sunday, etc.), not every 30 minutes.
 
 ## GitHub Pages (weekly public board)
 
@@ -108,9 +148,10 @@ python scripts/run_pregame.py --demo
 
 1. **Settings → Pages → Build and deployment**
    - Source: **GitHub Actions**
-2. **Settings → Secrets and variables → Actions** — add:
-   - `ODDS_API_KEY` (required for live odds)
-   - `ACTION_NETWORK_COOKIE` (optional; money/handle %)
+2. **Settings → Secrets and variables → Actions → Repository secrets** — add:
+   - `ODDS_API_KEY` (required for live odds on GitHub Actions — a local `.env` file is **not** used in CI)
+   - `ACTION_NETWORK_TOKEN` (preferred; Bearer JWT for money/handle %)
+   - `ACTION_NETWORK_COOKIE` (optional fallback)
 3. Merge this branch to `main`, then run **Actions → NFL Pipeline + Ledger → Run workflow**
 4. Site URL: `https://<user>.github.io/sharp-scout/`
 
@@ -118,10 +159,20 @@ python scripts/run_pregame.py --demo
 
 | Workflow | When | Does |
 |---|---|---|
-| `Pregame Windows` | Every 30 min | Fire T-12h / T-3h / T-1h side+prop runs for due games → update ledger + Pages |
-| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full slate refresh / settle / site |
+| `Pregame Windows` | Hourly Thu–Mon + plan refresh Monday | Fire T-12h / T-3h / T-1h only when scheduled in run plan |
+| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full ratings + slate refresh; or **Run workflow** with **Today's slate** |
 | `NCAAF Pipeline + Ledger` | Tue–Sat + Sunday settle + manual | College slate refresh / settle / site |
 | `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
+
+### Today's preseason slate (manual)
+
+```bash
+python scripts/run_today_slate.py --build-site --fresh-ledger
+```
+
+On GitHub: **Actions → NFL Pipeline + Ledger → Run workflow** → check **Today's slate only** and **Build site**.
+
+Then open the **Games** tab on GitHub Pages to see each phase (EPA model, EV edges, money/ticket %, stage picks). The **CFB** tab shows the NCAAF board.
 
 The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**, and **weekly ledger**.
 
@@ -129,8 +180,9 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 
 | Env var | Purpose |
 |---|---|
-| `ODDS_API_KEY` | The Odds API key (`regions=us,us2,eu` → Pinnacle + US retail) |
-| `ACTION_NETWORK_COOKIE` | Action Network Pro/EDGE session Cookie header (see below) |
+| `ODDS_API_KEY` | The Odds API key (`regions=us,us2,eu` → Pinnacle + US retail); covers NFL + NCAAF |
+| `ACTION_NETWORK_TOKEN` | Preferred Action Network Bearer JWT (takes precedence over cookie) |
+| `ACTION_NETWORK_COOKIE` | Action Network Pro/EDGE session Cookie header (fallback) |
 | `EV_THRESHOLD` | Minimum EV to flag (default `0.02`) |
 | `MONEY_TICKET_GAP` | Handle % − ticket % confirmation (default `0.20`) |
 | `PROP_EV_THRESHOLD` | Min EV for player props (default `0.02`) |
@@ -140,30 +192,33 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 
 **Circa note:** The Odds API exposes Pinnacle reliably (`eu`). Circa is included in sharp preference order when the aggregator returns it; otherwise Pinnacle is the sharp benchmark.
 
-## Action Network Pro / cookie
+## Action Network Pro / auth
 
 Phase 4 uses Action Network public-betting splits (ticket % vs money %).
 
-Many books already expose both percentages on the public scoreboard API (`markets.*.bet_info`). A logged-in **Pro/EDGE** cookie can unlock more books / richer fields when AN gates them.
+Many books already expose both percentages on the public scoreboard API (`markets.*.bet_info`). A logged-in **Pro/EDGE** Bearer token (preferred) or cookie can unlock more books / richer fields when AN gates them.
 
 ```bash
-# Without cookie (anonymous)
+# Without auth (anonymous)
 python scripts/diagnose_action_network.py
+
+# NFL or NCAAF
+python scripts/diagnose_action_network.py --league ncaaf
 
 # With cookie pasted from browser
 python scripts/diagnose_action_network.py --cookie 'YOUR_COOKIE_STRING'
 ```
 
-**Grab the cookie**
+**Grab the token / cookie**
 
 1. Log into [actionnetwork.com](https://www.actionnetwork.com) with Pro/EDGE  
-2. Open **NFL → Public Betting** and confirm money % is visible (not locked)  
-3. DevTools → **Network** → click a `scoreboard` / `api.actionnetwork.com` request  
-4. Request Headers → copy the full **Cookie** value  
-5. Local: set `ACTION_NETWORK_COOKIE=...` in `.env`  
-6. GitHub Actions: **Settings → Secrets → Actions →** `ACTION_NETWORK_COOKIE`  
+2. Open **NFL or NCAAF → Public Betting** and confirm money % is visible (not locked)  
+3. DevTools → **Network** → click a `scoreboard` / `publicbetting` request  
+4. Prefer **Authorization** bearer token → `ACTION_NETWORK_TOKEN` (or copy full **Cookie** → `ACTION_NETWORK_COOKIE`)  
+5. Local: set in `.env`  
+6. GitHub Actions: **Settings → Secrets → Actions →** matching secret names  
 
-Cookies expire (often days–weeks). Re-run `diagnose_action_network.py` when money % disappears; refresh the secret when needed.
+Tokens last longer than cookies; re-run `diagnose_action_network.py` when money % disappears.
 
 `pro_splits_ready: true` means the Phase 4 money/ticket filter has the data it needs.
 
@@ -184,6 +239,8 @@ Cookies expire (often days–weeks). Re-run `diagnose_action_network.py` when mo
 - `GET /api/signals` — full latest NFL payload
 - `GET /api/plays` — validated NFL plays only
 - `GET /api/ratings`
+- `GET /api/splits` — split boards from latest NFL run
+- `GET /api/stages` — stage picks + summary
 - `POST /api/run?demo=true&skip_pbp=true` — trigger NFL pipeline
 - `GET /api/ncaaf` — latest NCAAF payload (plays, stages, ratings)
 - `POST /api/run-ncaaf?demo=true&skip_pbp=true` — trigger NCAAF pipeline

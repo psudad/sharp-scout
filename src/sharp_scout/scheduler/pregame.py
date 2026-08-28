@@ -142,7 +142,7 @@ def run_due_pregame(
         for ev in events:
             ev["commence_time"] = datetime.now(timezone.utc) + timedelta(hours=3)
             ev["pregame_window"] = 3.0
-        hits = find_due_windows(events, state={"fired": {}})
+        hits = find_due_windows(events, state=load_state())
     else:
         client = OddsClient()
         try:

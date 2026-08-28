@@ -44,14 +44,14 @@ def main() -> None:
     print(json.dumps(report, indent=2, default=str))
     if not report.get("pro_splits_ready"):
         print(
-            "\nHow to grab the cookie:\n"
+            "\nHow to grab the cookie / token:\n"
             "  1. Open https://www.actionnetwork.com and log in (Pro/EDGE).\n"
             "  2. Go to NFL or NCAAF Public Betting.\n"
-            "  3. DevTools → Network → pick a scoreboard/api request.\n"
-            "  4. Request Headers → copy the full Cookie value.\n"
-            "  5. Local: ACTION_NETWORK_COOKIE='...' in .env\n"
-            "  6. GitHub: Settings → Secrets → ACTION_NETWORK_COOKIE\n"
-            "  Cookies expire — re-copy when diagnose fails.\n",
+            "  3. DevTools → Network → pick a scoreboard/publicbetting request.\n"
+            "  4. Prefer Authorization bearer token → ACTION_NETWORK_TOKEN\n"
+            "     (or copy the full Cookie value → ACTION_NETWORK_COOKIE).\n"
+            "  5. Local: set in .env; GitHub: repository secrets.\n"
+            "  Tokens/cookies expire — re-copy when diagnose fails.\n",
             file=sys.stderr,
         )
         sys.exit(1)

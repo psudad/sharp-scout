@@ -9,6 +9,15 @@ from pathlib import Path
 from typing import Any
 
 from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR, ROOT
+from sharp_scout.copy.explain import (
+    collapse_best_signals,
+    describe_splits_board,
+    describe_stage_pick,
+    format_kickoff_et,
+    format_play_rationale,
+    kickoff_sort_key,
+    STAGE_LABELS,
+)
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.sports import NCAAF
 
@@ -33,6 +42,15 @@ def _price(p: Any) -> str:
     return f"+{int(round(n))}" if n > 0 else str(int(round(n)))
 
 
+def _team_for_side(p: dict[str, Any]) -> str:
+    side = str(p.get("side") or "").lower()
+    if side == "home":
+        return str(p.get("home_team") or "HOME")
+    if side == "away":
+        return str(p.get("away_team") or "AWAY")
+    return str(p.get("side", "")).upper()
+
+
 def _side_label(p: dict[str, Any]) -> str:
     if p.get("player_name") or str(p.get("market") or "").startswith("player_"):
         line = p.get("line")
@@ -44,7 +62,8 @@ def _side_label(p: dict[str, Any]) -> str:
     if line is not None:
         line_s = f" {float(line):+g}" if float(line) != 0 else " 0"
     m = {"spreads": "spread", "totals": "total", "h2h": "ML"}.get(p.get("market"), p.get("market"))
-    return f"{str(p.get('side', '')).upper()}{line_s} ({m}) {_price(p.get('price'))}"
+    team = _team_for_side(p)
+    return f"{team}{line_s} ({m}) {_price(p.get('price'))}"
 
 
 def _status_badge(status: str) -> str:
@@ -100,10 +119,14 @@ def build_site(
     pending = [p for p in ledger["plays"] if (p.get("status") or "pending") == "pending"]
     settled = [p for p in ledger["plays"] if (p.get("status") or "pending") != "pending"]
     settled_sorted = sorted(settled, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True)
-    pending_sorted = sorted(pending, key=lambda p: p.get("created_at") or "", reverse=True)
+    pending_deduped = collapse_best_signals(pending)
+    pending_sorted = sorted(
+        pending_deduped,
+        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
 
     # Prefer live validated signals for "this week" board if present
-    live_plays = signals.get("plays") or []
+    live_plays = collapse_best_signals(signals.get("plays") or [], only_passed=True)
 
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     win_pct = f"{record['win_pct'] * 100:.1f}%" if record["win_pct"] is not None else "—"
@@ -117,14 +140,25 @@ def build_site(
     ratings_rows = _render_ratings(signals.get("ratings") or [])
 
     stage_cards = signals.get("stage_picks") or ledger.get("stage_cards") or []
+    clv_banner_html = _render_clv_banner(record.get("clv"))
+    disagreement_rows = _render_disagreement_rows(record.get("disagreements"))
     stage_rows = _render_stage_rows(stage_cards)
     stage_record_rows = _render_stage_record_rows(record.get("stage_records") or {})
     stage_summary = signals.get("stage_summary") or {}
     fade_n = stage_summary.get("fade_public_games", "—")
     rlm_n = stage_summary.get("rlm_games", "—")
+    stage_highlights_html = _render_stage_highlight_lists(stage_summary)
+
+    games_html = _render_games_pipeline(
+        signals.get("games") or [],
+        signals.get("split_boards") or [],
+        stage_cards,
+        signals.get("signals") or [],
+        signals.get("ratings") or [],
+    )
 
     ncaaf_pending = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") == "pending"]
-    ncaaf_live = ncaaf_signals.get("plays") or []
+    ncaaf_live = collapse_best_signals(ncaaf_signals.get("plays") or [], only_passed=True)
     ncaaf_plays_html = _render_play_cards(ncaaf_pending, live_fallback=ncaaf_live)
     ncaaf_stage_cards = ncaaf_signals.get("stage_picks") or ncaaf_ledger.get("stage_cards") or []
     ncaaf_stage_rows = _render_stage_rows(ncaaf_stage_cards)
@@ -153,8 +187,12 @@ def build_site(
         ratings_rows=ratings_rows,
         stage_rows=stage_rows,
         stage_record_rows=stage_record_rows,
+        clv_banner_html=clv_banner_html,
+        disagreement_rows=disagreement_rows,
+        games_html=games_html,
         fade_n=fade_n,
         rlm_n=rlm_n,
+        stage_highlights_html=stage_highlights_html,
         demo_note="DEMO data" if signals.get("demo") else "Live pipeline",
         ncaaf_record=ncaaf_record["record"],
         ncaaf_win_pct=ncaaf_win_pct,
@@ -182,33 +220,33 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
     if not source:
         return '<div class="empty">No open plays. Run the pipeline to generate signals.</div>'
 
-    # If using live_fallback (not yet in ledger), shape lightly
     cards = []
     for p in source:
+        kick_et = format_kickoff_et(p.get("kickoff") or p.get("commence_time"))
         if "filter_passed" in p and not p.get("status"):
-            # live signal shape
             tier = p.get("tier") or "lean"
             status_html = '<span class="card-result pending">OPEN</span>'
             title = _side_label(p)
-            sub = f"{p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
+            sub = f"{kick_et} · {p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
             edge = p.get("edge")
             units = {"play": 1.5, "lean": 1.0}.get(tier, 0.5)
-            rationale = p.get("rationale") or ""
+            rationale = format_play_rationale(p)
             meta_edge = f"{(edge or 0) * 100:.1f}%" if edge is not None else "—"
         else:
             tier = p.get("tier") or "lean"
             status_html = _status_badge(p.get("status") or "pending")
             title = _side_label(p)
-            sub = f"{p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
+            sub = f"{kick_et} · {p.get('away_team')} @ {p.get('home_team')} · {p.get('book')}"
             if p.get("window"):
-                sub += f" · T-{p.get('window')}h"
+                w = p.get("window")
+                sub += f" · {'force-all' if w == -1 else f'T-{w}h'}"
             if p.get("play_type") == "prop" or p.get("player_name"):
                 sub = f"PROP · {sub}"
             if p.get("home_score") is not None and not p.get("player_name"):
                 sub += f" · Final {p.get('away_team')} {p.get('away_score')}, {p.get('home_team')} {p.get('home_score')}"
             edge = p.get("edge")
             units = p.get("units") or 1
-            rationale = p.get("rationale") or ""
+            rationale = format_play_rationale(p)
             meta_edge = f"{(edge or 0) * 100:.1f}%" if edge is not None else "—"
 
         card_cls = "sharp-play" if tier == "play" else "sharp-lean" if tier == "lean" else "candidate"
@@ -245,15 +283,31 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
         <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
           <span class="arrow">▶</span><span>Rationale</span>
         </div>
-        <div class="rationale-body">{_esc(rationale)}</div>
+        <div class="rationale-body">{_esc(rationale).replace(chr(10), '<br>')}</div>
       </div>"""
         )
     return "\n".join(cards)
 
 
+def _clv_cell(p: dict) -> str:
+    """Points of closing-line value with a color cue (positive = beat the close)."""
+    pts = p.get("clv_points")
+    prob = p.get("clv_prob")
+    if pts is None and prob is None:
+        return "<td class='pending'>—</td>"
+    if pts is not None:
+        cls = "pos" if pts > 0 else "neg" if pts < 0 else "pending"
+        main = f"{pts:+g}"
+    else:
+        cls = "pos" if (prob or 0) > 0 else "neg" if (prob or 0) < 0 else "pending"
+        main = f"{prob * 100:+.1f}%"
+    sub = f" ({prob * 100:+.1f}%)" if pts is not None and prob is not None else ""
+    return f"<td class='{cls}'>{main}{sub}</td>"
+
+
 def _render_ledger_rows(plays: list[dict]) -> str:
     if not plays:
-        return "<tr><td colspan='7'>No plays in ledger yet.</td></tr>"
+        return "<tr><td colspan='8'>No plays in ledger yet.</td></tr>"
     rows = []
     for p in sorted(plays, key=lambda x: x.get("created_at") or "", reverse=True):
         st = p.get("status") or "pending"
@@ -275,10 +329,40 @@ def _render_ledger_rows(plays: list[dict]) -> str:
             f"<td>{p.get('units')}u</td>"
             f"<td class='{st if st in ('win','loss') else 'pending'}'>{st.upper()}</td>"
             f"<td>{_esc(score)}</td>"
+            f"{_clv_cell(p)}"
             f"<td class='{pnl_cls}'>{pnl_s}</td>"
             f"</tr>"
         )
     return "\n".join(rows)
+
+
+def _render_clv_banner(clv: dict[str, Any] | None) -> str:
+    """Summary of Closing Line Value — the earliest proof the process beats the market."""
+    clv = clv or {}
+    n = clv.get("n_plays_with_clv") or 0
+    if not n:
+        return (
+            '<p class="phase-note" style="padding:6px 0">Closing Line Value appears here once '
+            "plays are graded against their closing line (captured at the T-1h pregame run).</p>"
+        )
+    avg_pts = clv.get("avg_clv_points")
+    beat_pct = clv.get("beat_close_pct")
+    rec = clv.get("beat_close_record") or "—"
+    pts_s = f"{avg_pts:+g}" if avg_pts is not None else "—"
+    beat_s = f"{beat_pct * 100:.0f}%" if beat_pct is not None else "—"
+    cls = "pos" if (avg_pts or 0) > 0 else "neg" if (avg_pts or 0) < 0 else ""
+    return (
+        '<div class="summary-grid" style="margin-top:6px">'
+        f'<div class="stat-card"><div class="stat-val {cls}">{pts_s}</div>'
+        '<div class="stat-label">Avg CLV (pts)</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{beat_s}</div>'
+        '<div class="stat-label">Beat Close %</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{rec}</div>'
+        '<div class="stat-label">Beat-Close W-L</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{n}</div>'
+        '<div class="stat-label">Plays w/ CLV</div></div>'
+        "</div>"
+    )
 
 
 def _render_week_rows(by_week: dict) -> str:
@@ -309,6 +393,214 @@ def _render_ratings(ratings: list[dict]) -> str:
     )
 
 
+def _rating_row(team: str, ratings: list[dict]) -> str:
+    r = next((x for x in ratings if x.get("team") == team), None)
+    if not r:
+        return "—"
+    return f"power {r['power']:.3f} · off {r['off_epa']:.3f} · def {r['def_epa']:.3f}"
+
+
+def _render_splits_table(board: dict[str, Any]) -> str:
+    markets = board.get("markets") or {}
+    if not markets:
+        reason = board.get("reason") or "No split data"
+        return f'<p class="phase-note">{_esc(reason)}</p>'
+
+    narrative = describe_splits_board(board)
+    parts = [f'<p class="phase-note splits-summary"><b>Sharp money read:</b> {_esc(narrative)}</p>']
+    parts.append(
+        '<p class="phase-note" style="font-size:11px">'
+        "Tickets = % of bets on each side. Money = % of dollars (handle). "
+        "Diff = money minus tickets — positive means sharps lean that side.</p>"
+    )
+    for mkey, mdata in markets.items():
+        rows = []
+        for side_key, side in (mdata.get("sides") or {}).items():
+            t = side.get("tickets_pct")
+            m = side.get("money_pct")
+            d = side.get("diff_pct")
+            t_s = f"{t * 100:.0f}%" if t is not None else "—"
+            m_s = f"{m * 100:.0f}%" if m is not None else "—"
+            d_s = f"{d * 100:+.0f}%" if d is not None else "—"
+            rows.append(
+                f"<tr><td>{_esc(side.get('label') or side_key)}</td>"
+                f"<td>{t_s}</td><td>{m_s}</td><td class='pos'>{d_s}</td></tr>"
+            )
+        line = mdata.get("line")
+        line_s = f" line {line}" if line is not None else ""
+        parts.append(
+            f"<div class='phase-sub'>{_esc(mkey)}{line_s}</div>"
+            f"<div class='table-wrap'><table><thead><tr>"
+            f"<th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead>"
+            f"<tbody>{''.join(rows)}</tbody></table></div>"
+        )
+    return "".join(parts)
+
+
+def _render_edge_rows(signals: list[dict]) -> str:
+    if not signals:
+        return "<tr><td colspan='6'>No EV candidates (phase 3).</td></tr>"
+    collapsed = collapse_best_signals(signals)
+    rows = []
+    for s in collapsed[:12]:
+        passed = s.get("filter_passed")
+        cls = "pos" if passed else "pending"
+        flag = "✓" if passed else "—"
+        edge = s.get("edge")
+        edge_s = f"{edge * 100:.1f}%" if edge is not None else "—"
+        line = s.get("line")
+        side_label = _side_label({**s, "price": s.get("price")})
+        rationale = format_play_rationale(s).replace("\n", " · ")
+        rows.append(
+            f"<tr><td>{_esc(_market_label(s.get('market')))}</td>"
+            f"<td>{_esc(side_label)}</td>"
+            f"<td>{_esc(s.get('book'))}</td>"
+            f"<td class='{cls}'>{edge_s}</td>"
+            f"<td>{flag}</td>"
+            f"<td class='rationale-cell'>{_esc(rationale)}</td></tr>"
+        )
+    return "\n".join(rows)
+
+
+def _market_label(market: str | None) -> str:
+    return {"spreads": "spread", "totals": "total", "h2h": "ML"}.get(market or "", market or "")
+
+
+def _render_stage_mini(card: dict | None, home: str, away: str) -> str:
+    if not card:
+        return "<p class='phase-note'>No stage card.</p>"
+    picks = card.get("picks") or {}
+    rows = []
+    for key in ("model", "sharp", "public", "money", "sharp_edge", "rlm", "hybrid"):
+        p = picks.get(key) or {}
+        label = STAGE_LABELS.get(key, key)
+        if not p.get("available"):
+            cell = "—"
+            why = p.get("reason") or "Not available"
+        else:
+            team = p.get("team") or p.get("side") or "—"
+            conf = p.get("confidence")
+            conf_s = f" ({conf * 100:.0f}%)" if conf is not None else ""
+            cell = f"{_esc(team)}{conf_s}"
+            why = describe_stage_pick(key, p, home, away)
+        rows.append(
+            f"<tr><td><b>{_esc(label)}</b></td><td>{cell}</td>"
+            f"<td class='stage-why'>{_esc(why)}</td></tr>"
+        )
+    return (
+        "<div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></div>"
+    )
+
+
+def _render_games_pipeline(
+    games: list[dict],
+    split_boards: list[dict],
+    stage_cards: list[dict],
+    signals: list[dict],
+    ratings: list[dict],
+) -> str:
+    if not games:
+        return '<div class="empty">No games in latest pipeline run. Run scripts/run_today_slate.py or the NFL Pipeline workflow.</div>'
+
+    boards = {str(b.get("event_id")): b for b in split_boards}
+    stages = {str(c.get("event_id")): c for c in stage_cards}
+    sig_by_event: dict[str, list[dict]] = {}
+    for s in signals:
+        sig_by_event.setdefault(str(s.get("event_id")), []).append(s)
+
+    cards = []
+    games_sorted = sorted(
+        games,
+        key=lambda g: kickoff_sort_key(g.get("commence_time")),
+    )
+    for g in games_sorted:
+        eid = str(g.get("event_id"))
+        away, home = g.get("away_team"), g.get("home_team")
+        board = boards.get(eid) or {}
+        stage = stages.get(eid)
+        game_sigs = sig_by_event.get(eid) or []
+        kick = format_kickoff_et(g.get("commence_time"))
+        p_hw = g.get("p_home_win")
+        p_hw_s = f"{p_hw * 100:.1f}%" if p_hw is not None else "—"
+        m_spread = g.get("model_spread")
+        m_total = g.get("model_total")
+        spread_s = f"{float(m_spread):+.2f}" if m_spread is not None else "—"
+        total_s = f"{float(m_total):.2f}" if m_total is not None else "—"
+
+        cards.append(
+            f"""
+      <div class="game-card">
+        <div class="game-head">
+          <div class="game-title">{_esc(away)} @ {_esc(home)}</div>
+          <div class="game-kick">{_esc(kick)}</div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 1 · EPA ratings → model</div>
+          <p class="phase-note"><b>{_esc(away)}</b>: {_esc(_rating_row(away, ratings))}</p>
+          <p class="phase-note"><b>{_esc(home)}</b>: {_esc(_rating_row(home, ratings))}</p>
+          <p class="phase-note">Model spread (home): <b>{spread_s}</b> ·
+            total <b>{total_s}</b> · P(home win) <b>{p_hw_s}</b></p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <tbody>{_render_edge_rows(game_sigs)}</tbody>
+          </table></div>
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
+          {_render_splits_table(board)}
+        </div>
+        <div class="phase-block">
+          <div class="phase-label">Stage picks (each lens)</div>
+          {_render_stage_mini(stage, home, away)}
+        </div>
+      </div>"""
+        )
+    return "\n".join(cards)
+
+
+def _render_stage_highlight_lists(stage_summary: dict[str, Any]) -> str:
+    fade = stage_summary.get("fade_public_matchups") or []
+    rlm = stage_summary.get("rlm_matchups") or []
+    parts: list[str] = []
+    if fade:
+        lines = [
+            f"{x.get('away_team')} @ {x.get('home_team')}: "
+            f"sharp books like {x.get('sharp_team')} · public tickets on {x.get('public_team')}"
+            for x in fade
+        ]
+        parts.append(
+            "<div class='phase-note'><b>Sharp vs public games:</b><br>"
+            + "<br>".join(_esc(line) for line in lines)
+            + "</div>"
+        )
+    else:
+        parts.append(
+            "<div class='phase-note'>No games on this slate where sharp books disagree with public ticket %.</div>"
+        )
+    if rlm:
+        lines = [
+            f"{x.get('away_team')} @ {x.get('home_team')}: "
+            f"RLM toward {x.get('rlm_team')} — {_esc(x.get('reason') or '')}"
+            for x in rlm
+        ]
+        parts.append(
+            "<div class='phase-note' style='margin-top:10px'><b>Reverse line movement games:</b><br>"
+            + "<br>".join(lines)
+            + "</div>"
+        )
+    else:
+        parts.append(
+            "<div class='phase-note' style='margin-top:10px'>"
+            "No RLM signals on this slate (needs an opening line vs current — stored on first pipeline run).</div>"
+        )
+    return "".join(parts)
+
+
 def _pick_cell(pick: dict | None) -> str:
     if not pick or not pick.get("available") or not pick.get("team"):
         return "<span class='pending'>—</span>"
@@ -317,7 +609,7 @@ def _pick_cell(pick: dict | None) -> str:
 
 def _render_stage_rows(cards: list[dict]) -> str:
     if not cards:
-        return "<tr><td colspan='8'>No stage picks yet. Run the pipeline.</td></tr>"
+        return "<tr><td colspan='9'>No stage picks yet. Run the pipeline.</td></tr>"
     rows = []
     for c in cards:
         picks = c.get("picks") or {}
@@ -336,10 +628,29 @@ def _render_stage_rows(cards: list[dict]) -> str:
             f"<td>{_pick_cell(picks.get('sharp'))}</td>"
             f"<td>{_pick_cell(picks.get('public'))}</td>"
             f"<td>{_pick_cell(picks.get('money'))}</td>"
+            f"<td>{_pick_cell(picks.get('sharp_edge'))}</td>"
             f"<td>{_pick_cell(picks.get('rlm'))}</td>"
             f"<td class='pos'>{_pick_cell(hybrid)}</td>"
             f"<td>{_esc(flag or agrees)}</td>"
             "</tr>"
+        )
+    return "\n".join(rows)
+
+
+def _render_disagreement_rows(disagreements: dict[str, Any] | None) -> str:
+    """Per-category count + hit rate for model-vs-market disagreements."""
+    disagreements = disagreements or {}
+    by_cat = disagreements.get("by_category") or {}
+    if not by_cat:
+        return "<tr><td colspan='3'>No logged disagreements yet. They appear when the model differs from the market beyond the threshold.</td></tr>"
+    rows = []
+    for cat, b in by_cat.items():
+        wp = f"{b['win_pct'] * 100:.0f}%" if b.get("win_pct") is not None else "—"
+        rec = b.get("record") or "—"
+        rows.append(
+            f"<tr><td><b>{_esc(cat)}</b></td>"
+            f"<td>{b.get('count', 0)}</td>"
+            f"<td>{_esc(rec)} · {wp}</td></tr>"
         )
     return "\n".join(rows)
 
@@ -379,8 +690,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sharp Scout — NFL + NCAAF</title>
-<meta name="description" content="Sharp Scout NFL and NCAA football hybrid model plays and record">
+<title>Sharp Scout — NFL</title>
+<meta name="description" content="Sharp Scout NFL hybrid model plays and record">
 <style>
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }}
@@ -388,8 +699,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .header h1 {{ font-size: 22px; font-weight: 800; color: #fff; }}
   .header p {{ color: #94a3b8; font-size: 13px; margin-top: 6px; }}
   .pill {{ display: inline-block; margin-top: 8px; background: #0d2a1a; border: 1px solid #4ade80; color: #4ade80; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 20px; }}
-  .tabs {{ position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; background: #161b22; border-bottom: 1px solid #30363d; }}
-  .tab {{ flex: 1; min-width: 72px; padding: 14px 8px; text-align: center; cursor: pointer; color: #8b949e; font-size: 13px; font-weight: 600; border-bottom: 3px solid transparent; }}
+  .tabs {{ position: sticky; top: 0; z-index: 10; display: flex; background: #161b22; border-bottom: 1px solid #30363d; }}
+  .tab {{ flex: 1; padding: 14px; text-align: center; cursor: pointer; color: #8b949e; font-size: 13px; font-weight: 600; border-bottom: 3px solid transparent; }}
   .tab.active {{ color: #f4820a; border-bottom-color: #f4820a; }}
   .content {{ display: none; padding: 16px; max-width: 900px; margin: 0 auto; }}
   .content.active {{ display: block; }}
@@ -423,8 +734,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .conf-fill {{ height: 5px; border-radius: 4px; }}
   .rationale-toggle {{ margin-top: 10px; color: #8b949e; font-size: 12px; cursor: pointer; display: flex; gap: 6px; align-items: center; }}
   .rationale-toggle.open .arrow {{ transform: rotate(90deg); }}
-  .rationale-body {{ display: none; font-size: 12px; color: #94a3b8; margin-top: 8px; line-height: 1.6; border-top: 1px solid #21262d; padding-top: 8px; }}
+  .rationale-body {{ display: none; font-size: 12px; color: #cbd5e1; margin-top: 8px; line-height: 1.65; border-top: 1px solid #21262d; padding-top: 8px; }}
   .rationale-body.open {{ display: block; }}
+  .rationale-cell {{ font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 320px; }}
+  .stage-why {{ font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 420px; }}
+  .splits-summary {{ color: #e2e8f0; margin-bottom: 8px; }}
   .table-wrap {{ overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }}
   th {{ background: #161b22; color: #8b949e; text-align: left; padding: 10px; border-bottom: 1px solid #30363d; }}
@@ -435,6 +749,14 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .pos {{ color: #4ade80; font-weight: 600; }}
   .neg {{ color: #f87171; font-weight: 600; }}
   .empty {{ color: #8b949e; text-align: center; padding: 28px 8px; }}
+  .game-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; margin-bottom: 14px; }}
+  .game-head {{ margin-bottom: 10px; }}
+  .game-title {{ font-size: 18px; font-weight: 800; }}
+  .game-kick {{ font-size: 11px; color: #8b949e; margin-top: 4px; }}
+  .phase-block {{ margin-top: 12px; border-top: 1px solid #21262d; padding-top: 10px; }}
+  .phase-label {{ font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #f4820a; text-transform: uppercase; margin-bottom: 6px; }}
+  .phase-note {{ font-size: 12px; color: #94a3b8; margin: 4px 0; line-height: 1.5; }}
+  .phase-sub {{ font-size: 11px; font-weight: 700; color: #8b949e; margin: 8px 0 4px; }}
   .footer {{ color: #4b5563; font-size: 11px; padding: 24px 16px; text-align: center; line-height: 1.6; }}
 </style>
 </head>
@@ -447,6 +769,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">Plays</div>
+  <div class="tab" onclick="showTab('games', this)">Games</div>
   <div class="tab" onclick="showTab('stages', this)">Stages</div>
   <div class="tab" onclick="showTab('ledger', this)">Ledger</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
@@ -460,24 +783,37 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <div class="stat-card"><div class="stat-val {pnl_cls}">{pnl}u</div><div class="stat-label">Profit</div></div>
     <div class="stat-card"><div class="stat-val">{bankroll}u</div><div class="stat-label">Bankroll</div></div>
   </div>
+  <div class="section-label">Closing Line Value</div>
+  {clv_banner_html}
   <div class="section-label">Open / Latest Plays · {pending} pending · {n_plays} total</div>
   {plays_html}
 </div>
 
+<div id="tab-games" class="content">
+  <p class="phase-note" style="padding:12px 0">Per-game pipeline output: EPA model → Monte Carlo → market EV → money/ticket splits → stage picks.</p>
+  {games_html}
+</div>
+
 <div id="tab-stages" class="content">
   <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">{fade_n}</div><div class="stat-label">Sharp vs Public</div></div>
-    <div class="stat-card"><div class="stat-val">{rlm_n}</div><div class="stat-label">RLM Games</div></div>
+    <div class="stat-card"><div class="stat-val">{fade_n}</div><div class="stat-label">Sharp ≠ Public games</div></div>
+    <div class="stat-card"><div class="stat-val">{rlm_n}</div><div class="stat-label">RLM games</div></div>
   </div>
+  {stage_highlights_html}
   <div class="section-label">Stage Records (settled)</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
     <tbody>{stage_record_rows}</tbody>
   </table></div>
+  <div class="section-label">Why Is Our Model Wrong? (disagreement log)</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Category</th><th>Count</th><th>Record · Hit %</th></tr></thead>
+    <tbody>{disagreement_rows}</tbody>
+  </table></div>
   <div class="section-label">Per-Game Stage Winners</div>
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
+      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
     </tr></thead>
     <tbody>{stage_rows}</tbody>
   </table></div>
@@ -492,12 +828,13 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </table></div>
   <div class="section-label">All Plays</div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>PnL</th></tr></thead>
+    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{ledger_rows}</tbody>
   </table></div>
 </div>
 
 <div id="tab-ratings" class="content">
+  <p class="phase-note" style="padding:8px 0">Power ratings from nflverse play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
   <div class="section-label">Power Ratings</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
@@ -526,7 +863,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">NCAAF Per-Game Stage Winners</div>
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
+      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
     </tr></thead>
     <tbody>{ncaaf_stage_rows}</tbody>
   </table></div>

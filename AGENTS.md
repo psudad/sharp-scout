@@ -17,7 +17,7 @@ Sharp Scout is a single Python 3.12 package (`src/sharp_scout`, installed editab
 - There is no configured linter (no ruff/flake8 config despite `.ruff_cache` in `.gitignore`); "lint" is not a separate step here.
 
 ### Non-obvious caveats
-- **Always use `--demo` (and/or `--skip-pbp`) without real API keys.** Live mode requires `ODDS_API_KEY` (The Odds API) and optionally `ACTION_NETWORK_COOKIE`; without them a live run has no market data. `--demo` uses mock odds/splits and neutral ratings so the full pipeline runs offline.
+- **Always use `--demo` (and/or `--skip-pbp`) without real API keys.** Live mode requires `ODDS_API_KEY` (The Odds API) and optionally `ACTION_NETWORK_TOKEN` / `ACTION_NETWORK_COOKIE`; without them a live run has no market data. `--demo` uses mock odds/splits and neutral ratings so the full pipeline runs offline.
 - **Demo runs mutate git-tracked files**: `data/ledger.json`, `data/ncaaf_ledger.json`, and `docs/` (site + ledger + record) are rewritten and appended each run. After demo/testing, run `git checkout -- data/ledger.json data/ncaaf_ledger.json docs/` to avoid committing generated demo data.
 - In NFL demo mode only the `KC@BUF` matchup is populated, so the Ratings tab shows `0.000` for all other teams and the dashboard "Log" tab notes a missing Action Network cookie — both are expected, not bugs. NCAAF demo only populates `ALA@UGA`.
 - Copy `.env.example` to `.env` for local live runs; env vars are read via `pydantic-settings`.

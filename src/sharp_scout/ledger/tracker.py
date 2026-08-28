@@ -27,6 +27,7 @@ def empty_ledger() -> dict[str, Any]:
         "starting_units": 100.0,
         "plays": [],
         "stage_cards": [],
+        "disagreements": [],
     }
 
 
@@ -37,6 +38,7 @@ def load_ledger(path: Path | None = None) -> dict[str, Any]:
     data = json.loads(p.read_text())
     data.setdefault("plays", [])
     data.setdefault("stage_cards", [])
+    data.setdefault("disagreements", [])
     data.setdefault("starting_units", 100.0)
     return data
 
@@ -63,6 +65,13 @@ def _play_key(play: dict[str, Any]) -> str:
     )
 
 
+def _logical_play_key(play: dict[str, Any]) -> str:
+    """Same actionable bet regardless of book, window, or alternate line."""
+    from sharp_scout.copy.explain import _signal_group_key
+
+    return "|".join(str(p) for p in _signal_group_key(play))
+
+
 def units_for_tier(tier: str) -> float:
     return float(DEFAULT_UNITS.get(tier, 1.0))
 
@@ -82,10 +91,15 @@ def append_signals(
     week: int | None = None,
     path: Path | None = None,
 ) -> dict[str, Any]:
-    """Append new validated plays to the ledger (deduped)."""
+    """Append new validated plays to the ledger (deduped).
+
+    Replaces any pending play on the same game/market/side so only the
+    latest best line/book survives across pipeline runs.
+    """
     ledger = load_ledger(path)
     existing = {_play_key(p) for p in ledger["plays"]}
     added = 0
+    replaced = 0
     for s in signals:
         if only_validated and not s.get("filter_passed"):
             continue
@@ -118,6 +132,12 @@ def append_signals(
             "is_alternate": s.get("is_alternate", False),
             "window": s.get("window") or s.get("pregame_window"),
             "rationale": s.get("rationale") or "",
+            "close_line": None,
+            "close_price": None,
+            "close_book": None,
+            "clv_points": None,
+            "clv_prob": None,
+            "clv_at": None,
             "status": "pending",
             "home_score": None,
             "away_score": None,
@@ -128,12 +148,26 @@ def append_signals(
         key = _play_key(row)
         if key in existing:
             continue
-        # Also skip if same matchup/market/side already pending
+        logical = _logical_play_key(row)
+        before_len = len(ledger["plays"])
+        ledger["plays"] = [
+            p
+            for p in ledger["plays"]
+            if (p.get("status") or "pending") != "pending" or _logical_play_key(p) != logical
+        ]
+        if len(ledger["plays"]) < before_len:
+            replaced += 1
+        existing = {_play_key(p) for p in ledger["plays"]}
         ledger["plays"].append(row)
         existing.add(key)
         added += 1
     save_ledger(ledger, path)
-    logger.info("Ledger: added %d plays (total %d)", added, len(ledger["plays"]))
+    logger.info(
+        "Ledger: added %d plays, replaced %d pending (total %d)",
+        added,
+        replaced,
+        len(ledger["plays"]),
+    )
     return ledger
 
 
@@ -270,6 +304,43 @@ def append_stage_cards(
     return ledger
 
 
+def append_disagreements(
+    records: list[dict[str, Any]],
+    *,
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Upsert model-vs-market disagreement records (deduped per event/market/side/week)."""
+    ledger = load_ledger(path)
+    existing = {
+        _disagreement_key(d): i for i, d in enumerate(ledger.get("disagreements") or [])
+    }
+    added = updated = 0
+    for rec in records:
+        key = _disagreement_key(rec)
+        if key in existing:
+            old = ledger["disagreements"][existing[key]]
+            # Preserve any manual category override and settled outcome
+            rec["category_manual"] = old.get("category_manual") or rec.get("category_manual")
+            rec["outcome"] = old.get("outcome") or rec.get("outcome")
+            rec["created_at"] = old.get("created_at") or rec.get("created_at")
+            ledger["disagreements"][existing[key]] = rec
+            updated += 1
+        else:
+            ledger.setdefault("disagreements", []).append(rec)
+            existing[key] = len(ledger["disagreements"]) - 1
+            added += 1
+    save_ledger(ledger, path)
+    logger.info("Disagreements: added %d, updated %d (total %d)", added, updated, len(ledger["disagreements"]))
+    return ledger
+
+
+def _disagreement_key(rec: dict[str, Any]) -> str:
+    return "|".join(
+        str(rec.get(k) or "")
+        for k in ("event_id", "market", "side", "season", "week")
+    )
+
+
 def settle_from_scores(
     scores: list[dict[str, Any]],
     path: Path | None = None,
@@ -339,6 +410,28 @@ def settle_from_scores(
         card["status"] = "settled"
         card["settled_at"] = _now()
         stage_settled += 1
+
+    # Fill Closing Line Value for plays whose closing line is now available.
+    try:
+        from sharp_scout.ledger.clv import finalize_closing_lines
+
+        finalize_closing_lines(ledger)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("CLV finalize skipped: %s", exc)
+
+    # Learn which disagreement categories actually pay off: copy the settled play's
+    # outcome onto the matching disagreement record.
+    play_outcome: dict[str, str] = {}
+    for play in ledger["plays"]:
+        st = play.get("status")
+        if st in ("win", "loss", "push"):
+            play_outcome[_disagreement_key(play)] = st
+    for rec in ledger.get("disagreements") or []:
+        if rec.get("outcome"):
+            continue
+        outcome = play_outcome.get(_disagreement_key(rec))
+        if outcome:
+            rec["outcome"] = outcome
 
     save_ledger(ledger, path)
     logger.info("Settled %d plays, %d stage cards", settled, stage_settled)
@@ -420,6 +513,9 @@ def compute_record(
         b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
         b["win_pct"] = (b["wins"] / d) if d else None
 
+    from sharp_scout.analysis.disagreement import summarize_disagreements
+    from sharp_scout.ledger.clv import summarize_clv
+
     return {
         "wins": wins,
         "losses": losses,
@@ -434,6 +530,8 @@ def compute_record(
         "n_plays": len(plays),
         "by_week": by_week,
         "stage_records": stage_records,
+        "clv": summarize_clv(ledger),
+        "disagreements": summarize_disagreements(ledger.get("disagreements") or []),
     }
 
 

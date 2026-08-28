@@ -67,6 +67,31 @@ def test_ledger_append_dedupe(tmp_path: Path):
     assert len(data["plays"]) == 1
 
 
+def test_ledger_replaces_pending_same_side_different_book(tmp_path: Path):
+    path = tmp_path / "ledger.json"
+    save_ledger(empty_ledger(), path)
+    base = {
+        "event_id": "e1",
+        "away_team": "MIN",
+        "home_team": "NYG",
+        "market": "spreads",
+        "side": "home",
+        "price": -110,
+        "edge": 0.05,
+        "p_true": 0.55,
+        "tier": "play",
+        "filter_passed": True,
+        "rationale": "first",
+    }
+    append_signals([{**base, "line": 1.5, "book": "draftkings"}], path=path)
+    append_signals([{**base, "line": 2.5, "book": "fanduel", "edge": 0.08, "rationale": "better"}], path=path)
+    data = json.loads(path.read_text())
+    assert len(data["plays"]) == 1
+    assert data["plays"][0]["book"] == "fanduel"
+    assert data["plays"][0]["line"] == 2.5
+    assert data["plays"][0]["edge"] == 0.08
+
+
 def test_record_and_site(tmp_path: Path, monkeypatch):
     path = tmp_path / "ledger.json"
     save_ledger(empty_ledger(), path)
@@ -98,7 +123,8 @@ def test_record_and_site(tmp_path: Path, monkeypatch):
 
     monkeypatch.setattr(tr, "LEDGER_PATH", path)
     monkeypatch.setattr(sb, "DOCS_DIR", tmp_path / "docs")
-    # build_site imports load_ledger from tracker — patch module attr
+    # build_site imports load_ledger from tracker — patch module attr so NCAAF
+    # path= kwargs (and NFL default) both resolve to the tmp ledger.
     monkeypatch.setattr(
         sb,
         "load_ledger",

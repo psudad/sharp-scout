@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from sharp_scout.config import ARTIFACTS_DIR, get_settings
-from sharp_scout.data.action_network import ActionNetworkClient, mock_splits
+from sharp_scout.data.action_network import mock_splits
 from sharp_scout.data.odds_api import OddsClient, mock_odds_events
 from sharp_scout.data.situational import situational_spread_adj
 from sharp_scout.db.models import Signal, TeamRating, get_session, init_db
@@ -31,11 +31,16 @@ def run_pipeline(
     build_pages: bool = False,
     season: int | None = None,
     week: int | None = None,
+    events: list[dict[str, Any]] | None = None,
+    splits_date: str | None = None,
+    fetch_splits: bool = True,
 ) -> dict[str, Any]:
     """Execute the four-phase signal pipeline.
 
     demo=True uses mock odds/splits and skips live API calls.
     skip_pbp=True uses neutral ratings (fast CI / no nflverse download).
+    events= manual slate (preseason pasted lines); still joins Action Network splits.
+    splits_date= YYYYMMDD for Action Network scoreboard when using manual odds.
     update_ledger=True appends validated plays to data/ledger.json.
     build_pages=True regenerates the docs/ GitHub Pages site.
     """
@@ -59,7 +64,10 @@ def run_pipeline(
     rating_rows = ratings_as_of_now(ratings)
 
     # ── Market + splits inputs ───────────────────────────────
-    if demo or not settings.odds_api_key:
+    manual_mode = events is not None
+    if manual_mode:
+        logger.info("Manual slate: %d games (preseason / pasted odds)", len(events))
+    elif demo or not settings.odds_api_key:
         if not settings.odds_api_key and not demo:
             logger.warning("ODDS_API_KEY missing — falling back to demo odds")
         events = mock_odds_events()
@@ -70,17 +78,52 @@ def run_pipeline(
             logger.error("Odds fetch failed (%s); using demo events", exc)
             events = mock_odds_events()
 
-    if demo or not events:
+    if demo and not manual_mode:
         splits = mock_splits()
-    else:
+    elif fetch_splits:
         try:
-            splits = ActionNetworkClient().fetch_scoreboard()
+            from sharp_scout.data.splits_board import fetch_action_network_splits
+
+            splits = fetch_action_network_splits(date=splits_date)
             if not splits:
-                logger.warning("Action Network returned no games — using mock splits overlay where possible")
-                splits = mock_splits()
+                logger.warning("Action Network returned no games — splits unavailable")
+                splits = []
         except Exception as exc:  # noqa: BLE001
             logger.warning("Action Network failed: %s", exc)
-            splits = mock_splits()
+            splits = []
+    else:
+        splits = []
+
+    # Record timestamped sharp line snapshot (feeds CLV closing lines + steam).
+    if not (demo and not manual_mode):
+        try:
+            from sharp_scout.data.line_store import record_snapshot
+
+            record_snapshot(events)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("line snapshot skipped: %s", exc)
+
+    # Probability calibrator (identity until fit from settled history).
+    from sharp_scout.analysis.calibration import load_calibrator
+
+    calibrate = load_calibrator()
+
+    # Matchup-interaction engine (no-op until a model is trained).
+    matchup_adjuster = None
+    scheme_feats: dict[str, Any] = {}
+    if not skip_pbp:
+        try:
+            from sharp_scout.phase1.matchup_ml import load_adjuster
+
+            matchup_adjuster = load_adjuster()
+            if matchup_adjuster.ready:
+                from sharp_scout.data.nflfastr import load_pbp
+                from sharp_scout.phase1.scheme import build_scheme_features
+
+                scheme_feats = build_scheme_features(load_pbp(), ratings)
+                logger.info("Matchup engine active (%d teams)", len(scheme_feats))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Matchup engine skipped: %s", exc)
 
     # ── Phases 2–4 per event ─────────────────────────────────
     game_results: list[dict[str, Any]] = []
@@ -97,6 +140,11 @@ def run_pipeline(
             home_boost=situ["home_points_boost"],
             total_adj=situ["total_adj"],
         )
+        # Interaction residual on top of the additive baseline (bounded).
+        if matchup_adjuster is not None and matchup_adjuster.ready and scheme_feats:
+            means = matchup_adjuster.adjust_means(
+                means, scheme_feats.get(home, {}), scheme_feats.get(away, {})
+            )
         # Collect offered lines to refine cover grid
         spread_keys = _collect_points(ev, "spreads")
         total_keys = _collect_points(ev, "totals")
@@ -109,7 +157,7 @@ def run_pipeline(
             spread_keys=spread_keys or None,
             total_keys=total_keys or None,
         )
-        edges = discover_edges(ev, sim)
+        edges = discover_edges(ev, sim, calibrate=calibrate)
         filtered = attach_filters(edges, splits)
         sims_by_event[str(ev.get("event_id"))] = sim
 
@@ -123,9 +171,10 @@ def run_pipeline(
                 else ev.get("commence_time"),
                 "mu_home": means["mu_home"],
                 "mu_away": means["mu_away"],
-                "model_spread": sim.model_spread,
-                "model_total": sim.model_total,
+                "model_spread": round(sim.model_spread, 2),
+                "model_total": round(sim.model_total, 2),
                 "p_home_win": sim.p_home_win,
+                "matchup_residual": means.get("matchup_residual"),
                 "situational": situ,
                 "edge_count": len(edges),
                 "validated": sum(1 for s in filtered if s["filter_passed"]),
@@ -142,13 +191,21 @@ def run_pipeline(
         all_signals.extend(filtered)
 
     validated = [s for s in all_signals if s["filter_passed"]]
-    validated.sort(key=lambda s: s["edge"], reverse=True)
+    from sharp_scout.copy.explain import collapse_best_signals, format_play_rationale
+
+    validated = collapse_best_signals(validated, only_passed=True)
+    for s in validated:
+        s["rationale"] = format_play_rationale(s)
 
     # ── Stage picks: independent winners per data lens ────────
     from sharp_scout.stage_picks import build_slate_stage_picks, summarize_stage_slate
 
     stage_cards = build_slate_stage_picks(events, sims_by_event, splits, validated, market="spread")
     stage_summary = summarize_stage_slate(stage_cards)
+
+    from sharp_scout.data.splits_board import build_slate_split_boards
+
+    split_boards = build_slate_split_boards(events, splits)
     for g in game_results:
         eid = str(g.get("event_id"))
         card = next((c for c in stage_cards if c["event_id"] == eid), None)
@@ -160,7 +217,10 @@ def run_pipeline(
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "demo": demo or not settings.odds_api_key,
+        "demo": demo and not manual_mode,
+        "manual_slate": manual_mode,
+        "splits_date": splits_date,
+        "n_splits_games": len(splits),
         "n_games": len(game_results),
         "n_candidates": len(all_signals),
         "n_validated": len(validated),
@@ -173,6 +233,7 @@ def run_pipeline(
         "plays": validated,
         "stage_picks": stage_cards,
         "stage_summary": stage_summary,
+        "split_boards": split_boards,
     }
 
     out_path = ARTIFACTS_DIR / "latest_signals.json"
@@ -183,12 +244,26 @@ def run_pipeline(
         _persist(rating_rows, validated)
 
     if update_ledger:
-        from sharp_scout.ledger.tracker import append_signals, append_stage_cards, compute_record
+        from sharp_scout.ledger.tracker import (
+            append_disagreements,
+            append_signals,
+            append_stage_cards,
+            compute_record,
+        )
 
         if validated:
             append_signals(validated, season=season, week=week)
         if stage_cards:
             append_stage_cards(stage_cards, season=season, week=week)
+
+        # "Why is our model wrong?" — log material model-vs-market disagreements.
+        from sharp_scout.analysis.disagreement import build_disagreements
+
+        collapsed_all = collapse_best_signals(all_signals, only_passed=False)
+        disagreements = build_disagreements(collapsed_all, season=season, week=week)
+        if disagreements:
+            append_disagreements(disagreements)
+
         payload["record"] = compute_record()
 
     if build_pages:

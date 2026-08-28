@@ -114,6 +114,17 @@ def trigger_ncaaf(
     }
 
 
+@app.get("/api/splits")
+def get_splits() -> dict[str, Any]:
+    data = load_latest_artifacts()
+    return {
+        "split_boards": data.get("split_boards") or [],
+        "n_splits_games": data.get("n_splits_games"),
+        "splits_date": data.get("splits_date"),
+        "manual_slate": data.get("manual_slate"),
+    }
+
+
 @app.get("/api/stages")
 def get_stages() -> dict[str, Any]:
     data = load_latest_artifacts()

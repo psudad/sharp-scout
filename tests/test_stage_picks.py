@@ -29,7 +29,7 @@ def test_stage_card_has_all_stages():
     sim = simulate_game("BUF", "KC", 24, 27, n_sims=1000, seed=1)
     card = build_game_stage_card(ev, sim, mock_splits(), [], market="spread")
     d = card.to_dict()
-    for stage in ("model", "sharp", "public", "money", "rlm", "hybrid"):
+    for stage in ("model", "sharp", "public", "money", "sharp_edge", "rlm", "hybrid"):
         assert stage in d["picks"]
     assert d["agreement"]["n_available"] >= 3
 

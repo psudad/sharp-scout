@@ -19,6 +19,14 @@ on:
         description: "Skip nflverse PBP download"
         type: boolean
         default: false
+      today_slate:
+        description: "Today's NFL games only (Eastern kickoff day)"
+        type: boolean
+        default: false
+      fresh_ledger:
+        description: "Clear ledger before run (today slate)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -46,6 +54,7 @@ jobs:
       - name: Configure env
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
+          echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
           echo "ACTION_NETWORK_COOKIE=${{ secrets.ACTION_NETWORK_COOKIE }}" >> $GITHUB_ENV
           echo "MONTE_CARLO_SIMS=5000" >> $GITHUB_ENV
 
@@ -53,11 +62,30 @@ jobs:
         continue-on-error: true
         run: python scripts/settle_plays.py
 
+      - name: Refit probability calibration
+        # Self-updates data/calibration.json from settled history. No-op / identity
+        # until enough plays have graded; safe to run every pipeline execution.
+        continue-on-error: true
+        run: python scripts/fit_calibration.py
+
       - name: Run pipeline
         env:
           DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
           SKIP_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_pbp || false }}
+          TODAY_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.today_slate || false }}
+          FRESH_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.fresh_ledger || false }}
         run: |
+          if [ "$TODAY_INPUT" = "true" ]; then
+            ARGS="--build-site"
+            if [ "$FRESH_INPUT" = "true" ]; then ARGS="$ARGS --fresh-ledger"; fi
+            if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
+              ARGS="$ARGS --demo --skip-pbp"
+            elif [ "$SKIP_INPUT" = "true" ]; then
+              ARGS="$ARGS --skip-pbp"
+            fi
+            python scripts/run_today_slate.py $ARGS
+            exit 0
+          fi
           ARGS="--build-site"
           if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
             ARGS="$ARGS --demo --skip-pbp"
@@ -71,7 +99,7 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ledger.json docs/
+          git add data/ledger.json data/line_history.json data/calibration.json docs/ 2>/dev/null || git add data/ledger.json docs/
           if git diff --staged --quiet; then
             echo "No ledger/site changes"
           else

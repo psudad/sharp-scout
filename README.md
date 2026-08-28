@@ -1,6 +1,6 @@
 # Sharp Scout
 
-Institutional-grade **NFL betting signal pipeline** (signals only — no auto-betting).
+Institutional-grade **NFL + NCAA football betting signal pipeline** (signals only — no auto-betting).
 
 Architecture runs bottom-up first so market data filters model edges instead of biasing the baseline:
 
@@ -9,7 +9,7 @@ Architecture runs bottom-up first so market data filters model edges instead of 
 3. **Market model** — Pinnacle (and Circa when present) no-vig odds via [The Odds API](https://the-odds-api.com) → EV
 4. **Split filter** — Action Network ticket/money % + reverse line movement confirmation
 
-Validated plays are stored in [`data/ledger.json`](data/ledger.json) and published to **GitHub Pages** under [`docs/`](docs/).
+Validated plays are stored in [`data/ledger.json`](data/ledger.json) (NFL) / [`data/ncaaf_ledger.json`](data/ncaaf_ledger.json) (NCAAF) and published to **GitHub Pages** under [`docs/`](docs/).
 
 ## Quick start
 
@@ -19,25 +19,52 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env
 # Add ODDS_API_KEY (required for live odds)
-# Optional: ACTION_NETWORK_COOKIE (Pro/EDGE session) for richer splits
+# Preferred: ACTION_NETWORK_TOKEN (Bearer JWT); fallback: ACTION_NETWORK_COOKIE
 python scripts/diagnose_action_network.py   # verify money/ticket %
 
-# Demo run + rebuild Pages site
+# Demo run + rebuild Pages site (NFL)
 python scripts/run_pipeline.py --demo --build-site
+
+# NCAA football (FBS) — same 4-phase engine, separate ledger
+python scripts/run_ncaaf.py --demo --build-site
+python scripts/diagnose_action_network.py --league ncaaf
 
 # Live run
 python scripts/run_pipeline.py --build-site
+python scripts/run_ncaaf.py --build-site
 
 # Preseason / manual pasted odds (The Odds API has no preseason) + live Action Network splits
 python scripts/run_manual_slate.py data/manual_slate.example.json --date 20260814 --skip-pbp --build-site
 
-# Settle completed games (nflverse scores) and refresh site
+# Settle completed games (nflverse / cfbfastR scores) and refresh site
 python scripts/settle_plays.py --build-site
+python scripts/settle_plays.py --sport ncaaf --build-site
 # Or one game manually:
 python scripts/settle_plays.py --manual KC BUF 24 20 --build-site
+python scripts/settle_plays.py --sport ncaaf --manual ALA UGA 24 27 --build-site
 
 # Local API (optional)
 uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000
+```
+
+## NCAA football
+
+NCAAF uses the **same 4-phase sequence** as NFL (ratings → Monte Carlo → sharp no-vig EV → split filter) with college-specific sources:
+
+| Layer | NCAAF |
+|---|---|
+| Ratings | cfbfastR / sportsdataverse play-by-play (`data/cfbfastr.py`) |
+| Odds | The Odds API `americanfootball_ncaaf` (Pinnacle + retail) |
+| Splits | Action Network league `ncaaf` |
+| Ledger | `data/ncaaf_ledger.json` (NFL stays in `data/ledger.json`) |
+| Artifacts | `artifacts/latest_ncaaf_signals.json` |
+| Site | **CFB** tab on GitHub Pages |
+
+College defaults: HFA 3.0, scoring base 27.5. Team names like “Alabama Crimson Tide” normalize to `ALA`. Demo mode only populates `ALA@UGA`.
+
+```bash
+python scripts/run_ncaaf.py --demo --build-site
+python scripts/settle_plays.py --sport ncaaf --manual ALA UGA 24 27 --build-site
 ```
 
 ## Stage picks (compare every lens)
@@ -50,6 +77,7 @@ For each game the pipeline also picks a side from **each data stage** independen
 | `sharp` | Pinnacle/Circa no-vig favorite |
 | `public` | Ticket-% majority |
 | `money` | Handle-% majority |
+| `sharp_edge` | Largest positive money − ticket % (Action Network Diff) |
 | `rlm` | Reverse line movement side (when present) |
 | `hybrid` | Full system validated play, else model+confirmations |
 
@@ -122,7 +150,8 @@ GitHub Action **Pregame Windows** checks the run plan hourly on Thu–Mon (most 
    - Source: **GitHub Actions**
 2. **Settings → Secrets and variables → Actions → Repository secrets** — add:
    - `ODDS_API_KEY` (required for live odds on GitHub Actions — a local `.env` file is **not** used in CI)
-   - `ACTION_NETWORK_COOKIE` (optional; money/handle %)
+   - `ACTION_NETWORK_TOKEN` (preferred; Bearer JWT for money/handle %)
+   - `ACTION_NETWORK_COOKIE` (optional fallback)
 3. Merge this branch to `main`, then run **Actions → NFL Pipeline + Ledger → Run workflow**
 4. Site URL: `https://<user>.github.io/sharp-scout/`
 
@@ -131,7 +160,9 @@ GitHub Action **Pregame Windows** checks the run plan hourly on Thu–Mon (most 
 | Workflow | When | Does |
 |---|---|---|
 | `Pregame Windows` | Hourly Thu–Mon + plan refresh Monday | Fire T-12h / T-3h / T-1h only when scheduled in run plan |
-| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon | Full ratings + slate refresh; or **Run workflow** with **Today's slate** |
+| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full ratings + slate refresh; or **Run workflow** with **Today's slate** |
+| `NCAAF Pipeline + Ledger` | Tue–Sat + Sunday settle + manual | College slate refresh / settle / site |
+| `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
 
 ### Today's preseason slate (manual)
 
@@ -141,9 +172,7 @@ python scripts/run_today_slate.py --build-site --fresh-ledger
 
 On GitHub: **Actions → NFL Pipeline + Ledger → Run workflow** → check **Today's slate only** and **Build site**.
 
-Then open the **Games** tab on GitHub Pages to see each phase (EPA model, EV edges, money/ticket %, stage picks).
-| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full slate refresh / settle / site |
-| `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
+Then open the **Games** tab on GitHub Pages to see each phase (EPA model, EV edges, money/ticket %, stage picks). The **CFB** tab shows the NCAAF board.
 
 The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**, and **weekly ledger**.
 
@@ -151,8 +180,9 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 
 | Env var | Purpose |
 |---|---|
-| `ODDS_API_KEY` | The Odds API key (`regions=us,us2,eu` → Pinnacle + US retail) |
-| `ACTION_NETWORK_COOKIE` | Action Network Pro/EDGE session Cookie header (see below) |
+| `ODDS_API_KEY` | The Odds API key (`regions=us,us2,eu` → Pinnacle + US retail); covers NFL + NCAAF |
+| `ACTION_NETWORK_TOKEN` | Preferred Action Network Bearer JWT (takes precedence over cookie) |
+| `ACTION_NETWORK_COOKIE` | Action Network Pro/EDGE session Cookie header (fallback) |
 | `EV_THRESHOLD` | Minimum EV to flag (default `0.02`) |
 | `MONEY_TICKET_GAP` | Handle % − ticket % confirmation (default `0.20`) |
 | `PROP_EV_THRESHOLD` | Min EV for player props (default `0.02`) |
@@ -162,30 +192,33 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 
 **Circa note:** The Odds API exposes Pinnacle reliably (`eu`). Circa is included in sharp preference order when the aggregator returns it; otherwise Pinnacle is the sharp benchmark.
 
-## Action Network Pro / cookie
+## Action Network Pro / auth
 
 Phase 4 uses Action Network public-betting splits (ticket % vs money %).
 
-Many books already expose both percentages on the public scoreboard API (`markets.*.bet_info`). A logged-in **Pro/EDGE** cookie can unlock more books / richer fields when AN gates them.
+Many books already expose both percentages on the public scoreboard API (`markets.*.bet_info`). A logged-in **Pro/EDGE** Bearer token (preferred) or cookie can unlock more books / richer fields when AN gates them.
 
 ```bash
-# Without cookie (anonymous)
+# Without auth (anonymous)
 python scripts/diagnose_action_network.py
+
+# NFL or NCAAF
+python scripts/diagnose_action_network.py --league ncaaf
 
 # With cookie pasted from browser
 python scripts/diagnose_action_network.py --cookie 'YOUR_COOKIE_STRING'
 ```
 
-**Grab the cookie**
+**Grab the token / cookie**
 
 1. Log into [actionnetwork.com](https://www.actionnetwork.com) with Pro/EDGE  
-2. Open **NFL → Public Betting** and confirm money % is visible (not locked)  
-3. DevTools → **Network** → click a `scoreboard` / `api.actionnetwork.com` request  
-4. Request Headers → copy the full **Cookie** value  
-5. Local: set `ACTION_NETWORK_COOKIE=...` in `.env`  
-6. GitHub Actions: **Settings → Secrets → Actions →** `ACTION_NETWORK_COOKIE`  
+2. Open **NFL or NCAAF → Public Betting** and confirm money % is visible (not locked)  
+3. DevTools → **Network** → click a `scoreboard` / `publicbetting` request  
+4. Prefer **Authorization** bearer token → `ACTION_NETWORK_TOKEN` (or copy full **Cookie** → `ACTION_NETWORK_COOKIE`)  
+5. Local: set in `.env`  
+6. GitHub Actions: **Settings → Secrets → Actions →** matching secret names  
 
-Cookies expire (often days–weeks). Re-run `diagnose_action_network.py` when money % disappears; refresh the secret when needed.
+Tokens last longer than cookies; re-run `diagnose_action_network.py` when money % disappears.
 
 `pro_splits_ready: true` means the Phase 4 money/ticket filter has the data it needs.
 
@@ -197,16 +230,20 @@ Cookies expire (often days–weeks). Re-run `diagnose_action_network.py` when mo
 | 2 Monte Carlo | `S_mod`, `T_mod`, `P_true` | Fair cover / win probs |
 | 3 Market | `EV = P_true × decimal − 1` | Candidates with EV ≥ 2% and ≠ sharp consensus |
 | 4 Filter | RLM **or** money/ticket gap ≥ 20% | Validated play / lean signal |
-| Ledger | `data/ledger.json` | Deduped play history + settlement |
-| Pages | `docs/` | Public board + record |
+| Ledger | `data/ledger.json` / `data/ncaaf_ledger.json` | Deduped play history + settlement |
+| Pages | `docs/` | Public board + NFL + CFB tabs |
 
 ## API
 
 - `GET /api/health`
-- `GET /api/signals` — full latest payload
-- `GET /api/plays` — validated plays only
+- `GET /api/signals` — full latest NFL payload
+- `GET /api/plays` — validated NFL plays only
 - `GET /api/ratings`
-- `POST /api/run?demo=true&skip_pbp=true` — trigger pipeline
+- `GET /api/splits` — split boards from latest NFL run
+- `GET /api/stages` — stage picks + summary
+- `POST /api/run?demo=true&skip_pbp=true` — trigger NFL pipeline
+- `GET /api/ncaaf` — latest NCAAF payload (plays, stages, ratings)
+- `POST /api/run-ncaaf?demo=true&skip_pbp=true` — trigger NCAAF pipeline
 
 ## Tests
 

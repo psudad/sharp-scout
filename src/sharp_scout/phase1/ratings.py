@@ -180,14 +180,19 @@ def matchup_means(
     ratings: dict[str, TeamPower],
     home_boost: float = 2.2,
     total_adj: float = 0.0,
+    sport: str = "nfl",
+    scoring_base: float | None = None,
+    epa_scale: float | None = None,
 ) -> dict[str, float]:
     """Convert power ratings into expected points for home/away."""
-    # League baseline scoring environment ~22.5 PPG
-    base = 22.5
-    scale = 28.0  # EPA/play effect → points (calibrated roughly)
+    from sharp_scout.sports import get_sport
 
-    hr = ratings.get(normalize_team(home)) or TeamPower(home, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    ar = ratings.get(normalize_team(away)) or TeamPower(away, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    cfg = get_sport(sport)
+    base = cfg.scoring_base if scoring_base is None else scoring_base
+    scale = cfg.epa_scale if epa_scale is None else epa_scale
+
+    hr = ratings.get(normalize_team(home, sport)) or TeamPower(home, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    ar = ratings.get(normalize_team(away, sport)) or TeamPower(away, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     home_off = base + scale * (hr.off_epa - ar.def_epa) + home_boost / 2
     away_off = base + scale * (ar.off_epa - hr.def_epa) - home_boost / 2

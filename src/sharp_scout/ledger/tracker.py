@@ -438,8 +438,13 @@ def settle_from_scores(
     return ledger
 
 
-def compute_record(ledger: dict[str, Any] | None = None) -> dict[str, Any]:
-    ledger = ledger or load_ledger()
+def compute_record(
+    ledger: dict[str, Any] | None = None,
+    *,
+    path: Path | None = None,
+) -> dict[str, Any]:
+    if ledger is None:
+        ledger = load_ledger(path)
     plays = ledger.get("plays") or []
     wins = losses = pushes = pending = void = 0
     pnl = 0.0
@@ -528,6 +533,35 @@ def compute_record(ledger: dict[str, Any] | None = None) -> dict[str, Any]:
         "clv": summarize_clv(ledger),
         "disagreements": summarize_disagreements(ledger.get("disagreements") or []),
     }
+
+
+def load_scores_from_cfb_schedules(seasons: list[int] | None = None) -> list[dict[str, Any]]:
+    """Pull final FBS scores from cfbfastR schedules for NCAAF settlement."""
+    from sharp_scout.data.cfbfastr import load_cfb_schedules
+
+    sched = load_cfb_schedules(seasons)
+    if sched.empty:
+        return []
+    rows = []
+    for _, r in sched.iterrows():
+        hs, as_ = r.get("home_score"), r.get("away_score")
+        if hs is None or as_ is None or (isinstance(hs, float) and hs != hs):
+            continue
+        try:
+            rows.append(
+                {
+                    "home_team": r.get("home_team"),
+                    "away_team": r.get("away_team"),
+                    "home_score": int(hs),
+                    "away_score": int(as_),
+                    "season": int(r["season"]) if r.get("season") == r.get("season") else None,
+                    "week": int(r["week"]) if r.get("week") == r.get("week") else None,
+                    "game_id": r.get("game_id") or r.get("id"),
+                }
+            )
+        except (TypeError, ValueError):
+            continue
+    return rows
 
 
 def load_scores_from_schedules(seasons: list[int] | None = None) -> list[dict[str, Any]]:

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from sharp_scout.config import ARTIFACTS_DIR, ROOT
+from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR, ROOT
 from sharp_scout.copy.explain import (
     collapse_best_signals,
     describe_splits_board,
@@ -19,6 +19,7 @@ from sharp_scout.copy.explain import (
     STAGE_LABELS,
 )
 from sharp_scout.ledger.tracker import compute_record, load_ledger
+from sharp_scout.sports import NCAAF
 
 DOCS_DIR = ROOT / "docs"
 
@@ -93,6 +94,28 @@ def build_site(
     if signals:
         (out / "latest_signals.json").write_text(json.dumps(signals, indent=2, default=str) + "\n")
 
+    ncaaf_signals: dict[str, Any] = {}
+    ncaaf_sp = ARTIFACTS_DIR / NCAAF.artifact_name
+    if ncaaf_sp.exists():
+        ncaaf_signals = json.loads(ncaaf_sp.read_text())
+    ncaaf_ledger = load_ledger(path=DATA_DIR / NCAAF.ledger_name)
+    ncaaf_record = compute_record(ncaaf_ledger)
+    (out / "ncaaf_ledger.json").write_text(json.dumps(ncaaf_ledger, indent=2) + "\n")
+    (out / "ncaaf_record.json").write_text(json.dumps(ncaaf_record, indent=2) + "\n")
+    if ncaaf_signals:
+        (out / "latest_ncaaf_signals.json").write_text(
+            json.dumps(ncaaf_signals, indent=2, default=str) + "\n"
+        )
+        (out / "ncaaf_plays.json").write_text(
+            json.dumps(ncaaf_signals.get("plays") or [], indent=2, default=str) + "\n"
+        )
+        (out / "ncaaf_stages.json").write_text(
+            json.dumps(ncaaf_signals.get("stage_picks") or [], indent=2, default=str) + "\n"
+        )
+        (out / "ncaaf_ratings.json").write_text(
+            json.dumps(ncaaf_signals.get("ratings") or [], indent=2, default=str) + "\n"
+        )
+
     pending = [p for p in ledger["plays"] if (p.get("status") or "pending") == "pending"]
     settled = [p for p in ledger["plays"] if (p.get("status") or "pending") != "pending"]
     settled_sorted = sorted(settled, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True)
@@ -134,6 +157,21 @@ def build_site(
         signals.get("ratings") or [],
     )
 
+    ncaaf_pending = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") == "pending"]
+    ncaaf_live = collapse_best_signals(ncaaf_signals.get("plays") or [], only_passed=True)
+    ncaaf_plays_html = _render_play_cards(ncaaf_pending, live_fallback=ncaaf_live)
+    ncaaf_stage_cards = ncaaf_signals.get("stage_picks") or ncaaf_ledger.get("stage_cards") or []
+    ncaaf_stage_rows = _render_stage_rows(ncaaf_stage_cards)
+    ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
+    ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
+    ncaaf_ratings_rows = _render_ratings(ncaaf_signals.get("ratings") or [])
+    ncaaf_win_pct = (
+        f"{ncaaf_record['win_pct'] * 100:.1f}%" if ncaaf_record["win_pct"] is not None else "—"
+    )
+    ncaaf_pnl = ncaaf_record["pnl_units"]
+    ncaaf_pnl_cls = "pos" if ncaaf_pnl >= 0 else "neg"
+    ncaaf_pnl_s = f"+{ncaaf_pnl}" if ncaaf_pnl >= 0 else str(ncaaf_pnl)
+
     html = SITE_TEMPLATE.format(
         generated=generated,
         record=record["record"],
@@ -156,6 +194,19 @@ def build_site(
         rlm_n=rlm_n,
         stage_highlights_html=stage_highlights_html,
         demo_note="DEMO data" if signals.get("demo") else "Live pipeline",
+        ncaaf_record=ncaaf_record["record"],
+        ncaaf_win_pct=ncaaf_win_pct,
+        ncaaf_pnl=ncaaf_pnl_s,
+        ncaaf_pnl_cls=ncaaf_pnl_cls,
+        ncaaf_pending=ncaaf_record["pending"],
+        ncaaf_n_plays=ncaaf_record["n_plays"],
+        ncaaf_plays_html=ncaaf_plays_html,
+        ncaaf_stage_rows=ncaaf_stage_rows,
+        ncaaf_stage_record_rows=ncaaf_stage_record_rows,
+        ncaaf_fade_n=ncaaf_stage_summary.get("fade_public_games", "—"),
+        ncaaf_rlm_n=ncaaf_stage_summary.get("rlm_games", "—"),
+        ncaaf_ratings_rows=ncaaf_ratings_rows,
+        ncaaf_demo_note="DEMO data" if ncaaf_signals.get("demo") else "Live pipeline",
     )
     (out / "index.html").write_text(html)
 
@@ -712,7 +763,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <body>
 <div class="header">
   <h1>Sharp Scout</h1>
-  <p>NFL hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
+  <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
   <span class="pill">{record} · {pnl}u · {demo_note}</span>
   <p style="margin-top:8px">Updated {generated}</p>
 </div>
@@ -722,6 +773,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="tab" onclick="showTab('stages', this)">Stages</div>
   <div class="tab" onclick="showTab('ledger', this)">Ledger</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
+  <div class="tab" onclick="showTab('cfb', this)">CFB</div>
 </div>
 
 <div id="tab-plays" class="content active">
@@ -790,8 +842,40 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </table></div>
 </div>
 
-<p class="footer">Signals only — no auto-betting. Data: nflverse · The Odds API · Action Network.<br>
-Source: ledger.json · record.json</p>
+<div id="tab-cfb" class="content">
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-val">{ncaaf_record}</div><div class="stat-label">CFB Record</div></div>
+    <div class="stat-card"><div class="stat-val">{ncaaf_win_pct}</div><div class="stat-label">Win %</div></div>
+    <div class="stat-card"><div class="stat-val {ncaaf_pnl_cls}">{ncaaf_pnl}u</div><div class="stat-label">Profit</div></div>
+    <div class="stat-card"><div class="stat-val">{ncaaf_demo_note}</div><div class="stat-label">Mode</div></div>
+  </div>
+  <div class="section-label">NCAAF Open / Latest Plays · {ncaaf_pending} pending · {ncaaf_n_plays} total</div>
+  {ncaaf_plays_html}
+  <div class="section-label">NCAAF Stage Records</div>
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-val">{ncaaf_fade_n}</div><div class="stat-label">Sharp vs Public</div></div>
+    <div class="stat-card"><div class="stat-val">{ncaaf_rlm_n}</div><div class="stat-label">RLM Games</div></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
+    <tbody>{ncaaf_stage_record_rows}</tbody>
+  </table></div>
+  <div class="section-label">NCAAF Per-Game Stage Winners</div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
+    </tr></thead>
+    <tbody>{ncaaf_stage_rows}</tbody>
+  </table></div>
+  <div class="section-label">NCAAF Power Ratings</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
+    <tbody>{ncaaf_ratings_rows}</tbody>
+  </table></div>
+</div>
+
+<p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>
+Source: ledger.json · ncaaf_ledger.json · record.json</p>
 <script>
 function showTab(name, el) {{
   document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));

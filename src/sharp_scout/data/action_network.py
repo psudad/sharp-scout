@@ -18,22 +18,31 @@ import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from sharp_scout.config import get_settings
+from sharp_scout.sports import SportConfig, get_sport
 from sharp_scout.utils.odds import normalize_team
 
 logger = logging.getLogger(__name__)
 
 # Public-betting endpoint carries ticket/money bet_info per book.
-SCOREBOARD = "https://api.actionnetwork.com/web/v2/scoreboard/publicbetting/nfl"
+SCOREBOARD_TMPL = "https://api.actionnetwork.com/web/v2/scoreboard/publicbetting/{league}"
 
 # Books that commonly include public betting bet_info (DK, FanDuel, Caesars, etc.)
 DEFAULT_BOOK_IDS = "15,30,255,3547,280,3,11,14,4727,4795,68,122"
 
 
 class ActionNetworkClient:
-    def __init__(self, cookie: str | None = None, token: str | None = None) -> None:
+    def __init__(
+        self,
+        cookie: str | None = None,
+        token: str | None = None,
+        league: str | SportConfig = "nfl",
+    ) -> None:
         settings = get_settings()
         self.cookie = cookie if cookie is not None else settings.action_network_cookie
         self.token = token if token is not None else settings.action_network_token
+        self.sport = league if isinstance(league, SportConfig) else get_sport(league)
+        self.league = self.sport.action_league
+        self.norm_sport = self.sport.key
 
     @property
     def auth_mode(self) -> str:
@@ -51,7 +60,7 @@ class ActionNetworkClient:
             ),
             "Accept": "application/json",
             "Origin": "https://www.actionnetwork.com",
-            "Referer": "https://www.actionnetwork.com/nfl/public-betting",
+            "Referer": self.sport.action_referer,
         }
         # Bearer JWT is the reliable path for money %; cookie is a fallback.
         if self.token:
@@ -62,7 +71,7 @@ class ActionNetworkClient:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
     def fetch_scoreboard(self, date: str | None = None) -> list[dict[str, Any]]:
-        """Fetch NFL public-betting scoreboard (ticket/money %) per book.
+        """Fetch league public-betting scoreboard (ticket/money %) per book.
 
         `date` format: YYYYMMDD. Defaults to AN's current slate.
         """
@@ -71,7 +80,8 @@ class ActionNetworkClient:
             params["date"] = date
         try:
             with httpx.Client(timeout=30.0, headers=self._headers(), follow_redirects=True) as client:
-                resp = client.get(SCOREBOARD, params=params)
+                url = SCOREBOARD_TMPL.format(league=self.league)
+                resp = client.get(url, params=params)
                 if resp.status_code >= 400:
                     logger.warning(
                         "Action Network scoreboard %s: %s", resp.status_code, resp.text[:200]
@@ -151,8 +161,14 @@ class ActionNetworkClient:
                 else:
                     away_t = away_t or t
 
-        home = normalize_team(str(home_t.get("abbr") or home_t.get("abbreviation") or home_t.get("name") or ""))
-        away = normalize_team(str(away_t.get("abbr") or away_t.get("abbreviation") or away_t.get("name") or ""))
+        home = normalize_team(
+            str(home_t.get("abbr") or home_t.get("abbreviation") or home_t.get("name") or ""),
+            self.norm_sport,
+        )
+        away = normalize_team(
+            str(away_t.get("abbr") or away_t.get("abbreviation") or away_t.get("name") or ""),
+            self.norm_sport,
+        )
 
         markets = self._extract_markets(g, home_id=home_id, away_id=away_id)
         return {
@@ -359,6 +375,45 @@ def mock_splits() -> list[dict[str, Any]]:
                 "line_history": [
                     {"market": "spread", "line": -1.5, "ts": "open"},
                     {"market": "spread", "line": -2.5, "ts": "current"},
+                ],
+            },
+        }
+    ]
+
+
+def mock_ncaaf_splits() -> list[dict[str, Any]]:
+    return [
+        {
+            "game_id": "demo-ala-uga",
+            "home_team": "UGA",
+            "away_team": "ALA",
+            "start_time": datetime.now(timezone.utc).isoformat(),
+            "status": "scheduled",
+            "captured_at": datetime.now(timezone.utc),
+            "raw_num_bets": 18600,
+            "markets": {
+                "spread": {
+                    "home_bet_pct": 0.68,
+                    "away_bet_pct": 0.32,
+                    "home_money_pct": 0.44,
+                    "away_money_pct": 0.56,
+                    "num_bets": 18600,
+                    "open_line": 1.5,
+                    "current_line": 2.5,
+                },
+                "total": {
+                    "over_bet_pct": 0.64,
+                    "under_bet_pct": 0.36,
+                    "over_money_pct": 0.52,
+                    "under_money_pct": 0.48,
+                    "num_bets": 11200,
+                    "open_line": 52.5,
+                    "current_line": 51.5,
+                },
+                "moneyline": {},
+                "line_history": [
+                    {"market": "spread", "line": 1.5, "ts": "open"},
+                    {"market": "spread", "line": 2.5, "ts": "current"},
                 ],
             },
         }

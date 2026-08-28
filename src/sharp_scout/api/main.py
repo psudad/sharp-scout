@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from sharp_scout.config import ARTIFACTS_DIR, ROOT, get_settings
 from sharp_scout.pipeline.run import load_latest_artifacts, run_pipeline
 
-app = FastAPI(title="Sharp Scout", version="0.1.0", description="NFL hybrid model signal API")
+app = FastAPI(title="Sharp Scout", version="0.1.0", description="NFL + NCAAF hybrid model signal API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -76,6 +76,42 @@ def get_record() -> dict[str, Any]:
     from sharp_scout.ledger.tracker import compute_record
 
     return compute_record()
+
+
+@app.get("/api/ncaaf")
+def get_ncaaf() -> dict[str, Any]:
+    from sharp_scout.ncaaf.pipeline import load_latest_ncaaf
+
+    data = load_latest_ncaaf()
+    if not data:
+        raise HTTPException(404, "No NCAAF signals yet — POST /api/run-ncaaf or run scripts/run_ncaaf.py")
+    return data
+
+
+@app.post("/api/run-ncaaf")
+def trigger_ncaaf(
+    demo: bool = Query(False, description="Use mock odds/splits"),
+    skip_pbp: bool = Query(False, description="Skip cfbfastR download; demo ratings"),
+    build_site: bool = Query(False, description="Rebuild docs/ GitHub Pages site"),
+) -> dict[str, Any]:
+    from sharp_scout.ncaaf.pipeline import run_ncaaf_pipeline
+
+    settings = get_settings()
+    use_demo = demo or not settings.odds_api_key
+    payload = run_ncaaf_pipeline(
+        demo=use_demo,
+        skip_pbp=skip_pbp or use_demo,
+        build_pages=build_site,
+    )
+    return {
+        "ok": True,
+        "sport": "ncaaf",
+        "n_games": payload["n_games"],
+        "n_validated": payload["n_validated"],
+        "generated_at": payload["generated_at"],
+        "demo": payload["demo"],
+        "record": payload.get("record"),
+    }
 
 
 @app.get("/api/splits")

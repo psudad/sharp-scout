@@ -18,6 +18,7 @@ from sharp_scout.copy.explain import (
     format_kickoff_time_et,
     format_play_rationale,
     kickoff_sort_key,
+    STAGE_COLUMN_TIPS,
     STAGE_LABELS,
 )
 from sharp_scout.ledger.tracker import compute_record, load_ledger
@@ -235,6 +236,7 @@ def build_site(
         nfl_ledger_rows=nfl_ledger_rows,
         ratings_rows=ratings_rows,
         stage_rows=stage_rows,
+        stage_table_head=_render_stage_table_head(),
         stage_record_rows=stage_record_rows,
         disagreement_rows=disagreement_rows,
         games_html=games_html,
@@ -667,6 +669,42 @@ def _stage_market_label(market: str | None) -> str:
 
 _STAGE_MARKET_ORDER = {"spread": 0, "h2h": 1, "total": 2}
 
+_TH_TIP_EYE = (
+    '<svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" '
+    'stroke="currentColor" stroke-width="2" aria-hidden="true">'
+    '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>'
+    '<circle cx="12" cy="12" r="3"/></svg>'
+)
+
+
+def _stage_th(label: str, tip: str | None = None) -> str:
+    if not tip:
+        return f"<th>{_esc(label)}</th>"
+    return (
+        f'<th class="stage-th">'
+        f"{_esc(label)}"
+        f'<span class="th-tip" title="{_esc(tip)}">{_TH_TIP_EYE}</span>'
+        f"</th>"
+    )
+
+
+def _render_stage_table_head() -> str:
+    cols: list[tuple[str, str | None]] = [
+        ("Date", None),
+        ("Time", None),
+        ("Game", None),
+        ("Mkt", STAGE_COLUMN_TIPS.get("Mkt")),
+        ("Model", STAGE_COLUMN_TIPS.get("Model")),
+        ("Sharp", STAGE_COLUMN_TIPS.get("Sharp")),
+        ("Public", STAGE_COLUMN_TIPS.get("Public")),
+        ("Money", STAGE_COLUMN_TIPS.get("Money")),
+        ("Diff", STAGE_COLUMN_TIPS.get("Diff")),
+        ("RLM", STAGE_COLUMN_TIPS.get("RLM")),
+        ("Hybrid", STAGE_COLUMN_TIPS.get("Hybrid")),
+        ("Notes", None),
+    ]
+    return "<thead><tr>" + "".join(_stage_th(label, tip) for label, tip in cols) + "</tr></thead>"
+
 
 def _pick_cell(pick: dict | None) -> str:
     if not pick or not pick.get("available"):
@@ -813,10 +851,7 @@ def _render_stage_weeks_html(cards: list[dict]) -> str:
             f'<div class="week-block">'
             f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)} · {n_games} games · {len(sorted_cards)} market rows</div>'
             f'<div class="table-wrap stage-table-wrap"><table class="stage-table">'
-            f"<thead><tr>"
-            f"<th>Date</th><th>Time</th><th>Game</th><th>Mkt</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th>"
-            f"<th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>"
-            f"</tr></thead><tbody>{rows}</tbody></table></div></div>"
+            f"{_render_stage_table_head()}<tbody>{rows}</tbody></table></div></div>"
         )
     return "".join(parts)
 
@@ -967,6 +1002,18 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .stage-table th, .stage-table td {{ white-space: nowrap; }}
   .stage-table th:nth-child(3), .stage-table td:nth-child(3) {{ white-space: normal; min-width: 150px; }}
   .stage-table th:nth-child(12), .stage-table td:nth-child(12) {{ white-space: normal; min-width: 88px; max-width: 140px; font-size: 11px; color: #94a3b8; }}
+  .stage-th {{ white-space: nowrap; }}
+  .th-tip {{
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    cursor: help;
+    vertical-align: middle;
+    color: #6b7280;
+    line-height: 0;
+  }}
+  .th-tip:hover, .th-tip:focus {{ color: #93c5fd; }}
+  .th-tip-icon {{ display: block; }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }}
   th {{ background: #161b22; color: #8b949e; text-align: left; padding: 10px; border-bottom: 1px solid #30363d; }}
   td {{ padding: 9px 10px; border-bottom: 1px solid #21262d; }}
@@ -1042,10 +1089,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <tbody>{disagreement_rows}</tbody>
   </table></div>
   <div class="section-label">Per-Game Stage Winners</div>
-  <div class="table-wrap"><table>
-    <thead><tr>
-      <th>Date</th><th>Time</th><th>Game</th><th>Mkt</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
-    </tr></thead>
+  <div class="table-wrap stage-table-wrap"><table class="stage-table">
+    {stage_table_head}
     <tbody>{stage_rows}</tbody>
   </table></div>
   <p class="footer" style="padding:12px 0">Each column is an independent pick. Hybrid is the full system; compare it to model / sharp / public / money / RLM.</p>

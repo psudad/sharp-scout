@@ -29,6 +29,18 @@ STAGE_INTROS: dict[str, str] = {
     "hybrid": "Validated system play:",
 }
 
+# Short header labels on the pregame stage table → hover tooltip on the eye icon.
+STAGE_COLUMN_TIPS: dict[str, str] = {
+    "Mkt": "Spread, moneyline (ML), or total — one row per market per game.",
+    "Model": "EPA ratings + Monte Carlo simulation — our independent lean before splits.",
+    "Sharp": "Pinnacle / Betfair consensus — where sharp books price this market.",
+    "Public": "Action Network ticket % — which side most bettors are taking.",
+    "Money": "Action Network handle % — where the dollars are flowing.",
+    "Diff": "Money minus tickets on a side; a ≥20% gap flags sharp-money interest.",
+    "RLM": "Reverse line movement — the line moved against the public toward this side.",
+    "Hybrid": "Full system pick — validated play when filters pass, else best model + market lean.",
+}
+
 
 def parse_kickoff(raw: Any) -> datetime | None:
     if raw is None:

@@ -14,6 +14,7 @@ from sharp_scout.copy.explain import (
     describe_splits_board,
     describe_stage_pick,
     format_kickoff_et,
+    format_kickoff_compact,
     format_kickoff_date_et,
     format_kickoff_time_et,
     format_play_rationale,
@@ -690,21 +691,33 @@ def _stage_th(label: str, tip: str | None = None) -> str:
 
 
 def _render_stage_table_head() -> str:
+    # Hybrid immediately after Mkt so the system pick is visible without horizontal scroll.
     cols: list[tuple[str, str | None]] = [
-        ("Date", None),
-        ("Time", None),
+        ("Kickoff", None),
         ("Game", None),
         ("Mkt", STAGE_COLUMN_TIPS.get("Mkt")),
+        ("Hybrid", STAGE_COLUMN_TIPS.get("Hybrid")),
         ("Model", STAGE_COLUMN_TIPS.get("Model")),
         ("Sharp", STAGE_COLUMN_TIPS.get("Sharp")),
         ("Public", STAGE_COLUMN_TIPS.get("Public")),
         ("Money", STAGE_COLUMN_TIPS.get("Money")),
         ("Diff", STAGE_COLUMN_TIPS.get("Diff")),
         ("RLM", STAGE_COLUMN_TIPS.get("RLM")),
-        ("Hybrid", STAGE_COLUMN_TIPS.get("Hybrid")),
         ("Notes", None),
     ]
-    return "<thead><tr>" + "".join(_stage_th(label, tip) for label, tip in cols) + "</tr></thead>"
+    parts: list[str] = []
+    for label, tip in cols:
+        if label == "Hybrid":
+            parts.append(
+                f'<th class="stage-th hybrid-col">'
+                f"{_esc(label)}"
+                f'<span class="th-tip" data-tip="{_esc(tip or "")}" tabindex="0" role="button" '
+                f'aria-label="{_esc(label)}: {_esc(tip or "")}">{_TH_TIP_EYE}</span>'
+                f"</th>"
+            )
+        else:
+            parts.append(_stage_th(label, tip))
+    return "<thead><tr>" + "".join(parts) + "</tr></thead>"
 
 
 def _pick_cell(pick: dict | None) -> str:
@@ -852,14 +865,17 @@ def _render_stage_weeks_html(cards: list[dict]) -> str:
             f'<div class="week-block">'
             f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)} · {n_games} games · {len(sorted_cards)} market rows</div>'
             f'<div class="table-wrap stage-table-wrap"><table class="stage-table">'
-            f"{_render_stage_table_head()}<tbody>{rows}</tbody></table></div></div>"
+            f"{_render_stage_table_head()}<tbody>{rows}</tbody></table></div>"
+            f'<p class="phase-note stage-scroll-hint">Three rows per game (spread, ML, total). '
+            f"<b>Hybrid</b> is the system pick for that market — it can disagree with Model/Sharp/Public "
+            f"when <b>Diff</b> (money vs tickets) confirms sharp action.</p></div>"
         )
     return "".join(parts)
 
 
 def _render_stage_rows(cards: list[dict]) -> str:
     if not cards:
-        return "<tr><td colspan='12'>No stage picks yet. Run the pipeline.</td></tr>"
+        return "<tr><td colspan='11'>No stage picks yet. Run the pipeline.</td></tr>"
     rows = []
     for c in cards:
         picks = c.get("picks") or {}
@@ -872,22 +888,20 @@ def _render_stage_rows(cards: list[dict]) -> str:
         if (c.get("agreement") or {}).get("rlm_active"):
             flag = (flag + " · RLM").strip(" ·")
         kick_raw = c.get("kickoff") or c.get("commence_time")
-        date_s = format_kickoff_date_et(kick_raw)
-        time_s = format_kickoff_time_et(kick_raw)
+        kick_s = format_kickoff_compact(kick_raw)
         matchup = f"{_esc(c.get('away_team'))} @ {_esc(c.get('home_team'))}"
         rows.append(
             "<tr>"
-            f"<td>{_esc(date_s)}</td>"
-            f"<td>{_esc(time_s)}</td>"
+            f"<td>{_esc(kick_s)}</td>"
             f"<td>{matchup}</td>"
             f"<td>{_esc(_stage_market_label(c.get('market')))}</td>"
+            f"<td class='hybrid-cell pos'>{_pick_cell(hybrid)}</td>"
             f"<td>{_pick_cell(picks.get('model'))}</td>"
             f"<td>{_pick_cell(picks.get('sharp'))}</td>"
             f"<td>{_pick_cell(picks.get('public'))}</td>"
             f"<td>{_pick_cell(picks.get('money'))}</td>"
             f"<td>{_pick_cell(picks.get('sharp_edge'))}</td>"
             f"<td>{_pick_cell(picks.get('rlm'))}</td>"
-            f"<td class='pos'>{_pick_cell(hybrid)}</td>"
             f"<td>{_esc(flag or agrees)}</td>"
             "</tr>"
         )
@@ -999,10 +1013,18 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .splits-summary {{ color: #e2e8f0; margin-bottom: 8px; }}
   .table-wrap {{ overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; }}
   .stage-table-wrap {{ margin-bottom: 8px; }}
-  .stage-table {{ min-width: 1120px; }}
+  .stage-table {{ min-width: 1000px; }}
   .stage-table th, .stage-table td {{ white-space: nowrap; }}
-  .stage-table th:nth-child(3), .stage-table td:nth-child(3) {{ white-space: normal; min-width: 150px; }}
-  .stage-table th:nth-child(12), .stage-table td:nth-child(12) {{ white-space: normal; min-width: 88px; max-width: 140px; font-size: 11px; color: #94a3b8; }}
+  .stage-table th:nth-child(2), .stage-table td:nth-child(2) {{ white-space: normal; min-width: 140px; }}
+  .stage-table th.hybrid-col, .stage-table td.hybrid-cell {{
+    background: rgba(74, 222, 128, 0.08);
+    border-left: 2px solid rgba(74, 222, 128, 0.35);
+    border-right: 2px solid rgba(74, 222, 128, 0.35);
+  }}
+  .stage-table th:nth-child(11), .stage-table td:nth-child(11) {{
+    white-space: normal; min-width: 72px; max-width: 120px; font-size: 11px; color: #94a3b8;
+  }}
+  .stage-scroll-hint {{ margin: 8px 2px 0; font-size: 11px; }}
   .stage-th {{ white-space: nowrap; }}
   .th-tip {{
     display: inline-flex;
@@ -1115,7 +1137,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     {stage_table_head}
     <tbody>{stage_rows}</tbody>
   </table></div>
-  <p class="footer" style="padding:12px 0">Each column is an independent pick. Hybrid is the full system; compare it to model / sharp / public / money / RLM.</p>
+  <p class="footer" style="padding:12px 0">Each column is an independent lens. <b>Hybrid</b> is the system pick per market — Sharp Plays come from validated Hybrid ML/spread/total rows.</p>
 </div>
 
 <div id="tab-ratings" class="content">
@@ -1139,7 +1161,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
   {ncaaf_plays_html}
   <div class="section-label">NCAAF Pregame Stage Winners</div>
-  <p class="phase-note" style="padding:4px 0 10px">Every game on the slate — model, sharp, public, money, diff, RLM, and hybrid picks. Newest college week at top.</p>
+  <p class="phase-note" style="padding:4px 0 10px">Every game on the slate — three rows per game (spread, ML, total). <b>Hybrid</b> (green) is the system pick and matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">NCAAF Stage Records (season)</div>
   <div class="summary-grid">

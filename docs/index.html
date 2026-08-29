@@ -78,7 +78,7 @@
   <h1>Sharp Scout</h1>
   <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
   <span class="pill">NFL 0-0 · +0.0u · CFB 0-0 · +0.0u · Live pipeline</span>
-  <p style="margin-top:8px">Updated 2026-08-29 12:29 UTC</p>
+  <p style="margin-top:8px">Updated 2026-08-29 12:33 UTC</p>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">NFL</div>
@@ -93,7 +93,7 @@
     <div class="stat-card"><div class="stat-val">0-0</div><div class="stat-label">NFL Record</div></div>
     <div class="stat-card"><div class="stat-val">—</div><div class="stat-label">Win %</div></div>
     <div class="stat-card"><div class="stat-val pos">+0.0u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">DEMO data</div><div class="stat-label">Mode</div></div>
+    <div class="stat-card"><div class="stat-val">Live pipeline</div><div class="stat-label">Mode</div></div>
   </div>
   <div class="section-label">Closing Line Value</div>
   <p class="phase-note" style="padding:6px 0">Closing Line Value appears here once plays are graded against their closing line (captured at the T-1h pregame run).</p>
@@ -108,46 +108,15 @@
 
 <div id="tab-games" class="content">
   <p class="phase-note" style="padding:12px 0">Per-game pipeline output: EPA model → Monte Carlo → market EV → money/ticket splits → stage picks.</p>
-  
-      <div class="game-card">
-        <div class="game-head">
-          <div class="game-title">KC @ BUF</div>
-          <div class="game-kick">Sat Aug 29, 8:13 AM ET</div>
-        </div>
-        <div class="phase-block">
-          <div class="phase-label">Phase 1 · EPA ratings → model</div>
-          <p class="phase-note"><b>KC</b>: power 0.120 · off 0.080 · def 0.040</p>
-          <p class="phase-note"><b>BUF</b>: power 0.110 · off 0.060 · def 0.050</p>
-          <p class="phase-note">Model spread (home): <b>-2.26</b> ·
-            total <b>46.40</b> · P(home win) <b>57.5%</b></p>
-          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
-        </div>
-        <div class="phase-block">
-          <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
-            <tbody><tr><td>spread</td><td>BUF +2.5 (spread) -110</td><td>pinnacle</td><td class='pending'>36.0%</td><td>—</td><td class='rationale-cell'>We project BUF +2.5 on the spread at 71.2% true probability vs 50.0% implied at pinnacle — about 36.0% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · No clear reverse line movement on this market. · edge lacks RLM / money-ticket / steam confirmation</td></tr>
-<tr><td>ML</td><td>BUF (ML) +110</td><td>pinnacle</td><td class='pending'>25.5%</td><td>—</td><td class='rationale-cell'>We project BUF ML on the moneyline at 59.8% true probability vs 45.7% implied at pinnacle — about 25.5% expected value. · Action Network money % missing — log in to Pro and set ACTION_NETWORK_COOKIE in GitHub secrets for full split data. · No opening line stored yet for RLM. The first pipeline run of the week records the current line as the open; later runs compare movement against it. · edge lacks RLM / money-ticket / steam confirmation · Money/ticket splits were not available — add ACTION_NETWORK_COOKIE for Phase 4 confirmation.</td></tr>
-<tr><td>total</td><td>UNDER +47.5 (total) -110</td><td>draftkings</td><td class='pos'>7.7%</td><td>✓</td><td class='rationale-cell'>We project UNDER 47.5 on the total at 56.4% true probability vs 50.4% implied at draftkings — about 7.7% expected value. · Handle did not exceed tickets enough on this side to confirm sharp money. · Reverse line movement: public over but total 48.5→47.5 · Reverse line movement supports this side — line moved against the public.</td></tr></tbody>
-          </table></div>
-        </div>
-        <div class="phase-block">
-          <div class="phase-label">Phase 4 · Money vs tickets (Action Network)</div>
-          <p class="phase-note splits-summary"><b>Sharp money read:</b> Spread: sharp money leans KC (handle minus tickets +31% on that side). Total: sharp money leans Under (handle minus tickets +6% on that side).</p><p class="phase-note" style="font-size:11px">Tickets = % of bets on each side. Money = % of dollars (handle). Diff = money minus tickets — positive means sharps lean that side.</p><div class='phase-sub'>spread line -2.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>BUF</td><td>72%</td><td>41%</td><td class='pos'>-31%</td></tr><tr><td>KC</td><td>28%</td><td>59%</td><td class='pos'>+31%</td></tr></tbody></table></div><div class='phase-sub'>total line 47.5</div><div class='table-wrap'><table><thead><tr><th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead><tbody><tr><td>Over</td><td>61%</td><td>55%</td><td class='pos'>-6%</td></tr><tr><td>Under</td><td>39%</td><td>45%</td><td class='pos'>+6%</td></tr></tbody></table></div>
-        </div>
-        <div class="phase-block">
-          <div class="phase-label">Stage picks (each lens)</div>
-          <div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead><tbody><tr><td><b>Model</b></td><td>BUF (57%)</td><td class='stage-why'>Our EPA ratings + Monte Carlo simulation favor BUF (line -2.26303). Model spread (home) is -2.26 (negative = home favored). · 57% confidence</td></tr><tr><td><b>Sharp line</b></td><td>KC (50%)</td><td class='stage-why'>Pinnacle / sharp books lean toward KC (line -2.5). pinnacle no-vig 50.0% @ -110 · 50% confidence</td></tr><tr><td><b>Public tickets</b></td><td>BUF (72%)</td><td class='stage-why'>Most bet tickets are on BUF (line -2.5). tickets home=72% away=28% · 72% confidence</td></tr><tr><td><b>Sharp money</b></td><td>KC (59%)</td><td class='stage-why'>Most handle (dollars) is on KC (line -2.5). money home=41% away=59% (gap vs tickets +31% on away) · 59% confidence</td></tr><tr><td><b>Money vs tickets</b></td><td>KC (81%)</td><td class='stage-why'>Sharp money signal (handle minus tickets) points to KC. +31% money vs tickets on KC · 81% confidence</td></tr><tr><td><b>Reverse line move</b></td><td>—</td><td class='stage-why'>no RLM (public=home, line -1.5→-2.5)</td></tr><tr><td><b>Full system</b></td><td>BUF (46%)</td><td class='stage-why'>Validated system play: BUF. model lean only — no confirming market stage · 46% confidence</td></tr></tbody></table></div>
-        </div>
-      </div>
+  <div class="empty">No games in latest pipeline run. Run scripts/run_today_slate.py or the NFL Pipeline workflow.</div>
 </div>
 
 <div id="tab-stages" class="content">
   <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">1</div><div class="stat-label">Sharp ≠ Public games</div></div>
-    <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">RLM games</div></div>
+    <div class="stat-card"><div class="stat-val">—</div><div class="stat-label">Sharp ≠ Public games</div></div>
+    <div class="stat-card"><div class="stat-val">—</div><div class="stat-label">RLM games</div></div>
   </div>
-  <div class='phase-note'><b>Sharp vs public games:</b><br>KC @ BUF: sharp books like KC · public tickets on BUF</div><div class='phase-note' style='margin-top:10px'>No RLM signals on this slate (needs an opening line vs current — stored on first pipeline run).</div>
+  <div class='phase-note'>No games on this slate where sharp books disagree with public ticket %.</div><div class='phase-note' style='margin-top:10px'>No RLM signals on this slate (needs an opening line vs current — stored on first pipeline run).</div>
   <div class="section-label">Stage Records (settled)</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
@@ -163,7 +132,7 @@
     <thead><tr>
       <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
     </tr></thead>
-    <tbody><tr><td>Sat Aug 29, 8:13 AM ET · KC @ BUF</td><td><b>BUF</b></td><td><b>KC</b></td><td><b>BUF</b></td><td><b>KC</b></td><td><b>KC</b></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>fade pub</td></tr></tbody>
+    <tbody><tr><td colspan='9'>No stage picks yet. Run the pipeline.</td></tr></tbody>
   </table></div>
   <p class="footer" style="padding:12px 0">Each column is an independent pick. Hybrid is the full system; compare it to model / sharp / public / money / RLM.</p>
 </div>
@@ -173,38 +142,7 @@
   <div class="section-label">Power Ratings</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
-    <tbody><tr><td><b>KC</b></td><td class='pos'>0.120</td><td>0.080</td><td>0.040</td></tr>
-<tr><td><b>BUF</b></td><td class='pos'>0.110</td><td>0.060</td><td>0.050</td></tr>
-<tr><td><b>ARI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>ATL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>BAL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CAR</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CHI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CIN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>CLE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>DAL</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>DEN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>DET</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>GB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>HOU</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>IND</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>JAX</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>LAC</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>LAR</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>LV</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>MIA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>MIN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>NE</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>NO</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>NYG</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>NYJ</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>PHI</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>PIT</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>SEA</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>SF</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>TB</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>TEN</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr>
-<tr><td><b>WAS</b></td><td class='pos'>0.000</td><td>0.000</td><td>0.000</td></tr></tbody>
+    <tbody><tr><td colspan='4'>Run pipeline to populate ratings.</td></tr></tbody>
   </table></div>
 </div>
 
@@ -216,7 +154,7 @@
     <div class="stat-card"><div class="stat-val">Live pipeline</div><div class="stat-label">Mode</div></div>
   </div>
   <div class="section-label">Closing Line Value</div>
-  <p class="phase-note" style="padding:6px 0">Closing Line Value appears here once plays are graded against their closing line (captured at the T-1h pregame run).</p>
+  <div class="summary-grid" style="margin-top:6px"><div class="stat-card"><div class="stat-val ">—</div><div class="stat-label">Avg CLV (pts)</div></div><div class="stat-card"><div class="stat-val">50%</div><div class="stat-label">Beat Close %</div></div><div class="stat-card"><div class="stat-val">1-1</div><div class="stat-label">Beat-Close W-L</div></div><div class="stat-card"><div class="stat-val">2</div><div class="stat-label">Plays w/ CLV</div></div></div>
   <div class="section-label">This Week's Plays · 2 validated</div>
   
       <div class="play-card sharp-play">
@@ -283,9 +221,9 @@
   </div>
   <div class="table-wrap"><table>
     <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
-    <tbody><tr><td><b>hybrid</b></td><td>0-0</td><td>—</td><td>8</td></tr>
-<tr><td><b>model</b></td><td>0-0</td><td>—</td><td>8</td></tr>
-<tr><td><b>sharp</b></td><td>0-0</td><td>—</td><td>8</td></tr>
+    <tbody><tr><td><b>hybrid</b></td><td>0-0</td><td>—</td><td>9</td></tr>
+<tr><td><b>model</b></td><td>0-0</td><td>—</td><td>9</td></tr>
+<tr><td><b>sharp</b></td><td>0-0</td><td>—</td><td>9</td></tr>
 <tr><td><b>money</b></td><td>0-0</td><td>—</td><td>3</td></tr>
 <tr><td><b>public</b></td><td>0-0</td><td>—</td><td>3</td></tr>
 <tr><td><b>sharp_edge</b></td><td>0-0</td><td>—</td><td>3</td></tr></tbody>
@@ -293,8 +231,8 @@
   <div class="section-label">NCAAF Ledger · 2 pending · 2 total</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
-    <tbody><tr><td>2026-08-29</td><td>NCST @ UVA</td><td>NCST (ML) +160</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr>
-<tr><td>2026-08-29</td><td>UNC @ TCU</td><td>UNC (ML) +186</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pending'>—</td><td class=''>—</td></tr></tbody>
+    <tbody><tr><td>2026-08-29</td><td>NCST @ UVA</td><td>NCST (ML) +160</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='pos'>+0.8%</td><td class=''>—</td></tr>
+<tr><td>2026-08-29</td><td>UNC @ TCU</td><td>UNC (ML) +186</td><td>1.5u</td><td class='pending'>PENDING</td><td>—</td><td class='neg'>-6.9%</td><td class=''>—</td></tr></tbody>
   </table></div>
   <div class="section-label">NCAAF Power Ratings</div>
   <div class="table-wrap"><table>

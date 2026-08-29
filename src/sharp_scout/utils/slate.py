@@ -124,6 +124,20 @@ def college_week_label(week_start: datetime) -> str:
     return f"{start_et.strftime('%b %d, %Y')} – {end_et.strftime('%b %d, %Y')}"
 
 
+def filter_stage_cards_current_slate(
+    cards: list[dict[str, Any]],
+    *,
+    games: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Keep stage cards that belong to the current pipeline games list."""
+    if not games:
+        return cards
+    ids = {str(g.get("event_id")) for g in games if g.get("event_id")}
+    if not ids:
+        return cards
+    return [c for c in cards if str(c.get("event_id") or "") in ids]
+
+
 def group_stage_cards_by_college_week(
     cards: list[dict[str, Any]],
 ) -> list[tuple[datetime, list[dict[str, Any]]]]:

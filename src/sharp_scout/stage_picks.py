@@ -332,7 +332,7 @@ def build_game_stage_card(
     market: str = "spread",
 ) -> GameStageCard:
     home, away = event["home_team"], event["away_team"]
-    split = _find_split_game(splits, home, away)
+    split = _find_split_game(splits, home, away, sport=str(event.get("sport") or "nfl"))
     model = pick_model(sim, home, away, market=market)
     sharp = pick_sharp(event, home, away, market=market)
     public = pick_public(split, home, away, market=market)
@@ -436,6 +436,7 @@ def build_slate_stage_picks(
     validated_signals: list[dict[str, Any]],
     *,
     market: str = "spread",
+    sport: str = "nfl",
 ) -> list[dict[str, Any]]:
     cards = []
     for ev in events:
@@ -443,7 +444,9 @@ def build_slate_stage_picks(
         sim = sims.get(eid)
         if sim is None:
             continue
-        row = build_game_stage_card(ev, sim, splits, validated_signals, market=market).to_dict()
+        ev_sport = str(ev.get("sport") or sport)
+        ev_row = {**ev, "sport": ev_sport}
+        row = build_game_stage_card(ev_row, sim, splits, validated_signals, market=market).to_dict()
         row["kickoff"] = ev.get("commence_time")
         row["commence_time"] = ev.get("commence_time")
         cards.append(row)

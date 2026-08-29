@@ -178,7 +178,7 @@ def run_ncaaf_pipeline(
 
     from sharp_scout.stage_picks import build_slate_stage_picks, summarize_stage_slate
 
-    stage_cards = build_slate_stage_picks(events, sims_by_event, splits, validated, market="spread")
+    stage_cards = build_slate_stage_picks(events, sims_by_event, splits, validated, market="spread", sport="ncaaf")
     stage_summary = summarize_stage_slate(stage_cards)
     for g in game_results:
         eid = str(g.get("event_id"))

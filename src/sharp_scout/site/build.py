@@ -683,7 +683,8 @@ def _stage_th(label: str, tip: str | None = None) -> str:
     return (
         f'<th class="stage-th">'
         f"{_esc(label)}"
-        f'<span class="th-tip" title="{_esc(tip)}">{_TH_TIP_EYE}</span>'
+        f'<span class="th-tip" data-tip="{_esc(tip)}" tabindex="0" role="button" '
+        f'aria-label="{_esc(label)}: {_esc(tip)}">{_TH_TIP_EYE}</span>'
         f"</th>"
     )
 
@@ -1007,13 +1008,34 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     display: inline-flex;
     align-items: center;
     margin-left: 4px;
-    cursor: help;
+    cursor: pointer;
     vertical-align: middle;
     color: #6b7280;
     line-height: 0;
+    position: relative;
   }}
-  .th-tip:hover, .th-tip:focus {{ color: #93c5fd; }}
-  .th-tip-icon {{ display: block; }}
+  .th-tip:hover, .th-tip:focus {{ color: #93c5fd; outline: none; }}
+  .th-tip:focus-visible {{ box-shadow: 0 0 0 2px #1d4ed8; border-radius: 4px; }}
+  .th-tip-icon {{ display: block; pointer-events: none; }}
+  .th-tip-float {{
+    position: fixed;
+    z-index: 10000;
+    display: none;
+    max-width: min(280px, calc(100vw - 16px));
+    padding: 8px 10px;
+    background: #1f2937;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.45;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    white-space: normal;
+    text-transform: none;
+    letter-spacing: normal;
+  }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }}
   th {{ background: #161b22; color: #8b949e; text-align: left; padding: 10px; border-bottom: 1px solid #30363d; }}
   td {{ padding: 9px 10px; border-bottom: 1px solid #21262d; }}
@@ -1149,6 +1171,61 @@ function showTab(name, el) {{
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
 }}
+
+(function () {{
+  var floatTip = null;
+
+  function ensureTip() {{
+    if (!floatTip) {{
+      floatTip = document.createElement('div');
+      floatTip.className = 'th-tip-float';
+      floatTip.setAttribute('role', 'tooltip');
+      document.body.appendChild(floatTip);
+    }}
+    return floatTip;
+  }}
+
+  function hideTip() {{
+    if (floatTip) floatTip.style.display = 'none';
+  }}
+
+  function showTip(anchor) {{
+    var text = anchor.getAttribute('data-tip');
+    if (!text) return hideTip();
+    var tip = ensureTip();
+    tip.textContent = text;
+    tip.style.display = 'block';
+    var r = anchor.getBoundingClientRect();
+    var pad = 8;
+    var left = r.left + (r.width / 2) - (tip.offsetWidth / 2);
+    left = Math.max(pad, Math.min(left, window.innerWidth - tip.offsetWidth - pad));
+    var top = r.bottom + 6;
+    if (top + tip.offsetHeight > window.innerHeight - pad) {{
+      top = r.top - tip.offsetHeight - 6;
+    }}
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }}
+
+  document.addEventListener('mouseover', function (e) {{
+    var el = e.target.closest && e.target.closest('.th-tip');
+    if (el) showTip(el);
+  }});
+  document.addEventListener('mouseout', function (e) {{
+    var el = e.target.closest && e.target.closest('.th-tip');
+    if (el && (!e.relatedTarget || !el.contains(e.relatedTarget))) hideTip();
+  }});
+  document.addEventListener('focusin', function (e) {{
+    var el = e.target.closest && e.target.closest('.th-tip');
+    if (el) showTip(el);
+  }});
+  document.addEventListener('focusout', function (e) {{
+    var el = e.target.closest && e.target.closest('.th-tip');
+    if (el && (!e.relatedTarget || !el.contains(e.relatedTarget))) hideTip();
+  }});
+  window.addEventListener('scroll', hideTip, true);
+  window.addEventListener('resize', hideTip);
+}})();
 </script>
 </body>
 </html>

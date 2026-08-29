@@ -64,13 +64,34 @@
     display: inline-flex;
     align-items: center;
     margin-left: 4px;
-    cursor: help;
+    cursor: pointer;
     vertical-align: middle;
     color: #6b7280;
     line-height: 0;
+    position: relative;
   }
-  .th-tip:hover, .th-tip:focus { color: #93c5fd; }
-  .th-tip-icon { display: block; }
+  .th-tip:hover, .th-tip:focus { color: #93c5fd; outline: none; }
+  .th-tip:focus-visible { box-shadow: 0 0 0 2px #1d4ed8; border-radius: 4px; }
+  .th-tip-icon { display: block; pointer-events: none; }
+  .th-tip-float {
+    position: fixed;
+    z-index: 10000;
+    display: none;
+    max-width: min(280px, calc(100vw - 16px));
+    padding: 8px 10px;
+    background: #1f2937;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.45;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    white-space: normal;
+    text-transform: none;
+    letter-spacing: normal;
+  }
   table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }
   th { background: #161b22; color: #8b949e; text-align: left; padding: 10px; border-bottom: 1px solid #30363d; }
   td { padding: 9px 10px; border-bottom: 1px solid #21262d; }
@@ -96,7 +117,7 @@
   <h1>Sharp Scout</h1>
   <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
   <span class="pill">NFL 0-0 · +0.0u · CFB 0-0 · +0.0u · Live pipeline</span>
-  <p style="margin-top:8px">Updated 2026-08-29 14:16 UTC</p>
+  <p style="margin-top:8px">Updated 2026-08-29 14:23 UTC</p>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">NFL</div>
@@ -178,7 +199,7 @@
   </table></div>
   <div class="section-label">Per-Game Stage Winners</div>
   <div class="table-wrap stage-table-wrap"><table class="stage-table">
-    <thead><tr><th>Date</th><th>Time</th><th>Game</th><th class="stage-th">Mkt<span class="th-tip" title="Spread, moneyline (ML), or total — one row per market per game."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Model<span class="th-tip" title="EPA ratings + Monte Carlo simulation — our independent lean before splits."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Sharp<span class="th-tip" title="Pinnacle / Betfair consensus — where sharp books price this market."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Public<span class="th-tip" title="Action Network ticket % — which side most bettors are taking."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Money<span class="th-tip" title="Action Network handle % — where the dollars are flowing."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Diff<span class="th-tip" title="Money minus tickets on a side; a ≥20% gap flags sharp-money interest."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">RLM<span class="th-tip" title="Reverse line movement — the line moved against the public toward this side."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Hybrid<span class="th-tip" title="Full system pick — validated play when filters pass, else best model + market lean."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th>Notes</th></tr></thead>
+    <thead><tr><th>Date</th><th>Time</th><th>Game</th><th class="stage-th">Mkt<span class="th-tip" data-tip="Spread, moneyline (ML), or total — one row per market per game." tabindex="0" role="button" aria-label="Mkt: Spread, moneyline (ML), or total — one row per market per game."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Model<span class="th-tip" data-tip="EPA ratings + Monte Carlo simulation — our independent lean before splits." tabindex="0" role="button" aria-label="Model: EPA ratings + Monte Carlo simulation — our independent lean before splits."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Sharp<span class="th-tip" data-tip="Pinnacle / Betfair consensus — where sharp books price this market." tabindex="0" role="button" aria-label="Sharp: Pinnacle / Betfair consensus — where sharp books price this market."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Public<span class="th-tip" data-tip="Action Network ticket % — which side most bettors are taking." tabindex="0" role="button" aria-label="Public: Action Network ticket % — which side most bettors are taking."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Money<span class="th-tip" data-tip="Action Network handle % — where the dollars are flowing." tabindex="0" role="button" aria-label="Money: Action Network handle % — where the dollars are flowing."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Diff<span class="th-tip" data-tip="Money minus tickets on a side; a ≥20% gap flags sharp-money interest." tabindex="0" role="button" aria-label="Diff: Money minus tickets on a side; a ≥20% gap flags sharp-money interest."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">RLM<span class="th-tip" data-tip="Reverse line movement — the line moved against the public toward this side." tabindex="0" role="button" aria-label="RLM: Reverse line movement — the line moved against the public toward this side."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Hybrid<span class="th-tip" data-tip="Full system pick — validated play when filters pass, else best model + market lean." tabindex="0" role="button" aria-label="Hybrid: Full system pick — validated play when filters pass, else best model + market lean."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th>Notes</th></tr></thead>
     <tbody><tr><td>Sat Aug 29</td><td>8:37 AM ET</td><td>KC @ BUF</td><td>Spread</td><td><b>BUF -2.3</b></td><td><b>KC -2.5</b></td><td><b>BUF -2.5</b></td><td><b>KC -2.5</b></td><td><b>KC -2.5</b></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF -2.3</b></td><td>fade pub</td></tr>
 <tr><td>Sat Aug 29</td><td>8:37 AM ET</td><td>KC @ BUF</td><td>ML</td><td><b>BUF</b></td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td class='pos'><b>BUF</b></td><td>model</td></tr>
 <tr><td>Sat Aug 29</td><td>8:37 AM ET</td><td>KC @ BUF</td><td>Total</td><td><b>Under 47.5</b></td><td><b>Under 47.5</b></td><td><b>Over 47.5</b></td><td><b>Over 47.5</b></td><td><b>Under 47.5</b></td><td><b>Under 47.5</b></td><td class='pos'><b>Under 47.5</b></td><td>fade pub · RLM</td></tr></tbody>
@@ -286,7 +307,7 @@
       </div>
   <div class="section-label">NCAAF Pregame Stage Winners</div>
   <p class="phase-note" style="padding:4px 0 10px">Every game on the slate — model, sharp, public, money, diff, RLM, and hybrid picks. Newest college week at top.</p>
-  <div class="week-block"><div class="phase-sub" style="font-size:13px;margin-top:14px">Aug 25 – Aug 31, 2026 · 8 games · 24 market rows</div><div class="table-wrap stage-table-wrap"><table class="stage-table"><thead><tr><th>Date</th><th>Time</th><th>Game</th><th class="stage-th">Mkt<span class="th-tip" title="Spread, moneyline (ML), or total — one row per market per game."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Model<span class="th-tip" title="EPA ratings + Monte Carlo simulation — our independent lean before splits."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Sharp<span class="th-tip" title="Pinnacle / Betfair consensus — where sharp books price this market."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Public<span class="th-tip" title="Action Network ticket % — which side most bettors are taking."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Money<span class="th-tip" title="Action Network handle % — where the dollars are flowing."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Diff<span class="th-tip" title="Money minus tickets on a side; a ≥20% gap flags sharp-money interest."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">RLM<span class="th-tip" title="Reverse line movement — the line moved against the public toward this side."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Hybrid<span class="th-tip" title="Full system pick — validated play when filters pass, else best model + market lean."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th>Notes</th></tr></thead><tbody><tr><td>Sat Aug 29</td><td>12:00 PM ET</td><td>UNC @ TCU</td><td>Spread</td><td><b>TCU -2.1</b></td><td><b>TCU -7.5</b></td><td><b>TCU -8.0</b></td><td><b>TCU -8.0</b></td><td><b>TCU -8.0</b></td><td><span class='pending'>—</span></td><td class='pos'><b>TCU -2.1</b></td><td>model, public, money, sharp_edge</td></tr>
+  <div class="week-block"><div class="phase-sub" style="font-size:13px;margin-top:14px">Aug 25 – Aug 31, 2026 · 8 games · 24 market rows</div><div class="table-wrap stage-table-wrap"><table class="stage-table"><thead><tr><th>Date</th><th>Time</th><th>Game</th><th class="stage-th">Mkt<span class="th-tip" data-tip="Spread, moneyline (ML), or total — one row per market per game." tabindex="0" role="button" aria-label="Mkt: Spread, moneyline (ML), or total — one row per market per game."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Model<span class="th-tip" data-tip="EPA ratings + Monte Carlo simulation — our independent lean before splits." tabindex="0" role="button" aria-label="Model: EPA ratings + Monte Carlo simulation — our independent lean before splits."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Sharp<span class="th-tip" data-tip="Pinnacle / Betfair consensus — where sharp books price this market." tabindex="0" role="button" aria-label="Sharp: Pinnacle / Betfair consensus — where sharp books price this market."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Public<span class="th-tip" data-tip="Action Network ticket % — which side most bettors are taking." tabindex="0" role="button" aria-label="Public: Action Network ticket % — which side most bettors are taking."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Money<span class="th-tip" data-tip="Action Network handle % — where the dollars are flowing." tabindex="0" role="button" aria-label="Money: Action Network handle % — where the dollars are flowing."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Diff<span class="th-tip" data-tip="Money minus tickets on a side; a ≥20% gap flags sharp-money interest." tabindex="0" role="button" aria-label="Diff: Money minus tickets on a side; a ≥20% gap flags sharp-money interest."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">RLM<span class="th-tip" data-tip="Reverse line movement — the line moved against the public toward this side." tabindex="0" role="button" aria-label="RLM: Reverse line movement — the line moved against the public toward this side."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Hybrid<span class="th-tip" data-tip="Full system pick — validated play when filters pass, else best model + market lean." tabindex="0" role="button" aria-label="Hybrid: Full system pick — validated play when filters pass, else best model + market lean."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th>Notes</th></tr></thead><tbody><tr><td>Sat Aug 29</td><td>12:00 PM ET</td><td>UNC @ TCU</td><td>Spread</td><td><b>TCU -2.1</b></td><td><b>TCU -7.5</b></td><td><b>TCU -8.0</b></td><td><b>TCU -8.0</b></td><td><b>TCU -8.0</b></td><td><span class='pending'>—</span></td><td class='pos'><b>TCU -2.1</b></td><td>model, public, money, sharp_edge</td></tr>
 <tr><td>Sat Aug 29</td><td>12:00 PM ET</td><td>UNC @ TCU</td><td>ML</td><td><b>TCU</b></td><td><b>TCU</b></td><td><b>TCU</b></td><td><b>TCU</b></td><td><b>UNC</b></td><td><span class='pending'>—</span></td><td class='pos'><b>UNC</b></td><td>sharp_edge</td></tr>
 <tr><td>Sat Aug 29</td><td>12:00 PM ET</td><td>UNC @ TCU</td><td>Total</td><td><b>Over 46.5</b></td><td><b>Over 46.0</b></td><td><b>Over 46.5</b></td><td><b>Under 46.5</b></td><td><b>Under 46.5</b></td><td><span class='pending'>—</span></td><td class='pos'><b>Over 46.0</b></td><td>model, public</td></tr>
 <tr><td>Sat Aug 29</td><td>3:00 PM ET</td><td>SAN JOSE STATE @ USC</td><td>Spread</td><td><b>USC -4.9</b></td><td><b>SAN JOSE STATE +38.5</b></td><td><b>SAN JOSE STATE -38.5</b></td><td><b>USC -38.5</b></td><td><b>USC -38.5</b></td><td><span class='pending'>—</span></td><td class='pos'><b>USC -4.9</b></td><td>model, money, sharp_edge</td></tr>
@@ -685,6 +706,61 @@ function showTab(name, el) {
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
 }
+
+(function () {
+  var floatTip = null;
+
+  function ensureTip() {
+    if (!floatTip) {
+      floatTip = document.createElement('div');
+      floatTip.className = 'th-tip-float';
+      floatTip.setAttribute('role', 'tooltip');
+      document.body.appendChild(floatTip);
+    }
+    return floatTip;
+  }
+
+  function hideTip() {
+    if (floatTip) floatTip.style.display = 'none';
+  }
+
+  function showTip(anchor) {
+    var text = anchor.getAttribute('data-tip');
+    if (!text) return hideTip();
+    var tip = ensureTip();
+    tip.textContent = text;
+    tip.style.display = 'block';
+    var r = anchor.getBoundingClientRect();
+    var pad = 8;
+    var left = r.left + (r.width / 2) - (tip.offsetWidth / 2);
+    left = Math.max(pad, Math.min(left, window.innerWidth - tip.offsetWidth - pad));
+    var top = r.bottom + 6;
+    if (top + tip.offsetHeight > window.innerHeight - pad) {
+      top = r.top - tip.offsetHeight - 6;
+    }
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  document.addEventListener('mouseover', function (e) {
+    var el = e.target.closest && e.target.closest('.th-tip');
+    if (el) showTip(el);
+  });
+  document.addEventListener('mouseout', function (e) {
+    var el = e.target.closest && e.target.closest('.th-tip');
+    if (el && (!e.relatedTarget || !el.contains(e.relatedTarget))) hideTip();
+  });
+  document.addEventListener('focusin', function (e) {
+    var el = e.target.closest && e.target.closest('.th-tip');
+    if (el) showTip(el);
+  });
+  document.addEventListener('focusout', function (e) {
+    var el = e.target.closest && e.target.closest('.th-tip');
+    if (el && (!e.relatedTarget || !el.contains(e.relatedTarget))) hideTip();
+  });
+  window.addEventListener('scroll', hideTip, true);
+  window.addEventListener('resize', hideTip);
+})();
 </script>
 </body>
 </html>

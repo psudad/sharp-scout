@@ -165,8 +165,8 @@ GitHub Action **Pregame Windows** checks the run plan hourly on Thu–Mon (most 
 | Workflow | When | Does |
 |---|---|---|
 | `Pregame Windows` | Hourly Thu–Mon + plan refresh Monday | Fire T-12h / T-3h / T-1h only when scheduled in run plan |
-| `NFL Pipeline + Ledger` | Tue / Thu / Sun–Mon + manual | Full ratings + slate refresh; or **Run workflow** with **Today's slate** |
-| `NCAAF Pipeline + Ledger` | Tue–Sat + Sunday settle + manual | College slate refresh / settle / site |
+| `NFL Pipeline + Ledger` | Mon–Sat + Sun game day + manual | Daily slate refresh, ledger + CLV; pregame windows at T-12 / T-3 / T-1 |
+| `NCAAF Pipeline + Ledger` | Mon–Sat + Sunday settle + manual | College slate refresh / settle / site |
 | `Deploy GitHub Pages` | Push to `main` touching `docs/` | Redeploy static site |
 
 ### Today's preseason slate (manual)

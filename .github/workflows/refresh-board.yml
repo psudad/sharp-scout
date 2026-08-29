@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       nfl:
-        description: "Refresh NFL signals (no ledger)"
+        description: "Refresh NFL plays + ledger"
         type: boolean
         default: true
       ncaaf:
@@ -66,7 +66,7 @@ jobs:
       - name: Refresh NFL signals
         if: inputs.nfl
         run: |
-          ARGS="--no-ledger --build-site"
+          ARGS="--build-site"
           if [ "${{ inputs.demo }}" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
             ARGS="$ARGS --demo --skip-pbp"
           elif [ "${{ inputs.skip_pbp }}" = "true" ]; then
@@ -93,7 +93,7 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ncaaf_ledger.json data/line_history.json data/calibration.json docs/
+          git add data/ncaaf_ledger.json data/ledger.json data/line_history.json data/calibration.json docs/
           if git diff --staged --quiet; then
             echo "No board changes to commit"
           else

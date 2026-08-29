@@ -23,6 +23,7 @@ from sharp_scout.sports import NCAAF
 from sharp_scout.utils.slate import (
     college_week_label,
     filter_plays_college_week,
+    filter_plays_nfl_week,
     group_stage_cards_by_college_week,
     parse_commence,
 )
@@ -130,13 +131,21 @@ def build_site(
         pending_deduped,
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
-
-    # NFL: signals-only board (no ledger tracking). CFB keeps a cumulative ledger.
-    live_plays = collapse_best_signals(signals.get("plays") or [], only_passed=True)
-    plays_html = _render_play_cards([], live_fallback=live_plays)
+    nfl_week_plays = filter_plays_nfl_week(pending)
+    nfl_week_plays_sorted = sorted(
+        collapse_best_signals(nfl_week_plays),
+        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
+    plays_html = _render_play_cards(nfl_week_plays_sorted, live_fallback=[])
+    nfl_clv_banner_html = _render_clv_banner(record.get("clv"))
+    nfl_ledger_rows = _render_ledger_rows(settled_sorted + pending_sorted)
+    nfl_win_pct = f"{record['win_pct'] * 100:.1f}%" if record["win_pct"] is not None else "—"
+    nfl_pnl = record["pnl_units"]
+    nfl_pnl_cls = "pos" if nfl_pnl >= 0 else "neg"
+    nfl_pnl_s = f"+{nfl_pnl}" if nfl_pnl >= 0 else str(nfl_pnl)
 
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    nfl_signal_count = len(live_plays)
+    nfl_signal_count = len(nfl_week_plays_sorted)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
     stage_cards = signals.get("stage_picks") or []
@@ -192,9 +201,17 @@ def build_site(
 
     html = SITE_TEMPLATE.format(
         generated=generated,
+        nfl_record=record["record"],
+        nfl_win_pct=nfl_win_pct,
+        nfl_pnl=nfl_pnl_s,
+        nfl_pnl_cls=nfl_pnl_cls,
+        nfl_pending=record["pending"],
+        nfl_n_plays=record["n_plays"],
         nfl_signal_count=nfl_signal_count,
         demo_note=demo_note,
         plays_html=plays_html,
+        nfl_clv_banner_html=nfl_clv_banner_html,
+        nfl_ledger_rows=nfl_ledger_rows,
         ratings_rows=ratings_rows,
         stage_rows=stage_rows,
         stage_record_rows=stage_record_rows,
@@ -849,7 +866,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <div class="header">
   <h1>Sharp Scout</h1>
   <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
-  <span class="pill">CFB {ncaaf_record} · {ncaaf_pnl}u · {ncaaf_demo_note}</span>
+  <span class="pill">NFL {nfl_record} · {nfl_pnl}u · CFB {ncaaf_record} · {ncaaf_pnl}u · {ncaaf_demo_note}</span>
   <p style="margin-top:8px">Updated {generated}</p>
 </div>
 <div class="tabs">
@@ -861,9 +878,21 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-plays" class="content active">
-  <p class="phase-note" style="padding:8px 0">NFL signals only — no ledger tracking. Latest validated plays from the most recent pipeline run.</p>
-  <div class="section-label">Latest NFL Signals · {nfl_signal_count} plays</div>
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-val">{nfl_record}</div><div class="stat-label">NFL Record</div></div>
+    <div class="stat-card"><div class="stat-val">{nfl_win_pct}</div><div class="stat-label">Win %</div></div>
+    <div class="stat-card"><div class="stat-val {nfl_pnl_cls}">{nfl_pnl}u</div><div class="stat-label">Profit</div></div>
+    <div class="stat-card"><div class="stat-val">{demo_note}</div><div class="stat-label">Mode</div></div>
+  </div>
+  <div class="section-label">Closing Line Value</div>
+  {nfl_clv_banner_html}
+  <div class="section-label">This Week's Plays · {nfl_signal_count} validated</div>
   {plays_html}
+  <div class="section-label">NFL Ledger · {nfl_pending} pending · {nfl_n_plays} total</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
+    <tbody>{nfl_ledger_rows}</tbody>
+  </table></div>
 </div>
 
 <div id="tab-games" class="content">
@@ -942,7 +971,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>
-Source: ncaaf_ledger.json · ncaaf_record.json · latest signals</p>
+Source: ledger.json · record.json · ncaaf_ledger.json · ncaaf_record.json · latest signals</p>
 <script>
 function showTab(name, el) {{
   document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));

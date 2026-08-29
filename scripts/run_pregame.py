@@ -23,7 +23,7 @@ def main() -> None:
     p.add_argument(
         "--ledger",
         action="store_true",
-        help="Append validated plays to data/ledger.json (default: off for NFL)",
+        help="Append validated plays to data/ledger.json (default: on)",
     )
     args = p.parse_args()
     result = run_due_pregame(

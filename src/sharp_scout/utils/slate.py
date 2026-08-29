@@ -28,6 +28,38 @@ def parse_commence(raw: Any) -> datetime | None:
     return None
 
 
+def filter_plays_nfl_week(
+    plays: list[dict[str, Any]],
+    *,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Keep ledger plays whose kickoff falls in the current NFL week (Wed–Tue ET)."""
+    start, end = nfl_week_bounds(now)
+    out: list[dict[str, Any]] = []
+    for play in plays:
+        kickoff = parse_commence(play.get("kickoff") or play.get("commence_time"))
+        if kickoff is None:
+            continue
+        if start <= kickoff <= end:
+            out.append(play)
+    return out
+
+
+def nfl_week_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
+    """Return UTC bounds for the NFL betting week containing ``now``.
+
+    Week = Wednesday 00:00 America/New_York through the following Tuesday 23:59:59 ET.
+    """
+    now = _as_utc(now or datetime.now(timezone.utc))
+    local = now.astimezone(ET)
+    days_since_wednesday = (local.weekday() - 2) % 7
+    week_start_local = (local - timedelta(days=days_since_wednesday)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    week_end_local = week_start_local + timedelta(days=7) - timedelta(microseconds=1)
+    return week_start_local.astimezone(timezone.utc), week_end_local.astimezone(timezone.utc)
+
+
 def college_week_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
     """Return UTC bounds for the college football week containing ``now``.
 

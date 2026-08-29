@@ -51,7 +51,7 @@ def main() -> None:
         if not args.ncaaf_only:
             _run(["scripts/settle_plays.py"])
 
-    nfl_args = ["scripts/run_pipeline.py", "--no-ledger"]
+    nfl_args = ["scripts/run_pipeline.py"]
     ncaaf_args = ["scripts/run_ncaaf.py"]
     if args.demo:
         nfl_args.append("--demo")

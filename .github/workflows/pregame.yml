@@ -107,14 +107,14 @@ jobs:
           if [ "$FORCE_INPUT" = "true" ]; then
             ARGS="$ARGS --force-all"
           fi
-          python scripts/run_pregame.py $ARGS
+          python scripts/run_pregame.py $ARGS --ledger
 
       - name: Commit schedule state + site
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/schedule_state.json data/line_history.json data/calibration.json docs/ 2>/dev/null || git add data/schedule_state.json docs/ || true
+          git add data/schedule_state.json data/ledger.json data/line_history.json data/calibration.json docs/ 2>/dev/null || git add data/schedule_state.json data/ledger.json docs/ || true
           if git diff --staged --quiet; then
             echo "No changes"
           else

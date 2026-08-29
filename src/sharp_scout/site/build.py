@@ -677,9 +677,9 @@ def _pick_cell(pick: dict | None) -> str:
     line = pick.get("line")
     market = pick.get("market")
     if line is not None and market == "spread":
-        label = f"{label} {float(line):+g}"
+        label = f"{label} {float(line):+,.1f}"
     elif line is not None and market == "total":
-        label = f"{label} {float(line):g}"
+        label = f"{label} {float(line):,.1f}"
     return f"<b>{_esc(label)}</b>"
 
 
@@ -712,6 +712,52 @@ def _enrich_stage_kickoffs(
     return out
 
 
+def _is_validated_hybrid(pick: dict[str, Any] | None) -> bool:
+    if not pick:
+        return False
+    reason = (pick.get("reason") or "").lower()
+    if "no validated" in reason:
+        return False
+    return reason.startswith("validated ") or "validated play" in reason
+
+
+def _hybrid_pick_rank(pick: dict[str, Any] | None) -> int:
+    if not pick or not pick.get("available"):
+        return 0
+    if _is_validated_hybrid(pick):
+        return 3
+    reason = (pick.get("reason") or "").lower()
+    if "model aligned" in reason:
+        return 2
+    return 1
+
+
+def _merge_stage_picks(
+    old_picks: dict[str, Any],
+    new_picks: dict[str, Any],
+) -> dict[str, Any]:
+    """Merge per-stage picks; keep validated hybrid over soft model+money lean."""
+    out = dict(old_picks)
+    for stage, new_pick in new_picks.items():
+        old_pick = out.get(stage) or {}
+        if stage == "hybrid":
+            old_rank = _hybrid_pick_rank(old_pick)
+            new_rank = _hybrid_pick_rank(new_pick)
+            if old_rank > new_rank:
+                out[stage] = old_pick
+            elif new_rank > old_rank:
+                out[stage] = new_pick
+            elif old_rank == new_rank == 3 and _is_validated_hybrid(old_pick):
+                out[stage] = old_pick
+            elif new_pick.get("available"):
+                out[stage] = new_pick
+            else:
+                out[stage] = old_pick or new_pick
+        elif new_pick.get("available") or not old_pick.get("available"):
+            out[stage] = new_pick
+    return out
+
+
 def _merge_stage_cards(
     ledger_cards: list[dict[str, Any]],
     signal_cards: list[dict[str, Any]],
@@ -727,7 +773,21 @@ def _merge_stage_cards(
         key = _stage_card_key(card)
         if key in merged:
             old = merged[key]
-            merged[key] = {**old, **card, "created_at": old.get("created_at") or card.get("created_at")}
+            row = {**old, **card, "created_at": old.get("created_at") or card.get("created_at")}
+            row["picks"] = _merge_stage_picks(old.get("picks") or {}, card.get("picks") or {})
+            hybrid = (row["picks"].get("hybrid") or {})
+            old_hybrid = (old.get("picks") or {}).get("hybrid") or {}
+            if _is_validated_hybrid(old_hybrid) and hybrid.get("team") == old_hybrid.get("team"):
+                for fld in (
+                    "hybrid_agrees_with",
+                    "conflict_stages",
+                    "consensus_side",
+                    "consensus_team",
+                    "agreement",
+                ):
+                    if fld in old:
+                        row[fld] = old[fld]
+            merged[key] = row
         else:
             merged[key] = dict(card)
     return _enrich_stage_kickoffs(list(merged.values()), games=games, plays=plays)
@@ -752,7 +812,7 @@ def _render_stage_weeks_html(cards: list[dict]) -> str:
         parts.append(
             f'<div class="week-block">'
             f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)} · {n_games} games · {len(sorted_cards)} market rows</div>'
-            f'<div class="table-wrap"><table>'
+            f'<div class="table-wrap stage-table-wrap"><table class="stage-table">'
             f"<thead><tr>"
             f"<th>Date</th><th>Time</th><th>Game</th><th>Mkt</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th>"
             f"<th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>"
@@ -865,6 +925,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .tab.active {{ color: #f4820a; border-bottom-color: #f4820a; }}
   .content {{ display: none; padding: 16px; max-width: 900px; margin: 0 auto; }}
   .content.active {{ display: block; }}
+  #tab-cfb.content {{ max-width: 1240px; }}
   .summary-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }}
   @media (min-width: 700px) {{ .summary-grid {{ grid-template-columns: repeat(4, 1fr); }} }}
   .stat-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px 10px; text-align: center; }}
@@ -901,6 +962,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .stage-why {{ font-size: 11px; color: #94a3b8; line-height: 1.5; max-width: 420px; }}
   .splits-summary {{ color: #e2e8f0; margin-bottom: 8px; }}
   .table-wrap {{ overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; }}
+  .stage-table-wrap {{ margin-bottom: 8px; }}
+  .stage-table {{ min-width: 1120px; }}
+  .stage-table th, .stage-table td {{ white-space: nowrap; }}
+  .stage-table th:nth-child(3), .stage-table td:nth-child(3) {{ white-space: normal; min-width: 150px; }}
+  .stage-table th:nth-child(12), .stage-table td:nth-child(12) {{ white-space: normal; min-width: 88px; max-width: 140px; font-size: 11px; color: #94a3b8; }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }}
   th {{ background: #161b22; color: #8b949e; text-align: left; padding: 10px; border-bottom: 1px solid #30363d; }}
   td {{ padding: 9px 10px; border-bottom: 1px solid #21262d; }}

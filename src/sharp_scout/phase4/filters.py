@@ -126,6 +126,38 @@ def reverse_line_movement(
     return False, "RLM not applicable to h2h without line"
 
 
+def h2h_outlier_check(edge: EdgeCandidate) -> tuple[bool, str]:
+    """Reject moneyline edges that are almost always stale or non-actionable."""
+    if edge.market != "h2h":
+        return True, ""
+
+    settings = get_settings()
+
+    if edge.edge > settings.max_h2h_edge:
+        return (
+            False,
+            f"h2h EV {edge.edge:.1%} exceeds {settings.max_h2h_edge:.0%} cap (likely stale retail price)",
+        )
+
+    if edge.price > settings.max_h2h_plus_price:
+        return (
+            False,
+            f"h2h price {edge.price:+.0f} exceeds +{settings.max_h2h_plus_price:.0f} cap",
+        )
+
+    if (
+        edge.price >= settings.h2h_dog_price_tight_spread_floor
+        and abs(edge.model_spread) < settings.h2h_tight_spread_threshold
+    ):
+        return (
+            False,
+            f"model spread {edge.model_spread:+.1f} vs h2h {edge.price:+.0f} "
+            f"(pick'em-ish model with extreme ML — likely bad book)",
+        )
+
+    return True, ""
+
+
 def validate_edge(
     edge: EdgeCandidate,
     splits: list[dict[str, Any]],
@@ -139,8 +171,15 @@ def validate_edge(
         "rlm": False,
         "money_split": False,
         "vs_sharp": edge.p_mkt is not None and abs(edge.p_true - (edge.p_mkt or 0)) >= 0.015,
+        "h2h_sane": True,
     }
     notes.append(f"EV={edge.edge:.2%} at {edge.book} {edge.price:+.0f}")
+
+    ok_h2h, h2h_note = h2h_outlier_check(edge)
+    flags["h2h_sane"] = ok_h2h
+    if not ok_h2h:
+        notes.append(h2h_note)
+        return FilterResult(passed=False, notes=notes, flags=flags, tier="rejected")
 
     game = _find_split_game(splits, edge.home_team, edge.away_team)
     if game is None:

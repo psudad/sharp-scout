@@ -12,7 +12,7 @@ from sharp_scout.data.odds_api import mock_odds_events
 from sharp_scout.phase1.ratings import TeamPower, matchup_means
 from sharp_scout.phase2.monte_carlo import p_true_for_market, simulate_game
 from sharp_scout.phase3.market import discover_edges, fair_probs_from_two_way
-from sharp_scout.phase4.filters import attach_filters, reverse_line_movement, validate_edge
+from sharp_scout.phase4.filters import attach_filters, h2h_outlier_check, reverse_line_movement, validate_edge
 from sharp_scout.utils.odds import american_to_implied_prob, expected_value, normalize_team
 
 
@@ -102,3 +102,58 @@ def test_discover_edges_runs_on_mock():
     assert isinstance(edges, list)
     filtered = attach_filters(edges, mock_splits())
     assert len(filtered) == len(edges)
+
+
+def _sample_h2h_edge(**overrides):
+    from sharp_scout.phase3.market import EdgeCandidate
+
+    base = dict(
+        event_id="nmsu-fsu",
+        home_team="FSU",
+        away_team="NEW MEXICO STATE",
+        market="h2h",
+        side="away",
+        line=None,
+        book="nordicbet",
+        price=1300.0,
+        p_true=0.4178,
+        p_mkt=0.0459,
+        edge=4.8492,
+        sharp_book="betfair_ex_eu",
+        sharp_price=-10000.0,
+        model_spread=-2.03,
+        model_total=54.07,
+    )
+    base.update(overrides)
+    return EdgeCandidate(**base)
+
+
+def test_h2h_outlier_rejects_stale_nmsu_style_play():
+    ok, note = h2h_outlier_check(_sample_h2h_edge())
+    assert ok is False
+    assert "cap" in note.lower()
+
+
+def test_h2h_outlier_allows_reasonable_dog_ml():
+    ok, note = h2h_outlier_check(
+        _sample_h2h_edge(
+            book="marathonbet",
+            price=190.0,
+            edge=0.2076,
+            p_true=0.4164,
+            p_mkt=0.2655,
+            home_team="TCU",
+            away_team="UNC",
+            event_id="unc-tcu",
+            model_spread=-2.11,
+        )
+    )
+    assert ok is True
+    assert note == ""
+
+
+def test_validate_edge_rejects_h2h_before_splits():
+    edge = _sample_h2h_edge()
+    fr = validate_edge(edge, mock_splits())
+    assert fr.passed is False
+    assert fr.flags["h2h_sane"] is False

@@ -23,6 +23,11 @@ class Settings(BaseSettings):
 
     ev_threshold: float = 0.02
     money_ticket_gap: float = 0.20
+    # Moneyline guardrails — block stale/offshore misquotes from auto-plays
+    max_h2h_edge: float = 0.50
+    max_h2h_plus_price: float = 1200.0
+    h2h_dog_price_tight_spread_floor: float = 600.0
+    h2h_tight_spread_threshold: float = 10.0
     monte_carlo_sims: int = 10_000
 
     # Sharp books preferred for P_mkt; Circa when present in aggregator response

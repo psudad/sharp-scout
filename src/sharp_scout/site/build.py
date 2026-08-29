@@ -32,6 +32,7 @@ from sharp_scout.utils.slate import (
     group_stage_cards_by_college_week,
     parse_commence,
 )
+from sharp_scout.utils.teams import ncaaf_display_code
 
 DOCS_DIR = ROOT / "docs"
 
@@ -720,19 +721,23 @@ def _render_stage_table_head() -> str:
     return "<thead><tr>" + "".join(parts) + "</tr></thead>"
 
 
-def _pick_cell(pick: dict | None) -> str:
+def _pick_cell(pick: dict | None, *, sport: str = "nfl") -> str:
     if not pick or not pick.get("available"):
         return "<span class='pending'>—</span>"
     label = pick.get("team") or pick.get("side") or ""
     if not label:
         return "<span class='pending'>—</span>"
+    label_s = str(label)
+    side = str(pick.get("side") or "").lower()
+    if sport == "ncaaf" and side not in ("over", "under") and label_s.upper() not in ("OVER", "UNDER"):
+        label_s = ncaaf_display_code(label_s)
     line = pick.get("line")
     market = pick.get("market")
     if line is not None and market == "spread":
-        label = f"{label} {float(line):+,.1f}"
+        label_s = f"{label_s} {float(line):+,.1f}"
     elif line is not None and market == "total":
-        label = f"{label} {float(line):,.1f}"
-    return f"<b>{_esc(label)}</b>"
+        label_s = f"{label_s} {float(line):,.1f}"
+    return f"<b>{_esc(label_s)}</b>"
 
 
 def _stage_card_key(card: dict[str, Any]) -> str:
@@ -860,7 +865,7 @@ def _render_stage_weeks_html(cards: list[dict]) -> str:
             ),
         )
         n_games = len({c.get("event_id") for c in sorted_cards})
-        rows = _render_stage_rows(sorted_cards)
+        rows = _render_stage_rows(sorted_cards, sport="ncaaf")
         parts.append(
             f'<div class="week-block">'
             f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)} · {n_games} games · {len(sorted_cards)} market rows</div>'
@@ -873,7 +878,7 @@ def _render_stage_weeks_html(cards: list[dict]) -> str:
     return "".join(parts)
 
 
-def _render_stage_rows(cards: list[dict]) -> str:
+def _render_stage_rows(cards: list[dict], *, sport: str = "nfl") -> str:
     if not cards:
         return "<tr><td colspan='11'>No stage picks yet. Run the pipeline.</td></tr>"
     rows = []
@@ -889,19 +894,24 @@ def _render_stage_rows(cards: list[dict]) -> str:
             flag = (flag + " · RLM").strip(" ·")
         kick_raw = c.get("kickoff") or c.get("commence_time")
         kick_s = format_kickoff_compact(kick_raw)
-        matchup = f"{_esc(c.get('away_team'))} @ {_esc(c.get('home_team'))}"
+        away = str(c.get("away_team") or "")
+        home = str(c.get("home_team") or "")
+        if sport == "ncaaf":
+            matchup = f"{_esc(ncaaf_display_code(away))} @ {_esc(ncaaf_display_code(home))}"
+        else:
+            matchup = f"{_esc(away)} @ {_esc(home)}"
         rows.append(
             "<tr>"
             f"<td>{_esc(kick_s)}</td>"
             f"<td>{matchup}</td>"
             f"<td>{_esc(_stage_market_label(c.get('market')))}</td>"
-            f"<td class='hybrid-cell pos'>{_pick_cell(hybrid)}</td>"
-            f"<td>{_pick_cell(picks.get('model'))}</td>"
-            f"<td>{_pick_cell(picks.get('sharp'))}</td>"
-            f"<td>{_pick_cell(picks.get('public'))}</td>"
-            f"<td>{_pick_cell(picks.get('money'))}</td>"
-            f"<td>{_pick_cell(picks.get('sharp_edge'))}</td>"
-            f"<td>{_pick_cell(picks.get('rlm'))}</td>"
+            f"<td class='hybrid-cell pos'>{_pick_cell(hybrid, sport=sport)}</td>"
+            f"<td>{_pick_cell(picks.get('model'), sport=sport)}</td>"
+            f"<td>{_pick_cell(picks.get('sharp'), sport=sport)}</td>"
+            f"<td>{_pick_cell(picks.get('public'), sport=sport)}</td>"
+            f"<td>{_pick_cell(picks.get('money'), sport=sport)}</td>"
+            f"<td>{_pick_cell(picks.get('sharp_edge'), sport=sport)}</td>"
+            f"<td>{_pick_cell(picks.get('rlm'), sport=sport)}</td>"
             f"<td>{_esc(flag or agrees)}</td>"
             "</tr>"
         )
@@ -1013,9 +1023,9 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .splits-summary {{ color: #e2e8f0; margin-bottom: 8px; }}
   .table-wrap {{ overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; }}
   .stage-table-wrap {{ margin-bottom: 8px; }}
-  .stage-table {{ min-width: 1000px; }}
-  .stage-table th, .stage-table td {{ white-space: nowrap; }}
-  .stage-table th:nth-child(2), .stage-table td:nth-child(2) {{ white-space: normal; min-width: 140px; }}
+  .stage-table {{ min-width: 880px; font-size: 11px; }}
+  .stage-table th, .stage-table td {{ white-space: nowrap; padding: 6px 7px; }}
+  .stage-table th:nth-child(2), .stage-table td:nth-child(2) {{ white-space: nowrap; min-width: 0; max-width: 108px; }}
   .stage-table th.hybrid-col, .stage-table td.hybrid-cell {{
     background: rgba(74, 222, 128, 0.08);
     border-left: 2px solid rgba(74, 222, 128, 0.35);

@@ -1,7 +1,7 @@
 """NCAAF Action Network ↔ Odds API team name alignment."""
 
 from sharp_scout.phase4.filters import _find_split_game
-from sharp_scout.utils.teams import normalize_ncaaf
+from sharp_scout.utils.teams import normalize_ncaaf, ncaaf_display_code
 
 
 def test_an_abbr_matches_odds_api_school_name():
@@ -28,3 +28,11 @@ def test_find_split_game_ncaaf_alias():
     ]
     hit = _find_split_game(splits, "USC", "SAN JOSE STATE", sport="ncaaf")
     assert hit is not None
+
+
+def test_ncaaf_display_code_abbreviates_long_names():
+    assert ncaaf_display_code("NORTH DAKOTA STATE BISON") == "NDSU"
+    assert ncaaf_display_code("JACKSONVILLE STATE GAMECOCKS") == "JVST"
+    assert ncaaf_display_code("SAN JOSE STATE") == "SJSU"
+    assert ncaaf_display_code("NEW MEXICO STATE") == "NMSU"
+    assert ncaaf_display_code("TCU") == "TCU"

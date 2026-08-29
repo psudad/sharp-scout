@@ -410,3 +410,38 @@ def normalize_ncaaf(name: str) -> str:
     if raw in NCAAF_ALIASES.values():
         return raw
     return stripped or raw
+
+
+_DISPLAY_CODES: dict[str, str] | None = None
+
+
+def _preferred_display_codes() -> dict[str, str]:
+    """Canonical school name → short label for dense UI tables."""
+    best: dict[str, tuple[tuple[int, int], str]] = {}
+    for key, canon in NCAAF_ALIASES.items():
+        if " " in key or len(key) > 8:
+            continue
+        # Prefer familiar abbreviations (NDSU, SJSU) over longer codes.
+        score = (0 if len(key) <= 5 else 1, len(key))
+        prev = best.get(canon)
+        if prev is None or score < prev[0]:
+            best[canon] = (score, key)
+    return {canon: key for canon, (_, key) in best.items()}
+
+
+def ncaaf_display_code(name: str) -> str:
+    """Short board label for NCAAF teams (e.g. NORTH DAKOTA STATE → NDSU)."""
+    global _DISPLAY_CODES
+    if _DISPLAY_CODES is None:
+        _DISPLAY_CODES = _preferred_display_codes()
+    canon = normalize_ncaaf(name)
+    if not canon:
+        return name or ""
+    if canon in _DISPLAY_CODES:
+        return _DISPLAY_CODES[canon]
+    if " " not in canon:
+        return canon
+    parts = [p for p in canon.split() if p not in {"STATE", "ST", "UNIVERSITY", "OF"}]
+    if len(parts) == 1:
+        return parts[0][:8]
+    return "".join(p[0] for p in parts)[:6]

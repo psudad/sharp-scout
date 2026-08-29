@@ -14,6 +14,8 @@ from sharp_scout.copy.explain import (
     describe_splits_board,
     describe_stage_pick,
     format_kickoff_et,
+    format_kickoff_date_et,
+    format_kickoff_time_et,
     format_play_rationale,
     kickoff_sort_key,
     STAGE_LABELS,
@@ -552,7 +554,9 @@ def _render_games_pipeline(
         return '<div class="empty">No games in latest pipeline run. Run scripts/run_today_slate.py or the NFL Pipeline workflow.</div>'
 
     boards = {str(b.get("event_id")): b for b in split_boards}
-    stages = {str(c.get("event_id")): c for c in stage_cards}
+    stages_by_event: dict[str, list[dict]] = {}
+    for c in stage_cards:
+        stages_by_event.setdefault(str(c.get("event_id")), []).append(c)
     sig_by_event: dict[str, list[dict]] = {}
     for s in signals:
         sig_by_event.setdefault(str(s.get("event_id")), []).append(s)
@@ -566,7 +570,15 @@ def _render_games_pipeline(
         eid = str(g.get("event_id"))
         away, home = g.get("away_team"), g.get("home_team")
         board = boards.get(eid) or {}
-        stage = stages.get(eid)
+        event_stages = stages_by_event.get(eid) or []
+        stage_sections = []
+        for mkt in ("spread", "h2h", "total"):
+            stage = next((c for c in event_stages if c.get("market") == mkt), None)
+            stage_sections.append(
+                f"<div class='phase-sub'>{_esc(_stage_market_label(mkt))}</div>"
+                f"{_render_stage_mini(stage, home, away)}"
+            )
+        stage_html = "".join(stage_sections)
         game_sigs = sig_by_event.get(eid) or []
         kick = format_kickoff_et(g.get("commence_time"))
         p_hw = g.get("p_home_win")
@@ -604,7 +616,7 @@ def _render_games_pipeline(
         </div>
         <div class="phase-block">
           <div class="phase-label">Stage picks (each lens)</div>
-          {_render_stage_mini(stage, home, away)}
+          {stage_html}
         </div>
       </div>"""
         )
@@ -649,10 +661,26 @@ def _render_stage_highlight_lists(stage_summary: dict[str, Any]) -> str:
     return "".join(parts)
 
 
+def _stage_market_label(market: str | None) -> str:
+    return {"spread": "Spread", "h2h": "ML", "total": "Total"}.get(market or "", market or "—")
+
+
+_STAGE_MARKET_ORDER = {"spread": 0, "h2h": 1, "total": 2}
+
+
 def _pick_cell(pick: dict | None) -> str:
-    if not pick or not pick.get("available") or not pick.get("team"):
+    if not pick or not pick.get("available"):
         return "<span class='pending'>—</span>"
-    return f"<b>{_esc(pick.get('team'))}</b>"
+    label = pick.get("team") or pick.get("side") or ""
+    if not label:
+        return "<span class='pending'>—</span>"
+    line = pick.get("line")
+    market = pick.get("market")
+    if line is not None and market == "spread":
+        label = f"{label} {float(line):+g}"
+    elif line is not None and market == "total":
+        label = f"{label} {float(line):g}"
+    return f"<b>{_esc(label)}</b>"
 
 
 def _stage_card_key(card: dict[str, Any]) -> str:
@@ -713,15 +741,20 @@ def _render_stage_weeks_html(cards: list[dict]) -> str:
         label = college_week_label(week_start)
         sorted_cards = sorted(
             week_cards,
-            key=lambda c: kickoff_sort_key(c.get("kickoff") or c.get("commence_time") or c.get("created_at")),
+            key=lambda c: (
+                kickoff_sort_key(c.get("kickoff") or c.get("commence_time") or c.get("created_at")),
+                str(c.get("event_id") or ""),
+                _STAGE_MARKET_ORDER.get(str(c.get("market") or "spread"), 9),
+            ),
         )
+        n_games = len({c.get("event_id") for c in sorted_cards})
         rows = _render_stage_rows(sorted_cards)
         parts.append(
             f'<div class="week-block">'
-            f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)} · {len(sorted_cards)} games</div>'
+            f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)} · {n_games} games · {len(sorted_cards)} market rows</div>'
             f'<div class="table-wrap"><table>'
             f"<thead><tr>"
-            f"<th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th>"
+            f"<th>Date</th><th>Time</th><th>Game</th><th>Mkt</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th>"
             f"<th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>"
             f"</tr></thead><tbody>{rows}</tbody></table></div></div>"
         )
@@ -730,7 +763,7 @@ def _render_stage_weeks_html(cards: list[dict]) -> str:
 
 def _render_stage_rows(cards: list[dict]) -> str:
     if not cards:
-        return "<tr><td colspan='9'>No stage picks yet. Run the pipeline.</td></tr>"
+        return "<tr><td colspan='12'>No stage picks yet. Run the pipeline.</td></tr>"
     rows = []
     for c in cards:
         picks = c.get("picks") or {}
@@ -742,11 +775,16 @@ def _render_stage_rows(cards: list[dict]) -> str:
             flag = "fade pub"
         if (c.get("agreement") or {}).get("rlm_active"):
             flag = (flag + " · RLM").strip(" ·")
-        kick = format_kickoff_et(c.get("kickoff") or c.get("commence_time"))
+        kick_raw = c.get("kickoff") or c.get("commence_time")
+        date_s = format_kickoff_date_et(kick_raw)
+        time_s = format_kickoff_time_et(kick_raw)
         matchup = f"{_esc(c.get('away_team'))} @ {_esc(c.get('home_team'))}"
         rows.append(
             "<tr>"
-            f"<td>{_esc(kick)} · {matchup}</td>"
+            f"<td>{_esc(date_s)}</td>"
+            f"<td>{_esc(time_s)}</td>"
+            f"<td>{matchup}</td>"
+            f"<td>{_esc(_stage_market_label(c.get('market')))}</td>"
             f"<td>{_pick_cell(picks.get('model'))}</td>"
             f"<td>{_pick_cell(picks.get('sharp'))}</td>"
             f"<td>{_pick_cell(picks.get('public'))}</td>"
@@ -940,7 +978,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">Per-Game Stage Winners</div>
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>Game</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
+      <th>Date</th><th>Time</th><th>Game</th><th>Mkt</th><th>Model</th><th>Sharp</th><th>Public</th><th>Money</th><th>Diff</th><th>RLM</th><th>Hybrid</th><th>Notes</th>
     </tr></thead>
     <tbody>{stage_rows}</tbody>
   </table></div>

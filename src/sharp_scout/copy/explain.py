@@ -55,6 +55,20 @@ def format_kickoff_et(raw: Any) -> str:
     return local.strftime("%a %b %-d, %-I:%M %p ET")
 
 
+def format_kickoff_date_et(raw: Any) -> str:
+    dt = parse_kickoff(raw)
+    if dt is None:
+        return "TBD"
+    return dt.astimezone(ET).strftime("%a %b %-d")
+
+
+def format_kickoff_time_et(raw: Any) -> str:
+    dt = parse_kickoff(raw)
+    if dt is None:
+        return "TBD"
+    return dt.astimezone(ET).strftime("%-I:%M %p ET")
+
+
 def kickoff_sort_key(raw: Any) -> str:
     dt = parse_kickoff(raw)
     return dt.isoformat() if dt else "9999"

@@ -176,13 +176,20 @@ def run_ncaaf_pipeline(
     validated = [s for s in all_signals if s["filter_passed"]]
     validated.sort(key=lambda s: s["edge"], reverse=True)
 
-    from sharp_scout.stage_picks import build_slate_stage_picks, summarize_stage_slate
+    from sharp_scout.stage_picks import STAGE_MARKETS, build_slate_stage_picks, summarize_stage_slate
 
-    stage_cards = build_slate_stage_picks(events, sims_by_event, splits, validated, market="spread", sport="ncaaf")
+    stage_cards = build_slate_stage_picks(
+        events, sims_by_event, splits, validated, markets=STAGE_MARKETS, sport="ncaaf"
+    )
     stage_summary = summarize_stage_slate(stage_cards)
+    from sharp_scout.data.splits_board import build_slate_split_boards
+
+    split_boards = build_slate_split_boards(events, splits)
     for g in game_results:
         eid = str(g.get("event_id"))
-        card = next((c for c in stage_cards if c["event_id"] == eid), None)
+        cards_for = [c for c in stage_cards if c["event_id"] == eid]
+        g["stage_cards"] = {c["market"]: c for c in cards_for}
+        card = next((c for c in cards_for if c.get("market") == "spread"), cards_for[0] if cards_for else None)
         if card:
             g["stage_picks"] = card["picks"]
             g["stage_agreement"] = card["agreement"]
@@ -210,6 +217,7 @@ def run_ncaaf_pipeline(
         "plays": validated,
         "stage_picks": stage_cards,
         "stage_summary": stage_summary,
+        "split_boards": split_boards,
     }
 
     out_path = ARTIFACTS_DIR / sport.artifact_name

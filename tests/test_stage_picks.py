@@ -34,7 +34,9 @@ def test_stage_card_has_all_stages():
     assert d["agreement"]["n_available"] >= 3
 
 
-def test_settle_stage_ats():
+def test_settle_stage_total():
+    assert settle_stage_pick("over", home_score=24, away_score=27, market="total", line=50.5) == "win"
+    assert settle_stage_pick("under", home_score=24, away_score=27, market="total", line=50.5) == "loss"
     # Home +2.5, final home 20 away 20 → home covers
     assert settle_stage_pick("home", home_score=20, away_score=20, market="spread", line=2.5) == "win"
     assert settle_stage_pick("away", home_score=20, away_score=20, market="spread", line=2.5) == "loss"
@@ -46,3 +48,14 @@ def test_summarize():
     card = build_game_stage_card(ev, sim, mock_splits(), [], market="spread").to_dict()
     summary = summarize_stage_slate([card])
     assert summary["n_games"] == 1
+    assert summary["n_rows"] == 1
+
+
+def test_total_market_stage_card():
+    ev = mock_odds_events()[0]
+    sim = simulate_game("BUF", "KC", 24, 27, n_sims=1000, seed=3)
+    card = build_game_stage_card(ev, sim, mock_splits(), [], market="total")
+    d = card.to_dict()
+    assert d["market"] == "total"
+    assert d["picks"]["model"]["available"]
+    assert d["picks"]["model"]["side"] in ("over", "under")

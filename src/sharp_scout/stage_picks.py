@@ -23,10 +23,14 @@ from sharp_scout.phase3.market import sharp_consensus
 from sharp_scout.phase4.filters import _find_split_game, reverse_line_movement
 from sharp_scout.utils.odds import american_to_implied_prob
 
-Side = Literal["home", "away"]
-MarketFocus = Literal["spread", "h2h"]
+Side = Literal["home", "away", "over", "under"]
+MarketFocus = Literal["spread", "h2h", "total"]
 
 STAGES = ("model", "sharp", "public", "money", "sharp_edge", "rlm", "hybrid")
+STAGE_MARKETS: tuple[MarketFocus, ...] = ("spread", "h2h", "total")
+
+_MARKET_ODDS_KEY = {"spread": "spreads", "h2h": "h2h", "total": "totals"}
+_MARKET_SPLIT_KEY = {"spread": "spread", "h2h": "moneyline", "total": "total"}
 
 
 @dataclass
@@ -86,10 +90,30 @@ def _team(side: Side | None, home: str, away: str) -> str | None:
         return home
     if side == "away":
         return away
+    if side == "over":
+        return "Over"
+    if side == "under":
+        return "Under"
     return None
 
 
-def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread") -> StagePick:
+def _consensus_total_line(event: dict[str, Any]) -> float | None:
+    sharp = sharp_consensus(event, "totals")
+    if sharp:
+        line = sharp.get("line")
+        if line is not None:
+            return float(line)
+        for o in sharp.get("outcomes") or []:
+            if o.get("point") is not None:
+                return float(o["point"])
+    for bm in (event.get("bookmakers") or {}).values():
+        for o in (bm.get("markets") or {}).get("totals") or []:
+            if o.get("point") is not None:
+                return float(o["point"])
+    return None
+
+
+def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread", event: dict[str, Any] | None = None) -> StagePick:
     if market == "h2h":
         side: Side = "home" if sim.p_home_win >= sim.p_away_win else "away"
         conf = max(sim.p_home_win, sim.p_away_win)
@@ -101,6 +125,23 @@ def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread")
             None,
             conf,
             f"P_true win home={sim.p_home_win:.1%} away={sim.p_away_win:.1%}",
+        )
+    if market == "total":
+        line = _consensus_total_line(event or {})
+        if line is None:
+            return StagePick("model", "total", None, None, reason="no market total line", available=False)
+        from sharp_scout.phase2.monte_carlo import p_true_for_market
+
+        side = "over" if sim.model_total >= line else "under"
+        conf = p_true_for_market(sim, "totals", side, line)
+        return StagePick(
+            "model",
+            "total",
+            side,
+            _team(side, home, away),
+            line,
+            conf,
+            f"T_mod={sim.model_total:.1f} vs market {line:.1f}",
         )
     # ATS: model_spread is away-home (neg => home favored). Pick favorite to cover.
     # Home covers model line at model_spread as home line = -model? 
@@ -123,21 +164,21 @@ def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread")
 
 
 def pick_sharp(event: dict[str, Any], home: str, away: str, market: str = "spread") -> StagePick:
-    mkey = "spreads" if market == "spread" else "h2h"
+    mkey = _MARKET_ODDS_KEY.get(market, "spreads")
     sharp = sharp_consensus(event, mkey)
     if not sharp:
         return StagePick("sharp", market, None, None, reason="no sharp book line", available=False)
     # Highest no-vig p_mkt wins
     best = max(sharp["outcomes"], key=lambda o: o.get("p_mkt") or 0.0)
     side = best.get("side")
-    if side not in ("home", "away"):
+    if side not in ("home", "away", "over", "under"):
         return StagePick("sharp", market, None, None, reason="unparsed sharp side", available=False)
     return StagePick(
         "sharp",
         market,
-        side,
-        _team(side, home, away),
-        best.get("point") if market == "spread" else None,
+        side,  # type: ignore[arg-type]
+        _team(side, home, away),  # type: ignore[arg-type]
+        best.get("point") if market in ("spread", "total") else None,
         float(best.get("p_mkt") or 0.5),
         f"{sharp['book']} no-vig {best.get('p_mkt', 0):.1%} @ {best.get('price')}",
     )
@@ -146,11 +187,26 @@ def pick_sharp(event: dict[str, Any], home: str, away: str, market: str = "sprea
 def pick_public(split_game: dict[str, Any] | None, home: str, away: str, market: str = "spread") -> StagePick:
     if not split_game:
         return StagePick("public", market, None, None, reason="no Action Network row", available=False)
-    block = (split_game.get("markets") or {}).get("spread" if market == "spread" else "moneyline") or {}
+    split_key = _MARKET_SPLIT_KEY.get(market, "spread")
+    block = (split_game.get("markets") or {}).get(split_key) or {}
+    if market == "total":
+        ob, ub = block.get("over_bet_pct"), block.get("under_bet_pct")
+        if ob is None or ub is None:
+            return StagePick("public", market, None, None, reason="ticket % missing", available=False)
+        side: Side = "over" if ob >= ub else "under"
+        return StagePick(
+            "public",
+            market,
+            side,
+            _team(side, home, away),
+            block.get("current_line"),
+            max(ob, ub),
+            f"tickets over={ob:.0%} under={ub:.0%}",
+        )
     hb, ab = block.get("home_bet_pct"), block.get("away_bet_pct")
     if hb is None or ab is None:
         return StagePick("public", market, None, None, reason="ticket % missing", available=False)
-    side: Side = "home" if hb >= ab else "away"
+    side = "home" if hb >= ab else "away"
     return StagePick(
         "public",
         market,
@@ -165,11 +221,33 @@ def pick_public(split_game: dict[str, Any] | None, home: str, away: str, market:
 def pick_money(split_game: dict[str, Any] | None, home: str, away: str, market: str = "spread") -> StagePick:
     if not split_game:
         return StagePick("money", market, None, None, reason="no Action Network row", available=False)
-    block = (split_game.get("markets") or {}).get("spread" if market == "spread" else "moneyline") or {}
+    split_key = _MARKET_SPLIT_KEY.get(market, "spread")
+    block = (split_game.get("markets") or {}).get(split_key) or {}
+    if market == "total":
+        om, um = block.get("over_money_pct"), block.get("under_money_pct")
+        if om is None or um is None:
+            return StagePick("money", market, None, None, reason="money % missing", available=False)
+        side: Side = "over" if om >= um else "under"
+        ob, ub = block.get("over_bet_pct"), block.get("under_bet_pct")
+        gap = None
+        if ob is not None and ub is not None:
+            gap = (om - ob) if side == "over" else (um - ub)
+        reason = f"money over={om:.0%} under={um:.0%}"
+        if gap is not None:
+            reason += f" (gap vs tickets {gap:+.0%} on {side})"
+        return StagePick(
+            "money",
+            market,
+            side,
+            _team(side, home, away),
+            block.get("current_line"),
+            max(om, um),
+            reason,
+        )
     hm, am = block.get("home_money_pct"), block.get("away_money_pct")
     if hm is None or am is None:
         return StagePick("money", market, None, None, reason="money % missing", available=False)
-    side: Side = "home" if hm >= am else "away"
+    side = "home" if hm >= am else "away"
     hb, ab = block.get("home_bet_pct"), block.get("away_bet_pct")
     gap = None
     if hb is not None and ab is not None:
@@ -199,7 +277,7 @@ def pick_sharp_edge(
 
     if not split_game:
         return StagePick("sharp_edge", market, None, None, reason="no Action Network row", available=False)
-    mkey = {"spread": "spread", "h2h": "moneyline"}.get(market, market)
+    mkey = _MARKET_SPLIT_KEY.get(market, "spread")
     if mkey not in ("spread", "moneyline", "total"):
         mkey = "spread"
     block = (split_game.get("markets") or {}).get(mkey) or {}
@@ -232,26 +310,29 @@ def pick_sharp_edge(
     )
 
 
-def pick_rlm(split_game: dict[str, Any] | None, home: str, away: str) -> StagePick:
+def pick_rlm(split_game: dict[str, Any] | None, home: str, away: str, market: str = "spread") -> StagePick:
+    if market == "h2h":
+        return StagePick("rlm", market, None, None, reason="RLM is spread/total only", available=False)
     if not split_game:
-        return StagePick("rlm", "spread", None, None, reason="no Action Network row", available=False)
-    block = (split_game.get("markets") or {}).get("spread") or {}
-    # Test both sides; RLM helper returns True only for the side that benefits
-    for side in ("home", "away"):
-        ok, note = reverse_line_movement(block, side, "spreads")
+        return StagePick("rlm", market, None, None, reason="no Action Network row", available=False)
+    split_key = _MARKET_SPLIT_KEY.get(market, "spread")
+    odds_market = _MARKET_ODDS_KEY.get(market, "spreads")
+    block = (split_game.get("markets") or {}).get(split_key) or {}
+    sides: tuple[str, ...] = ("over", "under") if market == "total" else ("home", "away")
+    for side in sides:
+        ok, note = reverse_line_movement(block, side, odds_market)
         if ok:
             return StagePick(
                 "rlm",
-                "spread",
+                market,
                 side,  # type: ignore[arg-type]
                 _team(side, home, away),  # type: ignore[arg-type]
                 block.get("current_line"),
                 0.6,
                 note,
             )
-    # No RLM — unavailable rather than a fake pick
-    _, note = reverse_line_movement(block, "home", "spreads")
-    return StagePick("rlm", "spread", None, None, reason=note or "no RLM", available=False)
+    _, note = reverse_line_movement(block, sides[0], odds_market)
+    return StagePick("rlm", market, None, None, reason=note or "no RLM", available=False)
 
 
 def pick_hybrid(
@@ -266,28 +347,24 @@ def pick_hybrid(
     market: str = "spread",
 ) -> StagePick:
     """Prefer a validated system play on this game; else model when it disagrees with sharp."""
-    # Validated spread/h2h signals for this matchup
+    odds_market = _MARKET_ODDS_KEY.get(market, "spreads")
     plays = [
         s
         for s in validated_signals
         if s.get("home_team") == home
         and s.get("away_team") == away
         and s.get("filter_passed")
-        and s.get("market") in (("spreads", "h2h") if market == "spread" else ("h2h",))
+        and s.get("market") == odds_market
     ]
-    if market == "spread":
-        plays = [s for s in plays if s.get("market") == "spreads"] or [
-            s for s in plays if s.get("market") == "h2h"
-        ]
     if plays:
         best = max(plays, key=lambda s: s.get("edge") or 0)
         side = best.get("side")
-        if side in ("home", "away"):
+        if side in ("home", "away", "over", "under"):
             return StagePick(
                 "hybrid",
-                "spread" if best.get("market") == "spreads" else "h2h",
-                side,
-                _team(side, home, away),
+                market,
+                side,  # type: ignore[arg-type]
+                _team(side, home, away),  # type: ignore[arg-type]
                 best.get("line"),
                 float(best.get("p_true") or 0.55),
                 f"validated {best.get('tier')} EV={best.get('edge', 0):.1%} @ {best.get('book')}",
@@ -333,14 +410,12 @@ def build_game_stage_card(
 ) -> GameStageCard:
     home, away = event["home_team"], event["away_team"]
     split = _find_split_game(splits, home, away, sport=str(event.get("sport") or "nfl"))
-    model = pick_model(sim, home, away, market=market)
+    model = pick_model(sim, home, away, market=market, event=event)
     sharp = pick_sharp(event, home, away, market=market)
     public = pick_public(split, home, away, market=market)
     money = pick_money(split, home, away, market=market)
     sharp_edge = pick_sharp_edge(split, home, away, market=market)
-    rlm = pick_rlm(split, home, away) if market == "spread" else StagePick(
-        "rlm", market, None, None, reason="RLM is spread-only", available=False
-    )
+    rlm = pick_rlm(split, home, away, market=market)
     hybrid = pick_hybrid(
         home=home,
         away=away,
@@ -379,15 +454,22 @@ def _annotate_agreement(card: GameStageCard) -> None:
 
     # Majority vote among non-hybrid stages; hybrid compared separately
     voters = {k: p for k, p in available.items() if k != "hybrid"}
-    home_votes = sum(1 for p in voters.values() if p.side == "home")
-    away_votes = sum(1 for p in voters.values() if p.side == "away")
-    if home_votes > away_votes:
-        card.consensus_side = "home"
-    elif away_votes > home_votes:
-        card.consensus_side = "away"
+    if card.market == "total":
+        over_votes = sum(1 for p in voters.values() if p.side == "over")
+        under_votes = sum(1 for p in voters.values() if p.side == "under")
+        card.consensus_side = "over" if over_votes > under_votes else "under" if under_votes > over_votes else None  # type: ignore[assignment]
+        card.consensus_team = _team(card.consensus_side, card.home_team, card.away_team)  # type: ignore[arg-type]
+        home_votes, away_votes = over_votes, under_votes
     else:
-        card.consensus_side = None
-    card.consensus_team = _team(card.consensus_side, card.home_team, card.away_team)
+        home_votes = sum(1 for p in voters.values() if p.side == "home")
+        away_votes = sum(1 for p in voters.values() if p.side == "away")
+        if home_votes > away_votes:
+            card.consensus_side = "home"
+        elif away_votes > home_votes:
+            card.consensus_side = "away"
+        else:
+            card.consensus_side = None
+        card.consensus_team = _team(card.consensus_side, card.home_team, card.away_team)
 
     hybrid = card.picks.get("hybrid")
     if hybrid and hybrid.side:
@@ -436,8 +518,10 @@ def build_slate_stage_picks(
     validated_signals: list[dict[str, Any]],
     *,
     market: str = "spread",
+    markets: tuple[str, ...] | None = None,
     sport: str = "nfl",
 ) -> list[dict[str, Any]]:
+    mkts = markets or (STAGE_MARKETS if market == "all" else (market,))
     cards = []
     for ev in events:
         eid = str(ev.get("event_id"))
@@ -446,10 +530,11 @@ def build_slate_stage_picks(
             continue
         ev_sport = str(ev.get("sport") or sport)
         ev_row = {**ev, "sport": ev_sport}
-        row = build_game_stage_card(ev_row, sim, splits, validated_signals, market=market).to_dict()
-        row["kickoff"] = ev.get("commence_time")
-        row["commence_time"] = ev.get("commence_time")
-        cards.append(row)
+        for mkt in mkts:
+            row = build_game_stage_card(ev_row, sim, splits, validated_signals, market=mkt).to_dict()
+            row["kickoff"] = ev.get("commence_time")
+            row["commence_time"] = ev.get("commence_time")
+            cards.append(row)
     return cards
 
 
@@ -495,7 +580,8 @@ def summarize_stage_slate(cards: list[dict[str, Any]]) -> dict[str, Any]:
                 }
             )
     return {
-        "n_games": len(cards),
+        "n_games": len({c.get("event_id") for c in cards}),
+        "n_rows": len(cards),
         "hybrid_agreement_rate": {
             s: (agree[s] / total[s] if total[s] else None) for s in agree
         },
@@ -515,13 +601,21 @@ def settle_stage_pick(
     line: float | None = None,
 ) -> str | None:
     """Return win/loss/push for a stage side vs final score. None if no side."""
-    if side not in ("home", "away"):
+    if side not in ("home", "away", "over", "under"):
         return None
     if market == "h2h":
         if home_score == away_score:
             return "push"
         won_home = home_score > away_score
         return "win" if (side == "home") == won_home else "loss"
+    if market == "total":
+        if line is None:
+            return None
+        total_pts = home_score + away_score
+        if abs(total_pts - float(line)) < 1e-9:
+            return "push"
+        over_won = total_pts > float(line)
+        return "win" if (side == "over") == over_won else "loss"
     # ATS using home line if provided, else pick favorite ML-style margin
     if line is None:
         margin = home_score - away_score

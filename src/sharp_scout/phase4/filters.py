@@ -24,11 +24,24 @@ def _find_split_game(
     splits: list[dict[str, Any]],
     home: str,
     away: str,
+    *,
+    sport: str = "nfl",
 ) -> dict[str, Any] | None:
+    from sharp_scout.utils.teams import normalize_ncaaf
+
+    def norm(team: str) -> str:
+        if (sport or "nfl").lower() == "ncaaf":
+            return normalize_ncaaf(team)
+        from sharp_scout.utils.odds import normalize_team
+
+        return normalize_team(team, sport)
+
+    nh, na = norm(home), norm(away)
     for g in splits:
-        if g.get("home_team") == home and g.get("away_team") == away:
+        gh, ga = norm(str(g.get("home_team") or "")), norm(str(g.get("away_team") or ""))
+        if gh == nh and ga == na:
             return g
-        if g.get("home_team") == away and g.get("away_team") == home:
+        if gh == na and ga == nh:
             return g
     return None
 

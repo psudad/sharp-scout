@@ -24,6 +24,7 @@ from sharp_scout.utils.slate import (
     college_week_label,
     filter_plays_college_week,
     filter_plays_nfl_week,
+    filter_stage_cards_current_slate,
     group_stage_cards_by_college_week,
     parse_commence,
 )
@@ -80,6 +81,23 @@ def _status_badge(status: str) -> str:
     return f'<span class="card-result {cls}">{label}</span>'
 
 
+def _pick_ncaaf_signals() -> dict[str, Any]:
+    """Prefer the signals file with the fullest current slate (avoids stale demo artifacts)."""
+    best: dict[str, Any] = {}
+    best_n = -1
+    for path in (ARTIFACTS_DIR / NCAAF.artifact_name, DOCS_DIR / "latest_ncaaf_signals.json"):
+        if not path.exists():
+            continue
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError:
+            continue
+        n = int(data.get("n_games") or len(data.get("games") or []))
+        if n > best_n:
+            best, best_n = data, n
+    return best
+
+
 def build_site(
     *,
     docs_dir: Path | None = None,
@@ -101,10 +119,7 @@ def build_site(
     if signals:
         (out / "latest_signals.json").write_text(json.dumps(signals, indent=2, default=str) + "\n")
 
-    ncaaf_signals: dict[str, Any] = {}
-    ncaaf_sp = ARTIFACTS_DIR / NCAAF.artifact_name
-    if ncaaf_sp.exists():
-        ncaaf_signals = json.loads(ncaaf_sp.read_text())
+    ncaaf_signals: dict[str, Any] = _pick_ncaaf_signals()
     ncaaf_ledger = load_ledger(path=DATA_DIR / NCAAF.ledger_name)
     ncaaf_record = compute_record(ncaaf_ledger)
     (out / "ncaaf_ledger.json").write_text(json.dumps(ncaaf_ledger, indent=2) + "\n")
@@ -177,6 +192,10 @@ def build_site(
         ncaaf_signals.get("stage_picks") or [],
         games=ncaaf_signals.get("games") or [],
         plays=ncaaf_ledger.get("plays") or [],
+    )
+    ncaaf_stage_cards = filter_stage_cards_current_slate(
+        ncaaf_stage_cards,
+        games=ncaaf_signals.get("games") or [],
     )
     ncaaf_stage_weeks_html = _render_stage_weeks_html(ncaaf_stage_cards)
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
@@ -723,9 +742,11 @@ def _render_stage_rows(cards: list[dict]) -> str:
             flag = "fade pub"
         if (c.get("agreement") or {}).get("rlm_active"):
             flag = (flag + " · RLM").strip(" ·")
+        kick = format_kickoff_et(c.get("kickoff") or c.get("commence_time"))
+        matchup = f"{_esc(c.get('away_team'))} @ {_esc(c.get('home_team'))}"
         rows.append(
             "<tr>"
-            f"<td>{_esc(c.get('away_team'))} @ {_esc(c.get('home_team'))}</td>"
+            f"<td>{_esc(kick)} · {matchup}</td>"
             f"<td>{_pick_cell(picks.get('model'))}</td>"
             f"<td>{_pick_cell(picks.get('sharp'))}</td>"
             f"<td>{_pick_cell(picks.get('public'))}</td>"

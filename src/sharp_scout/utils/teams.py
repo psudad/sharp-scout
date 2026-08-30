@@ -218,6 +218,7 @@ NCAAF_ALIASES: dict[str, str] = {
     "NORTH CAROLINA": "UNC",
     "NORTH CAROLINA TAR HEELS": "UNC",
     "NCST": "NCST",
+    "NCSU": "NCST",
     "NC STATE": "NCST",
     "NORTH CAROLINA STATE": "NCST",
     "NC STATE WOLFPACK": "NCST",

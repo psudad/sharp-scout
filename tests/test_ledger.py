@@ -9,6 +9,7 @@ from sharp_scout.ledger.tracker import (
     append_signals,
     compute_record,
     empty_ledger,
+    load_ledger,
     save_ledger,
     settle_from_scores,
     settle_play,
@@ -41,6 +42,37 @@ def test_settle_total_under(tmp_path: Path):
     }
     settle_play(play, home_score=20, away_score=17)
     assert play["status"] == "win"
+
+
+def test_settle_total_stage_card(tmp_path: Path):
+    path = tmp_path / "ncaaf_ledger.json"
+    ledger = empty_ledger()
+    ledger["stage_cards"] = [
+        {
+            "event_id": "e1",
+            "away_team": "UNC",
+            "home_team": "TCU",
+            "market": "total",
+            "status": "pending",
+            "picks": {
+                "model": {
+                    "available": True,
+                    "side": "over",
+                    "line": 46.0,
+                    "market": "total",
+                }
+            },
+            "results": {},
+        }
+    ]
+    save_ledger(ledger, path)
+    settle_from_scores(
+        [{"away_team": "UNC", "home_team": "TCU", "away_score": 15, "home_score": 10}],
+        path=path,
+    )
+    card = load_ledger(path)["stage_cards"][0]
+    assert card["status"] == "settled"
+    assert card["results"]["model"] == "loss"
 
 
 def test_ledger_append_dedupe(tmp_path: Path):

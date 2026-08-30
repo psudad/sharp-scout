@@ -349,24 +349,35 @@ def settle_from_scores(
 ) -> dict[str, Any]:
     """scores: [{home_team, away_team, home_score, away_score, event_id?}, ...]"""
     from sharp_scout.stage_picks import settle_stage_pick
+    from sharp_scout.utils.odds import normalize_team
+
+    def _norm_team(name: Any, *, sport: str = "nfl") -> str:
+        return normalize_team(str(name or ""), sport)
 
     ledger = load_ledger(path)
+    sport = "ncaaf" if path and "ncaaf" in path.name else "nfl"
     index: dict[str, dict[str, Any]] = {}
     for g in scores:
-        key = f"{g.get('away_team')}@{g.get('home_team')}"
-        index[key] = g
+        away = _norm_team(g.get("away_team"), sport=sport)
+        home = _norm_team(g.get("home_team"), sport=sport)
+        row = {**g, "away_team": away, "home_team": home}
+        index[f"{away}@{home}"] = row
         if g.get("event_id"):
-            index[str(g["event_id"])] = g
+            index[str(g["event_id"])] = row
+
+    def _lookup(row: dict[str, Any]) -> dict[str, Any] | None:
+        eid = row.get("event_id")
+        if eid and str(eid) in index:
+            return index[str(eid)]
+        away = _norm_team(row.get("away_team"), sport=sport)
+        home = _norm_team(row.get("home_team"), sport=sport)
+        return index.get(f"{away}@{home}")
 
     settled = 0
     for play in ledger["plays"]:
         if play.get("status") not in (None, "pending"):
             continue
-        g = None
-        if play.get("event_id") and str(play["event_id"]) in index:
-            g = index[str(play["event_id"])]
-        else:
-            g = index.get(f"{play.get('away_team')}@{play.get('home_team')}")
+        g = _lookup(play)
         if not g:
             continue
         if g.get("home_score") is None or g.get("away_score") is None:
@@ -379,11 +390,7 @@ def settle_from_scores(
     for card in ledger.get("stage_cards") or []:
         if card.get("status") not in (None, "pending"):
             continue
-        g = None
-        if card.get("event_id") and str(card["event_id"]) in index:
-            g = index[str(card["event_id"])]
-        else:
-            g = index.get(f"{card.get('away_team')}@{card.get('home_team')}")
+        g = _lookup(card)
         if not g or g.get("home_score") is None or g.get("away_score") is None:
             continue
         hs, as_ = int(g["home_score"]), int(g["away_score"])
@@ -393,8 +400,9 @@ def settle_from_scores(
                 continue
             # Prefer home current_line from money/public/rlm for ATS grading
             line = pick.get("line")
-            if card.get("market") == "spread" and line is None:
-                for alt in ("money", "public", "rlm", "sharp"):
+            mkt = card.get("market") or "spread"
+            if line is None and mkt in ("spread", "total"):
+                for alt in ("money", "public", "rlm", "sharp", "model"):
                     alt_line = ((card.get("picks") or {}).get(alt) or {}).get("line")
                     if alt_line is not None:
                         line = alt_line
@@ -403,8 +411,8 @@ def settle_from_scores(
                 pick.get("side"),
                 home_score=hs,
                 away_score=as_,
-                market=card.get("market") or "spread",
-                line=line if card.get("market") == "spread" else None,
+                market=mkt,
+                line=line if mkt in ("spread", "total") else None,
             )
         card["results"] = results
         card["home_score"] = hs
@@ -486,9 +494,11 @@ def compute_record(
     win_pct = (wins / decided) if decided else None
     starting = float(ledger.get("starting_units") or 100)
 
-    # Per-stage ATS/ML records from stage_cards
+    # Per-stage ATS/ML records from stage_cards (skip demo/test rows)
     stage_records: dict[str, dict[str, Any]] = {}
     for card in ledger.get("stage_cards") or []:
+        if str(card.get("event_id") or "").startswith("demo-"):
+            continue
         for stage, result in (card.get("results") or {}).items():
             bucket = stage_records.setdefault(
                 stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
@@ -499,16 +509,18 @@ def compute_record(
                 bucket["losses"] += 1
             elif result == "push":
                 bucket["pushes"] += 1
-            else:
+            elif result is not None:
                 bucket["pending"] += 1
         if card.get("status") in (None, "pending"):
             for stage, pick in (card.get("picks") or {}).items():
-                if pick.get("available") and pick.get("side"):
-                    bucket = stage_records.setdefault(
-                        stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-                    )
-                    if stage not in (card.get("results") or {}):
-                        bucket["pending"] += 1
+                if not pick.get("available") or not pick.get("side"):
+                    continue
+                bucket = stage_records.setdefault(
+                    stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+                )
+                existing = (card.get("results") or {}).get(stage)
+                if existing is None and stage not in (card.get("results") or {}):
+                    bucket["pending"] += 1
 
     for stage, b in stage_records.items():
         d = b["wins"] + b["losses"]
@@ -538,20 +550,23 @@ def compute_record(
 
 
 def load_scores_from_cfb_schedules(seasons: list[int] | None = None) -> list[dict[str, Any]]:
-    """Pull final FBS scores from cfbfastR schedules for NCAAF settlement."""
+    """Pull final FBS scores — cfbfastR parquet when available, ESPN scoreboard as fallback."""
+    from sharp_scout.config import get_settings
     from sharp_scout.data.cfbfastr import load_cfb_schedules
+    from sharp_scout.data.espn_cfb import fetch_espn_cfb_scores
+
+    settings = get_settings()
+    seasons = seasons or settings.seasons
+    by_key: dict[str, dict[str, Any]] = {}
 
     sched = load_cfb_schedules(seasons)
-    if sched.empty:
-        return []
-    rows = []
-    for _, r in sched.iterrows():
-        hs, as_ = r.get("home_score"), r.get("away_score")
-        if hs is None or as_ is None or (isinstance(hs, float) and hs != hs):
-            continue
-        try:
-            rows.append(
-                {
+    if not sched.empty:
+        for _, r in sched.iterrows():
+            hs, as_ = r.get("home_score"), r.get("away_score")
+            if hs is None or as_ is None or (isinstance(hs, float) and hs != hs):
+                continue
+            try:
+                row = {
                     "home_team": r.get("home_team"),
                     "away_team": r.get("away_team"),
                     "home_score": int(hs),
@@ -559,11 +574,20 @@ def load_scores_from_cfb_schedules(seasons: list[int] | None = None) -> list[dic
                     "season": int(r["season"]) if r.get("season") == r.get("season") else None,
                     "week": int(r["week"]) if r.get("week") == r.get("week") else None,
                     "game_id": r.get("game_id") or r.get("id"),
+                    "source": "cfbfastr",
                 }
-            )
-        except (TypeError, ValueError):
-            continue
-    return rows
+                by_key[f"{row['away_team']}@{row['home_team']}"] = row
+            except (TypeError, ValueError):
+                continue
+
+    try:
+        espn_season = max(seasons) if seasons else datetime.now(timezone.utc).year
+        for row in fetch_espn_cfb_scores(season=espn_season):
+            by_key[f"{row['away_team']}@{row['home_team']}"] = row
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ESPN CFB score fallback failed: %s", exc)
+
+    return list(by_key.values())
 
 
 def load_scores_from_schedules(seasons: list[int] | None = None) -> list[dict[str, Any]]:

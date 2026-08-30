@@ -41,6 +41,28 @@ STAGE_COLUMN_TIPS: dict[str, str] = {
     "Hybrid": "Full system pick — validated play when filters pass, else best model + market lean.",
 }
 
+# Summary stat cards on the board → hover tooltip on the eye icon next to the label.
+BOARD_STAT_TIPS: dict[str, str] = {
+    "sharp_vs_public": (
+        "Games on the current slate where sharp books (Pinnacle no-vig) favor a different side "
+        "than the public ticket majority on spread. Counts disagreement spots — not our bet record."
+    ),
+    "rlm_games": (
+        "Games with reverse line movement: the line moved against where most tickets are, "
+        "suggesting sharp money on the other side. Needs an opening line stored from an earlier run."
+    ),
+    "clv_avg_pts": "Average closing-line value in points vs the line we bet. Positive means we beat the close.",
+    "clv_beat_pct": "Share of graded plays that beat the closing line (price or spread/total).",
+    "clv_beat_record": "Win-loss count vs the closing line across graded plays — not the same as bet W-L.",
+    "clv_n_plays": "Number of graded plays with a captured closing line (T-1h pre-kick snapshot).",
+    "stage_ungraded": (
+        "Stage picks still waiting on a final score — one per stage per game/market row. "
+        "Drops after games finish and the settle step runs."
+    ),
+    "cfb_record": "Validated Sharp Plays only — our actual bets, not every stage pick on the slate.",
+    "cfb_profit": "Net units won or lost on validated Sharp Plays (starting bankroll 100u).",
+}
+
 
 def parse_kickoff(raw: Any) -> datetime | None:
     if raw is None:

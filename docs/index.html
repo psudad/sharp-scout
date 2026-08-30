@@ -22,7 +22,8 @@
   @media (min-width: 700px) { .summary-grid { grid-template-columns: repeat(4, 1fr); } }
   .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px 10px; text-align: center; }
   .stat-val { font-size: 22px; font-weight: 800; }
-  .stat-label { font-size: 10px; color: #8b949e; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-label { font-size: 10px; color: #8b949e; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+  .stat-tip { margin-left: 2px; }
   .section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #f4820a; text-transform: uppercase; margin: 18px 0 10px; }
   .play-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; }
   .play-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
@@ -125,7 +126,7 @@
   <h1>Sharp Scout</h1>
   <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
   <span class="pill">NFL 0-0 · +0.0u · CFB 1-2 · +0.35u · Live pipeline</span>
-  <p style="margin-top:8px">Updated 2026-08-30 10:32 UTC</p>
+  <p style="margin-top:8px">Updated 2026-08-30 10:39 UTC</p>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">NFL</div>
@@ -136,12 +137,7 @@
 </div>
 
 <div id="tab-plays" class="content active">
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">0-0</div><div class="stat-label">NFL Record</div></div>
-    <div class="stat-card"><div class="stat-val">—</div><div class="stat-label">Win %</div></div>
-    <div class="stat-card"><div class="stat-val pos">+0.0u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">DEMO data</div><div class="stat-label">Mode</div></div>
-  </div>
+  <div class="summary-grid"><div class="stat-card"><div class="stat-val">0-0</div><div class="stat-label">NFL Record<span class="th-tip stat-tip" data-tip="Validated Sharp Plays on the NFL ledger." tabindex="0" role="button" aria-label="Validated Sharp Plays on the NFL ledger."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">—</div><div class="stat-label">Win %<span class="th-tip stat-tip" data-tip="Win rate on validated NFL Sharp Plays." tabindex="0" role="button" aria-label="Win rate on validated NFL Sharp Plays."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val pos">+0.0u</div><div class="stat-label">Profit<span class="th-tip stat-tip" data-tip="Net units on NFL Sharp Plays." tabindex="0" role="button" aria-label="Net units on NFL Sharp Plays."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">DEMO data</div><div class="stat-label">Mode<span class="th-tip stat-tip" data-tip="Live pipeline or demo mock data." tabindex="0" role="button" aria-label="Live pipeline or demo mock data."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div></div>
   <div class="section-label">Closing Line Value</div>
   <p class="phase-note" style="padding:6px 0">Closing Line Value appears here once plays are graded against their closing line (captured at the T-1h pregame run).</p>
   <div class="section-label">This Week's Plays · 0 validated</div>
@@ -190,14 +186,11 @@
 </div>
 
 <div id="tab-stages" class="content">
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">2</div><div class="stat-label">Sharp ≠ Public games</div></div>
-    <div class="stat-card"><div class="stat-val">1</div><div class="stat-label">RLM games</div></div>
-  </div>
+  <div class="summary-grid"><div class="stat-card"><div class="stat-val">2</div><div class="stat-label">Sharp ≠ Public games<span class="th-tip stat-tip" data-tip="Games on the current slate where sharp books (Pinnacle no-vig) favor a different side than the public ticket majority on spread. Counts disagreement spots — not our bet record." tabindex="0" role="button" aria-label="Games on the current slate where sharp books (Pinnacle no-vig) favor a different side than the public ticket majority on spread. Counts disagreement spots — not our bet record."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">1</div><div class="stat-label">RLM games<span class="th-tip stat-tip" data-tip="Games with reverse line movement: the line moved against where most tickets are, suggesting sharp money on the other side. Needs an opening line stored from an earlier run." tabindex="0" role="button" aria-label="Games with reverse line movement: the line moved against where most tickets are, suggesting sharp money on the other side. Needs an opening line stored from an earlier run."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div></div>
   <div class='phase-note'><b>Sharp vs public games:</b><br>KC @ BUF: sharp books like KC · public tickets on BUF<br>KC @ BUF: sharp books like Under · public tickets on Over</div><div class='phase-note' style='margin-top:10px'><b>Reverse line movement games:</b><br>KC @ BUF: RLM toward Under — RLM: public over but total 48.5→47.5</div>
   <div class="section-label">Stage Records (settled)</div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
+    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th class="stage-th">Ungraded<span class="th-tip" data-tip="Stage picks still waiting on a final score — one per stage per game/market row. Drops after games finish and the settle step runs." tabindex="0" role="button" aria-label="Ungraded: Stage picks still waiting on a final score — one per stage per game/market row. Drops after games finish and the settle step runs."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th></tr></thead>
     <tbody><tr><td><b>hybrid</b></td><td>0-0</td><td>—</td><td>816</td></tr>
 <tr><td><b>model</b></td><td>0-0</td><td>—</td><td>816</td></tr>
 <tr><td><b>sharp</b></td><td>0-0</td><td>—</td><td>48</td></tr>
@@ -262,14 +255,9 @@
 </div>
 
 <div id="tab-cfb" class="content">
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">1-2</div><div class="stat-label">CFB Record</div></div>
-    <div class="stat-card"><div class="stat-val">33.3%</div><div class="stat-label">Win %</div></div>
-    <div class="stat-card"><div class="stat-val pos">+0.35u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">Live pipeline</div><div class="stat-label">Mode</div></div>
-  </div>
+  <div class="summary-grid"><div class="stat-card"><div class="stat-val">1-2</div><div class="stat-label">CFB Record<span class="th-tip stat-tip" data-tip="Validated Sharp Plays only — our actual bets, not every stage pick on the slate." tabindex="0" role="button" aria-label="Validated Sharp Plays only — our actual bets, not every stage pick on the slate."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">33.3%</div><div class="stat-label">Win %<span class="th-tip stat-tip" data-tip="Win rate on validated CFB Sharp Plays." tabindex="0" role="button" aria-label="Win rate on validated CFB Sharp Plays."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val pos">+0.35u</div><div class="stat-label">Profit<span class="th-tip stat-tip" data-tip="Net units won or lost on validated Sharp Plays (starting bankroll 100u)." tabindex="0" role="button" aria-label="Net units won or lost on validated Sharp Plays (starting bankroll 100u)."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">Live pipeline</div><div class="stat-label">Mode<span class="th-tip stat-tip" data-tip="Live odds/splits or demo mock." tabindex="0" role="button" aria-label="Live odds/splits or demo mock."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div></div>
   <div class="section-label">Closing Line Value</div>
-  <div class="summary-grid" style="margin-top:6px"><div class="stat-card"><div class="stat-val ">+0</div><div class="stat-label">Avg CLV (pts)</div></div><div class="stat-card"><div class="stat-val">0%</div><div class="stat-label">Beat Close %</div></div><div class="stat-card"><div class="stat-val">0-3</div><div class="stat-label">Beat-Close W-L</div></div><div class="stat-card"><div class="stat-val">3</div><div class="stat-label">Plays w/ CLV</div></div></div>
+  <div class="summary-grid" style="margin-top:6px"><div class="stat-card"><div class="stat-val">+0</div><div class="stat-label">Avg CLV (pts)<span class="th-tip stat-tip" data-tip="Average closing-line value in points vs the line we bet. Positive means we beat the close." tabindex="0" role="button" aria-label="Average closing-line value in points vs the line we bet. Positive means we beat the close."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">0%</div><div class="stat-label">Beat Close %<span class="th-tip stat-tip" data-tip="Share of graded plays that beat the closing line (price or spread/total)." tabindex="0" role="button" aria-label="Share of graded plays that beat the closing line (price or spread/total)."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">0-3</div><div class="stat-label">Beat-Close W-L<span class="th-tip stat-tip" data-tip="Win-loss count vs the closing line across graded plays — not the same as bet W-L." tabindex="0" role="button" aria-label="Win-loss count vs the closing line across graded plays — not the same as bet W-L."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">3</div><div class="stat-label">Plays w/ CLV<span class="th-tip stat-tip" data-tip="Number of graded plays with a captured closing line (T-1h pre-kick snapshot)." tabindex="0" role="button" aria-label="Number of graded plays with a captured closing line (T-1h pre-kick snapshot)."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div></div>
   <div class="section-label">This Week's Plays · 0 validated</div>
   <div class="empty">No open plays. Run the pipeline to generate signals.</div>
   <div class="section-label">NCAAF Pregame Stage Winners</div>
@@ -299,18 +287,15 @@
 <tr><td>Sat 10:00 PM</td><td>MEM @ UNLV</td><td>ML</td><td class='hybrid-cell pos'><b>UNLV</b></td><td><b>UNLV</b></td><td><b>UNLV</b></td><td><b>UNLV</b></td><td><b>UNLV</b></td><td><b>MEM</b></td><td><span class='pending'>—</span></td><td>model, public, money</td></tr>
 <tr><td>Sat 10:00 PM</td><td>MEM @ UNLV</td><td>Total</td><td class='hybrid-cell pos'><b>Over 56.5</b></td><td><b>Over 56.5</b></td><td><b>Under 56.0</b></td><td><b>Under 56.5</b></td><td><b>Under 56.5</b></td><td><b>Over 56.5</b></td><td><span class='pending'>—</span></td><td>model, sharp_edge</td></tr></tbody></table></div><p class="phase-note stage-scroll-hint">Three rows per game (spread, ML, total). <b>Hybrid</b> is the system pick for that market — it can disagree with Model/Sharp/Public when <b>Diff</b> (money vs tickets) confirms sharp action.</p></div>
   <div class="section-label">NCAAF Stage Records (season)</div>
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">1</div><div class="stat-label">Sharp vs Public</div></div>
-    <div class="stat-card"><div class="stat-val">0</div><div class="stat-label">RLM Games</div></div>
-  </div>
+  <div class="summary-grid"><div class="stat-card"><div class="stat-val">1</div><div class="stat-label">Sharp vs Public<span class="th-tip stat-tip" data-tip="Games on the current slate where sharp books (Pinnacle no-vig) favor a different side than the public ticket majority on spread. Counts disagreement spots — not our bet record." tabindex="0" role="button" aria-label="Games on the current slate where sharp books (Pinnacle no-vig) favor a different side than the public ticket majority on spread. Counts disagreement spots — not our bet record."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val">0</div><div class="stat-label">RLM Games<span class="th-tip stat-tip" data-tip="Games with reverse line movement: the line moved against where most tickets are, suggesting sharp money on the other side. Needs an opening line stored from an earlier run." tabindex="0" role="button" aria-label="Games with reverse line movement: the line moved against where most tickets are, suggesting sharp money on the other side. Needs an opening line stored from an earlier run."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div></div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
-    <tbody><tr><td><b>hybrid</b></td><td>4-2</td><td>67%</td><td>21</td></tr>
-<tr><td><b>model</b></td><td>4-2</td><td>67%</td><td>21</td></tr>
-<tr><td><b>sharp</b></td><td>3-3</td><td>50%</td><td>20</td></tr>
-<tr><td><b>money</b></td><td>3-3</td><td>50%</td><td>17</td></tr>
-<tr><td><b>public</b></td><td>3-3</td><td>50%</td><td>17</td></tr>
-<tr><td><b>sharp_edge</b></td><td>3-3</td><td>50%</td><td>16</td></tr></tbody>
+    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th class="stage-th">Ungraded<span class="th-tip" data-tip="Stage picks still waiting on a final score — one per stage per game/market row. Drops after games finish and the settle step runs." tabindex="0" role="button" aria-label="Ungraded: Stage picks still waiting on a final score — one per stage per game/market row. Drops after games finish and the settle step runs."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th></tr></thead>
+    <tbody><tr><td><b>hybrid</b></td><td>12-4</td><td>75%</td><td>0</td></tr>
+<tr><td><b>model</b></td><td>12-4</td><td>75%</td><td>0</td></tr>
+<tr><td><b>sharp</b></td><td>6-9</td><td>40%</td><td>0</td></tr>
+<tr><td><b>money</b></td><td>9-6</td><td>60%</td><td>0</td></tr>
+<tr><td><b>public</b></td><td>10-5</td><td>67%</td><td>0</td></tr>
+<tr><td><b>sharp_edge</b></td><td>4-10</td><td>29%</td><td>0</td></tr></tbody>
   </table></div>
   <div class="section-label">NCAAF Ledger · 0 pending · 3 total</div>
   <div class="table-wrap"><table>

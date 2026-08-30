@@ -10,6 +10,7 @@ from typing import Any
 
 from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR, ROOT
 from sharp_scout.copy.explain import (
+    BOARD_STAT_TIPS,
     collapse_best_signals,
     describe_splits_board,
     describe_stage_pick,
@@ -205,6 +206,8 @@ def build_site(
     ncaaf_stage_weeks_html = _render_stage_weeks_html(ncaaf_stage_cards)
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
     ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
+    ncaaf_fade_n = ncaaf_stage_summary.get("fade_public_games", "—")
+    ncaaf_rlm_n = ncaaf_stage_summary.get("rlm_games", "—")
     ncaaf_ratings_rows = _render_ratings(ncaaf_signals.get("ratings") or [])
     ncaaf_win_pct = (
         f"{ncaaf_record['win_pct'] * 100:.1f}%" if ncaaf_record["win_pct"] is not None else "—"
@@ -222,6 +225,40 @@ def build_site(
     )
     ncaaf_clv_banner_html = _render_clv_banner(ncaaf_record.get("clv"))
     ncaaf_ledger_rows = _render_ledger_rows(ncaaf_settled_sorted + ncaaf_pending_sorted)
+
+    nfl_top_stats_html = "".join(
+        [
+            _stat_card(str(record["record"]), "NFL Record", "Validated Sharp Plays on the NFL ledger."),
+            _stat_card(nfl_win_pct, "Win %", "Win rate on validated NFL Sharp Plays."),
+            _stat_card(f"{nfl_pnl_s}u", "Profit", "Net units on NFL Sharp Plays.", val_cls=nfl_pnl_cls),
+            _stat_card(demo_note, "Mode", "Live pipeline or demo mock data."),
+        ]
+    )
+    ncaaf_top_stats_html = "".join(
+        [
+            _stat_card(ncaaf_record["record"], "CFB Record", BOARD_STAT_TIPS["cfb_record"]),
+            _stat_card(ncaaf_win_pct, "Win %", "Win rate on validated CFB Sharp Plays."),
+            _stat_card(f"{ncaaf_pnl_s}u", "Profit", BOARD_STAT_TIPS["cfb_profit"], val_cls=ncaaf_pnl_cls),
+            _stat_card("DEMO data" if ncaaf_signals.get("demo") else "Live pipeline", "Mode", "Live odds/splits or demo mock."),
+        ]
+    )
+    stage_alarm_stats_html = "".join(
+        [
+            _stat_card(str(fade_n), "Sharp ≠ Public games", BOARD_STAT_TIPS["sharp_vs_public"]),
+            _stat_card(str(rlm_n), "RLM games", BOARD_STAT_TIPS["rlm_games"]),
+        ]
+    )
+    ncaaf_alarm_stats_html = "".join(
+        [
+            _stat_card(str(ncaaf_fade_n), "Sharp vs Public", BOARD_STAT_TIPS["sharp_vs_public"]),
+            _stat_card(str(ncaaf_rlm_n), "RLM Games", BOARD_STAT_TIPS["rlm_games"]),
+        ]
+    )
+    stage_records_thead = (
+        "<thead><tr><th>Stage</th><th>Record</th><th>Win %</th>"
+        + _stage_th("Ungraded", BOARD_STAT_TIPS["stage_ungraded"])
+        + "</tr></thead>"
+    )
 
     html = SITE_TEMPLATE.format(
         generated=generated,
@@ -261,6 +298,11 @@ def build_site(
         ncaaf_demo_note="DEMO data" if ncaaf_signals.get("demo") else "Live pipeline",
         ncaaf_clv_banner_html=ncaaf_clv_banner_html,
         ncaaf_ledger_rows=ncaaf_ledger_rows,
+        nfl_top_stats_html=nfl_top_stats_html,
+        ncaaf_top_stats_html=ncaaf_top_stats_html,
+        stage_alarm_stats_html=stage_alarm_stats_html,
+        ncaaf_alarm_stats_html=ncaaf_alarm_stats_html,
+        stage_records_thead=stage_records_thead,
     )
     (out / "index.html").write_text(html)
 
@@ -407,15 +449,11 @@ def _render_clv_banner(clv: dict[str, Any] | None) -> str:
     cls = "pos" if (avg_pts or 0) > 0 else "neg" if (avg_pts or 0) < 0 else ""
     return (
         '<div class="summary-grid" style="margin-top:6px">'
-        f'<div class="stat-card"><div class="stat-val {cls}">{pts_s}</div>'
-        '<div class="stat-label">Avg CLV (pts)</div></div>'
-        f'<div class="stat-card"><div class="stat-val">{beat_s}</div>'
-        '<div class="stat-label">Beat Close %</div></div>'
-        f'<div class="stat-card"><div class="stat-val">{rec}</div>'
-        '<div class="stat-label">Beat-Close W-L</div></div>'
-        f'<div class="stat-card"><div class="stat-val">{n}</div>'
-        '<div class="stat-label">Plays w/ CLV</div></div>'
-        "</div>"
+        + _stat_card(pts_s, "Avg CLV (pts)", BOARD_STAT_TIPS["clv_avg_pts"], val_cls=cls)
+        + _stat_card(beat_s, "Beat Close %", BOARD_STAT_TIPS["clv_beat_pct"])
+        + _stat_card(str(rec), "Beat-Close W-L", BOARD_STAT_TIPS["clv_beat_record"])
+        + _stat_card(str(n), "Plays w/ CLV", BOARD_STAT_TIPS["clv_n_plays"])
+        + "</div>"
     )
 
 
@@ -688,6 +726,24 @@ def _stage_th(label: str, tip: str | None = None) -> str:
         f'<span class="th-tip" data-tip="{_esc(tip)}" tabindex="0" role="button" '
         f'aria-label="{_esc(label)}: {_esc(tip)}">{_TH_TIP_EYE}</span>'
         f"</th>"
+    )
+
+
+def _stat_tip_icon(tip: str) -> str:
+    return (
+        f'<span class="th-tip stat-tip" data-tip="{_esc(tip)}" tabindex="0" role="button" '
+        f'aria-label="{_esc(tip)}">{_TH_TIP_EYE}</span>'
+    )
+
+
+def _stat_card(val: str, label: str, tip: str | None = None, *, val_cls: str = "") -> str:
+    cls = f" stat-val {val_cls}".strip()
+    tip_html = _stat_tip_icon(tip) if tip else ""
+    return (
+        f'<div class="stat-card">'
+        f'<div class="stat-val{(" " + val_cls) if val_cls else ""}">{val}</div>'
+        f'<div class="stat-label">{_esc(label)}{tip_html}</div>'
+        f"</div>"
     )
 
 
@@ -990,7 +1046,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   @media (min-width: 700px) {{ .summary-grid {{ grid-template-columns: repeat(4, 1fr); }} }}
   .stat-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px 10px; text-align: center; }}
   .stat-val {{ font-size: 22px; font-weight: 800; }}
-  .stat-label {{ font-size: 10px; color: #8b949e; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }}
+  .stat-label {{ font-size: 10px; color: #8b949e; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }}
+  .stat-tip {{ margin-left: 2px; }}
   .section-label {{ font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #f4820a; text-transform: uppercase; margin: 18px 0 10px; }}
   .play-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; }}
   .play-card::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }}
@@ -1104,12 +1161,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-plays" class="content active">
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">{nfl_record}</div><div class="stat-label">NFL Record</div></div>
-    <div class="stat-card"><div class="stat-val">{nfl_win_pct}</div><div class="stat-label">Win %</div></div>
-    <div class="stat-card"><div class="stat-val {nfl_pnl_cls}">{nfl_pnl}u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">{demo_note}</div><div class="stat-label">Mode</div></div>
-  </div>
+  <div class="summary-grid">{nfl_top_stats_html}</div>
   <div class="section-label">Closing Line Value</div>
   {nfl_clv_banner_html}
   <div class="section-label">This Week's Plays · {nfl_signal_count} validated</div>
@@ -1127,14 +1179,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-stages" class="content">
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">{fade_n}</div><div class="stat-label">Sharp ≠ Public games</div></div>
-    <div class="stat-card"><div class="stat-val">{rlm_n}</div><div class="stat-label">RLM games</div></div>
-  </div>
+  <div class="summary-grid">{stage_alarm_stats_html}</div>
   {stage_highlights_html}
   <div class="section-label">Stage Records (settled)</div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
+    {stage_records_thead}
     <tbody>{stage_record_rows}</tbody>
   </table></div>
   <div class="section-label">Why Is Our Model Wrong? (disagreement log)</div>
@@ -1160,12 +1209,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-cfb" class="content">
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">{ncaaf_record}</div><div class="stat-label">CFB Record</div></div>
-    <div class="stat-card"><div class="stat-val">{ncaaf_win_pct}</div><div class="stat-label">Win %</div></div>
-    <div class="stat-card"><div class="stat-val {ncaaf_pnl_cls}">{ncaaf_pnl}u</div><div class="stat-label">Profit</div></div>
-    <div class="stat-card"><div class="stat-val">{ncaaf_demo_note}</div><div class="stat-label">Mode</div></div>
-  </div>
+  <div class="summary-grid">{ncaaf_top_stats_html}</div>
   <div class="section-label">Closing Line Value</div>
   {ncaaf_clv_banner_html}
   <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
@@ -1174,12 +1218,9 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <p class="phase-note" style="padding:4px 0 10px">Every game on the slate — three rows per game (spread, ML, total). <b>Hybrid</b> (green) is the system pick and matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">NCAAF Stage Records (season)</div>
-  <div class="summary-grid">
-    <div class="stat-card"><div class="stat-val">{ncaaf_fade_n}</div><div class="stat-label">Sharp vs Public</div></div>
-    <div class="stat-card"><div class="stat-val">{ncaaf_rlm_n}</div><div class="stat-label">RLM Games</div></div>
-  </div>
+  <div class="summary-grid">{ncaaf_alarm_stats_html}</div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Stage</th><th>Record</th><th>Win %</th><th>Pending</th></tr></thead>
+    {stage_records_thead}
     <tbody>{ncaaf_stage_record_rows}</tbody>
   </table></div>
   <div class="section-label">NCAAF Ledger · {ncaaf_pending} pending · {ncaaf_n_plays} total</div>

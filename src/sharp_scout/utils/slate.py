@@ -1,4 +1,4 @@
-"""Slate windows — college football week (Tue–Mon ET) and kickoff filters."""
+"""Slate windows — college football week (Mon–Sun ET) and kickoff filters."""
 
 from __future__ import annotations
 
@@ -63,17 +63,23 @@ def nfl_week_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
 def college_week_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
     """Return UTC bounds for the college football week containing ``now``.
 
-    Week = Tuesday 00:00 America/New_York through the following Monday 23:59:59 ET.
+    Week = Monday 00:00 America/New_York through the following Sunday 23:59:59 ET.
+    Aligns with typical Monday opening lines for the weekend slate.
     """
     now = _as_utc(now or datetime.now(timezone.utc))
     local = now.astimezone(ET)
-    # Tuesday = weekday 1
-    days_since_tuesday = (local.weekday() - 1) % 7
-    week_start_local = (local - timedelta(days=days_since_tuesday)).replace(
+    days_since_monday = local.weekday()  # Monday = 0
+    week_start_local = (local - timedelta(days=days_since_monday)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     week_end_local = week_start_local + timedelta(days=7) - timedelta(microseconds=1)
     return week_start_local.astimezone(timezone.utc), week_end_local.astimezone(timezone.utc)
+
+
+def following_college_week_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
+    """Bounds for the college week immediately after the one containing ``now``."""
+    _start, end = college_week_bounds(now)
+    return college_week_bounds(end + timedelta(hours=1))
 
 
 def filter_events_college_week(
@@ -82,7 +88,7 @@ def filter_events_college_week(
     now: datetime | None = None,
     include_started: bool = False,
 ) -> list[dict[str, Any]]:
-    """Keep events whose kickoff falls in the current college week (ET Tue–Mon)."""
+    """Keep events whose kickoff falls in the current college week (ET Mon–Sun)."""
     start, end = college_week_bounds(now)
     now = _as_utc(now or datetime.now(timezone.utc))
     out: list[dict[str, Any]] = []
@@ -91,6 +97,29 @@ def filter_events_college_week(
         if kickoff is None:
             continue
         if kickoff < start or kickoff > end:
+            continue
+        if not include_started and kickoff < now - timedelta(minutes=15):
+            continue
+        out.append(ev)
+    return out
+
+
+def filter_events_in_college_week(
+    events: list[dict[str, Any]],
+    week_start: datetime,
+    week_end: datetime,
+    *,
+    now: datetime | None = None,
+    include_started: bool = False,
+) -> list[dict[str, Any]]:
+    """Keep events whose kickoff falls in an explicit college week window."""
+    now = _as_utc(now or datetime.now(timezone.utc))
+    out: list[dict[str, Any]] = []
+    for ev in events:
+        kickoff = parse_commence(ev.get("commence_time"))
+        if kickoff is None:
+            continue
+        if kickoff < week_start or kickoff > week_end:
             continue
         if not include_started and kickoff < now - timedelta(minutes=15):
             continue
@@ -116,7 +145,7 @@ def filter_plays_college_week(
 
 
 def college_week_label(week_start: datetime) -> str:
-    """Human label for a college week (Tue–Mon ET)."""
+    """Human label for a college week (Mon–Sun ET)."""
     start_et = _as_utc(week_start).astimezone(ET)
     end_et = (start_et + timedelta(days=6)).replace(hour=23, minute=59)
     if start_et.year == end_et.year:
@@ -139,7 +168,7 @@ def filter_stage_cards_current_slate(
 
 
 def stage_card_college_week_start(card: dict[str, Any]) -> datetime | None:
-    """Tuesday ET week start for a stage card's kickoff."""
+    """Monday ET week start for a stage card's kickoff."""
     kickoff = parse_commence(
         card.get("kickoff") or card.get("commence_time") or card.get("created_at")
     )

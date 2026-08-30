@@ -10,30 +10,59 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, get_settings
-from sharp_scout.utils.slate import college_week_bounds, filter_events_college_week, parse_commence
+from sharp_scout.utils.slate import (
+    college_week_bounds,
+    filter_events_college_week,
+    filter_events_in_college_week,
+    following_college_week_bounds,
+    parse_commence,
+)
 
 logger = logging.getLogger(__name__)
 
 PLAN_PATH = DATA_DIR / "ncaaf_line_plan.json"
 ET = ZoneInfo("America/New_York")
 
-# Tuesday 10:00 ET — weekly opening-line capture for the current college week.
+# Monday 10:00 ET — weekly opening-line capture when the college week starts.
 OPENING_HOUR_ET = 10
 OPENING_MINUTE = 0
+# Sunday 18:00 ET — optional early capture when books post before Monday.
+EARLY_OPENING_HOUR_ET = 18
+EARLY_OPENING_MINUTE = 0
 
 DEFAULT_LINE_WINDOWS_HOURS = (6.0, 4.0, 1.0)
 
 
-def _next_tuesday_opening(now: datetime) -> datetime:
-    """Next (or current) Tuesday 10:00 ET as UTC."""
+def _next_weekday_at(
+    now: datetime,
+    *,
+    weekday: int,
+    hour: int,
+    minute: int,
+) -> datetime:
+    """Next (or current) occurrence of weekday at hour:minute ET, as UTC."""
     local = now.astimezone(ET)
-    days_ahead = (1 - local.weekday()) % 7  # Tuesday = 1
+    days_ahead = (weekday - local.weekday()) % 7
     target = (local + timedelta(days=days_ahead)).replace(
-        hour=OPENING_HOUR_ET, minute=OPENING_MINUTE, second=0, microsecond=0
+        hour=hour, minute=minute, second=0, microsecond=0
     )
     if days_ahead == 0 and local > target:
         target += timedelta(days=7)
     return target.astimezone(timezone.utc)
+
+
+def _next_monday_opening(now: datetime) -> datetime:
+    """Next (or current) Monday 10:00 ET as UTC."""
+    return _next_weekday_at(
+        now, weekday=0, hour=OPENING_HOUR_ET, minute=OPENING_MINUTE
+    )
+
+
+def _next_sunday_early_opening(now: datetime) -> datetime:
+    """Next (or current) Sunday 18:00 ET — early look at next week's board."""
+    return _next_weekday_at(
+        now, weekday=6, hour=EARLY_OPENING_HOUR_ET, minute=EARLY_OPENING_MINUTE
+    )
 
 
 def upcoming_ncaaf_events(*, now: datetime | None = None) -> list[dict[str, Any]]:
@@ -77,7 +106,7 @@ def build_line_snapshot_plan(
     )
     runs: list[dict[str, Any]] = []
 
-    opening_at = _next_tuesday_opening(now)
+    opening_at = _next_monday_opening(now)
     if opening_at >= now - timedelta(minutes=tolerance):
         runs.append(
             {
@@ -87,6 +116,22 @@ def build_line_snapshot_plan(
                 "week_start": week_start.isoformat(),
                 "week_end": week_end.isoformat(),
                 "matchup": "weekly_open",
+                "kickoff": None,
+                "event_id": None,
+            }
+        )
+
+    early_open_at = _next_sunday_early_opening(now)
+    if early_open_at >= now - timedelta(minutes=tolerance):
+        next_start, next_end = following_college_week_bounds(now)
+        runs.append(
+            {
+                "run_at": early_open_at.isoformat(),
+                "kind": "open_early",
+                "window_hours": None,
+                "week_start": next_start.isoformat(),
+                "week_end": next_end.isoformat(),
+                "matchup": "weekly_open_early",
                 "kickoff": None,
                 "event_id": None,
             }
@@ -134,6 +179,7 @@ def build_line_snapshot_plan(
         "windows_hours": list(windows),
         "tolerance_minutes": tolerance,
         "opening_hour_et": OPENING_HOUR_ET,
+        "early_opening_hour_et": EARLY_OPENING_HOUR_ET,
         "n_games": len(games),
         "n_runs": len(runs),
         "games": [

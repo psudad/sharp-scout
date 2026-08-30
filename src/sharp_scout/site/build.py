@@ -958,7 +958,7 @@ def _render_cfb_historical_weeks(
     if not weeks:
         return (
             '<div class="empty">No prior weeks archived yet. When the college week rolls over '
-            "(Tuesday ET), that week's stage winners and hybrid leans move here automatically.</div>"
+            "(Monday ET), that week's stage winners and hybrid leans move here automatically.</div>"
         )
     parts: list[str] = []
     for week_start, week_cards in weeks:
@@ -1402,7 +1402,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
   {ncaaf_plays_html}
   <div class="section-label">This Week — Pregame Stage Winners</div>
-  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Tue–Mon ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Hybrid</b> (green) matches Sharp Plays above when validated.</p>
+  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Hybrid</b> (green) matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">NCAAF Stage Records (season)</div>
   <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
@@ -1421,7 +1421,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-cfb-historical" class="content">
-  <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Tuesday ET, the prior week's stage winners and hybrid leans move here from the CFB tab.</p>
+  <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Monday ET, the prior week's stage winners and hybrid leans move here from the CFB tab.</p>
   {ncaaf_historical_html}
 </div>
 

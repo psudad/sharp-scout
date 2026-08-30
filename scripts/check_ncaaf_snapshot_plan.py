@@ -20,7 +20,7 @@ PLAN_PATH = ROOT / "data" / "ncaaf_line_plan.json"
 def main() -> None:
     now = datetime.now(timezone.utc)
     if not PLAN_PATH.exists():
-        print(f"No plan at {PLAN_PATH} — skip (run plan_ncaaf_snapshots.py on Tuesday)")
+        print(f"No plan at {PLAN_PATH} — skip (run plan_ncaaf_snapshots.py on Monday)")
         _set_output(False)
         return
 
@@ -32,6 +32,8 @@ def main() -> None:
             kind = m.get("kind")
             if kind == "open":
                 print(f"  OPEN weekly board @ {m.get('run_at')}")
+            elif kind == "open_early":
+                print(f"  OPEN early (Sunday) board @ {m.get('run_at')}")
             else:
                 print(
                     f"  {m.get('matchup')} T-{m.get('window_hours')}h "

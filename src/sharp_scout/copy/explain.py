@@ -68,7 +68,8 @@ STAGE_RECORD_TIPS: dict[str, str] = {
     "hybrid": (
         "Hybrid = our full system pick (spread, ML, or total) for that game. Uses validated "
         "edge when filters pass; otherwise the best model + market lean. The hybrid record "
-        "grades every hybrid pick on the slate — not the same as Sharp Plays in the ledger."
+        "grades every hybrid pick on the slate (3 rows per game: spread, ML, total) — "
+        "not the same as Sharp Plays in the ledger."
     ),
     "model": (
         "Model = EPA power ratings + Monte Carlo simulation — our math-only lean before "

@@ -1316,7 +1316,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     font-weight: 800;
     color: #15803d;
   }}
-  .stage-table th.hybrid-col {{ color: #166534; }}
+  .stage-table th.hybrid-col {{ background: #166534; color: #fff; border-left: 2px solid #000; border-right: 2px solid #000; }}
   .stage-table th:nth-child(11), .stage-table td:nth-child(11) {{
     white-space: normal; min-width: 72px; max-width: 120px; font-size: 11px; color: #4b5563;
   }}
@@ -1355,7 +1355,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     letter-spacing: normal;
   }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }}
-  th {{ background: #f3f4f6; color: #000; font-weight: 700; text-align: left; padding: 10px; border-bottom: 2px solid #000; }}
+  th {{ background: #000; color: #fff; font-weight: 700; text-align: left; padding: 10px; border-bottom: 2px solid #000; }}
+  .stage-table th {{ background: #000; color: #fff; }}
+  .stage-table th .th-tip {{ color: #d1d5db; }}
+  .stage-table th .th-tip:hover, .stage-table th .th-tip:focus {{ color: #fff; }}
+  .stage-table th.hybrid-col {{ background: #166534; color: #fff; }}
   td {{ padding: 9px 10px; border-bottom: 1px solid #d1d5db; color: #111827; }}
   tr:last-child td {{ border-bottom: none; }}
   .win {{ color: #15803d; font-weight: 800; }}

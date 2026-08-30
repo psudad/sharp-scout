@@ -1300,7 +1300,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .header h1 {{
     font-family: var(--font-serif);
     font-size: 34px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.02em;
     color: var(--color-text);
     text-transform: none;
@@ -1393,7 +1393,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .section-label {{
     font-family: var(--font-mono);
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.14em;
     color: var(--color-text);
     text-transform: uppercase;
@@ -1449,7 +1449,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .play-title {{
     font-family: var(--font-serif);
     font-size: 24px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--color-text);
     line-height: 1.15;
   }}
@@ -1537,7 +1537,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     background: var(--color-border);
     color: #fff;
     font-family: var(--font-mono);
-    font-weight: 500;
+    font-weight: 600;
     font-size: 10px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -1559,13 +1559,13 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .empty {{ color: var(--color-text-muted); text-align: center; padding: 36px 8px; font-weight: 300; }}
   .game-card {{ background: var(--color-bg); border: 1px solid #e5e5e5; border-radius: 0; padding: 18px; margin-bottom: 16px; }}
   .game-head {{ margin-bottom: 10px; }}
-  .game-title {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; color: var(--color-text); }}
+  .game-title {{ font-family: var(--font-serif); font-size: 24px; font-weight: 600; color: var(--color-text); }}
   .game-kick {{ font-size: 11px; color: var(--color-text-muted); margin-top: 4px; font-family: var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; }}
   .phase-block {{ margin-top: 14px; border-top: 1px solid #ececec; padding-top: 12px; }}
   .phase-label {{
     font-family: var(--font-mono);
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.12em;
     color: var(--color-text);
     text-transform: uppercase;

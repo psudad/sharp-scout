@@ -91,8 +91,15 @@ def test_compute_record_accepts_path(tmp_path: Path):
     assert rec["record"] == "0-0"
 
 
-def test_site_includes_cfb_tab(tmp_path: Path):
-    out = build_site(docs_dir=tmp_path / "docs")
+def test_site_includes_cfb_tab(tmp_path: Path, monkeypatch):
+    from sharp_scout.config import get_settings
+
+    monkeypatch.setenv("GA_MEASUREMENT_ID", "")
+    get_settings.cache_clear()
+    try:
+        out = build_site(docs_dir=tmp_path / "docs")
+    finally:
+        get_settings.cache_clear()
     html = (out / "index.html").read_text()
     assert "showTab('cfb'" in html
     assert "NCAAF" in html or "CFB" in html

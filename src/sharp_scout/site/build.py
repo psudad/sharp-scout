@@ -1246,77 +1246,237 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sharp Scout — NFL</title>
 <meta name="description" content="Sharp Scout NFL hybrid model plays and record">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+  :root {{
+    --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    --font-sans: 'Karla', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'Inconsolata', 'SF Mono', Menlo, monospace;
+    --color-text: #222222;
+    --color-text-muted: #555555;
+    --color-bg: #ffffff;
+    --color-bg-soft: #fafafa;
+    --color-border: #000000;
+    --color-win: #15803d;
+    --color-loss: #dc2626;
+    --color-hybrid: #166534;
+  }}
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #111827; min-height: 100vh; }}
-  .header {{ background: #d4ebfc; padding: 20px 16px 16px; border-bottom: 3px solid #000; }}
-  .header h1 {{ font-size: 22px; font-weight: 900; color: #000; }}
-  .header p {{ color: #374151; font-size: 13px; margin-top: 6px; }}
-  .pill {{ display: inline-block; margin-top: 8px; background: #fff; border: 2px solid #1d4ed8; color: #1e3a8a; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 20px; }}
-  .tabs {{ position: sticky; top: 0; z-index: 10; display: flex; background: #fff; border-bottom: 2px solid #000; }}
-  .tab {{ flex: 1; padding: 14px; text-align: center; cursor: pointer; color: #6b7280; font-size: 13px; font-weight: 600; border-bottom: 3px solid transparent; }}
-  .tab.active {{ color: #1d4ed8; font-weight: 800; border-bottom-color: #1d4ed8; background: #eff6ff; }}
-  .content {{ display: none; padding: 16px; max-width: 900px; margin: 0 auto; }}
+  body {{
+    font-family: var(--font-sans);
+    background: var(--color-bg-soft);
+    color: var(--color-text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }}
+  .header {{
+    background: var(--color-bg);
+    padding: 28px 16px 22px;
+    border-bottom: 1px solid #e5e5e5;
+    text-align: center;
+  }}
+  .header h1 {{
+    font-family: var(--font-serif);
+    font-size: 34px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-text);
+    text-transform: none;
+  }}
+  .header p {{
+    color: var(--color-text-muted);
+    font-size: 13px;
+    font-weight: 300;
+    margin-top: 8px;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }}
+  .pill {{
+    display: inline-block;
+    margin-top: 12px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 0;
+  }}
+  .tabs {{
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    background: var(--color-bg);
+    border-bottom: 1px solid #e5e5e5;
+  }}
+  .tab {{
+    flex: 1;
+    padding: 14px 8px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+  }}
+  .tab.active {{
+    color: var(--color-text);
+    font-weight: 600;
+    border-bottom-color: var(--color-border);
+    background: var(--color-bg);
+  }}
+  .content {{ display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }}
   .content.active {{ display: block; }}
   #tab-cfb.content {{ max-width: 1240px; }}
   #tab-cfb-historical.content {{ max-width: 1240px; }}
-  .summary-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }}
+  .summary-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 22px; }}
   @media (min-width: 700px) {{ .summary-grid {{ grid-template-columns: repeat(4, 1fr); }} }}
-  .stat-card {{ background: #fff; border: 2px solid #000; border-radius: 8px; padding: 14px 10px; text-align: center; }}
-  .stat-val {{ font-size: 22px; font-weight: 800; color: #000; }}
-  .stat-label {{ font-size: 10px; color: #4b5563; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }}
+  .stat-card {{
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: 0;
+    padding: 16px 10px;
+    text-align: center;
+  }}
+  .stat-val {{
+    font-family: var(--font-serif);
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--color-text);
+    line-height: 1.1;
+  }}
+  .stat-label {{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-text-muted);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }}
   .stat-tip {{ margin-left: 2px; }}
   .stage-record-label {{ display: inline-flex; align-items: center; gap: 4px; }}
-  .section-label {{ font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #1e3a8a; text-transform: uppercase; margin: 18px 0 10px; }}
+  .section-label {{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--color-text);
+    text-transform: uppercase;
+    margin: 24px 0 12px;
+  }}
   .section-toolbar {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 8px; flex-wrap: wrap; }}
   .section-toolbar-title {{ margin: 0; font-size: 9px; }}
   .csv-btn {{
-    border: 2px solid #000; background: #fff; color: #000; font-size: 12px; font-weight: 700;
-    padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    border-radius: 0;
+    cursor: pointer;
+    white-space: nowrap;
   }}
-  .csv-btn:hover {{ background: #f3f4f6; }}
-  .play-card {{ background: #fff; border: 2px solid #000; border-radius: 10px; padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; }}
-  .play-card::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }}
-  .sharp-play::before {{ background: #16a34a; }}
-  .sharp-lean::before {{ background: #ca8a04; }}
-  .candidate::before {{ background: #3b82f6; }}
+  .csv-btn:hover {{ background: var(--color-bg-soft); }}
+  .play-card {{
+    background: var(--color-bg);
+    border: 1px solid #e5e5e5;
+    border-left: 3px solid var(--color-border);
+    border-radius: 0;
+    padding: 18px 16px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }}
+  .play-card::before {{ content: none; }}
+  .sharp-play {{ border-left-color: var(--color-win); }}
+  .sharp-lean {{ border-left-color: #ca8a04; }}
+  .candidate {{ border-left-color: #6b7280; }}
   .card-top {{ display: flex; justify-content: space-between; gap: 8px; }}
-  .tier-badge {{ display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; margin-bottom: 4px; }}
-  .badge-play {{ background: #16a34a; color: #fff; }}
-  .badge-lean {{ background: #fef9c3; color: #854d0e; border: 1px solid #eab308; }}
-  .badge-cand {{ background: #dbeafe; color: #1e40af; }}
-  .play-title {{ font-size: 18px; font-weight: 800; color: #000; }}
-  .play-subtitle {{ font-size: 11px; color: #4b5563; margin-top: 2px; }}
-  .units-badge {{ background: #eff6ff; border: 2px solid #1d4ed8; color: #1e3a8a; padding: 6px 12px; border-radius: 8px; font-weight: 800; height: fit-content; }}
-  .card-result {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-top: 8px; }}
-  .card-result.win {{ background: #dcfce7; border: 1px solid #16a34a; color: #15803d; }}
-  .card-result.loss {{ background: #fee2e2; border: 1px solid #dc2626; color: #b91c1c; }}
-  .card-result.pending {{ background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; }}
-  .play-meta {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 10px; font-size: 12px; }}
-  .meta-label {{ color: #4b5563; }}
-  .meta-val {{ font-weight: 700; color: #000; }}
+  .tier-badge {{
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 0;
+    margin-bottom: 6px;
+    border: 1px solid var(--color-border);
+  }}
+  .badge-play {{ background: var(--color-text); color: #fff; border-color: var(--color-text); }}
+  .badge-lean {{ background: #fff; color: var(--color-text); }}
+  .badge-cand {{ background: var(--color-bg-soft); color: var(--color-text-muted); }}
+  .play-title {{
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--color-text);
+    line-height: 1.15;
+  }}
+  .play-subtitle {{ font-size: 12px; color: var(--color-text-muted); margin-top: 4px; font-weight: 300; }}
+  .units-badge {{
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    padding: 6px 12px;
+    border-radius: 0;
+    font-weight: 600;
+    height: fit-content;
+  }}
+  .card-result {{ display: inline-block; font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 0; margin-top: 10px; }}
+  .card-result.win {{ background: #ecfdf5; border: 1px solid var(--color-win); color: var(--color-win); }}
+  .card-result.loss {{ background: #fef2f2; border: 1px solid var(--color-loss); color: var(--color-loss); }}
+  .card-result.pending {{ background: var(--color-bg-soft); border: 1px solid #d1d5db; color: var(--color-text-muted); }}
+  .play-meta {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 12px; font-size: 12px; }}
+  .meta-label {{ color: var(--color-text-muted); font-weight: 300; }}
+  .meta-val {{ font-weight: 600; color: var(--color-text); }}
   .conf-track {{ background: #e5e7eb; border-radius: 4px; height: 5px; margin-top: 10px; }}
   .conf-fill {{ height: 5px; border-radius: 4px; }}
-  .rationale-toggle {{ margin-top: 10px; color: #4b5563; font-size: 12px; cursor: pointer; display: flex; gap: 6px; align-items: center; }}
+  .rationale-toggle {{ margin-top: 12px; color: var(--color-text-muted); font-size: 12px; cursor: pointer; display: flex; gap: 6px; align-items: center; }}
   .rationale-toggle.open .arrow {{ transform: rotate(90deg); }}
-  .rationale-body {{ display: none; font-size: 12px; color: #374151; margin-top: 8px; line-height: 1.65; border-top: 1px solid #d1d5db; padding-top: 8px; }}
+  .rationale-body {{ display: none; font-size: 13px; color: var(--color-text-muted); margin-top: 8px; line-height: 1.7; border-top: 1px solid #ececec; padding-top: 10px; }}
   .rationale-body.open {{ display: block; }}
-  .rationale-cell {{ font-size: 11px; color: #4b5563; line-height: 1.5; max-width: 320px; }}
-  .stage-why {{ font-size: 11px; color: #4b5563; line-height: 1.5; max-width: 420px; }}
-  .splits-summary {{ color: #111827; margin-bottom: 8px; }}
-  .table-wrap {{ overflow-x: auto; border: 3px solid #000; border-radius: 6px; background: #fff; }}
+  .rationale-cell {{ font-size: 12px; color: var(--color-text-muted); line-height: 1.55; max-width: 320px; }}
+  .stage-why {{ font-size: 12px; color: var(--color-text-muted); line-height: 1.55; max-width: 420px; }}
+  .splits-summary {{ color: var(--color-text); margin-bottom: 8px; }}
+  .table-wrap {{ overflow-x: auto; border: 2px solid var(--color-border); border-radius: 0; background: var(--color-bg); }}
   .stage-table-wrap {{ margin-bottom: 8px; }}
   .stage-table {{ min-width: 880px; font-size: 11px; }}
   .stage-table th, .stage-table td {{ white-space: nowrap; padding: 6px 7px; }}
   .stage-table th:nth-child(2), .stage-table td:nth-child(2) {{ white-space: nowrap; min-width: 0; max-width: 108px; }}
   .stage-table th.hybrid-col, .stage-table td.hybrid-cell {{
-    background: #ecfdf5;
-    border-left: 2px solid #16a34a;
-    border-right: 2px solid #16a34a;
-    font-weight: 800;
-    color: #15803d;
+    background: #f4faf6;
+    border-left: 1px solid #b7e4c7;
+    border-right: 1px solid #b7e4c7;
+    font-weight: 600;
+    color: var(--color-hybrid);
   }}
-  .stage-table th.hybrid-col {{ background: #166534; color: #fff; border-left: 2px solid #000; border-right: 2px solid #000; }}
+  .stage-table th.hybrid-col {{ background: var(--color-hybrid); color: #fff; border-left: 1px solid var(--color-border); border-right: 1px solid var(--color-border); }}
   .stage-table th:nth-child(11), .stage-table td:nth-child(11) {{
     white-space: normal; min-width: 72px; max-width: 120px; font-size: 11px; color: #4b5563;
   }}
@@ -1332,8 +1492,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     line-height: 0;
     position: relative;
   }}
-  .th-tip:hover, .th-tip:focus {{ color: #1d4ed8; outline: none; }}
-  .th-tip:focus-visible {{ box-shadow: 0 0 0 2px #000; border-radius: 4px; }}
+  .th-tip:hover, .th-tip:focus {{ color: var(--color-text); outline: none; }}
+  .th-tip:focus-visible {{ box-shadow: 0 0 0 1px var(--color-border); border-radius: 0; }}
   .th-tip-icon {{ display: block; pointer-events: none; }}
   .th-tip-float {{
     position: fixed;
@@ -1354,29 +1514,48 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     text-transform: none;
     letter-spacing: normal;
   }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }}
-  th {{ background: #000; color: #fff; font-weight: 700; text-align: left; padding: 10px; border-bottom: 2px solid #000; }}
-  .stage-table th {{ background: #000; color: #fff; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; font-family: var(--font-sans); }}
+  th {{
+    background: var(--color-border);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 11px 10px;
+    border-bottom: 1px solid var(--color-border);
+  }}
+  .stage-table th {{ background: var(--color-border); color: #fff; }}
   .stage-table th .th-tip {{ color: #d1d5db; }}
   .stage-table th .th-tip:hover, .stage-table th .th-tip:focus {{ color: #fff; }}
-  .stage-table th.hybrid-col {{ background: #166534; color: #fff; }}
-  td {{ padding: 9px 10px; border-bottom: 1px solid #d1d5db; color: #111827; }}
+  .stage-table th.hybrid-col {{ background: var(--color-hybrid); color: #fff; }}
+  td {{ padding: 10px; border-bottom: 1px solid #ececec; color: var(--color-text); }}
   tr:last-child td {{ border-bottom: none; }}
-  .win {{ color: #15803d; font-weight: 800; }}
-  .loss {{ color: #dc2626; font-weight: 800; }}
-  .pending {{ color: #1d4ed8; font-weight: 600; }}
-  .pos {{ color: #15803d; font-weight: 700; }}
-  .neg {{ color: #dc2626; font-weight: 700; }}
-  .empty {{ color: #4b5563; text-align: center; padding: 28px 8px; }}
-  .game-card {{ background: #fff; border: 2px solid #000; border-radius: 10px; padding: 14px; margin-bottom: 14px; }}
+  .win {{ color: var(--color-win); font-weight: 600; }}
+  .loss {{ color: var(--color-loss); font-weight: 600; }}
+  .pending {{ color: var(--color-text-muted); font-weight: 500; }}
+  .pos {{ color: var(--color-win); font-weight: 600; }}
+  .neg {{ color: var(--color-loss); font-weight: 600; }}
+  .empty {{ color: var(--color-text-muted); text-align: center; padding: 36px 8px; font-weight: 300; }}
+  .game-card {{ background: var(--color-bg); border: 1px solid #e5e5e5; border-radius: 0; padding: 18px; margin-bottom: 16px; }}
   .game-head {{ margin-bottom: 10px; }}
-  .game-title {{ font-size: 18px; font-weight: 800; color: #000; }}
-  .game-kick {{ font-size: 11px; color: #4b5563; margin-top: 4px; }}
-  .phase-block {{ margin-top: 12px; border-top: 1px solid #d1d5db; padding-top: 10px; }}
-  .phase-label {{ font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #1e3a8a; text-transform: uppercase; margin-bottom: 6px; }}
-  .phase-note {{ font-size: 12px; color: #4b5563; margin: 4px 0; line-height: 1.5; }}
-  .phase-sub {{ font-size: 11px; font-weight: 700; color: #374151; margin: 8px 0 4px; }}
-  .footer {{ color: #6b7280; font-size: 11px; padding: 24px 16px; text-align: center; line-height: 1.6; }}
+  .game-title {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; color: var(--color-text); }}
+  .game-kick {{ font-size: 11px; color: var(--color-text-muted); margin-top: 4px; font-family: var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; }}
+  .phase-block {{ margin-top: 14px; border-top: 1px solid #ececec; padding-top: 12px; }}
+  .phase-label {{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--color-text);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }}
+  .phase-note {{ font-size: 13px; color: var(--color-text-muted); margin: 4px 0; line-height: 1.65; font-weight: 300; }}
+  .phase-sub {{ font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin: 8px 0 4px; }}
+  .footer {{ color: var(--color-text-muted); font-size: 11px; padding: 32px 16px; text-align: center; line-height: 1.7; font-weight: 300; }}
 </style>
 </head>
 <body>

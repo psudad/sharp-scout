@@ -30,6 +30,7 @@ from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.sports import NCAAF
 from sharp_scout.utils.slate import (
     ET,
+    college_week_bounds,
     college_week_label,
     filter_plays_college_week,
     filter_plays_nfl_week,
@@ -246,7 +247,10 @@ def build_site(
         ncaaf_stage_cards
     )
     ncaaf_stage_weeks_html = _render_stage_weeks_html(ncaaf_current_stage_cards)
-    ncaaf_historical_html = _render_cfb_historical_weeks(ncaaf_historical_weeks)
+    ncaaf_historical_html = _render_cfb_historical_weeks(
+        ncaaf_historical_weeks,
+        ledger_plays=ncaaf_ledger.get("plays") or [],
+    )
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
     ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
     ncaaf_fade_n = ncaaf_stage_summary.get("fade_public_games", "—")
@@ -1058,10 +1062,116 @@ def _render_stage_weeks_html(cards: list[dict]) -> str:
     return "".join(parts)
 
 
+def _filter_plays_for_college_week_start(
+    plays: list[dict[str, Any]],
+    week_start: datetime,
+) -> list[dict[str, Any]]:
+    start, end = college_week_bounds(week_start)
+    out: list[dict[str, Any]] = []
+    for play in plays:
+        kickoff = parse_commence(play.get("kickoff") or play.get("commence_time"))
+        if kickoff is None:
+            continue
+        if start <= kickoff <= end:
+            out.append(play)
+    return out
+
+
+def _compute_play_record(plays: list[dict[str, Any]]) -> dict[str, Any]:
+    wins = losses = pushes = pending = 0
+    for play in plays:
+        st = play.get("status") or "pending"
+        if st == "win":
+            wins += 1
+        elif st == "loss":
+            losses += 1
+        elif st == "push":
+            pushes += 1
+        else:
+            pending += 1
+    decided = wins + losses
+    return {
+        "wins": wins,
+        "losses": losses,
+        "pushes": pushes,
+        "pending": pending,
+        "record": f"{wins}-{losses}" + (f"-{pushes}" if pushes else ""),
+        "win_pct": (wins / decided) if decided else None,
+    }
+
+
+def _compute_stage_records_from_cards(cards: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    stage_records: dict[str, dict[str, Any]] = {}
+    for card in cards:
+        if str(card.get("event_id") or "").startswith("demo-"):
+            continue
+        for stage, result in (card.get("results") or {}).items():
+            bucket = stage_records.setdefault(
+                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+            )
+            if result == "win":
+                bucket["wins"] += 1
+            elif result == "loss":
+                bucket["losses"] += 1
+            elif result == "push":
+                bucket["pushes"] += 1
+            elif result is not None:
+                bucket["pending"] += 1
+        if card.get("status") in (None, "pending"):
+            for stage, pick in (card.get("picks") or {}).items():
+                if not pick.get("available") or not pick.get("side"):
+                    continue
+                bucket = stage_records.setdefault(
+                    stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+                )
+                existing = (card.get("results") or {}).get(stage)
+                if existing is None and stage not in (card.get("results") or {}):
+                    bucket["pending"] += 1
+    for stage, b in stage_records.items():
+        decided = b["wins"] + b["losses"]
+        b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
+        b["win_pct"] = (b["wins"] / decided) if decided else None
+    return stage_records
+
+
+def _render_weekly_lens_scorecard(
+    cards: list[dict[str, Any]],
+    *,
+    ledger_plays: list[dict[str, Any]] | None = None,
+) -> str:
+    stage_records = _compute_stage_records_from_cards(cards)
+    ledger_rec = _compute_play_record(ledger_plays or [])
+    rows: list[str] = []
+    if ledger_plays is not None:
+        wp = f"{ledger_rec['win_pct'] * 100:.0f}%" if ledger_rec.get("win_pct") is not None else "—"
+        rows.append(
+            "<tr class='weekly-score-sharp-play'>"
+            "<td><b>Sharp Plays (ledger)</b></td>"
+            f"<td><b>{_esc(ledger_rec.get('record') or '0-0')}</b></td>"
+            f"<td>{wp}</td>"
+            f"<td>{ledger_rec.get('pending', 0)}</td>"
+            "</tr>"
+        )
+    stage_rows = _render_stage_record_rows(stage_records)
+    if stage_rows.startswith("<tr"):
+        rows.append(stage_rows)
+    body = "\n".join(rows) if rows else "<tr><td colspan='4'>No graded picks this week yet.</td></tr>"
+    return (
+        '<div class="section-label" style="margin-top:8px">Weekly Lens Scorecard</div>'
+        '<p class="phase-note" style="padding:4px 0 8px">'
+        "How each lens performed this week if you bet every pick (spread, ML, total). "
+        "<b>Sharp Plays</b> = actual posted bets only.</p>"
+        '<div class="table-wrap"><table class="weekly-scorecard-table">'
+        "<thead><tr><th>Lens</th><th>Record</th><th>Win %</th><th>Ungraded</th></tr></thead>"
+        f"<tbody>{body}</tbody></table></div>"
+    )
+
+
 def _render_cfb_historical_weeks(
     weeks: list[tuple[Any, list[dict[str, Any]]]],
     *,
     sport: str = "ncaaf",
+    ledger_plays: list[dict[str, Any]] | None = None,
 ) -> str:
     if not weeks:
         return (
@@ -1069,18 +1179,21 @@ def _render_cfb_historical_weeks(
             "(Monday ET), that week's stage winners and quant pick leans move here automatically.</div>"
         )
     parts: list[str] = []
+    all_ledger = ledger_plays or []
     for week_start, week_cards in weeks:
         label = college_week_label(week_start)
         slug = _week_file_slug(week_start)
         stages_id = f"hist-stages-{slug}"
         leans_id = f"hist-leans-{slug}"
+        week_ledger = _filter_plays_for_college_week_start(all_ledger, week_start)
         parts.append(
             f'<div class="week-block historical-week">'
             f'<div class="section-label" style="margin-top:18px">{_esc(label)}</div>'
+            f"{_render_weekly_lens_scorecard(week_cards, ledger_plays=week_ledger)}"
+            f"{_section_toolbar('Quant Pick Leans', leans_id, f'sharp-scout-leans-{slug}.csv')}"
+            f"{_render_hybrid_leans_section(week_cards, sport=sport, show_intro=False, table_id=leans_id, ledger_plays=week_ledger)}"
             f"{_section_toolbar('Pregame Stage Winners', stages_id, f'sharp-scout-stages-{slug}.csv')}"
             f"{_render_stage_week_table(week_cards, sport=sport, table_id=stages_id)}"
-            f"{_section_toolbar('Quant Pick Leans', leans_id, f'sharp-scout-leans-{slug}.csv')}"
-            f"{_render_hybrid_leans_section(week_cards, sport=sport, show_intro=False, table_id=leans_id)}"
             f"</div>"
         )
     return "".join(parts)
@@ -1681,6 +1794,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .lean-row-sharp-play td.pos {{
     color: #854d0e;
     font-weight: 800;
+  }}
+  .weekly-score-sharp-play td {{
+    background: #fef9c3;
+    font-weight: 700;
+    border-bottom-color: #fde047;
   }}
   .win {{ color: var(--color-win); font-weight: 600; }}
   .loss {{ color: var(--color-loss); font-weight: 600; }}

@@ -149,7 +149,11 @@ def test_historical_week_renders_csv_export_buttons():
             },
         }
     ]
-    html = _render_cfb_historical_weeks([(week, cards)])
+    html = _render_cfb_historical_weeks([(week, cards)], ledger_plays=[])
+    assert "Weekly Lens Scorecard" in html
+    assert html.index("Weekly Lens Scorecard") < html.index("Quant Pick Leans")
+    assert html.index("Quant Pick Leans") < html.index("Pregame Stage Winners")
+    assert "Sharp Plays (ledger)" in html
     assert "hist-stages-2026-08-24" in html
     assert "hist-leans-2026-08-24" in html
     assert "sharp-scout-stages-2026-08-24.csv" in html

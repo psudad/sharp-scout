@@ -53,6 +53,7 @@ jobs:
           echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
           echo "ACTION_NETWORK_COOKIE=${{ secrets.ACTION_NETWORK_COOKIE }}" >> $GITHUB_ENV
           echo "MONTE_CARLO_SIMS=5000" >> $GITHUB_ENV
+          echo "GA_MEASUREMENT_ID=${{ secrets.GA_MEASUREMENT_ID }}" >> $GITHUB_ENV
 
       - name: Settle prior NCAAF plays
         continue-on-error: true

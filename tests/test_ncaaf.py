@@ -107,6 +107,8 @@ def test_site_includes_cfb_tab(tmp_path: Path):
     assert "Closing Line Value" in html
     assert "Cormorant Garamond" in html
     assert "Inconsolata" in html
+    assert "--color-navy" in html
+    assert "googletagmanager.com" not in html
     assert "downloadTableCsv" in html
     assert "csv-btn" in html
     assert (out / "ncaaf_ledger.json").exists()
@@ -182,3 +184,28 @@ def test_extract_hybrid_leans_skips_validated(tmp_path: Path):
     assert len(leans) == 1
     assert leans[0]["pick"]["team"] == "USC"
     assert leans[0]["kind"] == "aligned"
+
+
+def test_render_analytics_head():
+    from sharp_scout.site.build import _render_analytics_head
+
+    assert _render_analytics_head("") == ""
+    html = _render_analytics_head("G-TEST1234")
+    assert "G-TEST1234" in html
+    assert "googletagmanager.com" in html
+    assert "anonymize_ip" in html
+
+
+def test_build_site_includes_analytics_when_configured(monkeypatch, tmp_path):
+    from sharp_scout.config import get_settings
+    from sharp_scout.site.build import build_site
+
+    monkeypatch.setenv("GA_MEASUREMENT_ID", "G-ABCD1234")
+    get_settings.cache_clear()
+    try:
+        out = build_site(docs_dir=tmp_path / "docs")
+        html = (out / "index.html").read_text()
+        assert "G-ABCD1234" in html
+        assert "googletagmanager.com" in html
+    finally:
+        get_settings.cache_clear()

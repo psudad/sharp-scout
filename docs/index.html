@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sharp Scout — NFL</title>
 <meta name="description" content="Sharp Scout NFL hybrid model plays and record">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -18,6 +19,7 @@
     --color-bg: #ffffff;
     --color-bg-soft: #fafafa;
     --color-slate: #dbe4ed;
+    --color-navy: #1e3a5f;
     --color-border: #000000;
     --color-win: #15803d;
     --color-loss: #dc2626;
@@ -92,10 +94,10 @@
     border-bottom: 2px solid transparent;
   }
   .tab.active {
-    color: var(--color-text);
+    color: #ffffff;
     font-weight: 600;
-    border-bottom-color: var(--color-border);
-    background: var(--color-slate);
+    border-bottom-color: var(--color-navy);
+    background: var(--color-navy);
   }
   .content { display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }
   .content.active { display: block; }
@@ -323,7 +325,7 @@
   <h1>Sharp Scout</h1>
   <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
   <span class="pill">NFL 0-0 · +0.0u · CFB 1-2 · +0.35u · Live pipeline</span>
-  <p style="margin-top:8px">Updated 2026-08-30 14:17 UTC</p>
+  <p style="margin-top:8px">Updated 2026-08-30 14:23 UTC</p>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">NFL</div>
@@ -353,7 +355,7 @@
       <div class="game-card">
         <div class="game-head">
           <div class="game-title">KC @ BUF</div>
-          <div class="game-kick">Sun Aug 30, 10:13 AM ET</div>
+          <div class="game-kick">Sun Aug 30, 10:17 AM ET</div>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -406,9 +408,9 @@
   <div class="section-label">Per-Game Stage Winners</div>
   <div class="table-wrap stage-table-wrap"><table class="stage-table">
     <thead><tr><th>Kickoff</th><th>Game</th><th class="stage-th">Mkt<span class="th-tip" data-tip="Spread, moneyline (ML), or total — one row per market per game." tabindex="0" role="button" aria-label="Mkt: Spread, moneyline (ML), or total — one row per market per game."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th hybrid-col">Hybrid<span class="th-tip" data-tip="Full system pick — validated play when filters pass, else best model + market lean." tabindex="0" role="button" aria-label="Hybrid: Full system pick — validated play when filters pass, else best model + market lean."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Model<span class="th-tip" data-tip="EPA ratings + Monte Carlo simulation — our independent lean before splits." tabindex="0" role="button" aria-label="Model: EPA ratings + Monte Carlo simulation — our independent lean before splits."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Sharp<span class="th-tip" data-tip="Pinnacle / Betfair consensus — where sharp books price this market." tabindex="0" role="button" aria-label="Sharp: Pinnacle / Betfair consensus — where sharp books price this market."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Public<span class="th-tip" data-tip="Action Network ticket % — which side most bettors are taking." tabindex="0" role="button" aria-label="Public: Action Network ticket % — which side most bettors are taking."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Money<span class="th-tip" data-tip="Action Network handle % — where the dollars are flowing." tabindex="0" role="button" aria-label="Money: Action Network handle % — where the dollars are flowing."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">Diff<span class="th-tip" data-tip="Money minus tickets on a side; a ≥20% gap flags sharp-money interest." tabindex="0" role="button" aria-label="Diff: Money minus tickets on a side; a ≥20% gap flags sharp-money interest."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th class="stage-th">RLM<span class="th-tip" data-tip="Reverse line movement — the line moved against the public toward this side." tabindex="0" role="button" aria-label="RLM: Reverse line movement — the line moved against the public toward this side."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></th><th>Notes</th></tr></thead>
-    <tbody><tr><td>Sun 10:13 AM</td><td>KC @ BUF</td><td>Spread</td><td class='hybrid-cell pos'><b>BUF -2.3</b></td><td><b>BUF -2.3</b></td><td><b>KC -2.5</b></td><td><b>BUF -2.5</b></td><td><b>KC -2.5</b></td><td><b>KC -2.5</b></td><td><span class='pending'>—</span></td><td>fade pub</td></tr>
-<tr><td>Sun 10:13 AM</td><td>KC @ BUF</td><td>ML</td><td class='hybrid-cell pos'><b>BUF</b></td><td><b>BUF</b></td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td>model</td></tr>
-<tr><td>Sun 10:13 AM</td><td>KC @ BUF</td><td>Total</td><td class='hybrid-cell pos'><b>Under 47.5</b></td><td><b>Under 47.5</b></td><td><b>Under 47.5</b></td><td><b>Over 47.5</b></td><td><b>Over 47.5</b></td><td><b>Under 47.5</b></td><td><b>Under 47.5</b></td><td>fade pub · RLM</td></tr></tbody>
+    <tbody><tr><td>Sun 10:17 AM</td><td>KC @ BUF</td><td>Spread</td><td class='hybrid-cell pos'><b>BUF -2.3</b></td><td><b>BUF -2.3</b></td><td><b>KC -2.5</b></td><td><b>BUF -2.5</b></td><td><b>KC -2.5</b></td><td><b>KC -2.5</b></td><td><span class='pending'>—</span></td><td>fade pub</td></tr>
+<tr><td>Sun 10:17 AM</td><td>KC @ BUF</td><td>ML</td><td class='hybrid-cell pos'><b>BUF</b></td><td><b>BUF</b></td><td><b>KC</b></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td><span class='pending'>—</span></td><td>model</td></tr>
+<tr><td>Sun 10:17 AM</td><td>KC @ BUF</td><td>Total</td><td class='hybrid-cell pos'><b>Under 47.5</b></td><td><b>Under 47.5</b></td><td><b>Under 47.5</b></td><td><b>Over 47.5</b></td><td><b>Over 47.5</b></td><td><b>Under 47.5</b></td><td><b>Under 47.5</b></td><td>fade pub · RLM</td></tr></tbody>
   </table></div>
   <p class="footer" style="padding:12px 0">Each column is an independent lens. <b>Hybrid</b> is the system pick per market — Sharp Plays come from validated Hybrid ML/spread/total rows.</p>
 </div>
@@ -521,6 +523,13 @@ function showTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
+  if (typeof gtag === 'function') {
+    gtag('event', 'page_view', {
+      page_title: 'Sharp Scout — ' + name,
+      page_location: window.location.href.split('#')[0] + '#' + name,
+      page_path: window.location.pathname + '#' + name
+    });
+  }
 }
 
 function downloadTableCsv(tableId, filename) {

@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
+    # Google Analytics 4 measurement ID (e.g. G-XXXXXXXXXX) for GitHub Pages visitor tracking
+    ga_measurement_id: str = ""
+
     # Ratings lookback seasons (inclusive current when available)
     ratings_seasons: str = "2023,2024,2025,2026"
     # Recency half-life in weeks for EPA weighting

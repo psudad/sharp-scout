@@ -238,6 +238,25 @@ Tokens last longer than cookies; re-run `diagnose_action_network.py` when money 
 | Ledger | `data/ledger.json` / `data/ncaaf_ledger.json` | Deduped play history + settlement |
 | Pages | `docs/` | Public board + NFL + CFB tabs |
 
+## Visitor analytics (GitHub Pages)
+
+Sharp Scout can embed **Google Analytics 4** to track **unique visitors per week** (and which tabs people open). GA does not identify individual people — you get aggregate counts, geography, and device type only.
+
+1. Create a free [Google Analytics](https://analytics.google.com/) property.
+2. Add a **Web** data stream for `https://psudad.github.io/sharp-scout/`.
+3. Copy the **Measurement ID** (`G-XXXXXXXXXX`).
+4. Add it locally in `.env`:
+   ```bash
+   GA_MEASUREMENT_ID=G-XXXXXXXXXX
+   ```
+5. Add the same value as a GitHub repo secret named `GA_MEASUREMENT_ID` so scheduled workflows rebuild the site with tracking enabled.
+6. Rebuild and push:
+   ```bash
+   python scripts/build_site.py
+   ```
+
+In GA4, open **Reports → User acquisition** (or the home dashboard) and set the date range to **Last 7 days** for weekly unique visitors. Tab switches (NFL, CFB, etc.) are logged as virtual page views when analytics is enabled.
+
 ## API
 
 - `GET /api/health`

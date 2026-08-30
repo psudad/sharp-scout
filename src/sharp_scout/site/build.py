@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR, ROOT
+from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR, ROOT, get_settings
 from sharp_scout.copy.explain import (
     BOARD_STAT_TIPS,
     collapse_best_signals,
@@ -106,6 +106,20 @@ def _pick_ncaaf_signals() -> dict[str, Any]:
         if n > best_n:
             best, best_n = data, n
     return best
+
+
+def _render_analytics_head(measurement_id: str) -> str:
+    mid = (measurement_id or "").strip()
+    if not mid:
+        return ""
+    safe = _esc(mid)
+    return f"""<script async src="https://www.googletagmanager.com/gtag/js?id={safe}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', '{safe}', {{ anonymize_ip: true }});
+</script>"""
 
 
 def build_site(
@@ -265,6 +279,7 @@ def build_site(
     )
 
     html = SITE_TEMPLATE.format(
+        analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         generated=generated,
         nfl_record=record["record"],
         nfl_win_pct=nfl_win_pct,
@@ -1246,6 +1261,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sharp Scout — NFL</title>
 <meta name="description" content="Sharp Scout NFL hybrid model plays and record">
+{analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1259,6 +1275,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     --color-bg: #ffffff;
     --color-bg-soft: #fafafa;
     --color-slate: #dbe4ed;
+    --color-navy: #1e3a5f;
     --color-border: #000000;
     --color-win: #15803d;
     --color-loss: #dc2626;
@@ -1333,10 +1350,10 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     border-bottom: 2px solid transparent;
   }}
   .tab.active {{
-    color: var(--color-text);
+    color: #ffffff;
     font-weight: 600;
-    border-bottom-color: var(--color-border);
-    background: var(--color-slate);
+    border-bottom-color: var(--color-navy);
+    background: var(--color-navy);
   }}
   .content {{ display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }}
   .content.active {{ display: block; }}
@@ -1662,6 +1679,13 @@ function showTab(name, el) {{
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
+  if (typeof gtag === 'function') {{
+    gtag('event', 'page_view', {{
+      page_title: 'Sharp Scout — ' + name,
+      page_location: window.location.href.split('#')[0] + '#' + name,
+      page_path: window.location.pathname + '#' + name
+    }});
+  }}
 }}
 
 function downloadTableCsv(tableId, filename) {{

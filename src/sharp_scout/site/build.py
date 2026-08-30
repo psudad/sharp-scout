@@ -355,7 +355,7 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
         badge_cls = "badge-play" if tier == "play" else "badge-lean" if tier == "lean" else "badge-cand"
         tier_name = "Sharp Play" if tier == "play" else "Sharp Lean" if tier == "lean" else "Candidate"
         conf = min(99, round(50 + float(edge or 0) * 500))
-        color = "#f4820a" if tier == "play" else "#facc15" if tier == "lean" else "#60a5fa"
+        color = "#000000" if tier == "play" else "#334155" if tier == "lean" else "#64748b"
         pnl = p.get("pnl_units")
         pnl_html = ""
         if pnl is not None:
@@ -1034,7 +1034,7 @@ def _render_stage_rows(cards: list[dict], *, sport: str = "nfl") -> str:
             f"<td>{_esc(kick_s)}</td>"
             f"<td>{matchup}</td>"
             f"<td>{_esc(_stage_market_label(c.get('market')))}</td>"
-            f"<td class='hybrid-cell pos'>{_pick_cell(hybrid, sport=sport)}</td>"
+            f"<td class='hybrid-cell'>{_pick_cell(hybrid, sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('model'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('sharp'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('public'), sport=sport)}</td>"
@@ -1248,76 +1248,78 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <meta name="description" content="Sharp Scout NFL hybrid model plays and record">
 <style>
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; }}
-  .header {{ background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); padding: 20px 16px 16px; border-bottom: 3px solid #f4820a; }}
-  .header h1 {{ font-size: 22px; font-weight: 800; color: #fff; }}
-  .header p {{ color: #dbeafe; font-size: 13px; margin-top: 6px; }}
-  .pill {{ display: inline-block; margin-top: 8px; background: #ecfdf5; border: 1px solid #16a34a; color: #15803d; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 20px; }}
-  .tabs {{ position: sticky; top: 0; z-index: 10; display: flex; background: #fff; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06); }}
-  .tab {{ flex: 1; padding: 14px; text-align: center; cursor: pointer; color: #64748b; font-size: 13px; font-weight: 600; border-bottom: 3px solid transparent; }}
-  .tab.active {{ color: #ea580c; border-bottom-color: #ea580c; background: #fff7ed; }}
+  body {{ font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #111827; min-height: 100vh; }}
+  .header {{ background: #d4ebfc; padding: 20px 16px 16px; border-bottom: 3px solid #000; }}
+  .header h1 {{ font-size: 22px; font-weight: 900; color: #000; }}
+  .header p {{ color: #374151; font-size: 13px; margin-top: 6px; }}
+  .pill {{ display: inline-block; margin-top: 8px; background: #fff; border: 2px solid #000; color: #000; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 20px; }}
+  .tabs {{ position: sticky; top: 0; z-index: 10; display: flex; background: #fff; border-bottom: 2px solid #000; }}
+  .tab {{ flex: 1; padding: 14px; text-align: center; cursor: pointer; color: #6b7280; font-size: 13px; font-weight: 600; border-bottom: 3px solid transparent; }}
+  .tab.active {{ color: #000; font-weight: 800; border-bottom-color: #000; background: #fff; }}
   .content {{ display: none; padding: 16px; max-width: 900px; margin: 0 auto; }}
   .content.active {{ display: block; }}
   #tab-cfb.content {{ max-width: 1240px; }}
   #tab-cfb-historical.content {{ max-width: 1240px; }}
   .summary-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }}
   @media (min-width: 700px) {{ .summary-grid {{ grid-template-columns: repeat(4, 1fr); }} }}
-  .stat-card {{ background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 10px; text-align: center; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }}
-  .stat-val {{ font-size: 22px; font-weight: 800; color: #0f172a; }}
-  .stat-label {{ font-size: 10px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }}
+  .stat-card {{ background: #fff; border: 2px solid #000; border-radius: 8px; padding: 14px 10px; text-align: center; }}
+  .stat-val {{ font-size: 22px; font-weight: 800; color: #000; }}
+  .stat-label {{ font-size: 10px; color: #4b5563; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }}
   .stat-tip {{ margin-left: 2px; }}
   .stage-record-label {{ display: inline-flex; align-items: center; gap: 4px; }}
-  .section-label {{ font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #ea580c; text-transform: uppercase; margin: 18px 0 10px; }}
+  .section-label {{ font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #000; text-transform: uppercase; margin: 18px 0 10px; }}
   .section-toolbar {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 8px; flex-wrap: wrap; }}
   .section-toolbar-title {{ margin: 0; font-size: 9px; }}
   .csv-btn {{
-    border: 1px solid #cbd5e1; background: #fff; color: #334155; font-size: 12px; font-weight: 600;
-    padding: 6px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+    border: 2px solid #000; background: #fff; color: #000; font-size: 12px; font-weight: 700;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap;
   }}
-  .csv-btn:hover {{ background: #f8fafc; border-color: #94a3b8; color: #0f172a; }}
-  .play-card {{ background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }}
-  .play-card::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }}
-  .sharp-play::before {{ background: #f4820a; }}
-  .sharp-lean::before {{ background: #eab308; }}
-  .candidate::before {{ background: #3b82f6; }}
+  .csv-btn:hover {{ background: #f3f4f6; }}
+  .play-card {{ background: #fff; border: 2px solid #000; border-radius: 10px; padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; }}
+  .play-card::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #000; }}
+  .sharp-play::before {{ background: #000; }}
+  .sharp-lean::before {{ background: #4b5563; }}
+  .candidate::before {{ background: #9ca3af; }}
   .card-top {{ display: flex; justify-content: space-between; gap: 8px; }}
-  .tier-badge {{ display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; margin-bottom: 4px; }}
-  .badge-play {{ background: #f4820a; color: #fff; }}
-  .badge-lean {{ background: #eab308; color: #000; }}
-  .badge-cand {{ background: #3b82f6; color: #fff; }}
-  .play-title {{ font-size: 18px; font-weight: 800; color: #0f172a; }}
-  .play-subtitle {{ font-size: 11px; color: #64748b; margin-top: 2px; }}
-  .units-badge {{ background: #fff7ed; border: 1px solid #f4820a; color: #c2410c; padding: 6px 12px; border-radius: 8px; font-weight: 800; height: fit-content; }}
-  .card-result {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-top: 8px; }}
-  .card-result.win {{ background: #dcfce7; border: 1px solid #16a34a; color: #15803d; }}
-  .card-result.loss {{ background: #fee2e2; border: 1px solid #dc2626; color: #b91c1c; }}
-  .card-result.pending {{ background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; }}
+  .tier-badge {{ display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; margin-bottom: 4px; border: 1.5px solid #000; }}
+  .badge-play {{ background: #000; color: #fff; }}
+  .badge-lean {{ background: #fff; color: #000; }}
+  .badge-cand {{ background: #e5e7eb; color: #000; }}
+  .play-title {{ font-size: 18px; font-weight: 800; color: #000; }}
+  .play-subtitle {{ font-size: 11px; color: #4b5563; margin-top: 2px; }}
+  .units-badge {{ background: #fff; border: 2px solid #000; color: #000; padding: 6px 12px; border-radius: 8px; font-weight: 800; height: fit-content; }}
+  .card-result {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-top: 8px; border: 1.5px solid #000; }}
+  .card-result.win {{ background: #fff; color: #000; }}
+  .card-result.loss {{ background: #fff; color: #000; }}
+  .card-result.pending {{ background: #f3f4f6; color: #000; }}
   .play-meta {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 10px; font-size: 12px; }}
-  .meta-label {{ color: #64748b; }}
-  .meta-val {{ font-weight: 600; color: #0f172a; }}
-  .conf-track {{ background: #e2e8f0; border-radius: 4px; height: 5px; margin-top: 10px; }}
+  .meta-label {{ color: #4b5563; }}
+  .meta-val {{ font-weight: 700; color: #000; }}
+  .conf-track {{ background: #e5e7eb; border-radius: 4px; height: 5px; margin-top: 10px; }}
   .conf-fill {{ height: 5px; border-radius: 4px; }}
-  .rationale-toggle {{ margin-top: 10px; color: #64748b; font-size: 12px; cursor: pointer; display: flex; gap: 6px; align-items: center; }}
+  .rationale-toggle {{ margin-top: 10px; color: #4b5563; font-size: 12px; cursor: pointer; display: flex; gap: 6px; align-items: center; }}
   .rationale-toggle.open .arrow {{ transform: rotate(90deg); }}
-  .rationale-body {{ display: none; font-size: 12px; color: #475569; margin-top: 8px; line-height: 1.65; border-top: 1px solid #e2e8f0; padding-top: 8px; }}
+  .rationale-body {{ display: none; font-size: 12px; color: #374151; margin-top: 8px; line-height: 1.65; border-top: 1px solid #d1d5db; padding-top: 8px; }}
   .rationale-body.open {{ display: block; }}
-  .rationale-cell {{ font-size: 11px; color: #64748b; line-height: 1.5; max-width: 320px; }}
-  .stage-why {{ font-size: 11px; color: #64748b; line-height: 1.5; max-width: 420px; }}
-  .splits-summary {{ color: #334155; margin-bottom: 8px; }}
-  .table-wrap {{ overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }}
+  .rationale-cell {{ font-size: 11px; color: #4b5563; line-height: 1.5; max-width: 320px; }}
+  .stage-why {{ font-size: 11px; color: #4b5563; line-height: 1.5; max-width: 420px; }}
+  .splits-summary {{ color: #111827; margin-bottom: 8px; }}
+  .table-wrap {{ overflow-x: auto; border: 3px solid #000; border-radius: 6px; background: #fff; }}
   .stage-table-wrap {{ margin-bottom: 8px; }}
   .stage-table {{ min-width: 880px; font-size: 11px; }}
   .stage-table th, .stage-table td {{ white-space: nowrap; padding: 6px 7px; }}
   .stage-table th:nth-child(2), .stage-table td:nth-child(2) {{ white-space: nowrap; min-width: 0; max-width: 108px; }}
   .stage-table th.hybrid-col, .stage-table td.hybrid-cell {{
-    background: rgba(22, 163, 74, 0.1);
-    border-left: 2px solid rgba(22, 163, 74, 0.35);
-    border-right: 2px solid rgba(22, 163, 74, 0.35);
+    background: #f9fafb;
+    border-left: 2px solid #000;
+    border-right: 2px solid #000;
+    font-weight: 800;
+    color: #000;
   }}
   .stage-table th:nth-child(11), .stage-table td:nth-child(11) {{
-    white-space: normal; min-width: 72px; max-width: 120px; font-size: 11px; color: #64748b;
+    white-space: normal; min-width: 72px; max-width: 120px; font-size: 11px; color: #4b5563;
   }}
-  .stage-scroll-hint {{ margin: 8px 2px 0; font-size: 11px; color: #64748b; }}
+  .stage-scroll-hint {{ margin: 8px 2px 0; font-size: 11px; color: #4b5563; }}
   .stage-th {{ white-space: nowrap; }}
   .th-tip {{
     display: inline-flex;
@@ -1325,12 +1327,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     margin-left: 4px;
     cursor: pointer;
     vertical-align: middle;
-    color: #94a3b8;
+    color: #9ca3af;
     line-height: 0;
     position: relative;
   }}
-  .th-tip:hover, .th-tip:focus {{ color: #2563eb; outline: none; }}
-  .th-tip:focus-visible {{ box-shadow: 0 0 0 2px #93c5fd; border-radius: 4px; }}
+  .th-tip:hover, .th-tip:focus {{ color: #000; outline: none; }}
+  .th-tip:focus-visible {{ box-shadow: 0 0 0 2px #000; border-radius: 4px; }}
   .th-tip-icon {{ display: block; pointer-events: none; }}
   .th-tip-float {{
     position: fixed;
@@ -1339,36 +1341,37 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     max-width: min(280px, calc(100vw - 16px));
     padding: 8px 10px;
     background: #fff;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    color: #1e293b;
+    border: 2px solid #000;
+    border-radius: 6px;
+    color: #111827;
     font-size: 12px;
     font-weight: 400;
     line-height: 1.45;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     pointer-events: none;
     white-space: normal;
     text-transform: none;
     letter-spacing: normal;
   }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }}
-  th {{ background: #f8fafc; color: #475569; text-align: left; padding: 10px; border-bottom: 1px solid #e2e8f0; }}
-  td {{ padding: 9px 10px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }}
-  .win {{ color: #15803d; font-weight: 700; }}
-  .loss {{ color: #dc2626; font-weight: 700; }}
-  .pending {{ color: #64748b; }}
-  .pos {{ color: #15803d; font-weight: 600; }}
-  .neg {{ color: #dc2626; font-weight: 600; }}
-  .empty {{ color: #64748b; text-align: center; padding: 28px 8px; }}
-  .game-card {{ background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }}
+  th {{ background: #f3f4f6; color: #000; font-weight: 700; text-align: left; padding: 10px; border-bottom: 2px solid #000; }}
+  td {{ padding: 9px 10px; border-bottom: 1px solid #d1d5db; color: #111827; }}
+  tr:last-child td {{ border-bottom: none; }}
+  .win {{ color: #000; font-weight: 800; }}
+  .loss {{ color: #000; font-weight: 800; }}
+  .pending {{ color: #4b5563; font-weight: 600; }}
+  .pos {{ color: #000; font-weight: 800; }}
+  .neg {{ color: #000; font-weight: 800; }}
+  .empty {{ color: #4b5563; text-align: center; padding: 28px 8px; }}
+  .game-card {{ background: #fff; border: 2px solid #000; border-radius: 10px; padding: 14px; margin-bottom: 14px; }}
   .game-head {{ margin-bottom: 10px; }}
-  .game-title {{ font-size: 18px; font-weight: 800; color: #0f172a; }}
-  .game-kick {{ font-size: 11px; color: #64748b; margin-top: 4px; }}
-  .phase-block {{ margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 10px; }}
-  .phase-label {{ font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #ea580c; text-transform: uppercase; margin-bottom: 6px; }}
-  .phase-note {{ font-size: 12px; color: #64748b; margin: 4px 0; line-height: 1.5; }}
-  .phase-sub {{ font-size: 11px; font-weight: 700; color: #64748b; margin: 8px 0 4px; }}
-  .footer {{ color: #64748b; font-size: 11px; padding: 24px 16px; text-align: center; line-height: 1.6; }}
+  .game-title {{ font-size: 18px; font-weight: 800; color: #000; }}
+  .game-kick {{ font-size: 11px; color: #4b5563; margin-top: 4px; }}
+  .phase-block {{ margin-top: 12px; border-top: 1px solid #d1d5db; padding-top: 10px; }}
+  .phase-label {{ font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #000; text-transform: uppercase; margin-bottom: 6px; }}
+  .phase-note {{ font-size: 12px; color: #4b5563; margin: 4px 0; line-height: 1.5; }}
+  .phase-sub {{ font-size: 11px; font-weight: 700; color: #374151; margin: 8px 0 4px; }}
+  .footer {{ color: #6b7280; font-size: 11px; padding: 24px 16px; text-align: center; line-height: 1.6; }}
 </style>
 </head>
 <body>
@@ -1443,7 +1446,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
   {ncaaf_plays_html}
   <div class="section-label">This Week — Pregame Stage Winners</div>
-  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Hybrid</b> (green) matches Sharp Plays above when validated.</p>
+  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Hybrid</b> (bold column) matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">NCAAF Stage Records (season)</div>
   <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>

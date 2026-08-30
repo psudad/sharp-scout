@@ -105,7 +105,7 @@ def test_site_includes_cfb_tab(tmp_path: Path):
     assert "This Week — Pregame Stage Winners" in html
     assert "NCAAF Power Ratings" not in html
     assert "Closing Line Value" in html
-    assert "background: #f1f5f9" in html
+    assert "background: #d4ebfc" in html
     assert "downloadTableCsv" in html
     assert "csv-btn" in html
     assert (out / "ncaaf_ledger.json").exists()

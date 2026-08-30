@@ -98,8 +98,16 @@ STAGE_RECORD_TIPS: dict[str, str] = {
 
 STAGE_RECORD_SECTION_NOTE = (
     "Each lens picks a side independently on every game (spread, ML, and total rows). "
+    "Stage records currently grade spread + ML rows only (16 picks on an 8-game slate). "
     "The record shows how that lens would have performed if you bet every one of its picks — "
     "useful for comparing signals. This is not the same as validated Sharp Plays in the ledger."
+)
+
+HYBRID_LEANS_SECTION_NOTE = (
+    "Hybrid leans are system ideas the model liked but did not post as Sharp Plays — "
+    "usually because EV or split filters did not clear the bet bar. They appear in the "
+    "hybrid stage scorecard (12-4) but are not in your ledger (1-2). "
+    "Validated plays above are the only rows we actually bet."
 )
 
 

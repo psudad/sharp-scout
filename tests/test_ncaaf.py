@@ -99,6 +99,47 @@ def test_site_includes_cfb_tab(tmp_path: Path):
     assert "NCAAF Pregame Stage Winners" in html
     assert "This Week's Plays" in html
     assert "NCAAF Ledger" in html
+    assert "Hybrid Leans" in html
+    assert "NCAAF Power Ratings" not in html
     assert "Closing Line Value" in html
     assert (out / "ncaaf_ledger.json").exists()
     assert (out / "ncaaf_record.json").exists()
+
+
+def test_extract_hybrid_leans_skips_validated(tmp_path: Path):
+    from sharp_scout.site.build import _extract_hybrid_leans
+
+    cards = [
+        {
+            "event_id": "e1",
+            "home_team": "TCU",
+            "away_team": "UNC",
+            "market": "h2h",
+            "picks": {
+                "hybrid": {
+                    "available": True,
+                    "side": "away",
+                    "team": "UNC",
+                    "reason": "validated play EV=20% @ dk",
+                }
+            },
+        },
+        {
+            "event_id": "e2",
+            "home_team": "USC",
+            "away_team": "SJSU",
+            "market": "spread",
+            "picks": {
+                "hybrid": {
+                    "available": True,
+                    "side": "home",
+                    "team": "USC",
+                    "reason": "model aligned with sharp (no validated edge)",
+                }
+            },
+        },
+    ]
+    leans = _extract_hybrid_leans(cards)
+    assert len(leans) == 1
+    assert leans[0]["pick"]["team"] == "USC"
+    assert leans[0]["kind"] == "aligned"

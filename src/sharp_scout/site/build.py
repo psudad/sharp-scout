@@ -22,6 +22,7 @@ from sharp_scout.copy.explain import (
     kickoff_sort_key,
     STAGE_COLUMN_TIPS,
     STAGE_LABELS,
+    HYBRID_LEANS_SECTION_NOTE,
     STAGE_RECORD_SECTION_NOTE,
     STAGE_RECORD_TIPS,
 )
@@ -210,7 +211,7 @@ def build_site(
     ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
     ncaaf_fade_n = ncaaf_stage_summary.get("fade_public_games", "—")
     ncaaf_rlm_n = ncaaf_stage_summary.get("rlm_games", "—")
-    ncaaf_ratings_rows = _render_ratings(ncaaf_signals.get("ratings") or [])
+    ncaaf_leans_html = _render_hybrid_leans_section(ncaaf_stage_cards, sport="ncaaf")
     ncaaf_win_pct = (
         f"{ncaaf_record['win_pct'] * 100:.1f}%" if ncaaf_record["win_pct"] is not None else "—"
     )
@@ -296,7 +297,7 @@ def build_site(
         ncaaf_stage_record_rows=ncaaf_stage_record_rows,
         ncaaf_fade_n=ncaaf_stage_summary.get("fade_public_games", "—"),
         ncaaf_rlm_n=ncaaf_stage_summary.get("rlm_games", "—"),
-        ncaaf_ratings_rows=ncaaf_ratings_rows,
+        ncaaf_leans_html=ncaaf_leans_html,
         ncaaf_demo_note="DEMO data" if ncaaf_signals.get("demo") else "Live pipeline",
         ncaaf_clv_banner_html=ncaaf_clv_banner_html,
         ncaaf_ledger_rows=ncaaf_ledger_rows,
@@ -1007,6 +1008,120 @@ def _stage_record_label(stage: str) -> str:
     )
 
 
+def _hybrid_lean_kind(pick: dict[str, Any]) -> str:
+    reason = (pick.get("reason") or "").lower()
+    if "model aligned" in reason:
+        return "aligned"
+    return "model"
+
+
+def _extract_hybrid_leans(stage_cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Hybrid picks that are not validated Sharp Plays — the 'lean' layer."""
+    leans: list[dict[str, Any]] = []
+    for card in stage_cards:
+        hybrid = (card.get("picks") or {}).get("hybrid") or {}
+        if not hybrid.get("available") or not hybrid.get("side"):
+            continue
+        if _is_validated_hybrid(hybrid):
+            continue
+        leans.append(
+            {
+                "event_id": card.get("event_id"),
+                "home_team": card.get("home_team"),
+                "away_team": card.get("away_team"),
+                "market": card.get("market") or "spread",
+                "kickoff": card.get("kickoff") or card.get("commence_time"),
+                "pick": hybrid,
+                "kind": _hybrid_lean_kind(hybrid),
+                "result": (card.get("results") or {}).get("hybrid"),
+                "home_score": card.get("home_score"),
+                "away_score": card.get("away_score"),
+            }
+        )
+    return sorted(
+        leans,
+        key=lambda row: (
+            kickoff_sort_key(row.get("kickoff")),
+            str(row.get("event_id") or ""),
+            _STAGE_MARKET_ORDER.get(str(row.get("market") or "spread"), 9),
+        ),
+    )
+
+
+def _render_hybrid_leans_section(stage_cards: list[dict[str, Any]], *, sport: str = "ncaaf") -> str:
+    leans = _extract_hybrid_leans(stage_cards)
+    if not leans:
+        return (
+            '<div class="empty">No hybrid leans on the current slate. '
+            "Leans appear when the model has a side but filters did not clear a Sharp Play.</div>"
+        )
+
+    wins = losses = pushes = pending = 0
+    for row in leans:
+        result = row.get("result")
+        if result == "win":
+            wins += 1
+        elif result == "loss":
+            losses += 1
+        elif result == "push":
+            pushes += 1
+        else:
+            pending += 1
+
+    decided = wins + losses
+    win_pct = f"{wins / decided * 100:.0f}%" if decided else "—"
+    record = f"{wins}-{losses}" + (f"-{pushes}" if pushes else "")
+    if pending:
+        record += f" · {pending} pending"
+
+    rows = []
+    for row in leans:
+        hybrid = row["pick"]
+        away = str(row.get("away_team") or "")
+        home = str(row.get("home_team") or "")
+        if sport == "ncaaf":
+            matchup = f"{_esc(ncaaf_display_code(away))} @ {_esc(ncaaf_display_code(home))}"
+        else:
+            matchup = f"{_esc(away)} @ {_esc(home)}"
+        kick_s = format_kickoff_compact(row.get("kickoff"))
+        kind = "Market aligned" if row["kind"] == "aligned" else "Model lean"
+        result = row.get("result")
+        if result in ("win", "loss", "push"):
+            result_html = _status_badge(result)
+        else:
+            result_html = _status_badge("pending")
+        score = ""
+        if row.get("home_score") is not None:
+            score = (
+                f" · Final {row.get('away_team')} {row.get('away_score')}, "
+                f"{row.get('home_team')} {row.get('home_score')}"
+            )
+        rows.append(
+            "<tr>"
+            f"<td>{_esc(kick_s)}</td>"
+            f"<td>{matchup}</td>"
+            f"<td>{_esc(_stage_market_label(row.get('market')))}</td>"
+            f"<td class='pos'>{_pick_cell(hybrid, sport=sport)}</td>"
+            f"<td>{_esc(kind)}</td>"
+            f"<td>{result_html}</td>"
+            f"<td class='rationale-cell'>{_esc(hybrid.get('reason') or '')}{_esc(score)}</td>"
+            "</tr>"
+        )
+
+    return (
+        f'<p class="phase-note" style="padding:4px 0 10px">{_esc(HYBRID_LEANS_SECTION_NOTE)}</p>'
+        f'<div class="summary-grid" style="margin-bottom:10px">'
+        + _stat_card(str(len(leans)), "Leans this slate", "Hybrid ideas not posted as Sharp Plays.")
+        + _stat_card(record, "Lean record", "Win-loss if you had bet every hybrid lean (spread + ML + total).")
+        + _stat_card(win_pct, "Lean win %", "Settled leans only — not the same as ledger Sharp Plays.")
+        + "</div>"
+        '<div class="table-wrap"><table>'
+        "<thead><tr><th>Kick</th><th>Game</th><th>Mkt</th><th>Lean</th>"
+        "<th>Type</th><th>Result</th><th>Why</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></div>"
+    )
+
+
 def _render_stage_record_rows(stage_records: dict) -> str:
     if not stage_records:
         return "<tr><td colspan='4'>Stage records appear after games settle.</td></tr>"
@@ -1246,11 +1361,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{ncaaf_ledger_rows}</tbody>
   </table></div>
-  <div class="section-label">NCAAF Power Ratings</div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
-    <tbody>{ncaaf_ratings_rows}</tbody>
-  </table></div>
+  <div class="section-label">Hybrid Leans</div>
+  {ncaaf_leans_html}
 </div>
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>

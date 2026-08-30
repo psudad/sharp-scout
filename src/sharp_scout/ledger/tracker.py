@@ -343,12 +343,49 @@ def _disagreement_key(rec: dict[str, Any]) -> str:
     )
 
 
+def _stage_card_needs_grading(card: dict[str, Any]) -> bool:
+    """True when final scores exist but any available stage pick lacks a grade."""
+    if card.get("status") not in ("settled", "pending", None):
+        return False
+    results = card.get("results") or {}
+    for stage, pick in (card.get("picks") or {}).items():
+        if not pick.get("available") or not pick.get("side"):
+            continue
+        if results.get(stage) not in ("win", "loss", "push"):
+            return True
+    return card.get("status") in (None, "pending")
+
+
+def _grade_stage_card(card: dict[str, Any], hs: int, as_: int) -> dict[str, str | None]:
+    from sharp_scout.stage_picks import settle_stage_pick
+
+    results: dict[str, str | None] = {}
+    for stage, pick in (card.get("picks") or {}).items():
+        if not pick.get("available") or not pick.get("side"):
+            continue
+        line = pick.get("line")
+        mkt = card.get("market") or "spread"
+        if line is None and mkt in ("spread", "total"):
+            for alt in ("money", "public", "rlm", "sharp", "model", "hybrid"):
+                alt_line = ((card.get("picks") or {}).get(alt) or {}).get("line")
+                if alt_line is not None:
+                    line = alt_line
+                    break
+        results[stage] = settle_stage_pick(
+            pick.get("side"),
+            home_score=hs,
+            away_score=as_,
+            market=mkt,
+            line=line if mkt in ("spread", "total") else None,
+        )
+    return results
+
+
 def settle_from_scores(
     scores: list[dict[str, Any]],
     path: Path | None = None,
 ) -> dict[str, Any]:
     """scores: [{home_team, away_team, home_score, away_score, event_id?}, ...]"""
-    from sharp_scout.stage_picks import settle_stage_pick
     from sharp_scout.utils.odds import normalize_team
 
     def _norm_team(name: Any, *, sport: str = "nfl") -> str:
@@ -385,36 +422,16 @@ def settle_from_scores(
         settle_play(play, int(g["home_score"]), int(g["away_score"]))
         settled += 1
 
-    # Grade stage cards (ATS / ML by stage side)
+    # Grade stage cards (ATS / ML / total by stage side)
     stage_settled = 0
     for card in ledger.get("stage_cards") or []:
-        if card.get("status") not in (None, "pending"):
+        if not _stage_card_needs_grading(card):
             continue
         g = _lookup(card)
         if not g or g.get("home_score") is None or g.get("away_score") is None:
             continue
         hs, as_ = int(g["home_score"]), int(g["away_score"])
-        results = {}
-        for stage, pick in (card.get("picks") or {}).items():
-            if not pick.get("available") or not pick.get("side"):
-                continue
-            # Prefer home current_line from money/public/rlm for ATS grading
-            line = pick.get("line")
-            mkt = card.get("market") or "spread"
-            if line is None and mkt in ("spread", "total"):
-                for alt in ("money", "public", "rlm", "sharp", "model"):
-                    alt_line = ((card.get("picks") or {}).get(alt) or {}).get("line")
-                    if alt_line is not None:
-                        line = alt_line
-                        break
-            results[stage] = settle_stage_pick(
-                pick.get("side"),
-                home_score=hs,
-                away_score=as_,
-                market=mkt,
-                line=line if mkt in ("spread", "total") else None,
-            )
-        card["results"] = results
+        card["results"] = _grade_stage_card(card, hs, as_)
         card["home_score"] = hs
         card["away_score"] = as_
         card["status"] = "settled"

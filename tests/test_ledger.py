@@ -75,6 +75,35 @@ def test_settle_total_stage_card(tmp_path: Path):
     assert card["results"]["model"] == "loss"
 
 
+def test_regrade_settled_total_stage_card_with_null_results(tmp_path: Path):
+    path = tmp_path / "ncaaf_ledger.json"
+    ledger = empty_ledger()
+    ledger["stage_cards"] = [
+        {
+            "event_id": "e1",
+            "away_team": "UNC",
+            "home_team": "TCU",
+            "market": "total",
+            "status": "settled",
+            "home_score": 10,
+            "away_score": 15,
+            "results": {"model": None, "hybrid": None},
+            "picks": {
+                "model": {"available": True, "side": "over", "line": 46.0},
+                "hybrid": {"available": True, "side": "over", "line": 46.0},
+            },
+        }
+    ]
+    save_ledger(ledger, path)
+    settle_from_scores(
+        [{"away_team": "UNC", "home_team": "TCU", "away_score": 15, "home_score": 10}],
+        path=path,
+    )
+    card = load_ledger(path)["stage_cards"][0]
+    assert card["results"]["model"] == "loss"
+    assert card["results"]["hybrid"] == "loss"
+
+
 def test_ledger_append_dedupe(tmp_path: Path):
     path = tmp_path / "ledger.json"
     save_ledger(empty_ledger(), path)

@@ -1289,6 +1289,9 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Sharp Scout Quant</title>
 <meta name="description" content="Sharp Scout Quant — NFL and CFB quant model plays and record">
 {analytics_head}

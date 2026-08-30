@@ -16,7 +16,7 @@ STAGE_LABELS: dict[str, str] = {
     "money": "Sharp money",
     "sharp_edge": "Money vs tickets",
     "rlm": "Reverse line move",
-    "hybrid": "Full system",
+    "hybrid": "Quant pick",
 }
 
 STAGE_INTROS: dict[str, str] = {
@@ -26,7 +26,7 @@ STAGE_INTROS: dict[str, str] = {
     "money": "Most handle (dollars) is on",
     "sharp_edge": "Sharp money signal (handle minus tickets) points to",
     "rlm": "Line moved against the public toward",
-    "hybrid": "Validated system play:",
+    "hybrid": "Quant system play:",
 }
 
 # Short header labels on the pregame stage table → hover tooltip on the eye icon.
@@ -38,7 +38,7 @@ STAGE_COLUMN_TIPS: dict[str, str] = {
     "Money": "Action Network handle % — where the dollars are flowing.",
     "Diff": "Money minus tickets on a side; a ≥20% gap flags sharp-money interest.",
     "RLM": "Reverse line movement — the line moved against the public toward this side.",
-    "Hybrid": "Full system pick — validated play when filters pass, else best model + market lean.",
+    "Quant Pick": "Quant pick — validated play when filters pass, else best model + market lean.",
 }
 
 # Summary stat cards on the board → hover tooltip on the eye icon next to the label.
@@ -66,9 +66,9 @@ BOARD_STAT_TIPS: dict[str, str] = {
 # Stage Records table — what each lens is and what its W-L counts.
 STAGE_RECORD_TIPS: dict[str, str] = {
     "hybrid": (
-        "Hybrid = our full system pick (spread, ML, or total) for that game. Uses validated "
-        "edge when filters pass; otherwise the best model + market lean. The hybrid record "
-        "grades every hybrid pick on the slate (3 rows per game: spread, ML, total) — "
+        "Quant pick = our full system pick (spread, ML, or total) for that game. Uses validated "
+        "edge when filters pass; otherwise the best model + market lean. The quant pick record "
+        "grades every quant pick on the slate (3 rows per game: spread, ML, total) — "
         "not the same as Sharp Plays in the ledger."
     ),
     "model": (
@@ -104,9 +104,9 @@ STAGE_RECORD_SECTION_NOTE = (
 )
 
 HYBRID_LEANS_SECTION_NOTE = (
-    "Hybrid leans are system ideas the model liked but did not post as Sharp Plays — "
+    "Quant pick leans are system ideas the model liked but did not post as Sharp Plays — "
     "usually because EV or split filters did not clear the bet bar. They appear in the "
-    "hybrid stage scorecard (12-4) but are not in your ledger (1-2). "
+    "quant pick stage scorecard but are not in your ledger. "
     "Validated plays above are the only rows we actually bet."
 )
 

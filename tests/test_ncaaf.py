@@ -106,7 +106,8 @@ def test_site_includes_cfb_tab(tmp_path: Path, monkeypatch):
     assert "This Week — Pregame Stage Winners" in html
     assert "This Week's Plays" in html
     assert "NCAAF Ledger" in html
-    assert "Hybrid Leans" in html
+    assert "Quant Pick Leans" in html
+    assert "Sharp Scout Quant" in html
     assert "CFB Historical" in html
     assert "showTab('cfb-historical'" in html
     assert "This Week — Pregame Stage Winners" in html

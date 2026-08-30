@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from sharp_scout.config import ARTIFACTS_DIR, ROOT, get_settings
 from sharp_scout.pipeline.run import load_latest_artifacts, run_pipeline
 
-app = FastAPI(title="Sharp Scout", version="0.1.0", description="NFL + NCAAF hybrid model signal API")
+app = FastAPI(title="Sharp Scout Quant", version="0.1.0", description="NFL + NCAAF quant model signal API")
 
 app.add_middleware(
     CORSMiddleware,

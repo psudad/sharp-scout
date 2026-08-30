@@ -774,7 +774,7 @@ def _render_stage_table_head() -> str:
         ("Kickoff", None),
         ("Game", None),
         ("Mkt", STAGE_COLUMN_TIPS.get("Mkt")),
-        ("Hybrid", STAGE_COLUMN_TIPS.get("Hybrid")),
+        ("Quant Pick", STAGE_COLUMN_TIPS.get("Quant Pick")),
         ("Model", STAGE_COLUMN_TIPS.get("Model")),
         ("Sharp", STAGE_COLUMN_TIPS.get("Sharp")),
         ("Public", STAGE_COLUMN_TIPS.get("Public")),
@@ -785,7 +785,7 @@ def _render_stage_table_head() -> str:
     ]
     parts: list[str] = []
     for label, tip in cols:
-        if label == "Hybrid":
+        if label == "Quant Pick":
             parts.append(
                 f'<th class="stage-th hybrid-col">'
                 f"{_esc(label)}"
@@ -971,7 +971,7 @@ def _render_stage_week_table(
         f'<div class="table-wrap stage-table-wrap"><table class="stage-table export-table"{id_attr}>'
         f"{_render_stage_table_head()}<tbody>{rows}</tbody></table></div>"
         f'<p class="phase-note stage-scroll-hint">Three rows per game (spread, ML, total). '
-        f"<b>Hybrid</b> is the system pick for that market — it can disagree with Model/Sharp/Public "
+        f"<b>Quant Pick</b> is the system pick for that market — it can disagree with Model/Sharp/Public "
         f"when <b>Diff</b> (money vs tickets) confirms sharp action.</p>"
     )
 
@@ -1002,7 +1002,7 @@ def _render_cfb_historical_weeks(
     if not weeks:
         return (
             '<div class="empty">No prior weeks archived yet. When the college week rolls over '
-            "(Monday ET), that week's stage winners and hybrid leans move here automatically.</div>"
+            "(Monday ET), that week's stage winners and quant pick leans move here automatically.</div>"
         )
     parts: list[str] = []
     for week_start, week_cards in weeks:
@@ -1015,7 +1015,7 @@ def _render_cfb_historical_weeks(
             f'<div class="section-label" style="margin-top:18px">{_esc(label)}</div>'
             f"{_section_toolbar('Pregame Stage Winners', stages_id, f'sharp-scout-stages-{slug}.csv')}"
             f"{_render_stage_week_table(week_cards, sport=sport, table_id=stages_id)}"
-            f"{_section_toolbar('Hybrid Leans', leans_id, f'sharp-scout-leans-{slug}.csv')}"
+            f"{_section_toolbar('Quant Pick Leans', leans_id, f'sharp-scout-leans-{slug}.csv')}"
             f"{_render_hybrid_leans_section(week_cards, sport=sport, show_intro=False, table_id=leans_id)}"
             f"</div>"
         )
@@ -1142,9 +1142,9 @@ def _render_hybrid_leans_section(
     leans = _extract_hybrid_leans(stage_cards)
     if not leans:
         empty = (
-            "No hybrid leans on the current slate. "
+            "No quant pick leans on the current slate. "
             if show_intro
-            else "No hybrid leans for this week."
+            else "No quant pick leans for this week."
         )
         return (
             f'<div class="empty">{empty} '
@@ -1213,8 +1213,8 @@ def _render_hybrid_leans_section(
     return (
         intro
         + f'<div class="summary-grid" style="margin-bottom:10px">'
-        + _stat_card(str(len(leans)), lean_label, "Hybrid ideas not posted as Sharp Plays.")
-        + _stat_card(record, "Lean record", "Win-loss if you had bet every hybrid lean (spread + ML + total).")
+        + _stat_card(str(len(leans)), lean_label, "Quant pick ideas not posted as Sharp Plays.")
+        + _stat_card(record, "Lean record", "Win-loss if you had bet every quant pick lean (spread + ML + total).")
         + _stat_card(win_pct, "Lean win %", "Settled leans only — not the same as ledger Sharp Plays.")
         + "</div>"
         f'<div class="table-wrap"><table class="export-table"{id_attr}>'
@@ -1259,8 +1259,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sharp Scout — NFL</title>
-<meta name="description" content="Sharp Scout NFL hybrid model plays and record">
+<title>Sharp Scout Quant</title>
+<meta name="description" content="Sharp Scout Quant — NFL and CFB quant model plays and record">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1295,7 +1295,26 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     background: var(--color-slate);
     padding: 28px 16px 22px;
     border-bottom: 1px solid #c5d0dc;
-    text-align: center;
+  }}
+  .header-inner {{
+    max-width: 1240px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }}
+  .header-text {{
+    flex: 1;
+    min-width: 0;
+  }}
+  .header-logo {{
+    flex-shrink: 0;
+  }}
+  .ssq-logo {{
+    display: block;
+    width: 72px;
+    height: 72px;
   }}
   .header h1 {{
     font-family: var(--font-serif);
@@ -1304,6 +1323,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     letter-spacing: 0.02em;
     color: var(--color-text);
     text-transform: none;
+    text-align: left;
   }}
   .header p {{
     color: var(--color-text-muted);
@@ -1311,8 +1331,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     font-weight: 300;
     margin-top: 8px;
     max-width: 520px;
-    margin-left: auto;
-    margin-right: auto;
+    text-align: left;
   }}
   .pill {{
     display: inline-block;
@@ -1574,14 +1593,30 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .phase-note {{ font-size: 13px; color: var(--color-text-muted); margin: 4px 0; line-height: 1.65; font-weight: 300; }}
   .phase-sub {{ font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin: 8px 0 4px; }}
   .footer {{ color: var(--color-text-muted); font-size: 11px; padding: 32px 16px; text-align: center; line-height: 1.7; font-weight: 300; }}
+  @media (max-width: 640px) {{
+    .ssq-logo {{ width: 56px; height: 56px; }}
+    .header h1 {{ font-size: 28px; }}
+  }}
 </style>
 </head>
 <body>
 <div class="header">
-  <h1>Sharp Scout</h1>
-  <p>NFL + NCAAF hybrid model · ratings → Monte Carlo → sharp EV → split filter</p>
-  <span class="pill">NFL {nfl_record} · {nfl_pnl}u · CFB {ncaaf_record} · {ncaaf_pnl}u · {ncaaf_demo_note}</span>
-  <p style="margin-top:8px">Updated {generated}</p>
+  <div class="header-inner">
+    <div class="header-text">
+      <h1>Sharp Scout Quant</h1>
+      <p>NFL + NCAAF quant model · ratings → Monte Carlo → sharp EV → split filter</p>
+      <span class="pill">NFL {nfl_record} · {nfl_pnl}u · CFB {ncaaf_record} · {ncaaf_pnl}u · {ncaaf_demo_note}</span>
+      <p style="margin-top:8px">Updated {generated}</p>
+    </div>
+    <div class="header-logo">
+      <svg class="ssq-logo" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sharp Scout Quant">
+        <rect x="1" y="1" width="78" height="78" rx="14" fill="#1e3a5f" stroke="#111" stroke-width="2"/>
+        <rect x="10" y="10" width="60" height="60" rx="10" fill="none" stroke="#dbe4ed" stroke-width="1.5" opacity="0.55"/>
+        <path d="M18 58 L40 22 L62 58" fill="none" stroke="#dbe4ed" stroke-width="1.25" opacity="0.35"/>
+        <text x="40" y="49" text-anchor="middle" font-family="Inconsolata, monospace" font-size="23" font-weight="700" fill="#ffffff" letter-spacing="3">SSQ</text>
+      </svg>
+    </div>
+  </div>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">NFL</div>
@@ -1629,7 +1664,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     {stage_table_head}
     <tbody>{stage_rows}</tbody>
   </table></div>
-  <p class="footer" style="padding:12px 0">Each column is an independent lens. <b>Hybrid</b> is the system pick per market — Sharp Plays come from validated Hybrid ML/spread/total rows.</p>
+  <p class="footer" style="padding:12px 0">Each column is an independent lens. <b>Quant Pick</b> is the system pick per market — Sharp Plays come from validated quant pick ML/spread/total rows.</p>
 </div>
 
 <div id="tab-ratings" class="content">
@@ -1648,7 +1683,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
   {ncaaf_plays_html}
   <div class="section-label">This Week — Pregame Stage Winners</div>
-  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Hybrid</b> (green column) matches Sharp Plays above when validated.</p>
+  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">NCAAF Stage Records (season)</div>
   <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
@@ -1662,12 +1697,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{ncaaf_ledger_rows}</tbody>
   </table></div>
-  <div class="section-label">This Week — Hybrid Leans</div>
+  <div class="section-label">This Week — Quant Pick Leans</div>
   {ncaaf_leans_html}
 </div>
 
 <div id="tab-cfb-historical" class="content">
-  <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Monday ET, the prior week's stage winners and hybrid leans move here from the CFB tab. Use <b>Download CSV</b> on each table to export.</p>
+  <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Monday ET, the prior week's stage winners and quant pick leans move here from the CFB tab. Use <b>Download CSV</b> on each table to export.</p>
   {ncaaf_historical_html}
 </div>
 
@@ -1681,7 +1716,7 @@ function showTab(name, el) {{
   el.classList.add('active');
   if (typeof gtag === 'function') {{
     gtag('event', 'page_view', {{
-      page_title: 'Sharp Scout — ' + name,
+      page_title: 'Sharp Scout Quant — ' + name,
       page_location: window.location.href.split('#')[0] + '#' + name,
       page_path: window.location.pathname + '#' + name
     }});

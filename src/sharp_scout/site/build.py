@@ -123,9 +123,9 @@ def _render_analytics_head(measurement_id: str) -> str:
 
 
 def _ssq_logo_svg(*, embedded: bool = True) -> str:
-  """SSQ monogram: stacked letters over abstract overlapping bills + dollar motif."""
-  cls = ' class="ssq-logo"' if embedded else ""
-  return f"""<svg{cls} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sharp Scout Quant">
+    """SSQ monogram: stacked S's with Q centered over the overlap, on abstract bills."""
+    cls = ' class="ssq-logo"' if embedded else ""
+    return f"""<svg{cls} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sharp Scout Quant">
   <rect x="1" y="1" width="78" height="78" rx="14" fill="#1e3a5f" stroke="#111111" stroke-width="2"/>
   <g opacity="0.5">
     <rect x="10" y="21" width="52" height="27" rx="3" fill="#2a5278" stroke="#9eb4cc" stroke-width="1.1" transform="rotate(-12 36 34)"/>
@@ -141,9 +141,9 @@ def _ssq_logo_svg(*, embedded: bool = True) -> str:
     <path d="M40 17 C32.5 17 28 21 28 25.5 C28 30 32.5 32 40 32 C47.5 32 52 34 52 38.5 C52 43 47.5 47 40 47"/>
     <line x1="40" y1="13" x2="40" y2="51"/>
   </g>
-  <text x="35" y="29" font-family="Inconsolata, monospace" font-size="22" font-weight="700" fill="#ffffff" opacity="0.9">S</text>
-  <text x="43" y="44" font-family="Inconsolata, monospace" font-size="22" font-weight="700" fill="#ffffff">S</text>
-  <text x="34" y="59" font-family="Inconsolata, monospace" font-size="22" font-weight="700" fill="#ffffff" opacity="0.95">Q</text>
+  <text x="40" y="29" text-anchor="middle" font-family="Inconsolata, monospace" font-size="28" font-weight="700" fill="#ffffff" opacity="0.92">S</text>
+  <text x="40" y="51" text-anchor="middle" font-family="Inconsolata, monospace" font-size="28" font-weight="700" fill="#ffffff" opacity="0.92">S</text>
+  <text x="40" y="40" text-anchor="middle" font-family="Inconsolata, monospace" font-size="30" font-weight="700" fill="#ffffff">Q</text>
 </svg>"""
 
 
@@ -208,7 +208,7 @@ def build_site(
     nfl_pnl_cls = "pos" if nfl_pnl >= 0 else "neg"
     nfl_pnl_s = f"+{nfl_pnl}" if nfl_pnl >= 0 else str(nfl_pnl)
 
-    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    generated = datetime.now(ET).strftime("%a %b %-d, %-I:%M %p ET")
     nfl_signal_count = len(nfl_week_plays_sorted)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
@@ -1330,21 +1330,25 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     max-width: 1240px;
     margin: 0 auto;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 24px;
+    justify-content: center;
+    text-align: center;
+    gap: 14px;
   }}
   .header-text {{
-    flex: 1;
-    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
   }}
   .header-logo {{
     flex-shrink: 0;
   }}
   .ssq-logo {{
     display: block;
-    width: 72px;
-    height: 72px;
+    width: 76px;
+    height: 76px;
   }}
   .header h1 {{
     font-family: var(--font-serif);
@@ -1353,7 +1357,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     letter-spacing: 0.02em;
     color: var(--color-text);
     text-transform: none;
-    text-align: left;
+    text-align: center;
   }}
   .header p {{
     color: var(--color-text-muted);
@@ -1361,7 +1365,15 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     font-weight: 300;
     margin-top: 8px;
     max-width: 520px;
-    text-align: left;
+    text-align: center;
+  }}
+  .header-updated {{
+    color: var(--color-text-muted);
+    font-size: 12px;
+    font-weight: 300;
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
   }}
   .pill {{
     display: inline-block;
@@ -1632,14 +1644,14 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <body>
 <div class="header">
   <div class="header-inner">
+    <div class="header-logo">
+      {ssq_logo}
+    </div>
     <div class="header-text">
       <h1>Sharp Scout Quant</h1>
       <p>NFL + NCAAF quant model · ratings → Monte Carlo → sharp EV → split filter</p>
       <span class="pill">NFL {nfl_record} · {nfl_pnl}u · CFB {ncaaf_record} · {ncaaf_pnl}u · {ncaaf_demo_note}</span>
-      <p style="margin-top:8px">Updated {generated}</p>
-    </div>
-    <div class="header-logo">
-      {ssq_logo}
+      <p class="header-updated">Updated {generated}</p>
     </div>
   </div>
 </div>

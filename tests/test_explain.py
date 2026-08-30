@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 from sharp_scout.copy.explain import (
+    STAGE_RECORD_TIPS,
     collapse_best_signals,
     format_kickoff_et,
     format_play_rationale,
 )
+
+
+def test_stage_record_tips_cover_all_lenses():
+    for stage in ("hybrid", "model", "sharp", "public", "money", "sharp_edge", "rlm"):
+        assert stage in STAGE_RECORD_TIPS
+        assert len(STAGE_RECORD_TIPS[stage]) > 20
 
 
 def test_collapse_best_signals_one_per_side():

@@ -63,6 +63,45 @@ BOARD_STAT_TIPS: dict[str, str] = {
     "cfb_profit": "Net units won or lost on validated Sharp Plays (starting bankroll 100u).",
 }
 
+# Stage Records table — what each lens is and what its W-L counts.
+STAGE_RECORD_TIPS: dict[str, str] = {
+    "hybrid": (
+        "Hybrid = our full system pick (spread, ML, or total) for that game. Uses validated "
+        "edge when filters pass; otherwise the best model + market lean. The hybrid record "
+        "grades every hybrid pick on the slate — not the same as Sharp Plays in the ledger."
+    ),
+    "model": (
+        "Model = EPA power ratings + Monte Carlo simulation — our math-only lean before "
+        "splits or tickets. Record = win rate if you bet the model's side on every graded row."
+    ),
+    "sharp": (
+        "Sharp = Pinnacle / Betfair no-vig favorite on that market. Record = how often "
+        "following sharp books would have won across all graded game/market rows."
+    ),
+    "public": (
+        "Public = Action Network ticket-% majority (which side most bettors took). "
+        "Record = win rate if you faded or followed the public on every graded row."
+    ),
+    "money": (
+        "Money = Action Network handle-% majority (where the dollars went). "
+        "Record = win rate if you bet the money side on every graded row."
+    ),
+    "sharp_edge": (
+        "Sharp edge (Diff) = the side with the largest money-minus-tickets gap (≥20% flags "
+        "sharp interest). Record = win rate betting that diff side every time."
+    ),
+    "rlm": (
+        "RLM = reverse line movement — the side the line moved toward vs the public. "
+        "Only graded when an opening line exists. Record = RLM-side win rate when available."
+    ),
+}
+
+STAGE_RECORD_SECTION_NOTE = (
+    "Each lens picks a side independently on every game (spread, ML, and total rows). "
+    "The record shows how that lens would have performed if you bet every one of its picks — "
+    "useful for comparing signals. This is not the same as validated Sharp Plays in the ledger."
+)
+
 
 def parse_kickoff(raw: Any) -> datetime | None:
     if raw is None:

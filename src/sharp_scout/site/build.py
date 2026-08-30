@@ -22,6 +22,8 @@ from sharp_scout.copy.explain import (
     kickoff_sort_key,
     STAGE_COLUMN_TIPS,
     STAGE_LABELS,
+    STAGE_RECORD_SECTION_NOTE,
+    STAGE_RECORD_TIPS,
 )
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.sports import NCAAF
@@ -303,6 +305,7 @@ def build_site(
         stage_alarm_stats_html=stage_alarm_stats_html,
         ncaaf_alarm_stats_html=ncaaf_alarm_stats_html,
         stage_records_thead=stage_records_thead,
+        stage_record_section_note=_esc(STAGE_RECORD_SECTION_NOTE),
     )
     (out / "index.html").write_text(html)
 
@@ -992,10 +995,22 @@ def _render_disagreement_rows(disagreements: dict[str, Any] | None) -> str:
     return "\n".join(rows)
 
 
+def _stage_record_label(stage: str) -> str:
+    """Stage name with hover tooltip for the records table."""
+    label = STAGE_LABELS.get(stage, stage.replace("_", " ").title())
+    tip = STAGE_RECORD_TIPS.get(stage)
+    if not tip:
+        return f"<b>{_esc(label)}</b>"
+    return (
+        f'<span class="stage-record-label"><b>{_esc(label)}</b>'
+        f'{_stat_tip_icon(tip)}</span>'
+    )
+
+
 def _render_stage_record_rows(stage_records: dict) -> str:
     if not stage_records:
         return "<tr><td colspan='4'>Stage records appear after games settle.</td></tr>"
-    order = ["hybrid", "model", "sharp", "money", "rlm", "public"]
+    order = ["hybrid", "model", "sharp", "money", "sharp_edge", "rlm", "public"]
     rows = []
     for stage in order:
         b = stage_records.get(stage)
@@ -1003,7 +1018,7 @@ def _render_stage_record_rows(stage_records: dict) -> str:
             continue
         wp = f"{b['win_pct']*100:.0f}%" if b.get("win_pct") is not None else "—"
         rows.append(
-            f"<tr><td><b>{_esc(stage)}</b></td>"
+            f"<tr><td>{_stage_record_label(stage)}</td>"
             f"<td>{_esc(b.get('record'))}</td>"
             f"<td>{wp}</td>"
             f"<td>{b.get('pending', 0)}</td></tr>"
@@ -1014,7 +1029,7 @@ def _render_stage_record_rows(stage_records: dict) -> str:
             continue
         wp = f"{b['win_pct']*100:.0f}%" if b.get("win_pct") is not None else "—"
         rows.append(
-            f"<tr><td><b>{_esc(stage)}</b></td>"
+            f"<tr><td>{_stage_record_label(stage)}</td>"
             f"<td>{_esc(b.get('record'))}</td>"
             f"<td>{wp}</td>"
             f"<td>{b.get('pending', 0)}</td></tr>"
@@ -1048,6 +1063,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .stat-val {{ font-size: 22px; font-weight: 800; }}
   .stat-label {{ font-size: 10px; color: #8b949e; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }}
   .stat-tip {{ margin-left: 2px; }}
+  .stage-record-label {{ display: inline-flex; align-items: center; gap: 4px; }}
   .section-label {{ font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #f4820a; text-transform: uppercase; margin: 18px 0 10px; }}
   .play-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; }}
   .play-card::before {{ content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }}
@@ -1182,6 +1198,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="summary-grid">{stage_alarm_stats_html}</div>
   {stage_highlights_html}
   <div class="section-label">Stage Records (settled)</div>
+  <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
   <div class="table-wrap"><table>
     {stage_records_thead}
     <tbody>{stage_record_rows}</tbody>
@@ -1218,6 +1235,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <p class="phase-note" style="padding:4px 0 10px">Every game on the slate — three rows per game (spread, ML, total). <b>Hybrid</b> (green) is the system pick and matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">NCAAF Stage Records (season)</div>
+  <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
   <div class="summary-grid">{ncaaf_alarm_stats_html}</div>
   <div class="table-wrap"><table>
     {stage_records_thead}

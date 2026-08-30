@@ -105,8 +105,43 @@ def test_site_includes_cfb_tab(tmp_path: Path):
     assert "This Week — Pregame Stage Winners" in html
     assert "NCAAF Power Ratings" not in html
     assert "Closing Line Value" in html
+    assert "background: #f1f5f9" in html
+    assert "downloadTableCsv" in html
+    assert "csv-btn" in html
     assert (out / "ncaaf_ledger.json").exists()
     assert (out / "ncaaf_record.json").exists()
+
+
+def test_historical_week_renders_csv_export_buttons():
+    from datetime import datetime, timezone
+
+    from sharp_scout.site.build import _render_cfb_historical_weeks
+
+    week = datetime(2026, 8, 24, 4, 0, tzinfo=timezone.utc)
+    cards = [
+        {
+            "event_id": "e1",
+            "home_team": "TCU",
+            "away_team": "UNC",
+            "market": "spread",
+            "kickoff": "2026-08-29T16:00:00+00:00",
+            "picks": {
+                "hybrid": {"available": True, "side": "home", "team": "TCU", "reason": "model lean"},
+                "model": {"available": True, "side": "home", "team": "TCU"},
+                "sharp": {"available": True, "side": "home", "team": "TCU"},
+                "public": {"available": True, "side": "home", "team": "TCU"},
+                "money": {"available": True, "side": "home", "team": "TCU"},
+                "sharp_edge": {"available": False},
+                "rlm": {"available": False},
+            },
+        }
+    ]
+    html = _render_cfb_historical_weeks([(week, cards)])
+    assert "hist-stages-2026-08-24" in html
+    assert "hist-leans-2026-08-24" in html
+    assert "sharp-scout-stages-2026-08-24.csv" in html
+    assert "sharp-scout-leans-2026-08-24.csv" in html
+    assert "Download CSV" in html
 
 
 def test_extract_hybrid_leans_skips_validated(tmp_path: Path):

@@ -138,6 +138,42 @@ def filter_stage_cards_current_slate(
     return [c for c in cards if str(c.get("event_id") or "") in ids]
 
 
+def stage_card_college_week_start(card: dict[str, Any]) -> datetime | None:
+    """Tuesday ET week start for a stage card's kickoff."""
+    kickoff = parse_commence(
+        card.get("kickoff") or card.get("commence_time") or card.get("created_at")
+    )
+    if kickoff is None:
+        return None
+    start, _end = college_week_bounds(kickoff)
+    return start
+
+
+def partition_stage_cards_current_historical(
+    cards: list[dict[str, Any]],
+    *,
+    now: datetime | None = None,
+) -> tuple[list[dict[str, Any]], list[tuple[datetime, list[dict[str, Any]]]]]:
+    """Split stage cards into this college week vs prior weeks (newest first)."""
+    current_start, _current_end = college_week_bounds(now)
+    current_key = current_start.isoformat()
+    current: list[dict[str, Any]] = []
+    historical: dict[str, list[dict[str, Any]]] = {}
+    hist_starts: dict[str, datetime] = {}
+    for card in cards:
+        week_start = stage_card_college_week_start(card)
+        if week_start is None:
+            continue
+        key = week_start.isoformat()
+        if key == current_key:
+            current.append(card)
+        else:
+            historical.setdefault(key, []).append(card)
+            hist_starts[key] = week_start
+    ordered = sorted(hist_starts.keys(), reverse=True)
+    return current, [(hist_starts[k], historical[k]) for k in ordered]
+
+
 def group_stage_cards_by_college_week(
     cards: list[dict[str, Any]],
 ) -> list[tuple[datetime, list[dict[str, Any]]]]:

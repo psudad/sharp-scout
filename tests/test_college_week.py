@@ -86,3 +86,18 @@ def test_group_stage_cards_by_college_week():
     assert len(grouped) == 2
     assert grouped[0][1][0]["away_team"] == "OSU"
     assert grouped[1][1][0]["away_team"] == "UNC"
+
+
+def test_partition_stage_cards_current_historical():
+    from sharp_scout.utils.slate import partition_stage_cards_current_historical
+
+    now = datetime(2026, 8, 28, 14, 0, tzinfo=timezone.utc)
+    cards = [
+        {"event_id": "a", "kickoff": "2026-08-29T16:00:00+00:00", "away_team": "UNC"},
+        {"event_id": "b", "kickoff": "2026-09-05T16:00:00+00:00", "away_team": "OSU"},
+    ]
+    current, historical = partition_stage_cards_current_historical(cards, now=now)
+    assert len(current) == 1
+    assert current[0]["event_id"] == "a"
+    assert len(historical) == 1
+    assert historical[0][1][0]["event_id"] == "b"

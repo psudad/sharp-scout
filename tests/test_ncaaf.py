@@ -95,11 +95,14 @@ def test_site_includes_cfb_tab(tmp_path: Path):
     out = build_site(docs_dir=tmp_path / "docs")
     html = (out / "index.html").read_text()
     assert "showTab('cfb'" in html
-    assert "NCAAF" in html
-    assert "NCAAF Pregame Stage Winners" in html
+    assert "NCAAF" in html or "CFB" in html
+    assert "This Week — Pregame Stage Winners" in html
     assert "This Week's Plays" in html
     assert "NCAAF Ledger" in html
     assert "Hybrid Leans" in html
+    assert "CFB Historical" in html
+    assert "showTab('cfb-historical'" in html
+    assert "This Week — Pregame Stage Winners" in html
     assert "NCAAF Power Ratings" not in html
     assert "Closing Line Value" in html
     assert (out / "ncaaf_ledger.json").exists()

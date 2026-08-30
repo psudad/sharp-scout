@@ -32,9 +32,9 @@ from sharp_scout.utils.slate import (
     college_week_label,
     filter_plays_college_week,
     filter_plays_nfl_week,
-    filter_stage_cards_current_slate,
     group_stage_cards_by_college_week,
     parse_commence,
+    partition_stage_cards_current_historical,
 )
 from sharp_scout.utils.teams import ncaaf_display_code
 
@@ -202,16 +202,16 @@ def build_site(
         games=ncaaf_signals.get("games") or [],
         plays=ncaaf_ledger.get("plays") or [],
     )
-    ncaaf_stage_cards = filter_stage_cards_current_slate(
-        ncaaf_stage_cards,
-        games=ncaaf_signals.get("games") or [],
+    ncaaf_current_stage_cards, ncaaf_historical_weeks = partition_stage_cards_current_historical(
+        ncaaf_stage_cards
     )
-    ncaaf_stage_weeks_html = _render_stage_weeks_html(ncaaf_stage_cards)
+    ncaaf_stage_weeks_html = _render_stage_weeks_html(ncaaf_current_stage_cards)
+    ncaaf_historical_html = _render_cfb_historical_weeks(ncaaf_historical_weeks)
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
     ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
     ncaaf_fade_n = ncaaf_stage_summary.get("fade_public_games", "—")
     ncaaf_rlm_n = ncaaf_stage_summary.get("rlm_games", "—")
-    ncaaf_leans_html = _render_hybrid_leans_section(ncaaf_stage_cards, sport="ncaaf")
+    ncaaf_leans_html = _render_hybrid_leans_section(ncaaf_current_stage_cards, sport="ncaaf")
     ncaaf_win_pct = (
         f"{ncaaf_record['win_pct'] * 100:.1f}%" if ncaaf_record["win_pct"] is not None else "—"
     )
@@ -297,6 +297,7 @@ def build_site(
         ncaaf_stage_record_rows=ncaaf_stage_record_rows,
         ncaaf_fade_n=ncaaf_stage_summary.get("fade_public_games", "—"),
         ncaaf_rlm_n=ncaaf_stage_summary.get("rlm_games", "—"),
+        ncaaf_historical_html=ncaaf_historical_html,
         ncaaf_leans_html=ncaaf_leans_html,
         ncaaf_demo_note="DEMO data" if ncaaf_signals.get("demo") else "Live pipeline",
         ncaaf_clv_banner_html=ncaaf_clv_banner_html,
@@ -910,30 +911,66 @@ def _merge_stage_cards(
     return _enrich_stage_kickoffs(list(merged.values()), games=games, plays=plays)
 
 
+def _render_stage_week_table(cards: list[dict], *, sport: str = "ncaaf") -> str:
+    sorted_cards = sorted(
+        cards,
+        key=lambda c: (
+            kickoff_sort_key(c.get("kickoff") or c.get("commence_time") or c.get("created_at")),
+            str(c.get("event_id") or ""),
+            _STAGE_MARKET_ORDER.get(str(c.get("market") or "spread"), 9),
+        ),
+    )
+    n_games = len({c.get("event_id") for c in sorted_cards})
+    rows = _render_stage_rows(sorted_cards, sport=sport)
+    return (
+        f'<div class="phase-sub" style="font-size:13px;margin-top:6px">{n_games} games · {len(sorted_cards)} market rows</div>'
+        f'<div class="table-wrap stage-table-wrap"><table class="stage-table">'
+        f"{_render_stage_table_head()}<tbody>{rows}</tbody></table></div>"
+        f'<p class="phase-note stage-scroll-hint">Three rows per game (spread, ML, total). '
+        f"<b>Hybrid</b> is the system pick for that market — it can disagree with Model/Sharp/Public "
+        f"when <b>Diff</b> (money vs tickets) confirms sharp action.</p>"
+    )
+
+
 def _render_stage_weeks_html(cards: list[dict]) -> str:
     if not cards:
-        return '<div class="empty">No stage picks yet. Run the NCAAF pipeline.</div>'
+        return (
+            '<div class="empty">No stage picks for this college week yet. '
+            "Run the NCAAF pipeline when the slate is posted.</div>"
+        )
     parts: list[str] = []
     for week_start, week_cards in group_stage_cards_by_college_week(cards):
         label = college_week_label(week_start)
-        sorted_cards = sorted(
-            week_cards,
-            key=lambda c: (
-                kickoff_sort_key(c.get("kickoff") or c.get("commence_time") or c.get("created_at")),
-                str(c.get("event_id") or ""),
-                _STAGE_MARKET_ORDER.get(str(c.get("market") or "spread"), 9),
-            ),
-        )
-        n_games = len({c.get("event_id") for c in sorted_cards})
-        rows = _render_stage_rows(sorted_cards, sport="ncaaf")
         parts.append(
             f'<div class="week-block">'
-            f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)} · {n_games} games · {len(sorted_cards)} market rows</div>'
-            f'<div class="table-wrap stage-table-wrap"><table class="stage-table">'
-            f"{_render_stage_table_head()}<tbody>{rows}</tbody></table></div>"
-            f'<p class="phase-note stage-scroll-hint">Three rows per game (spread, ML, total). '
-            f"<b>Hybrid</b> is the system pick for that market — it can disagree with Model/Sharp/Public "
-            f"when <b>Diff</b> (money vs tickets) confirms sharp action.</p></div>"
+            f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)}</div>'
+            f"{_render_stage_week_table(week_cards, sport='ncaaf')}"
+            f"</div>"
+        )
+    return "".join(parts)
+
+
+def _render_cfb_historical_weeks(
+    weeks: list[tuple[Any, list[dict[str, Any]]]],
+    *,
+    sport: str = "ncaaf",
+) -> str:
+    if not weeks:
+        return (
+            '<div class="empty">No prior weeks archived yet. When the college week rolls over '
+            "(Tuesday ET), that week's stage winners and hybrid leans move here automatically.</div>"
+        )
+    parts: list[str] = []
+    for week_start, week_cards in weeks:
+        label = college_week_label(week_start)
+        parts.append(
+            f'<div class="week-block historical-week">'
+            f'<div class="section-label" style="margin-top:18px">{_esc(label)}</div>'
+            f'<div class="section-label" style="margin-top:10px;font-size:9px">Pregame Stage Winners</div>'
+            f"{_render_stage_week_table(week_cards, sport=sport)}"
+            f'<div class="section-label" style="margin-top:14px">Hybrid Leans</div>'
+            f"{_render_hybrid_leans_section(week_cards, sport=sport, show_intro=False)}"
+            f"</div>"
         )
     return "".join(parts)
 
@@ -1048,11 +1085,21 @@ def _extract_hybrid_leans(stage_cards: list[dict[str, Any]]) -> list[dict[str, A
     )
 
 
-def _render_hybrid_leans_section(stage_cards: list[dict[str, Any]], *, sport: str = "ncaaf") -> str:
+def _render_hybrid_leans_section(
+    stage_cards: list[dict[str, Any]],
+    *,
+    sport: str = "ncaaf",
+    show_intro: bool = True,
+) -> str:
     leans = _extract_hybrid_leans(stage_cards)
     if not leans:
+        empty = (
+            "No hybrid leans on the current slate. "
+            if show_intro
+            else "No hybrid leans for this week."
+        )
         return (
-            '<div class="empty">No hybrid leans on the current slate. '
+            f'<div class="empty">{empty} '
             "Leans appear when the model has a side but filters did not clear a Sharp Play.</div>"
         )
 
@@ -1108,10 +1155,16 @@ def _render_hybrid_leans_section(stage_cards: list[dict[str, Any]], *, sport: st
             "</tr>"
         )
 
-    return (
+    intro = (
         f'<p class="phase-note" style="padding:4px 0 10px">{_esc(HYBRID_LEANS_SECTION_NOTE)}</p>'
-        f'<div class="summary-grid" style="margin-bottom:10px">'
-        + _stat_card(str(len(leans)), "Leans this slate", "Hybrid ideas not posted as Sharp Plays.")
+        if show_intro
+        else ""
+    )
+    lean_label = "Leans this week" if show_intro else "Leans"
+    return (
+        intro
+        + f'<div class="summary-grid" style="margin-bottom:10px">'
+        + _stat_card(str(len(leans)), lean_label, "Hybrid ideas not posted as Sharp Plays.")
         + _stat_card(record, "Lean record", "Win-loss if you had bet every hybrid lean (spread + ML + total).")
         + _stat_card(win_pct, "Lean win %", "Settled leans only — not the same as ledger Sharp Plays.")
         + "</div>"
@@ -1172,6 +1225,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .content {{ display: none; padding: 16px; max-width: 900px; margin: 0 auto; }}
   .content.active {{ display: block; }}
   #tab-cfb.content {{ max-width: 1240px; }}
+  #tab-cfb-historical.content {{ max-width: 1240px; }}
   .summary-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }}
   @media (min-width: 700px) {{ .summary-grid {{ grid-template-columns: repeat(4, 1fr); }} }}
   .stat-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px 10px; text-align: center; }}
@@ -1289,6 +1343,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="tab" onclick="showTab('stages', this)">Stages</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
   <div class="tab" onclick="showTab('cfb', this)">CFB</div>
+  <div class="tab" onclick="showTab('cfb-historical', this)">CFB Historical</div>
 </div>
 
 <div id="tab-plays" class="content active">
@@ -1346,8 +1401,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {ncaaf_clv_banner_html}
   <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
   {ncaaf_plays_html}
-  <div class="section-label">NCAAF Pregame Stage Winners</div>
-  <p class="phase-note" style="padding:4px 0 10px">Every game on the slate — three rows per game (spread, ML, total). <b>Hybrid</b> (green) is the system pick and matches Sharp Plays above when validated.</p>
+  <div class="section-label">This Week — Pregame Stage Winners</div>
+  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Tue–Mon ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Hybrid</b> (green) matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">NCAAF Stage Records (season)</div>
   <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
@@ -1361,8 +1416,13 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{ncaaf_ledger_rows}</tbody>
   </table></div>
-  <div class="section-label">Hybrid Leans</div>
+  <div class="section-label">This Week — Hybrid Leans</div>
   {ncaaf_leans_html}
+</div>
+
+<div id="tab-cfb-historical" class="content">
+  <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Tuesday ET, the prior week's stage winners and hybrid leans move here from the CFB tab.</p>
+  {ncaaf_historical_html}
 </div>
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>

@@ -1258,6 +1258,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     --color-text-muted: #555555;
     --color-bg: #ffffff;
     --color-bg-soft: #fafafa;
+    --color-slate: #dbe4ed;
     --color-border: #000000;
     --color-win: #15803d;
     --color-loss: #dc2626;
@@ -1274,9 +1275,9 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     -webkit-font-smoothing: antialiased;
   }}
   .header {{
-    background: var(--color-bg);
+    background: var(--color-slate);
     padding: 28px 16px 22px;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid #c5d0dc;
     text-align: center;
   }}
   .header h1 {{
@@ -1335,7 +1336,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     color: var(--color-text);
     font-weight: 600;
     border-bottom-color: var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-slate);
   }}
   .content {{ display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }}
   .content.active {{ display: block; }}
@@ -1344,7 +1345,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .summary-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 22px; }}
   @media (min-width: 700px) {{ .summary-grid {{ grid-template-columns: repeat(4, 1fr); }} }}
   .stat-card {{
-    background: var(--color-bg);
+    background: var(--color-slate);
     border: 2px solid var(--color-border);
     border-radius: 0;
     padding: 16px 10px;

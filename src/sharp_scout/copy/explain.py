@@ -98,7 +98,6 @@ STAGE_RECORD_TIPS: dict[str, str] = {
 
 STAGE_RECORD_SECTION_NOTE = (
     "Each lens picks a side independently on every game (spread, ML, and total rows). "
-    "Stage records currently grade spread + ML rows only (16 picks on an 8-game slate). "
     "The record shows how that lens would have performed if you bet every one of its picks — "
     "useful for comparing signals. This is not the same as validated Sharp Plays in the ledger."
 )

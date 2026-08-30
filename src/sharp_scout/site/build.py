@@ -122,6 +122,31 @@ def _render_analytics_head(measurement_id: str) -> str:
 </script>"""
 
 
+def _ssq_logo_svg(*, embedded: bool = True) -> str:
+  """SSQ monogram: stacked letters over abstract overlapping bills + dollar motif."""
+  cls = ' class="ssq-logo"' if embedded else ""
+  return f"""<svg{cls} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sharp Scout Quant">
+  <rect x="1" y="1" width="78" height="78" rx="14" fill="#1e3a5f" stroke="#111111" stroke-width="2"/>
+  <g opacity="0.5">
+    <rect x="10" y="21" width="52" height="27" rx="3" fill="#2a5278" stroke="#9eb4cc" stroke-width="1.1" transform="rotate(-12 36 34)"/>
+    <ellipse cx="23" cy="34" rx="5.5" ry="7.5" fill="none" stroke="#9eb4cc" stroke-width="0.9" transform="rotate(-12 23 34)"/>
+    <path d="M13 25.5h5v4.5" fill="none" stroke="#9eb4cc" stroke-width="0.9" stroke-linecap="round" transform="rotate(-12 36 34)"/>
+    <path d="M57 42.5h-5v-4.5" fill="none" stroke="#9eb4cc" stroke-width="0.9" stroke-linecap="round" transform="rotate(-12 36 34)"/>
+    <rect x="18" y="35" width="52" height="27" rx="3" fill="#234868" stroke="#c5d4e3" stroke-width="1.1" transform="rotate(10 44 48)"/>
+    <ellipse cx="57" cy="48" rx="5.5" ry="7.5" fill="none" stroke="#c5d4e3" stroke-width="0.9" transform="rotate(10 57 48)"/>
+    <path d="M21 39h5v4.5" fill="none" stroke="#c5d4e3" stroke-width="0.9" stroke-linecap="round" transform="rotate(10 44 48)"/>
+    <path d="M65 56h-5v-4.5" fill="none" stroke="#c5d4e3" stroke-width="0.9" stroke-linecap="round" transform="rotate(10 44 48)"/>
+  </g>
+  <g opacity="0.24" stroke="#dbe4ed" fill="none" stroke-width="1.7" stroke-linecap="round">
+    <path d="M40 17 C32.5 17 28 21 28 25.5 C28 30 32.5 32 40 32 C47.5 32 52 34 52 38.5 C52 43 47.5 47 40 47"/>
+    <line x1="40" y1="13" x2="40" y2="51"/>
+  </g>
+  <text x="35" y="29" font-family="Inconsolata, monospace" font-size="22" font-weight="700" fill="#ffffff" opacity="0.9">S</text>
+  <text x="43" y="44" font-family="Inconsolata, monospace" font-size="22" font-weight="700" fill="#ffffff">S</text>
+  <text x="34" y="59" font-family="Inconsolata, monospace" font-size="22" font-weight="700" fill="#ffffff" opacity="0.95">Q</text>
+</svg>"""
+
+
 def build_site(
     *,
     docs_dir: Path | None = None,
@@ -280,6 +305,7 @@ def build_site(
 
     html = SITE_TEMPLATE.format(
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+        ssq_logo=_ssq_logo_svg(embedded=True),
         generated=generated,
         nfl_record=record["record"],
         nfl_win_pct=nfl_win_pct,
@@ -326,6 +352,10 @@ def build_site(
         stage_record_section_note=_esc(STAGE_RECORD_SECTION_NOTE),
     )
     (out / "index.html").write_text(html)
+
+    assets_dir = out / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    (assets_dir / "ssq-logo.svg").write_text(_ssq_logo_svg(embedded=False) + "\n")
 
     # CNAME placeholder not needed; add .nojekyll for GH Pages
     (out / ".nojekyll").write_text("")
@@ -1609,12 +1639,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
       <p style="margin-top:8px">Updated {generated}</p>
     </div>
     <div class="header-logo">
-      <svg class="ssq-logo" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sharp Scout Quant">
-        <rect x="1" y="1" width="78" height="78" rx="14" fill="#1e3a5f" stroke="#111" stroke-width="2"/>
-        <rect x="10" y="10" width="60" height="60" rx="10" fill="none" stroke="#dbe4ed" stroke-width="1.5" opacity="0.55"/>
-        <path d="M18 58 L40 22 L62 58" fill="none" stroke="#dbe4ed" stroke-width="1.25" opacity="0.35"/>
-        <text x="40" y="49" text-anchor="middle" font-family="Inconsolata, monospace" font-size="23" font-weight="700" fill="#ffffff" letter-spacing="3">SSQ</text>
-      </svg>
+      {ssq_logo}
     </div>
   </div>
 </div>

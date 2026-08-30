@@ -107,6 +107,8 @@ def test_site_includes_cfb_tab(tmp_path: Path, monkeypatch):
     assert "This Week's Plays" in html
     assert "NCAAF Ledger" in html
     assert "Quant Pick Leans" in html
+    assert "lean-row-sharp-play" in html
+    assert "Sharp Play" in html
     assert "Sharp Scout Quant" in html
     assert "CFB Historical" in html
     assert "showTab('cfb-historical'" in html
@@ -155,7 +157,7 @@ def test_historical_week_renders_csv_export_buttons():
     assert "Download CSV" in html
 
 
-def test_extract_hybrid_leans_skips_validated(tmp_path: Path):
+def test_extract_hybrid_leans_flags_sharp_plays(tmp_path: Path):
     from sharp_scout.site.build import _extract_hybrid_leans
 
     cards = [
@@ -188,7 +190,15 @@ def test_extract_hybrid_leans_skips_validated(tmp_path: Path):
             },
         },
     ]
-    leans = _extract_hybrid_leans(cards)
+    ledger = [
+        {"event_id": "e1", "market": "h2h", "side": "away"},
+    ]
+    rows = _extract_hybrid_leans(cards, ledger_plays=ledger)
+    assert len(rows) == 2
+    sharp = [row for row in rows if row.get("is_sharp_play")]
+    leans = [row for row in rows if not row.get("is_sharp_play")]
+    assert len(sharp) == 1
+    assert sharp[0]["kind"] == "sharp_play"
     assert len(leans) == 1
     assert leans[0]["pick"]["team"] == "USC"
     assert leans[0]["kind"] == "aligned"

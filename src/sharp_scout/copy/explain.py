@@ -104,10 +104,9 @@ STAGE_RECORD_SECTION_NOTE = (
 )
 
 HYBRID_LEANS_SECTION_NOTE = (
-    "Quant pick leans are system ideas the model liked but did not post as Sharp Plays — "
-    "usually because EV or split filters did not clear the bet bar. They appear in the "
-    "quant pick stage scorecard but are not in your ledger. "
-    "Validated plays above are the only rows we actually bet."
+    "Every row is a quant pick for that game and market. "
+    "Yellow-highlighted rows are actual Sharp Plays posted to the ledger. "
+    "Other rows are leans only — market-aligned or model ideas that did not clear the bet bar."
 )
 
 

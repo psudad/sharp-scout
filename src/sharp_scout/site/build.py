@@ -251,7 +251,11 @@ def build_site(
     ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
     ncaaf_fade_n = ncaaf_stage_summary.get("fade_public_games", "—")
     ncaaf_rlm_n = ncaaf_stage_summary.get("rlm_games", "—")
-    ncaaf_leans_html = _render_hybrid_leans_section(ncaaf_current_stage_cards, sport="ncaaf")
+    ncaaf_leans_html = _render_hybrid_leans_section(
+        ncaaf_current_stage_cards,
+        sport="ncaaf",
+        ledger_plays=filter_plays_college_week(ncaaf_ledger.get("plays") or []),
+    )
     ncaaf_win_pct = (
         f"{ncaaf_record['win_pct'] * 100:.1f}%" if ncaaf_record["win_pct"] is not None else "—"
     )
@@ -885,6 +889,36 @@ def _is_validated_hybrid(pick: dict[str, Any] | None) -> bool:
     return reason.startswith("validated ") or "validated play" in reason
 
 
+def _normalize_market_key(market: str | None) -> str:
+    m = (market or "spread").lower()
+    if m in ("totals", "total"):
+        return "total"
+    if m in ("h2h", "moneyline", "ml"):
+        return "h2h"
+    if m in ("spreads", "spread"):
+        return "spread"
+    return m
+
+
+def _ledger_play_keys(plays: list[dict[str, Any]]) -> set[tuple[str, str, str]]:
+    keys: set[tuple[str, str, str]] = set()
+    for play in plays:
+        eid = str(play.get("event_id") or "")
+        market = _normalize_market_key(play.get("market"))
+        side = str(play.get("side") or "").lower()
+        if eid and side:
+            keys.add((eid, market, side))
+    return keys
+
+
+def _quant_pick_row_key(card: dict[str, Any], hybrid: dict[str, Any]) -> tuple[str, str, str]:
+    return (
+        str(card.get("event_id") or ""),
+        _normalize_market_key(str(card.get("market") or hybrid.get("market") or "")),
+        str(hybrid.get("side") or "").lower(),
+    )
+
+
 def _hybrid_pick_rank(pick: dict[str, Any] | None) -> int:
     if not pick or not pick.get("available"):
         return 0
@@ -1129,15 +1163,26 @@ def _hybrid_lean_kind(pick: dict[str, Any]) -> str:
     return "model"
 
 
-def _extract_hybrid_leans(stage_cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Hybrid picks that are not validated Sharp Plays — the 'lean' layer."""
+def _extract_hybrid_leans(
+    stage_cards: list[dict[str, Any]],
+    *,
+    ledger_plays: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """All quant pick rows for the slate — flagged when posted as a Sharp Play."""
+    ledger_keys = _ledger_play_keys(ledger_plays or [])
     leans: list[dict[str, Any]] = []
     for card in stage_cards:
         hybrid = (card.get("picks") or {}).get("hybrid") or {}
         if not hybrid.get("available") or not hybrid.get("side"):
             continue
-        if _is_validated_hybrid(hybrid):
-            continue
+        row_key = _quant_pick_row_key(card, hybrid)
+        is_sharp_play = _is_validated_hybrid(hybrid) or row_key in ledger_keys
+        if is_sharp_play:
+            kind = "sharp_play"
+        elif _hybrid_lean_kind(hybrid) == "aligned":
+            kind = "aligned"
+        else:
+            kind = "model"
         leans.append(
             {
                 "event_id": card.get("event_id"),
@@ -1146,7 +1191,8 @@ def _extract_hybrid_leans(stage_cards: list[dict[str, Any]]) -> list[dict[str, A
                 "market": card.get("market") or "spread",
                 "kickoff": card.get("kickoff") or card.get("commence_time"),
                 "pick": hybrid,
-                "kind": _hybrid_lean_kind(hybrid),
+                "kind": kind,
+                "is_sharp_play": is_sharp_play,
                 "result": (card.get("results") or {}).get("hybrid"),
                 "home_score": card.get("home_score"),
                 "away_score": card.get("away_score"),
@@ -1168,21 +1214,25 @@ def _render_hybrid_leans_section(
     sport: str = "ncaaf",
     show_intro: bool = True,
     table_id: str | None = None,
+    ledger_plays: list[dict[str, Any]] | None = None,
 ) -> str:
-    leans = _extract_hybrid_leans(stage_cards)
+    leans = _extract_hybrid_leans(stage_cards, ledger_plays=ledger_plays)
     if not leans:
         empty = (
-            "No quant pick leans on the current slate. "
+            "No quant picks on the current slate. "
             if show_intro
-            else "No quant pick leans for this week."
+            else "No quant picks for this week."
         )
         return (
             f'<div class="empty">{empty} '
-            "Leans appear when the model has a side but filters did not clear a Sharp Play.</div>"
+            "Rows appear when the quant model has a side for spread, ML, or total.</div>"
         )
 
+    sharp_rows = [row for row in leans if row.get("is_sharp_play")]
+    lean_only_rows = [row for row in leans if not row.get("is_sharp_play")]
+
     wins = losses = pushes = pending = 0
-    for row in leans:
+    for row in lean_only_rows:
         result = row.get("result")
         if result == "win":
             wins += 1
@@ -1199,6 +1249,12 @@ def _render_hybrid_leans_section(
     if pending:
         record += f" · {pending} pending"
 
+    kind_labels = {
+        "sharp_play": "Sharp Play",
+        "aligned": "Market aligned",
+        "model": "Model lean",
+    }
+
     rows = []
     for row in leans:
         hybrid = row["pick"]
@@ -1209,7 +1265,7 @@ def _render_hybrid_leans_section(
         else:
             matchup = f"{_esc(away)} @ {_esc(home)}"
         kick_s = format_kickoff_compact(row.get("kickoff"))
-        kind = "Market aligned" if row["kind"] == "aligned" else "Model lean"
+        kind = kind_labels.get(str(row.get("kind") or ""), "Model lean")
         result = row.get("result")
         if result in ("win", "loss", "push"):
             result_html = _status_badge(result)
@@ -1221,8 +1277,9 @@ def _render_hybrid_leans_section(
                 f" · Final {row.get('away_team')} {row.get('away_score')}, "
                 f"{row.get('home_team')} {row.get('home_score')}"
             )
+        row_cls = ' class="lean-row-sharp-play"' if row.get("is_sharp_play") else ""
         rows.append(
-            "<tr>"
+            f"<tr{row_cls}>"
             f"<td>{_esc(kick_s)}</td>"
             f"<td>{matchup}</td>"
             f"<td>{_esc(_stage_market_label(row.get('market')))}</td>"
@@ -1238,17 +1295,18 @@ def _render_hybrid_leans_section(
         if show_intro
         else ""
     )
-    lean_label = "Leans this week" if show_intro else "Leans"
+    lean_label = "Leans only" if show_intro else "Leans"
     id_attr = f' id="{_esc(table_id)}"' if table_id else ""
     return (
         intro
         + f'<div class="summary-grid" style="margin-bottom:10px">'
-        + _stat_card(str(len(leans)), lean_label, "Quant pick ideas not posted as Sharp Plays.")
-        + _stat_card(record, "Lean record", "Win-loss if you had bet every quant pick lean (spread + ML + total).")
-        + _stat_card(win_pct, "Lean win %", "Settled leans only — not the same as ledger Sharp Plays.")
+        + _stat_card(str(len(sharp_rows)), "Sharp Plays", "Posted quant picks — highlighted yellow in the table.")
+        + _stat_card(str(len(lean_only_rows)), lean_label, "Quant pick ideas not posted as Sharp Plays.")
+        + _stat_card(record, "Lean record", "Win-loss on lean-only rows (not ledger Sharp Plays).")
+        + _stat_card(win_pct, "Lean win %", "Settled lean-only rows.")
         + "</div>"
         f'<div class="table-wrap"><table class="export-table"{id_attr}>'
-        "<thead><tr><th>Kick</th><th>Game</th><th>Mkt</th><th>Lean</th>"
+        "<thead><tr><th>Kick</th><th>Game</th><th>Mkt</th><th>Quant Pick</th>"
         "<th>Type</th><th>Result</th><th>Why</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
@@ -1615,6 +1673,15 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .stage-table th.hybrid-col {{ background: var(--color-hybrid); color: #fff; }}
   td {{ padding: 10px; border-bottom: 1px solid #ececec; color: var(--color-text); }}
   tr:last-child td {{ border-bottom: none; }}
+  .lean-row-sharp-play td {{
+    background: #fef9c3;
+    font-weight: 700;
+    border-bottom-color: #fde047;
+  }}
+  .lean-row-sharp-play td.pos {{
+    color: #854d0e;
+    font-weight: 800;
+  }}
   .win {{ color: var(--color-win); font-weight: 600; }}
   .loss {{ color: var(--color-loss); font-weight: 600; }}
   .pending {{ color: var(--color-text-muted); font-weight: 500; }}

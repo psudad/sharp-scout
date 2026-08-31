@@ -34,7 +34,6 @@ from sharp_scout.utils.slate import (
     college_week_label,
     filter_plays_college_week,
     filter_plays_nfl_display_slate,
-    filter_plays_nfl_week,
     filter_events_nfl_display_slate,
     group_stage_cards_by_college_week,
     group_stage_cards_by_nfl_week,

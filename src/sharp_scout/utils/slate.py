@@ -62,33 +62,130 @@ def filter_events_nfl_week(
     return out
 
 
+def nfl_display_week_bounds(
+    now: datetime | None = None,
+    *,
+    events: list[dict[str, Any]] | None = None,
+) -> tuple[datetime, datetime]:
+    """Current NFL week if it has kickoffs; else the next week with scheduled games."""
+    now = _as_utc(now or datetime.now(timezone.utc))
+    start, end = nfl_week_bounds(now)
+    kickoffs: list[datetime] = []
+    for ev in events or []:
+        kickoff = parse_commence(ev.get("commence_time") or ev.get("kickoff"))
+        if kickoff is not None:
+            kickoffs.append(kickoff)
+    if any(start <= k <= end for k in kickoffs):
+        return start, end
+    upcoming = sorted(k for k in kickoffs if k >= now - timedelta(minutes=15))
+    if not upcoming:
+        return start, end
+    return nfl_week_bounds(upcoming[0])
+
+
 def filter_events_nfl_display_slate(
     events: list[dict[str, Any]],
     *,
     now: datetime | None = None,
 ) -> list[dict[str, Any]]:
     """Games tab: current NFL week, or the next week with scheduled kickoffs."""
-    now = _as_utc(now or datetime.now(timezone.utc))
-    current = filter_events_nfl_week(events, now=now)
-    if current:
-        return current
-    upcoming: list[dict[str, Any]] = []
+    start, end = nfl_display_week_bounds(now, events=events)
+    out: list[dict[str, Any]] = []
     for ev in events:
         kickoff = parse_commence(ev.get("commence_time"))
-        if kickoff is not None and kickoff >= now - timedelta(minutes=15):
-            upcoming.append(ev)
-    if not upcoming:
-        return []
-    upcoming.sort(key=lambda e: parse_commence(e.get("commence_time")) or now)
-    anchor = parse_commence(upcoming[0].get("commence_time"))
-    if anchor is None:
-        return []
-    start, end = nfl_week_bounds(anchor)
-    return [
-        ev
-        for ev in events
-        if (kickoff := parse_commence(ev.get("commence_time"))) is not None and start <= kickoff <= end
-    ]
+        if kickoff is not None and start <= kickoff <= end:
+            out.append(ev)
+    return out
+
+
+def filter_plays_nfl_display_slate(
+    plays: list[dict[str, Any]],
+    *,
+    now: datetime | None = None,
+    events: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Keep ledger plays whose kickoff falls in the NFL display week."""
+    slate_events = events
+    if slate_events is None:
+        slate_events = [
+            {"commence_time": p.get("kickoff") or p.get("commence_time")} for p in plays
+        ]
+    start, end = nfl_display_week_bounds(now, events=slate_events)
+    out: list[dict[str, Any]] = []
+    for play in plays:
+        kickoff = parse_commence(play.get("kickoff") or play.get("commence_time"))
+        if kickoff is not None and start <= kickoff <= end:
+            out.append(play)
+    return out
+
+
+def nfl_week_label(week_start: datetime) -> str:
+    """Human label for an NFL week (Wed–Tue ET)."""
+    start_et = _as_utc(week_start).astimezone(ET)
+    end_et = (start_et + timedelta(days=6)).replace(hour=23, minute=59)
+    if start_et.year == end_et.year:
+        return f"{start_et.strftime('%b %d')} – {end_et.strftime('%b %d, %Y')}"
+    return f"{start_et.strftime('%b %d, %Y')} – {end_et.strftime('%b %d, %Y')}"
+
+
+def stage_card_nfl_week_start(card: dict[str, Any]) -> datetime | None:
+    """Wednesday ET week start for a stage card's kickoff."""
+    kickoff = parse_commence(
+        card.get("kickoff") or card.get("commence_time") or card.get("created_at")
+    )
+    if kickoff is None:
+        return None
+    start, _end = nfl_week_bounds(kickoff)
+    return start
+
+
+def partition_stage_cards_nfl_current_historical(
+    cards: list[dict[str, Any]],
+    *,
+    now: datetime | None = None,
+    events: list[dict[str, Any]] | None = None,
+) -> tuple[list[dict[str, Any]], list[tuple[datetime, list[dict[str, Any]]]]]:
+    """Split NFL stage cards into display week vs prior weeks (future weeks omitted)."""
+    current_start, current_end = nfl_display_week_bounds(now, events=events)
+    current: list[dict[str, Any]] = []
+    historical: dict[str, list[dict[str, Any]]] = {}
+    hist_starts: dict[str, datetime] = {}
+    for card in cards:
+        kickoff = parse_commence(
+            card.get("kickoff") or card.get("commence_time") or card.get("created_at")
+        )
+        if kickoff is None:
+            continue
+        if current_start <= kickoff <= current_end:
+            current.append(card)
+            continue
+        if kickoff > current_end:
+            continue
+        week_start = stage_card_nfl_week_start(card)
+        if week_start is None:
+            continue
+        key = week_start.isoformat()
+        historical.setdefault(key, []).append(card)
+        hist_starts[key] = week_start
+    ordered = sorted(hist_starts.keys(), reverse=True)
+    return current, [(hist_starts[k], historical[k]) for k in ordered]
+
+
+def group_stage_cards_by_nfl_week(
+    cards: list[dict[str, Any]],
+) -> list[tuple[datetime, list[dict[str, Any]]]]:
+    """Group stage cards by NFL week; newest weeks first."""
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    starts: dict[str, datetime] = {}
+    for card in cards:
+        week_start = stage_card_nfl_week_start(card)
+        if week_start is None:
+            continue
+        key = week_start.isoformat()
+        buckets.setdefault(key, []).append(card)
+        starts[key] = week_start
+    ordered = sorted(starts.keys(), reverse=True)
+    return [(starts[k], buckets[k]) for k in ordered]
 
 
 def nfl_week_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:

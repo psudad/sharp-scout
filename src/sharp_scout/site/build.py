@@ -33,11 +33,16 @@ from sharp_scout.utils.slate import (
     college_week_bounds,
     college_week_label,
     filter_plays_college_week,
+    filter_plays_nfl_display_slate,
     filter_plays_nfl_week,
     filter_events_nfl_display_slate,
     group_stage_cards_by_college_week,
+    group_stage_cards_by_nfl_week,
+    nfl_week_bounds,
+    nfl_week_label,
     parse_commence,
     partition_stage_cards_current_historical,
+    partition_stage_cards_nfl_current_historical,
 )
 from sharp_scout.utils.teams import ncaaf_display_code
 
@@ -218,7 +223,10 @@ def build_site(
         pending_deduped,
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
-    nfl_week_plays = filter_plays_nfl_week(pending)
+    nfl_games_all = signals.get("games") or []
+    nfl_week_plays = filter_plays_nfl_display_slate(
+        pending, events=nfl_games_all or [{"commence_time": p.get("kickoff")} for p in pending]
+    )
     nfl_week_plays_sorted = sorted(
         collapse_best_signals(nfl_week_plays),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
@@ -235,10 +243,35 @@ def build_site(
     nfl_signal_count = len(nfl_week_plays_sorted)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
-    stage_cards_all = signals.get("stage_picks") or []
-    nfl_games_display = filter_events_nfl_display_slate(signals.get("games") or [])
+    nfl_stage_cards = _merge_stage_cards(
+        ledger.get("stage_cards") or [],
+        signals.get("stage_picks") or [],
+        games=nfl_games_all,
+        plays=ledger.get("plays") or [],
+    )
+    nfl_current_stage_cards, nfl_historical_weeks = partition_stage_cards_nfl_current_historical(
+        nfl_stage_cards,
+        events=nfl_games_all,
+    )
+    nfl_stage_weeks_html = _render_stage_weeks_html(nfl_current_stage_cards, sport="nfl")
+    nfl_historical_html = _render_historical_weeks(
+        nfl_historical_weeks,
+        sport="nfl",
+        ledger_plays=ledger.get("plays") or [],
+    )
+    nfl_leans_html = _render_hybrid_leans_section(
+        nfl_current_stage_cards,
+        sport="nfl",
+        ledger_plays=filter_plays_nfl_display_slate(
+            ledger.get("plays") or [],
+            events=nfl_games_all,
+        ),
+    )
+    nfl_games_display = filter_events_nfl_display_slate(nfl_games_all)
     nfl_event_ids = {str(g.get("event_id")) for g in nfl_games_display}
-    stage_cards = [c for c in stage_cards_all if str(c.get("event_id")) in nfl_event_ids]
+    stage_cards = [
+        c for c in nfl_current_stage_cards if str(c.get("event_id")) in nfl_event_ids
+    ] or nfl_current_stage_cards
     nfl_signals_list = [
         s for s in (signals.get("signals") or []) if str(s.get("event_id")) in nfl_event_ids
     ]
@@ -246,7 +279,7 @@ def build_site(
         b for b in (signals.get("split_boards") or []) if str(b.get("event_id")) in nfl_event_ids
     ]
     disagreement_rows = _render_disagreement_rows(record.get("disagreements"))
-    stage_rows = _render_stage_rows(stage_cards)
+    stage_rows = _render_stage_rows(stage_cards, sport="nfl")
     stage_record_rows = _render_stage_record_rows(record.get("stage_records") or {})
     stage_summary = signals.get("stage_summary") or {}
     fade_n = stage_summary.get("fade_public_games", "—")
@@ -278,8 +311,9 @@ def build_site(
         ncaaf_stage_cards
     )
     ncaaf_stage_weeks_html = _render_stage_weeks_html(ncaaf_current_stage_cards)
-    ncaaf_historical_html = _render_cfb_historical_weeks(
+    ncaaf_historical_html = _render_historical_weeks(
         ncaaf_historical_weeks,
+        sport="ncaaf",
         ledger_plays=ncaaf_ledger.get("plays") or [],
     )
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
@@ -357,6 +391,9 @@ def build_site(
         plays_html=plays_html,
         nfl_clv_banner_html=nfl_clv_banner_html,
         nfl_ledger_rows=nfl_ledger_rows,
+        nfl_stage_weeks_html=nfl_stage_weeks_html,
+        nfl_leans_html=nfl_leans_html,
+        nfl_historical_html=nfl_historical_html,
         ratings_rows=ratings_rows,
         stage_rows=stage_rows,
         stage_table_head=_render_stage_table_head(),
@@ -1075,22 +1112,78 @@ def _render_stage_week_table(
     )
 
 
-def _render_stage_weeks_html(cards: list[dict]) -> str:
+def _render_stage_weeks_html(cards: list[dict], *, sport: str = "ncaaf") -> str:
     if not cards:
-        return (
-            '<div class="empty">No stage picks for this college week yet. '
-            "Run the NCAAF pipeline when the slate is posted.</div>"
+        empty = (
+            "No stage picks for this NFL week yet. Run the NFL Pipeline when the slate is posted."
+            if sport == "nfl"
+            else "No stage picks for this college week yet. Run the NCAAF pipeline when the slate is posted."
         )
+        return f'<div class="empty">{empty}</div>'
+    groups = (
+        group_stage_cards_by_nfl_week(cards)
+        if sport == "nfl"
+        else group_stage_cards_by_college_week(cards)
+    )
+    label_fn = nfl_week_label if sport == "nfl" else college_week_label
     parts: list[str] = []
-    for week_start, week_cards in group_stage_cards_by_college_week(cards):
-        label = college_week_label(week_start)
+    for week_start, week_cards in groups:
+        label = label_fn(week_start)
         parts.append(
             f'<div class="week-block">'
             f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)}</div>'
-            f"{_render_stage_week_table(week_cards, sport='ncaaf')}"
+            f"{_render_stage_week_table(week_cards, sport=sport)}"
             f"</div>"
         )
     return "".join(parts)
+
+
+def _render_historical_weeks(
+    weeks: list[tuple[Any, list[dict[str, Any]]]],
+    *,
+    sport: str = "ncaaf",
+    ledger_plays: list[dict[str, Any]] | None = None,
+) -> str:
+    if not weeks:
+        empty = (
+            "No prior NFL weeks archived yet. When the NFL week rolls over (Wednesday ET), "
+            "that week's stage winners and quant pick leans move here automatically."
+            if sport == "nfl"
+            else "No prior weeks archived yet. When the college week rolls over "
+            "(Monday ET), that week's stage winners and quant pick leans move here automatically."
+        )
+        return f'<div class="empty">{empty}</div>'
+    label_fn = nfl_week_label if sport == "nfl" else college_week_label
+    parts: list[str] = []
+    all_ledger = ledger_plays or []
+    for week_start, week_cards in weeks:
+        label = label_fn(week_start)
+        slug = _week_file_slug(week_start)
+        prefix = "nfl" if sport == "nfl" else "cfb"
+        stages_id = f"hist-{prefix}-stages-{slug}"
+        leans_id = f"hist-{prefix}-leans-{slug}"
+        week_ledger = _filter_plays_for_week_start(all_ledger, week_start, sport=sport)
+        parts.append(
+            f'<div class="week-block historical-week">'
+            f'<div class="section-label" style="margin-top:18px">{_esc(label)}</div>'
+            f"{_render_weekly_lens_scorecard(week_cards, ledger_plays=week_ledger)}"
+            f"{_section_toolbar('Quant Pick Leans', leans_id, f'sharp-scout-{prefix}-leans-{slug}.csv')}"
+            f"{_render_hybrid_leans_section(week_cards, sport=sport, show_intro=False, table_id=leans_id, ledger_plays=week_ledger)}"
+            f"{_section_toolbar('Pregame Stage Winners', stages_id, f'sharp-scout-{prefix}-stages-{slug}.csv')}"
+            f"{_render_stage_week_table(week_cards, sport=sport, table_id=stages_id)}"
+            f"</div>"
+        )
+    return "".join(parts)
+
+
+def _render_cfb_historical_weeks(
+    weeks: list[tuple[Any, list[dict[str, Any]]]],
+    *,
+    sport: str = "ncaaf",
+    ledger_plays: list[dict[str, Any]] | None = None,
+) -> str:
+    """Backward-compatible alias."""
+    return _render_historical_weeks(weeks, sport=sport, ledger_plays=ledger_plays)
 
 
 def _filter_plays_for_college_week_start(
@@ -1106,6 +1199,32 @@ def _filter_plays_for_college_week_start(
         if start <= kickoff <= end:
             out.append(play)
     return out
+
+
+def _filter_plays_for_nfl_week_start(
+    plays: list[dict[str, Any]],
+    week_start: datetime,
+) -> list[dict[str, Any]]:
+    start, end = nfl_week_bounds(week_start)
+    out: list[dict[str, Any]] = []
+    for play in plays:
+        kickoff = parse_commence(play.get("kickoff") or play.get("commence_time"))
+        if kickoff is None:
+            continue
+        if start <= kickoff <= end:
+            out.append(play)
+    return out
+
+
+def _filter_plays_for_week_start(
+    plays: list[dict[str, Any]],
+    week_start: datetime,
+    *,
+    sport: str = "ncaaf",
+) -> list[dict[str, Any]]:
+    if sport == "nfl":
+        return _filter_plays_for_nfl_week_start(plays, week_start)
+    return _filter_plays_for_college_week_start(plays, week_start)
 
 
 def _compute_play_record(plays: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1196,38 +1315,6 @@ def _render_weekly_lens_scorecard(
         "<thead><tr><th>Lens</th><th>Record</th><th>Win %</th><th>Ungraded</th></tr></thead>"
         f"<tbody>{body}</tbody></table></div>"
     )
-
-
-def _render_cfb_historical_weeks(
-    weeks: list[tuple[Any, list[dict[str, Any]]]],
-    *,
-    sport: str = "ncaaf",
-    ledger_plays: list[dict[str, Any]] | None = None,
-) -> str:
-    if not weeks:
-        return (
-            '<div class="empty">No prior weeks archived yet. When the college week rolls over '
-            "(Monday ET), that week's stage winners and quant pick leans move here automatically.</div>"
-        )
-    parts: list[str] = []
-    all_ledger = ledger_plays or []
-    for week_start, week_cards in weeks:
-        label = college_week_label(week_start)
-        slug = _week_file_slug(week_start)
-        stages_id = f"hist-stages-{slug}"
-        leans_id = f"hist-leans-{slug}"
-        week_ledger = _filter_plays_for_college_week_start(all_ledger, week_start)
-        parts.append(
-            f'<div class="week-block historical-week">'
-            f'<div class="section-label" style="margin-top:18px">{_esc(label)}</div>'
-            f"{_render_weekly_lens_scorecard(week_cards, ledger_plays=week_ledger)}"
-            f"{_section_toolbar('Quant Pick Leans', leans_id, f'sharp-scout-leans-{slug}.csv')}"
-            f"{_render_hybrid_leans_section(week_cards, sport=sport, show_intro=False, table_id=leans_id, ledger_plays=week_ledger)}"
-            f"{_section_toolbar('Pregame Stage Winners', stages_id, f'sharp-scout-stages-{slug}.csv')}"
-            f"{_render_stage_week_table(week_cards, sport=sport, table_id=stages_id)}"
-            f"</div>"
-        )
-    return "".join(parts)
 
 
 def _render_stage_rows(cards: list[dict], *, sport: str = "nfl") -> str:
@@ -1623,6 +1710,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   }}
   .content {{ display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }}
   .content.active {{ display: block; }}
+  #tab-plays.content {{ max-width: 1240px; }}
+  #tab-nfl-historical.content {{ max-width: 1240px; }}
   #tab-cfb.content {{ max-width: 1240px; }}
   #tab-cfb-historical.content {{ max-width: 1240px; }}
   .summary-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 22px; }}
@@ -1876,6 +1965,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">NFL</div>
+  <div class="tab" onclick="showTab('nfl-historical', this)">NFL Historical</div>
   <div class="tab" onclick="showTab('games', this)">Games</div>
   <div class="tab" onclick="showTab('stages', this)">Stages</div>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
@@ -1889,11 +1979,28 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {nfl_clv_banner_html}
   <div class="section-label">This Week's Plays · {nfl_signal_count} validated</div>
   {plays_html}
+  <div class="section-label">This Week — Pregame Stage Winners</div>
+  <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET; advances to the next slate when this week is empty). Prior weeks are on <b>NFL Historical</b>. Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
+  {nfl_stage_weeks_html}
+  <div class="section-label">NFL Stage Records (season)</div>
+  <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
+  <div class="summary-grid">{stage_alarm_stats_html}</div>
+  <div class="table-wrap"><table>
+    {stage_records_thead}
+    <tbody>{stage_record_rows}</tbody>
+  </table></div>
   <div class="section-label">NFL Ledger · {nfl_pending} pending · {nfl_n_plays} total</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{nfl_ledger_rows}</tbody>
   </table></div>
+  <div class="section-label">This Week — Quant Pick Leans</div>
+  {nfl_leans_html}
+</div>
+
+<div id="tab-nfl-historical" class="content">
+  <p class="phase-note" style="padding:8px 0">Archive of completed NFL weeks. Each Wednesday ET, the prior week's stage winners and quant pick leans move here from the NFL tab. Use <b>Download CSV</b> on each table to export.</p>
+  {nfl_historical_html}
 </div>
 
 <div id="tab-games" class="content">

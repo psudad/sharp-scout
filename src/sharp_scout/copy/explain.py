@@ -128,6 +128,7 @@ def parse_kickoff(raw: Any) -> datetime | None:
 
 
 def format_kickoff_et(raw: Any) -> str:
+    """Full kickoff for cards and tables: Wed Sep 9, 8:15 PM ET."""
     dt = parse_kickoff(raw)
     if dt is None:
         return "Time TBD"
@@ -136,6 +137,7 @@ def format_kickoff_et(raw: Any) -> str:
 
 
 def format_kickoff_date_et(raw: Any) -> str:
+    """Weekday + calendar date: Wed Sep 9."""
     dt = parse_kickoff(raw)
     if dt is None:
         return "TBD"
@@ -150,11 +152,8 @@ def format_kickoff_time_et(raw: Any) -> str:
 
 
 def format_kickoff_compact(raw: Any) -> str:
-    """Short kickoff for dense stage tables, e.g. Sat 12:00 PM."""
-    dt = parse_kickoff(raw)
-    if dt is None:
-        return "TBD"
-    return dt.astimezone(ET).strftime("%a %-I:%M %p")
+    """Kickoff for dense tables: weekday, date, and time (ET)."""
+    return format_kickoff_et(raw)
 
 
 def kickoff_sort_key(raw: Any) -> str:

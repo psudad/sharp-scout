@@ -16,8 +16,6 @@ from sharp_scout.copy.explain import (
     describe_stage_pick,
     format_kickoff_et,
     format_kickoff_compact,
-    format_kickoff_date_et,
-    format_kickoff_time_et,
     format_play_rationale,
     kickoff_sort_key,
     STAGE_COLUMN_TIPS,
@@ -536,7 +534,11 @@ def _render_ledger_rows(plays: list[dict]) -> str:
     if not plays:
         return "<tr><td colspan='8'>No plays in ledger yet.</td></tr>"
     rows = []
-    for p in sorted(plays, key=lambda x: x.get("created_at") or "", reverse=True):
+    for p in sorted(
+        plays,
+        key=lambda x: kickoff_sort_key(x.get("kickoff") or x.get("commence_time") or x.get("created_at")),
+        reverse=True,
+    ):
         st = p.get("status") or "pending"
         pnl = p.get("pnl_units")
         if pnl is None:
@@ -548,9 +550,10 @@ def _render_ledger_rows(plays: list[dict]) -> str:
         score = "—"
         if p.get("home_score") is not None:
             score = f"{p.get('away_team')} {p.get('away_score')} – {p.get('home_team')} {p.get('home_score')}"
+        kick = format_kickoff_et(p.get("kickoff") or p.get("commence_time") or p.get("created_at"))
         rows.append(
             f"<tr>"
-            f"<td>{_esc((p.get('created_at') or '')[:10])}</td>"
+            f"<td>{_esc(kick)}</td>"
             f"<td>{_esc(p.get('away_team'))} @ {_esc(p.get('home_team'))}</td>"
             f"<td>{_esc(_side_label(p))}</td>"
             f"<td>{p.get('units')}u</td>"
@@ -1541,7 +1544,7 @@ def _render_hybrid_leans_section(
         + _stat_card(win_pct, "Lean win %", "Settled lean-only rows.")
         + "</div>"
         f'<div class="table-wrap"><table class="export-table"{id_attr}>'
-        "<thead><tr><th>Kick</th><th>Game</th><th>Mkt</th><th>Quant Pick</th>"
+        "<thead><tr><th>Kickoff</th><th>Game</th><th>Mkt</th><th>Quant Pick</th>"
         "<th>Type</th><th>Result</th><th>Why</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
@@ -1843,8 +1846,9 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .splits-summary {{ color: var(--color-text); margin-bottom: 8px; }}
   .table-wrap {{ overflow-x: auto; border: 2px solid var(--color-border); border-radius: 0; background: var(--color-bg); }}
   .stage-table-wrap {{ margin-bottom: 8px; }}
-  .stage-table {{ min-width: 880px; font-size: 11px; }}
+  .stage-table {{ min-width: 980px; font-size: 11px; }}
   .stage-table th, .stage-table td {{ white-space: nowrap; padding: 6px 7px; }}
+  .stage-table th:nth-child(1), .stage-table td:nth-child(1) {{ white-space: nowrap; min-width: 150px; }}
   .stage-table th:nth-child(2), .stage-table td:nth-child(2) {{ white-space: nowrap; min-width: 0; max-width: 108px; }}
   .stage-table th.hybrid-col, .stage-table td.hybrid-cell {{
     background: #f4faf6;
@@ -1995,7 +1999,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </table></div>
   <div class="section-label">NFL Ledger · {nfl_pending} pending · {nfl_n_plays} total</div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
+    <thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{nfl_ledger_rows}</tbody>
   </table></div>
   <div class="section-label">This Week — Quant Pick Leans</div>
@@ -2061,7 +2065,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </table></div>
   <div class="section-label">NCAAF Ledger · {ncaaf_pending} pending · {ncaaf_n_plays} total</div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Date</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
+    <thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{ncaaf_ledger_rows}</tbody>
   </table></div>
   <div class="section-label">This Week — Quant Pick Leans</div>

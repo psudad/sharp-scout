@@ -31,7 +31,19 @@ def test_collapse_best_signals_one_per_side():
 
 
 def test_format_kickoff_et():
-    assert "ET" in format_kickoff_et("2026-08-15T17:00:00+00:00")
+    text = format_kickoff_et("2026-08-15T17:00:00+00:00")
+    assert "ET" in text
+    assert "Aug" in text
+    assert "Sat" in text or "Fri" in text  # depends on ET offset
+    assert ":" in text
+
+    from sharp_scout.copy.explain import format_kickoff_compact
+
+    compact = format_kickoff_compact("2026-09-10T00:15:00Z")
+    assert "Sep" in compact
+    assert "Wed" in compact
+    assert "8:15" in compact
+    assert "ET" in compact
 
 
 def test_format_play_rationale_includes_edge():

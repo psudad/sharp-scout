@@ -45,6 +45,52 @@ def filter_plays_nfl_week(
     return out
 
 
+def filter_events_nfl_week(
+    events: list[dict[str, Any]],
+    *,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Keep events whose kickoff falls in the current NFL week (Wed–Tue ET)."""
+    start, end = nfl_week_bounds(now)
+    out: list[dict[str, Any]] = []
+    for ev in events:
+        kickoff = parse_commence(ev.get("commence_time"))
+        if kickoff is None:
+            continue
+        if start <= kickoff <= end:
+            out.append(ev)
+    return out
+
+
+def filter_events_nfl_display_slate(
+    events: list[dict[str, Any]],
+    *,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Games tab: current NFL week, or the next week with scheduled kickoffs."""
+    now = _as_utc(now or datetime.now(timezone.utc))
+    current = filter_events_nfl_week(events, now=now)
+    if current:
+        return current
+    upcoming: list[dict[str, Any]] = []
+    for ev in events:
+        kickoff = parse_commence(ev.get("commence_time"))
+        if kickoff is not None and kickoff >= now - timedelta(minutes=15):
+            upcoming.append(ev)
+    if not upcoming:
+        return []
+    upcoming.sort(key=lambda e: parse_commence(e.get("commence_time")) or now)
+    anchor = parse_commence(upcoming[0].get("commence_time"))
+    if anchor is None:
+        return []
+    start, end = nfl_week_bounds(anchor)
+    return [
+        ev
+        for ev in events
+        if (kickoff := parse_commence(ev.get("commence_time"))) is not None and start <= kickoff <= end
+    ]
+
+
 def nfl_week_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
     """Return UTC bounds for the NFL betting week containing ``now``.
 

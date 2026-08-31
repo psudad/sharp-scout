@@ -34,6 +34,7 @@ from sharp_scout.utils.slate import (
     college_week_label,
     filter_plays_college_week,
     filter_plays_nfl_week,
+    filter_events_nfl_display_slate,
     group_stage_cards_by_college_week,
     parse_commence,
     partition_stage_cards_current_historical,
@@ -213,7 +214,16 @@ def build_site(
     nfl_signal_count = len(nfl_week_plays_sorted)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
-    stage_cards = signals.get("stage_picks") or []
+    stage_cards_all = signals.get("stage_picks") or []
+    nfl_games_display = filter_events_nfl_display_slate(signals.get("games") or [])
+    nfl_event_ids = {str(g.get("event_id")) for g in nfl_games_display}
+    stage_cards = [c for c in stage_cards_all if str(c.get("event_id")) in nfl_event_ids]
+    nfl_signals_list = [
+        s for s in (signals.get("signals") or []) if str(s.get("event_id")) in nfl_event_ids
+    ]
+    nfl_split_boards = [
+        b for b in (signals.get("split_boards") or []) if str(b.get("event_id")) in nfl_event_ids
+    ]
     disagreement_rows = _render_disagreement_rows(record.get("disagreements"))
     stage_rows = _render_stage_rows(stage_cards)
     stage_record_rows = _render_stage_record_rows(record.get("stage_records") or {})
@@ -223,10 +233,10 @@ def build_site(
     stage_highlights_html = _render_stage_highlight_lists(stage_summary)
 
     games_html = _render_games_pipeline(
-        signals.get("games") or [],
-        signals.get("split_boards") or [],
+        nfl_games_display,
+        nfl_split_boards,
         stage_cards,
-        signals.get("signals") or [],
+        nfl_signals_list,
         signals.get("ratings") or [],
     )
 

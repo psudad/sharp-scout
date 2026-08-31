@@ -22,6 +22,9 @@ def test_public_and_money_diverge():
     # mock: tickets 72% BUF, money 59% KC
     assert pub.side == "home"
     assert mon.side == "away"
+    # AN current_line is home -2.5; away money pick must show +2.5
+    assert pub.line == -2.5
+    assert mon.line == 2.5
 
 
 def test_stage_card_has_all_stages():
@@ -37,9 +40,12 @@ def test_stage_card_has_all_stages():
 def test_settle_stage_total():
     assert settle_stage_pick("over", home_score=24, away_score=27, market="total", line=50.5) == "win"
     assert settle_stage_pick("under", home_score=24, away_score=27, market="total", line=50.5) == "loss"
-    # Home +2.5, final home 20 away 20 → home covers
+    # Home +2.5 (team line), final 20-20 → home covers
     assert settle_stage_pick("home", home_score=20, away_score=20, market="spread", line=2.5) == "win"
-    assert settle_stage_pick("away", home_score=20, away_score=20, market="spread", line=2.5) == "loss"
+    # Away -2.5 is the same market (home +2.5); away fails to cover the tie
+    assert settle_stage_pick("away", home_score=20, away_score=20, market="spread", line=-2.5) == "loss"
+    # Away +2.5 (home -2.5), tie → away covers
+    assert settle_stage_pick("away", home_score=20, away_score=20, market="spread", line=2.5) == "win"
 
 
 def test_summarize():

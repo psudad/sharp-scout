@@ -43,6 +43,7 @@ from sharp_scout.utils.slate import (
     partition_stage_cards_current_historical,
     partition_stage_cards_nfl_current_historical,
 )
+from sharp_scout.stage_picks import normalize_stage_cards_team_lines
 from sharp_scout.utils.teams import ncaaf_display_code
 
 DOCS_DIR = ROOT / "docs"
@@ -242,11 +243,13 @@ def build_site(
     nfl_signal_count = len(nfl_week_plays_sorted)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
-    nfl_stage_cards = _merge_stage_cards(
-        ledger.get("stage_cards") or [],
-        signals.get("stage_picks") or [],
-        games=nfl_games_all,
-        plays=ledger.get("plays") or [],
+    nfl_stage_cards = normalize_stage_cards_team_lines(
+        _merge_stage_cards(
+            ledger.get("stage_cards") or [],
+            signals.get("stage_picks") or [],
+            games=nfl_games_all,
+            plays=ledger.get("plays") or [],
+        )
     )
     nfl_current_stage_cards, nfl_historical_weeks = partition_stage_cards_nfl_current_historical(
         nfl_stage_cards,
@@ -300,11 +303,13 @@ def build_site(
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
     ncaaf_plays_html = _render_play_cards(ncaaf_week_plays_sorted, live_fallback=[])
-    ncaaf_stage_cards = _merge_stage_cards(
-        ncaaf_ledger.get("stage_cards") or [],
-        ncaaf_signals.get("stage_picks") or [],
-        games=ncaaf_signals.get("games") or [],
-        plays=ncaaf_ledger.get("plays") or [],
+    ncaaf_stage_cards = normalize_stage_cards_team_lines(
+        _merge_stage_cards(
+            ncaaf_ledger.get("stage_cards") or [],
+            ncaaf_signals.get("stage_picks") or [],
+            games=ncaaf_signals.get("games") or [],
+            plays=ncaaf_ledger.get("plays") or [],
+        )
     )
     ncaaf_current_stage_cards, ncaaf_historical_weeks = partition_stage_cards_current_historical(
         ncaaf_stage_cards

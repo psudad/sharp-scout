@@ -82,6 +82,7 @@ class GameStageCard:
             "consensus_team": self.consensus_team,
             "hybrid_agrees_with": self.hybrid_agrees_with,
             "conflict_stages": self.conflict_stages,
+            "line_perspective": "team",
         }
 
 
@@ -95,6 +96,28 @@ def _team(side: Side | None, home: str, away: str) -> str | None:
     if side == "under":
         return "Under"
     return None
+
+
+def _line_for_side(market: str, side: Side | None, home_or_total_line: float | None) -> float | None:
+    """Attach the line from the picked side's perspective.
+
+    Action Network ``current_line`` and model spreads are home-perspective for ATS.
+    Display and settlement expect the number you'd bet on the chosen team (away flips sign).
+    Totals are unchanged.
+    """
+    if home_or_total_line is None:
+        return None
+    value = float(home_or_total_line)
+    if market == "spread" and side == "away":
+        return -value
+    return value
+
+
+def _home_spread_line(side: str | None, line: float) -> float:
+    """Convert a team-perspective spread line back to home perspective for grading."""
+    if side == "away":
+        return -float(line)
+    return float(line)
 
 
 def _consensus_total_line(event: dict[str, Any]) -> float | None:
@@ -143,21 +166,15 @@ def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread",
             conf,
             f"T_mod={sim.model_total:.1f} vs market {line:.1f}",
         )
-    # ATS: model_spread is away-home (neg => home favored). Pick favorite to cover.
-    # Home covers model line at model_spread as home line = -model? 
-    # model_spread = mu_away - mu_home; home favored when model_spread < 0
-    # Pick the side the model likes ATS at the model's own number:
+    # ATS: model_spread is home perspective (neg => home favored).
     side = "home" if sim.model_spread <= 0 else "away"
-    # Confidence from cover prob at key number closest to model
-    line = -abs(sim.model_spread) if side == "home" else -abs(sim.model_spread)
-    # Use p_home_win as rough confidence proxy for favorite
     conf = sim.p_home_win if side == "home" else sim.p_away_win
     return StagePick(
         "model",
         "spread",
         side,
         _team(side, home, away),
-        float(sim.model_spread),
+        _line_for_side("spread", side, float(sim.model_spread)),
         conf,
         f"S_mod={sim.model_spread:+.2f} (home perspective)",
     )
@@ -199,7 +216,7 @@ def pick_public(split_game: dict[str, Any] | None, home: str, away: str, market:
             market,
             side,
             _team(side, home, away),
-            block.get("current_line"),
+            _line_for_side(market, side, block.get("current_line")),
             max(ob, ub),
             f"tickets over={ob:.0%} under={ub:.0%}",
         )
@@ -212,7 +229,7 @@ def pick_public(split_game: dict[str, Any] | None, home: str, away: str, market:
         market,
         side,
         _team(side, home, away),
-        block.get("current_line"),
+        _line_for_side(market, side, block.get("current_line")),
         max(hb, ab),
         f"tickets home={hb:.0%} away={ab:.0%}",
     )
@@ -240,7 +257,7 @@ def pick_money(split_game: dict[str, Any] | None, home: str, away: str, market: 
             market,
             side,
             _team(side, home, away),
-            block.get("current_line"),
+            _line_for_side(market, side, block.get("current_line")),
             max(om, um),
             reason,
         )
@@ -260,7 +277,7 @@ def pick_money(split_game: dict[str, Any] | None, home: str, away: str, market: 
         market,
         side,
         _team(side, home, away),
-        block.get("current_line"),
+        _line_for_side(market, side, block.get("current_line")),
         max(hm, am),
         reason,
     )
@@ -304,7 +321,7 @@ def pick_sharp_edge(
         market,
         side,  # type: ignore[arg-type]
         team,
-        block.get("current_line"),
+        _line_for_side(market, side, block.get("current_line")),
         conf,
         edge.get("reason") or "",
     )
@@ -327,7 +344,7 @@ def pick_rlm(split_game: dict[str, Any] | None, home: str, away: str, market: st
                 market,
                 side,  # type: ignore[arg-type]
                 _team(side, home, away),  # type: ignore[arg-type]
-                block.get("current_line"),
+                _line_for_side(market, side, block.get("current_line")),
                 0.6,
                 note,
             )
@@ -622,11 +639,8 @@ def settle_stage_pick(
         if margin == 0:
             return "push"
         return "win" if (side == "home" and margin > 0) or (side == "away" and margin < 0) else "loss"
-    # Interpret line as home spread when side is home; if away, flip
-    home_line = float(line) if side == "home" else -float(line)
-    # Actually for away picks, line on card is often the home line from AN current_line.
-    # Safer: always treat `line` as home spread when present on stage cards.
-    home_line = float(line)
+    # ATS: stage pick lines are team-perspective (Odds API point / bet slip number).
+    home_line = _home_spread_line(side, float(line))
     covered = (home_score + home_line) - away_score
     if abs(covered) < 1e-9:
         return "push"
@@ -634,3 +648,48 @@ def settle_stage_pick(
     if side == "home":
         return "win" if home_covers else "loss"
     return "win" if not home_covers else "loss"
+
+
+_HOME_PERSPECTIVE_STAGES = frozenset({"model", "public", "money", "sharp_edge", "rlm"})
+
+
+def _should_flip_legacy_home_line(stage: str, pick: dict[str, Any]) -> bool:
+    if stage in _HOME_PERSPECTIVE_STAGES:
+        return True
+    if stage != "hybrid":
+        return False
+    reason = str(pick.get("reason") or "").lower()
+    return reason.startswith("model aligned") or reason.startswith("model lean")
+
+
+def normalize_stage_card_team_lines(card: dict[str, Any]) -> dict[str, Any]:
+    """Flip legacy home-perspective spread lines to team-perspective (idempotent via marker)."""
+    if str(card.get("market") or "") != "spread":
+        return card
+    if card.get("line_perspective") == "team":
+        return card
+    picks = card.get("picks") or {}
+    out_picks: dict[str, Any] = {}
+    changed = False
+    for stage, pick in picks.items():
+        row = dict(pick or {})
+        if (
+            _should_flip_legacy_home_line(str(stage), row)
+            and row.get("side") == "away"
+            and row.get("line") is not None
+        ):
+            row["line"] = -float(row["line"])
+            changed = True
+        out_picks[str(stage)] = row
+    if not changed and not picks:
+        out = dict(card)
+        out["line_perspective"] = "team"
+        return out
+    out = dict(card)
+    out["picks"] = out_picks
+    out["line_perspective"] = "team"
+    return out
+
+
+def normalize_stage_cards_team_lines(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [normalize_stage_card_team_lines(c) for c in cards]

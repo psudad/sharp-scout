@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -387,9 +387,19 @@ def settle_from_scores(
 ) -> dict[str, Any]:
     """scores: [{home_team, away_team, home_score, away_score, event_id?}, ...]"""
     from sharp_scout.utils.odds import normalize_team
+    from sharp_scout.utils.slate import parse_commence
 
     def _norm_team(name: Any, *, sport: str = "nfl") -> str:
         return normalize_team(str(name or ""), sport)
+
+    def _kickoff_eligible(row: dict[str, Any]) -> bool:
+        """Only grade games whose kickoff is in the past (avoids prior-season score collisions)."""
+        kick = parse_commence(row.get("kickoff") or row.get("commence_time"))
+        if kick is None:
+            # Manual / missing kickoff: allow (operator responsibility)
+            return True
+        # Require kickoff at least ~2.5h ago so the game is finished enough to grade.
+        return kick <= datetime.now(timezone.utc) - timedelta(hours=2, minutes=30)
 
     ledger = load_ledger(path)
     sport = "ncaaf" if path and "ncaaf" in path.name else "nfl"
@@ -398,9 +408,19 @@ def settle_from_scores(
         away = _norm_team(g.get("away_team"), sport=sport)
         home = _norm_team(g.get("home_team"), sport=sport)
         row = {**g, "away_team": away, "home_team": home}
-        index[f"{away}@{home}"] = row
+        # Prefer season-aware keys when present so 2025 BUF@HOU cannot grade 2026 Week 1.
+        season = g.get("season")
+        week = g.get("week")
+        base = f"{away}@{home}"
+        index[base] = row
+        if season is not None:
+            index[f"{season}:{base}"] = row
+            if week is not None:
+                index[f"{season}:{week}:{base}"] = row
         if g.get("event_id"):
             index[str(g["event_id"])] = row
+        if g.get("game_id"):
+            index[f"gid:{g['game_id']}"] = row
 
     def _lookup(row: dict[str, Any]) -> dict[str, Any] | None:
         eid = row.get("event_id")
@@ -408,11 +428,36 @@ def settle_from_scores(
             return index[str(eid)]
         away = _norm_team(row.get("away_team"), sport=sport)
         home = _norm_team(row.get("home_team"), sport=sport)
-        return index.get(f"{away}@{home}")
+        base = f"{away}@{home}"
+        season = row.get("season")
+        week = row.get("week")
+        if season is not None and week is not None:
+            hit = index.get(f"{season}:{week}:{base}")
+            if hit:
+                return hit
+        if season is not None:
+            hit = index.get(f"{season}:{base}")
+            if hit:
+                return hit
+        # Without season on the play, only match if the score row season matches the
+        # kickoff year (when known) — blocks cross-season team-pair collisions.
+        hit = index.get(base)
+        if not hit:
+            return None
+        kick = parse_commence(row.get("kickoff") or row.get("commence_time"))
+        score_season = hit.get("season")
+        if kick is not None and score_season is not None:
+            kick_year = kick.astimezone(timezone.utc).year
+            # NFL season spans calendar years (Jan playoffs); allow season or season+1.
+            if int(score_season) not in (kick_year, kick_year - 1):
+                return None
+        return hit
 
     settled = 0
     for play in ledger["plays"]:
         if play.get("status") not in (None, "pending"):
+            continue
+        if not _kickoff_eligible(play):
             continue
         g = _lookup(play)
         if not g:
@@ -426,6 +471,8 @@ def settle_from_scores(
     stage_settled = 0
     for card in ledger.get("stage_cards") or []:
         if not _stage_card_needs_grading(card):
+            continue
+        if not _kickoff_eligible(card):
             continue
         g = _lookup(card)
         if not g or g.get("home_score") is None or g.get("away_score") is None:

@@ -428,6 +428,7 @@ def build_site(
         ncaaf_alarm_stats_html=ncaaf_alarm_stats_html,
         stage_records_thead=stage_records_thead,
         stage_record_section_note=_esc(STAGE_RECORD_SECTION_NOTE),
+        guide_html=_render_guide_html(),
     )
     (out / "index.html").write_text(html)
 
@@ -438,6 +439,83 @@ def build_site(
     # CNAME placeholder not needed; add .nojekyll for GH Pages
     (out / ".nojekyll").write_text("")
     return out
+
+
+def _render_guide_html() -> str:
+    """Plain-language site guide — process overview, not model IP."""
+    return """
+<div class="guide-block">
+  <h2>How to use this site</h2>
+  <p>Sharp Scout Quant is a research board for NFL and college football. It compares our model view of each game to the market, then surfaces where the number looks soft — and where ticket/money splits agree or disagree.</p>
+  <div class="guide-callout"><p><b>Signals only.</b> Nothing here places a bet for you. Use it as a checklist before you decide.</p></div>
+</div>
+
+<div class="guide-block">
+  <h2>What the system is doing</h2>
+  <p>At a high level, each run:</p>
+  <ul>
+    <li><b>Rates teams</b> from recent play-by-play (efficiency / EPA-style power), so matchups have a model spread and total.</li>
+    <li><b>Simulates games</b> (Monte Carlo) to turn those ratings into cover and win probabilities at the posted lines.</li>
+    <li><b>Compares to the market</b> — sharp books and the wider board — to see where the price offers value vs our fair number.</li>
+    <li><b>Checks betting splits</b> (tickets vs money, line movement) as a second opinion: is the public piled on one side while dollars lean the other?</li>
+    <li><b>Filters</b> candidates so only plays that clear our bar show up as validated <b>Sharp Plays</b>.</li>
+  </ul>
+  <p>We do not publish the exact edges, weights, or filter thresholds. Treat the board as the output of that process, not a black-box tip sheet.</p>
+</div>
+
+<div class="guide-block">
+  <h2>How to read the tabs</h2>
+  <h3>NFL / CFB (main boards)</h3>
+  <ul>
+    <li><b>This Week's Plays</b> — validated Sharp Plays only. These are the bets we would actually track on the ledger.</li>
+    <li><b>Pregame Stage Winners</b> — every game, three markets (spread, moneyline, total). Each column is a different lens (model, sharp books, public tickets, money, etc.). The green <b>Quant Pick</b> is the system side for that market.</li>
+    <li><b>Quant Pick Leans</b> — all Quant Pick rows for the week. Yellow rows are posted Sharp Plays; the rest are leans / research, not auto-ledger bets.</li>
+    <li><b>Ledger</b> — full history of posted plays, results, CLV, and units.</li>
+  </ul>
+  <h3>Games</h3>
+  <p>Deep dive per matchup: model numbers, splits boards, and stage picks in one place. Use it when you want context on a single game.</p>
+  <h3>Stages</h3>
+  <p>Season-long scorecards for each lens, plus disagreement notes when the model and market diverge. Helpful for process review — not the first place to look for today's bet.</p>
+  <h3>Ratings</h3>
+  <p>Current power ratings (offense / defense EPA). Good for “who is actually strong right now?” before you dig into a line.</p>
+  <h3>NFL Historical / CFB Historical</h3>
+  <p>Prior weeks archived after the week rolls (NFL Wed–Tue ET; CFB Mon–Sun ET). Download CSV from any table if you want your own spreadsheet.</p>
+</div>
+
+<div class="guide-block">
+  <h2>How the board updates through the week</h2>
+  <ul>
+    <li><b>Opening / early week</b> — first lines and early sims. Expect more movement and fewer locked Sharp Plays.</li>
+    <li><b>Midweek</b> — ratings and odds refresh on the scheduled pipeline. Splits get richer as handle builds. Stage columns can flip as the number moves.</li>
+    <li><b>Late week / gameday</b> — sharper closes, better money/ticket reads, more stable Quant Picks. CLV is measured vs the closing line after the fact.</li>
+    <li><b>After games</b> — settle grades the ledger and stage records. Historical tabs pick up completed weeks.</li>
+  </ul>
+  <p>The header timestamp is the last successful site rebuild. Hard-refresh the page if something looks stale.</p>
+</div>
+
+<div class="guide-block">
+  <h2>When to place a bet</h2>
+  <ul>
+    <li>Prefer sides that appear as <b>Sharp Plays</b> (or yellow Quant Pick rows), not every stage column agreement.</li>
+    <li>If Model, Sharp, Money, and Quant Pick align — and Public is on the other side — that is usually a stronger process story than a lone model lean.</li>
+    <li>Re-check closer to kickoff: a play that looked good Tuesday can disappear (or flip) after steam or a number move.</li>
+    <li>Shop the price. The board names a market side; your edge depends on getting a number at least as good as what we evaluated.</li>
+    <li>Skip or downsize when the line has already moved through your number, or when you only see a lean with no validated Sharp Play.</li>
+  </ul>
+  <div class="guide-callout"><p>Best habit: note the play early, confirm on the last refresh before kickoff, then bet only if the number and story still hold.</p></div>
+</div>
+
+<div class="guide-block">
+  <h2>Quick glossary</h2>
+  <ul>
+    <li><b>Sharp Play</b> — cleared filters and posted to the ledger.</li>
+    <li><b>Quant Pick / Hybrid</b> — system side for that game/market after combining lenses.</li>
+    <li><b>CLV (Closing Line Value)</b> — did we beat the closing number? Positive CLV is a process win even before the game grades.</li>
+    <li><b>RLM</b> — reverse line movement: the line moves against the ticket majority (often a sharp-money tell).</li>
+    <li><b>Units</b> — stake size on the ledger; profit is tracked in units, not dollars.</li>
+  </ul>
+</div>
+"""
 
 
 def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
@@ -1721,6 +1799,39 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   #tab-nfl-historical.content {{ max-width: 1240px; }}
   #tab-cfb.content {{ max-width: 1240px; }}
   #tab-cfb-historical.content {{ max-width: 1240px; }}
+  #tab-guide.content {{ max-width: 820px; }}
+  .guide-block {{ margin: 0 0 28px; }}
+  .guide-block h2 {{
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 10px;
+    color: var(--color-text);
+  }}
+  .guide-block h3 {{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 18px 0 8px;
+  }}
+  .guide-block p, .guide-block li {{
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--color-text);
+    margin: 0 0 10px;
+  }}
+  .guide-block ul {{ margin: 0 0 12px; padding-left: 1.25rem; }}
+  .guide-block li {{ margin-bottom: 6px; }}
+  .guide-callout {{
+    border-left: 3px solid var(--color-navy);
+    background: var(--color-slate);
+    padding: 12px 14px;
+    margin: 14px 0;
+  }}
+  .guide-callout p {{ margin: 0; font-size: 14px; }}
   .summary-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 22px; }}
   @media (min-width: 700px) {{ .summary-grid {{ grid-template-columns: repeat(4, 1fr); }} }}
   .stat-card {{
@@ -1979,6 +2090,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
   <div class="tab" onclick="showTab('cfb', this)">CFB</div>
   <div class="tab" onclick="showTab('cfb-historical', this)">CFB Historical</div>
+  <div class="tab" onclick="showTab('guide', this)">How to use</div>
 </div>
 
 <div id="tab-plays" class="content active">
@@ -2075,6 +2187,10 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <div id="tab-cfb-historical" class="content">
   <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Monday ET, the prior week's stage winners and quant pick leans move here from the CFB tab. Use <b>Download CSV</b> on each table to export.</p>
   {ncaaf_historical_html}
+</div>
+
+<div id="tab-guide" class="content">
+  {guide_html}
 </div>
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>

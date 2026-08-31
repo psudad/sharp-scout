@@ -93,21 +93,30 @@ def _status_badge(status: str) -> str:
     return f'<span class="card-result {cls}">{label}</span>'
 
 
-def _pick_ncaaf_signals() -> dict[str, Any]:
-    """Prefer the signals file with the fullest current slate (avoids stale demo artifacts)."""
+def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
+    """Prefer the signals file with the fullest current slate (avoids stale empty artifacts)."""
     best: dict[str, Any] = {}
     best_n = -1
-    for path in (ARTIFACTS_DIR / NCAAF.artifact_name, DOCS_DIR / "latest_ncaaf_signals.json"):
-        if not path.exists():
-            continue
-        try:
-            data = json.loads(path.read_text())
-        except json.JSONDecodeError:
-            continue
-        n = int(data.get("n_games") or len(data.get("games") or []))
-        if n > best_n:
-            best, best_n = data, n
+    for name in path_names:
+        for path in (ARTIFACTS_DIR / name, DOCS_DIR / name):
+            if not path.exists():
+                continue
+            try:
+                data = json.loads(path.read_text())
+            except json.JSONDecodeError:
+                continue
+            n = int(data.get("n_games") or len(data.get("games") or []))
+            if n > best_n:
+                best, best_n = data, n
     return best
+
+
+def _pick_nfl_signals() -> dict[str, Any]:
+    return _pick_signals(("latest_signals.json",))
+
+
+def _pick_ncaaf_signals() -> dict[str, Any]:
+    return _pick_signals((NCAAF.artifact_name, "latest_ncaaf_signals.json"))
 
 
 def _render_analytics_head(measurement_id: str) -> str:
@@ -159,16 +168,28 @@ def build_site(
 
     ledger = load_ledger()
     record = compute_record(ledger)
-    signals: dict[str, Any] = {}
-    sp = signals_path or (ARTIFACTS_DIR / "latest_signals.json")
-    if sp.exists():
-        signals = json.loads(sp.read_text())
+    if signals_path is not None:
+        signals: dict[str, Any] = (
+            json.loads(signals_path.read_text()) if signals_path.exists() else {}
+        )
+    else:
+        signals = _pick_nfl_signals()
 
     # Copy data for client-side refresh / debugging
     (out / "ledger.json").write_text(json.dumps(ledger, indent=2) + "\n")
     (out / "record.json").write_text(json.dumps(record, indent=2) + "\n")
     if signals:
-        (out / "latest_signals.json").write_text(json.dumps(signals, indent=2, default=str) + "\n")
+        existing_n = 0
+        out_signals = out / "latest_signals.json"
+        if out_signals.exists():
+            try:
+                existing = json.loads(out_signals.read_text())
+                existing_n = int(existing.get("n_games") or len(existing.get("games") or []))
+            except json.JSONDecodeError:
+                existing_n = 0
+        new_n = int(signals.get("n_games") or len(signals.get("games") or []))
+        if new_n >= existing_n:
+            out_signals.write_text(json.dumps(signals, indent=2, default=str) + "\n")
 
     ncaaf_signals: dict[str, Any] = _pick_ncaaf_signals()
     ncaaf_ledger = load_ledger(path=DATA_DIR / NCAAF.ledger_name)

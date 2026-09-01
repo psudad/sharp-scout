@@ -91,12 +91,36 @@
     text-align: center;
   }
   .header-updated {
-    color: var(--color-text-muted);
-    font-size: 12px;
-    font-weight: 300;
-    margin-top: 8px;
+    display: none;
+  }
+  .board-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .board-updated-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: var(--color-navy);
+    color: #fff;
+    padding: 9px 12px;
+    border-bottom: 1px solid #152a45;
     font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .board-updated-label {
+    opacity: 0.85;
+    font-weight: 500;
+  }
+  .board-updated-time {
+    font-weight: 700;
     letter-spacing: 0.04em;
+    text-transform: none;
   }
   .pill {
     display: inline-block;
@@ -113,9 +137,6 @@
     border-radius: 0;
   }
   .tabs {
-    position: sticky;
-    top: 0;
-    z-index: 10;
     display: flex;
     background: var(--color-bg);
     border-bottom: 1px solid #e5e5e5;
@@ -443,10 +464,14 @@
       <h1>Sharp Scout Quant</h1>
       <p>NFL + NCAAF quant model · ratings → Monte Carlo → sharp EV → split filter</p>
       <span class="pill">NFL 0-0 · +0.0u · CFB 1-2 · +0.35u · Live pipeline</span>
-      <p class="header-updated">Updated Mon Aug 31, 7:45 PM ET</p>
     </div>
   </div>
 </div>
+<div class="board-nav">
+  <div class="board-updated-bar" role="status" aria-live="polite">
+    <span class="board-updated-label">Picks &amp; prices updated</span>
+    <span class="board-updated-time">Mon Aug 31, 7:43 PM ET</span>
+  </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">NFL</div>
   <div class="tab" onclick="showTab('nfl-historical', this)">NFL Historical</div>
@@ -456,6 +481,7 @@
   <div class="tab" onclick="showTab('cfb', this)">CFB</div>
   <div class="tab" onclick="showTab('cfb-historical', this)">CFB Historical</div>
   <div class="tab" onclick="showTab('guide', this)">How to use</div>
+</div>
 </div>
 
 <div id="tab-plays" class="content active">
@@ -1715,7 +1741,7 @@
     <li><b>Late week / gameday</b> — sharper closes, better money/ticket reads, more stable Quant Picks. CLV is measured vs the closing line after the fact.</li>
     <li><b>After games</b> — settle grades the ledger and stage records. Historical tabs pick up completed weeks.</li>
   </ul>
-  <p>The header timestamp is the last successful site rebuild. Hard-refresh the page if something looks stale.</p>
+  <p>The navy bar under the header shows when picks, prices, and lines were last refreshed (Eastern Time). It updates whenever the pipeline rebuilds the board. Hard-refresh the page if something looks stale.</p>
 </div>
 
 <div class="guide-block">

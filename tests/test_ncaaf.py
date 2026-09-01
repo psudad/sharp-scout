@@ -91,7 +91,22 @@ def test_compute_record_accepts_path(tmp_path: Path):
     assert rec["record"] == "0-0"
 
 
-def test_site_includes_cfb_tab(tmp_path: Path, monkeypatch):
+def test_resolve_board_updated_at_uses_latest_pipeline_timestamp():
+    from sharp_scout.site.build import _resolve_board_updated_at
+
+    ts = _resolve_board_updated_at(
+        nfl_signals={"generated_at": "2026-08-31T20:00:00+00:00"},
+        ncaaf_signals={"generated_at": "2026-08-31T21:17:31+00:00"},
+        nfl_ledger={"updated_at": "2026-08-31T19:00:00+00:00"},
+        ncaaf_ledger={"updated_at": "2026-08-31T20:45:00+00:00"},
+    )
+    assert "Aug 31" in ts
+    assert "ET" in ts
+    # 21:17 UTC = 5:17 PM ET (EDT)
+    assert "5:17 PM" in ts
+
+
+def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
     from sharp_scout.config import get_settings
 
     monkeypatch.setenv("GA_MEASUREMENT_ID", "")
@@ -110,6 +125,8 @@ def test_site_includes_cfb_tab(tmp_path: Path, monkeypatch):
     assert "lean-row-sharp-play" in html
     assert "Sharp Play" in html
     assert "Sharp Scout Quant" in html
+    assert "board-updated-bar" in html
+    assert "Picks &amp; prices updated" in html
     assert "CFB Historical" in html
     assert "showTab('cfb-historical'" in html
     assert "This Week — Pregame Stage Winners" in html
@@ -154,10 +171,10 @@ def test_historical_week_renders_csv_export_buttons():
     assert html.index("Weekly Lens Scorecard") < html.index("Quant Pick Leans")
     assert html.index("Quant Pick Leans") < html.index("Pregame Stage Winners")
     assert "Sharp Plays (ledger)" in html
-    assert "hist-stages-2026-08-24" in html
-    assert "hist-leans-2026-08-24" in html
-    assert "sharp-scout-stages-2026-08-24.csv" in html
-    assert "sharp-scout-leans-2026-08-24.csv" in html
+    assert "hist-cfb-stages-2026-08-24" in html
+    assert "hist-cfb-leans-2026-08-24" in html
+    assert "sharp-scout-cfb-stages-2026-08-24.csv" in html
+    assert "sharp-scout-cfb-leans-2026-08-24.csv" in html
     assert "Download CSV" in html
 
 

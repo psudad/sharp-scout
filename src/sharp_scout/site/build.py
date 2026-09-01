@@ -122,6 +122,33 @@ def _pick_ncaaf_signals() -> dict[str, Any]:
     return _pick_signals((NCAAF.artifact_name, "latest_ncaaf_signals.json"))
 
 
+def _format_timestamp_et(dt: datetime) -> str:
+    return dt.astimezone(ET).strftime("%a %b %-d, %-I:%M %p ET")
+
+
+def _resolve_board_updated_at(
+    *,
+    nfl_signals: dict[str, Any],
+    ncaaf_signals: dict[str, Any],
+    nfl_ledger: dict[str, Any],
+    ncaaf_ledger: dict[str, Any],
+) -> str:
+    """Latest pipeline / ledger / play timestamp for the board header."""
+    candidates: list[datetime] = []
+    for src in (nfl_signals, ncaaf_signals, nfl_ledger, ncaaf_ledger):
+        ts = parse_commence(src.get("generated_at") or src.get("updated_at"))
+        if ts is not None:
+            candidates.append(ts)
+    for ledger in (nfl_ledger, ncaaf_ledger):
+        for play in ledger.get("plays") or []:
+            for key in ("created_at", "settled_at", "clv_at"):
+                ts = parse_commence(play.get(key))
+                if ts is not None:
+                    candidates.append(ts)
+    latest = max(candidates) if candidates else datetime.now(timezone.utc)
+    return _format_timestamp_et(latest)
+
+
 def _render_analytics_head(measurement_id: str) -> str:
     mid = (measurement_id or "").strip()
     if not mid:
@@ -237,7 +264,6 @@ def build_site(
     nfl_pnl_cls = "pos" if nfl_pnl >= 0 else "neg"
     nfl_pnl_s = f"+{nfl_pnl}" if nfl_pnl >= 0 else str(nfl_pnl)
 
-    generated = datetime.now(ET).strftime("%a %b %-d, %-I:%M %p ET")
     nfl_signal_count = len(nfl_week_plays_sorted)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
@@ -378,10 +404,17 @@ def build_site(
         + "</tr></thead>"
     )
 
+    board_updated = _resolve_board_updated_at(
+        nfl_signals=signals,
+        ncaaf_signals=ncaaf_signals,
+        nfl_ledger=ledger,
+        ncaaf_ledger=ncaaf_ledger,
+    )
+
     html = SITE_TEMPLATE.format(
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         ssq_logo=_ssq_logo_svg(embedded=True),
-        generated=generated,
+        board_updated=board_updated,
         nfl_record=record["record"],
         nfl_win_pct=nfl_win_pct,
         nfl_pnl=nfl_pnl_s,
@@ -490,7 +523,7 @@ def _render_guide_html() -> str:
     <li><b>Late week / gameday</b> — sharper closes, better money/ticket reads, more stable Quant Picks. CLV is measured vs the closing line after the fact.</li>
     <li><b>After games</b> — settle grades the ledger and stage records. Historical tabs pick up completed weeks.</li>
   </ul>
-  <p>The header timestamp is the last successful site rebuild. Hard-refresh the page if something looks stale.</p>
+  <p>The navy bar under the header shows when picks, prices, and lines were last refreshed (Eastern Time). It updates whenever the pipeline rebuilds the board. Hard-refresh the page if something looks stale.</p>
 </div>
 
 <div class="guide-block">
@@ -1745,12 +1778,36 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     text-align: center;
   }}
   .header-updated {{
-    color: var(--color-text-muted);
-    font-size: 12px;
-    font-weight: 300;
-    margin-top: 8px;
+    display: none;
+  }}
+  .board-nav {{
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }}
+  .board-updated-bar {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: var(--color-navy);
+    color: #fff;
+    padding: 9px 12px;
+    border-bottom: 1px solid #152a45;
     font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }}
+  .board-updated-label {{
+    opacity: 0.85;
+    font-weight: 500;
+  }}
+  .board-updated-time {{
+    font-weight: 700;
     letter-spacing: 0.04em;
+    text-transform: none;
   }}
   .pill {{
     display: inline-block;
@@ -1767,9 +1824,6 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     border-radius: 0;
   }}
   .tabs {{
-    position: sticky;
-    top: 0;
-    z-index: 10;
     display: flex;
     background: var(--color-bg);
     border-bottom: 1px solid #e5e5e5;
@@ -2078,10 +2132,14 @@ SITE_TEMPLATE = """<!DOCTYPE html>
       <h1>Sharp Scout Quant</h1>
       <p>NFL + NCAAF quant model · ratings → Monte Carlo → sharp EV → split filter</p>
       <span class="pill">NFL {nfl_record} · {nfl_pnl}u · CFB {ncaaf_record} · {ncaaf_pnl}u · {ncaaf_demo_note}</span>
-      <p class="header-updated">Updated {generated}</p>
     </div>
   </div>
 </div>
+<div class="board-nav">
+  <div class="board-updated-bar" role="status" aria-live="polite">
+    <span class="board-updated-label">Picks &amp; prices updated</span>
+    <span class="board-updated-time">{board_updated}</span>
+  </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('plays', this)">NFL</div>
   <div class="tab" onclick="showTab('nfl-historical', this)">NFL Historical</div>
@@ -2091,6 +2149,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="tab" onclick="showTab('cfb', this)">CFB</div>
   <div class="tab" onclick="showTab('cfb-historical', this)">CFB Historical</div>
   <div class="tab" onclick="showTab('guide', this)">How to use</div>
+</div>
 </div>
 
 <div id="tab-plays" class="content active">

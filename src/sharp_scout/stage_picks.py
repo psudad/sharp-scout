@@ -136,6 +136,19 @@ def _consensus_total_line(event: dict[str, Any]) -> float | None:
     return None
 
 
+def _consensus_spread_line(event: dict[str, Any]) -> float | None:
+    """Market spread in home perspective (neg => home favored), from the sharp consensus."""
+    sharp = sharp_consensus(event, "spreads")
+    outcomes = (sharp or {}).get("outcomes") or []
+    for o in outcomes:
+        if o.get("side") == "home" and o.get("point") is not None:
+            return float(o["point"])
+    for o in outcomes:
+        if o.get("side") == "away" and o.get("point") is not None:
+            return -float(o["point"])
+    return None
+
+
 def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread", event: dict[str, Any] | None = None) -> StagePick:
     if market == "h2h":
         side: Side = "home" if sim.p_home_win >= sim.p_away_win else "away"
@@ -166,17 +179,38 @@ def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread",
             conf,
             f"T_mod={sim.model_total:.1f} vs market {line:.1f}",
         )
-    # ATS: model_spread is home perspective (neg => home favored).
-    side = "home" if sim.model_spread <= 0 else "away"
-    conf = sim.p_home_win if side == "home" else sim.p_away_win
+    # ATS: model_spread and the market line are home-perspective (neg => home favored).
+    # The model's lean is which side COVERS the market number, not who wins outright.
+    # Home covers iff the model's projected home margin beats the market spread, i.e.
+    # model_spread < market_line (e.g. model -3 vs market -29 => home doesn't cover).
+    mkt = _consensus_spread_line(event or {})
+    if mkt is None:
+        # No market line to bet against — fall back to the raw model lean.
+        side = "home" if sim.model_spread <= 0 else "away"
+        conf = sim.p_home_win if side == "home" else sim.p_away_win
+        return StagePick(
+            "model",
+            "spread",
+            side,
+            _team(side, home, away),
+            _line_for_side("spread", side, float(sim.model_spread)),
+            conf,
+            f"S_mod={sim.model_spread:+.2f} (home perspective; no market line)",
+        )
+
+    side = "home" if sim.model_spread < mkt else "away"
+    disp_line = _line_for_side("spread", side, float(mkt))
+    from sharp_scout.phase2.monte_carlo import p_true_for_market
+
+    conf = p_true_for_market(sim, "spreads", side, disp_line)
     return StagePick(
         "model",
         "spread",
         side,
         _team(side, home, away),
-        _line_for_side("spread", side, float(sim.model_spread)),
+        disp_line,
         conf,
-        f"S_mod={sim.model_spread:+.2f} (home perspective)",
+        f"S_mod={sim.model_spread:+.2f} vs mkt {mkt:+.2f} (home persp) → {_team(side, home, away)} covers",
     )
 
 

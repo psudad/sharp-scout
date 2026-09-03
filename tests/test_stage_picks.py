@@ -2,16 +2,63 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from sharp_scout.data.action_network import mock_splits
 from sharp_scout.data.odds_api import mock_odds_events
 from sharp_scout.phase2.monte_carlo import simulate_game
 from sharp_scout.stage_picks import (
     build_game_stage_card,
+    pick_model,
     pick_money,
     pick_public,
     settle_stage_pick,
     summarize_stage_slate,
 )
+
+
+def _event_with_spread(home_point: float, away_point: float) -> dict:
+    """Minimal event whose sharp consensus yields a home-perspective spread line."""
+    return {
+        "home_team": "RUT",
+        "away_team": "UMASS",
+        "bookmakers": {
+            "pinnacle": {
+                "is_sharp": True,
+                "markets": {
+                    "spreads": [
+                        {"side": "home", "point": home_point, "price": -110},
+                        {"side": "away", "point": away_point, "price": -110},
+                    ]
+                },
+            }
+        },
+    }
+
+
+def test_model_spread_pick_uses_market_line_and_cover_side():
+    # Model projects the home team by only 3, but the market has them -29.
+    # ATS the model should lean the AWAY side at the real +29 number — never "RUT -3".
+    sim = SimpleNamespace(model_spread=-3.0, p_home_win=0.85, p_away_win=0.15, cover_probs={})
+    ev = _event_with_spread(home_point=-29.0, away_point=29.0)
+    pick = pick_model(sim, "RUT", "UMASS", market="spread", event=ev)
+    assert pick.side == "away"
+    assert pick.team == "UMASS"
+    assert pick.line == 29.0  # the number you'd actually bet, not the -3 projection
+
+    # If the model instead projects a blowout beyond the number, home covers at -29.
+    sim2 = SimpleNamespace(model_spread=-35.0, p_home_win=0.99, p_away_win=0.01, cover_probs={})
+    pick2 = pick_model(sim2, "RUT", "UMASS", market="spread", event=ev)
+    assert pick2.side == "home"
+    assert pick2.line == -29.0
+
+
+def test_model_spread_falls_back_when_no_market_line():
+    sim = SimpleNamespace(model_spread=-3.0, p_home_win=0.6, p_away_win=0.4, cover_probs={})
+    pick = pick_model(sim, "RUT", "UMASS", market="spread", event={"bookmakers": {}})
+    # No market line to cover — legacy behavior: raw model lean, home favored.
+    assert pick.side == "home"
+    assert pick.line == -3.0
 
 
 def test_public_and_money_diverge():

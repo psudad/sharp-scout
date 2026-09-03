@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Iterable
 
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -28,6 +28,44 @@ SCOREBOARD_TMPL = "https://api.actionnetwork.com/web/v2/scoreboard/publicbetting
 
 # Books that commonly include public betting bet_info (DK, FanDuel, Caesars, etc.)
 DEFAULT_BOOK_IDS = "15,30,255,3547,280,3,11,14,4727,4795,68,122"
+
+_SPLIT_PCT_KEYS = (
+    "home_bet_pct",
+    "away_bet_pct",
+    "over_bet_pct",
+    "under_bet_pct",
+    "home_money_pct",
+    "away_money_pct",
+    "over_money_pct",
+    "under_money_pct",
+)
+
+
+def _split_row_score(row: dict[str, Any]) -> int:
+    """How many split percentages a row actually carries (used to pick the better dupe)."""
+    markets = row.get("markets") or {}
+    score = 0
+    for block in markets.values():
+        if isinstance(block, dict):
+            score += sum(1 for k in _SPLIT_PCT_KEYS if block.get(k) is not None)
+    return score
+
+
+def slate_dates_et(events: Iterable[dict[str, Any]]) -> list[str]:
+    """Distinct YYYYMMDD (ET) kickoff dates for a slate, oldest first.
+
+    Action Network buckets its scoreboard by local US date, so this is the set of dates
+    we need to request to cover every game on the board.
+    """
+    from sharp_scout.utils.slate import ET, parse_commence
+
+    dates: set[str] = set()
+    for ev in events:
+        kickoff = parse_commence(ev.get("commence_time") or ev.get("kickoff"))
+        if kickoff is None:
+            continue
+        dates.add(kickoff.astimezone(ET).strftime("%Y%m%d"))
+    return sorted(dates)
 
 
 class ActionNetworkClient:
@@ -96,6 +134,31 @@ class ActionNetworkClient:
         if isinstance(games, dict):
             games = list(games.values())
         return [self._normalize_game(g) for g in games if isinstance(g, dict)]
+
+    def fetch_scoreboard_dates(self, dates: Iterable[str]) -> list[dict[str, Any]]:
+        """Fetch and merge several slate dates (YYYYMMDD).
+
+        A dateless request only returns Action Network's single default slate, which
+        cannot cover a college week spanning Thursday through Saturday. Merging per-date
+        requests is what makes splits available for midweek games.
+        """
+        merged: dict[str, dict[str, Any]] = {}
+        for date in dict.fromkeys(d for d in dates if d):
+            try:
+                rows = self.fetch_scoreboard(date=date)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Action Network %s fetch failed for %s: %s", self.league, date, exc)
+                continue
+            logger.info("Action Network %s %s: %d rows", self.league, date, len(rows))
+            for row in rows:
+                key = str(
+                    row.get("game_id")
+                    or f"{row.get('away_team')}@{row.get('home_team')}"
+                )
+                # Keep the richer row if the same game shows up on adjacent dates.
+                if key not in merged or _split_row_score(row) > _split_row_score(merged[key]):
+                    merged[key] = row
+        return list(merged.values())
 
     def diagnose(self) -> dict[str, Any]:
         """Check cookie + whether money/ticket % are present."""

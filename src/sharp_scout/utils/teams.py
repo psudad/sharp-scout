@@ -612,6 +612,21 @@ def _strip_mascot(name: str) -> str:
     return up
 
 
+def _alias_by_dropping_trailing_words(name: str) -> str | None:
+    """Resolve "UAB BLAZERS" → UAB by trimming trailing words until an alias hits.
+
+    Feeds are full of mascots we have not enumerated, so rather than growing ``_MASCOTS``
+    forever we trim from the right and take the longest prefix that is a known school.
+    Requires at least two words so a bare mascot can never resolve on its own.
+    """
+    words = name.split()
+    for cut in range(len(words) - 1, 0, -1):
+        prefix = " ".join(words[:cut])
+        if prefix in NCAAF_ALIASES:
+            return NCAAF_ALIASES[prefix]
+    return None
+
+
 def normalize_ncaaf(name: str) -> str:
     raw = re.sub(r"\s+", " ", (name or "").strip().upper())
     if not raw or raw == "NAN":
@@ -619,6 +634,12 @@ def normalize_ncaaf(name: str) -> str:
     if raw in NCAAF_ALIASES:
         return NCAAF_ALIASES[raw]
     stripped = _strip_mascot(raw)
+    if stripped in NCAAF_ALIASES:
+        return NCAAF_ALIASES[stripped]
+    # Unknown mascot: fall back to the longest known-school prefix.
+    by_prefix = _alias_by_dropping_trailing_words(stripped) or _alias_by_dropping_trailing_words(raw)
+    if by_prefix is not None:
+        return by_prefix
     if stripped in NCAAF_ALIASES:
         return NCAAF_ALIASES[stripped]
     # Already a short code

@@ -244,10 +244,25 @@ def _backfill_open_lines(board: dict[str, Any]) -> None:
         block["open_line_book"] = sample.get("book")
 
 
-def fetch_action_network_splits(*, date: str | None = None) -> list[dict[str, Any]]:
-    """Fetch live Action Network splits; never silently substitutes mock data."""
-    from sharp_scout.data.action_network import ActionNetworkClient
+def fetch_action_network_splits(
+    *,
+    date: str | None = None,
+    events: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Fetch live Action Network splits; never silently substitutes mock data.
+
+    With ``events`` and no explicit ``date``, requests every kickoff date on the slate —
+    a dateless request only returns AN's single default slate, so Thursday and Monday
+    games would otherwise come back with no splits at all.
+    """
+    from sharp_scout.data.action_network import ActionNetworkClient, slate_dates_et
     from sharp_scout.data.line_memory import overlay_open_lines
 
-    games = ActionNetworkClient().fetch_scoreboard(date=date)
+    client = ActionNetworkClient()
+    if date:
+        games = client.fetch_scoreboard(date=date)
+    elif events:
+        games = client.fetch_scoreboard_dates(slate_dates_et(events))
+    else:
+        games = client.fetch_scoreboard()
     return overlay_open_lines(games)

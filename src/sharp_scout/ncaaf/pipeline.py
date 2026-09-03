@@ -95,7 +95,13 @@ def run_ncaaf_pipeline(
         splits = mock_ncaaf_splits()
     else:
         try:
-            splits = ActionNetworkClient(league="ncaaf").fetch_scoreboard()
+            from sharp_scout.data.action_network import slate_dates_et
+
+            # One dateless request only covers AN's default slate; a college week spans
+            # Thu–Sat, so request every kickoff date on the board and merge.
+            splits = ActionNetworkClient(league="ncaaf").fetch_scoreboard_dates(
+                slate_dates_et(events)
+            )
             if not splits:
                 logger.warning("AN NCAAF empty — overlay mock splits where possible")
                 splits = mock_ncaaf_splits()

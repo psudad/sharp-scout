@@ -84,7 +84,7 @@ def run_pipeline(
         try:
             from sharp_scout.data.splits_board import fetch_action_network_splits
 
-            splits = fetch_action_network_splits(date=splits_date)
+            splits = fetch_action_network_splits(date=splits_date, events=events)
             if not splits:
                 logger.warning("Action Network returned no games — splits unavailable")
                 splits = []

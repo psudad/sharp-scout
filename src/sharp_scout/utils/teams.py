@@ -595,6 +595,18 @@ NCAAF_ALIASES: dict[str, str] = {
     "KENNESAW STATE": "KENNESAW STATE",
     "MRMK": "MERRIMACK",
     "MERRIMACK": "MERRIMACK",
+    # Ampersand schools: matching flattens "&" to " AND ", so pin a clean display canon.
+    "NC A&T": "NC A&T",
+    "NC A AND T": "NC A&T",
+    "NORTH CAROLINA A&T": "NC A&T",
+    "NORTH CAROLINA A AND T": "NC A&T",
+    "TEXAS A AND M": "TAMU",
+    "FLORIDA A&M": "FAMU",
+    "FLORIDA A AND M": "FAMU",
+    "ALABAMA A&M": "ALABAMA A&M",
+    "ALABAMA A AND M": "ALABAMA A&M",
+    "PRAIRIE VIEW A&M": "PRAIRIE VIEW A&M",
+    "PRAIRIE VIEW A AND M": "PRAIRIE VIEW A&M",
 }
 
 NCAAF_DEMO_TEAMS = [
@@ -675,8 +687,8 @@ def _preferred_display_codes() -> dict[str, str]:
     for key, canon in NCAAF_ALIASES.items():
         if " " in key or len(key) > 8:
             continue
-        # Prefer familiar abbreviations (NDSU, SJSU) over longer codes.
-        score = (0 if len(key) <= 5 else 1, len(key))
+        # Prefer familiar abbreviations (NDSU, SJSU) over longer or punctuated codes.
+        score = (0 if key.isalnum() else 1, 0 if len(key) <= 5 else 1, len(key))
         prev = best.get(canon)
         if prev is None or score < prev[0]:
             best[canon] = (score, key)
@@ -693,7 +705,8 @@ def ncaaf_display_code(name: str) -> str:
         return name or ""
     if canon in _DISPLAY_CODES:
         return _DISPLAY_CODES[canon]
-    if " " not in canon:
+    if len(canon) <= 8:
+        # Already board-sized ("NC A&T"); initials would only obscure it.
         return canon
     parts = [p for p in canon.split() if p not in {"STATE", "ST", "UNIVERSITY", "OF"}]
     if len(parts) == 1:

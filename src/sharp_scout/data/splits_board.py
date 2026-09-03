@@ -188,20 +188,60 @@ def build_game_split_board(
 def build_slate_split_boards(
     events: list[dict[str, Any]],
     splits: list[dict[str, Any]],
+    *,
+    sport: str = "nfl",
 ) -> list[dict[str, Any]]:
     boards = []
     for ev in events:
         home, away = ev["home_team"], ev["away_team"]
-        split = _find_split_game(splits, home, away)
-        boards.append(
-            build_game_split_board(
-                split,
-                home_team=home,
-                away_team=away,
-                event_id=str(ev.get("event_id") or ""),
-            )
+        split = _find_split_game(splits, home, away, sport=sport)
+        board = build_game_split_board(
+            split,
+            home_team=home,
+            away_team=away,
+            event_id=str(ev.get("event_id") or ""),
         )
+        _backfill_open_lines(board)
+        boards.append(board)
     return boards
+
+
+# Action Network market key → (line_history market, side used for the posted number)
+_OPEN_LINE_SERIES = {"spread": ("spreads", "home"), "total": ("totals", "over")}
+
+
+def _backfill_open_lines(board: dict[str, Any]) -> None:
+    """Fill ``open_line`` from the committed line-history store.
+
+    Action Network usually omits the opening number, and ``line_memory`` only remembers
+    lines within a single run — on ephemeral CI runners that makes open == current, so
+    RLM can never fire. ``line_history.json`` is committed and holds the genuine
+    first-seen sharp line, so it is the durable source for "open → now".
+    """
+    from sharp_scout.data.line_store import load_history, opening_sample
+
+    event_id = board.get("event_id")
+    markets = board.get("markets") or {}
+    if not event_id or not markets:
+        return
+
+    history = load_history()
+    if not history:
+        return
+
+    for mkey, (hist_market, side) in _OPEN_LINE_SERIES.items():
+        block = markets.get(mkey)
+        if not block or block.get("open_line") is not None:
+            continue
+        sample = opening_sample(event_id, hist_market, side, history=history)
+        if sample is None:
+            continue
+        line = sample.get("line")
+        if line is None:
+            continue
+        block["open_line"] = float(line)
+        block["open_line_ts"] = sample.get("ts")
+        block["open_line_book"] = sample.get("book")
 
 
 def fetch_action_network_splits(*, date: str | None = None) -> list[dict[str, Any]]:

@@ -150,6 +150,35 @@ def samples_for(
     return list(hist.get(series_key(event_id, market, side), []))
 
 
+def opening_sample(
+    event_id: Any,
+    market: str,
+    side: str,
+    *,
+    preferred_books: list[str] | None = None,
+    path: Path | None = None,
+    history: dict[str, list[dict[str, Any]]] | None = None,
+) -> dict[str, Any] | None:
+    """Earliest sample we ever recorded — the opening line we first saw.
+
+    Prefers a sharp benchmark book so "open → now" compares like with like; falls back
+    to the oldest sample from any book.
+    """
+    samples = samples_for(event_id, market, side, path=path, history=history)
+    if not samples:
+        return None
+
+    def sort_ts(s: dict[str, Any]) -> str:
+        return str(s.get("ts") or "")
+
+    pref = preferred_books or (get_settings().sharp_books + ["circa"])
+    for book in pref:
+        book_samples = [s for s in samples if s.get("book") == book]
+        if book_samples:
+            return min(book_samples, key=sort_ts)
+    return min(samples, key=sort_ts)
+
+
 def closing_sample(
     event_id: Any,
     market: str,

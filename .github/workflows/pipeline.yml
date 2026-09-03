@@ -106,7 +106,7 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ledger.json data/line_history.json data/calibration.json docs/
+          git add data/ledger.json data/line_history.json data/open_lines.json data/calibration.json docs/
           if git diff --staged --quiet; then
             echo "No NFL ledger/site changes"
           else

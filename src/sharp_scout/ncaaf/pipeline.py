@@ -184,7 +184,7 @@ def run_ncaaf_pipeline(
     stage_summary = summarize_stage_slate(stage_cards)
     from sharp_scout.data.splits_board import build_slate_split_boards
 
-    split_boards = build_slate_split_boards(events, splits)
+    split_boards = build_slate_split_boards(events, splits, sport="ncaaf")
     for g in game_results:
         eid = str(g.get("event_id"))
         cards_for = [c for c in stage_cards if c["event_id"] == eid]

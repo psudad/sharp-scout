@@ -241,7 +241,11 @@ def build_site(
         )
 
     pending = [p for p in ledger["plays"] if (p.get("status") or "pending") == "pending"]
-    settled = [p for p in ledger["plays"] if (p.get("status") or "pending") != "pending"]
+    # Ledger tab shows the current NFL week only; prior weeks live on NFL Historical.
+    settled = filter_plays_nfl_display_slate(
+        [p for p in ledger["plays"] if (p.get("status") or "pending") != "pending"],
+        events=signals.get("games") or [],
+    )
     settled_sorted = sorted(settled, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True)
     pending_deduped = collapse_best_signals(pending)
     pending_sorted = sorted(
@@ -359,7 +363,10 @@ def build_site(
     ncaaf_pnl = ncaaf_record["pnl_units"]
     ncaaf_pnl_cls = "pos" if ncaaf_pnl >= 0 else "neg"
     ncaaf_pnl_s = f"+{ncaaf_pnl}" if ncaaf_pnl >= 0 else str(ncaaf_pnl)
-    ncaaf_settled = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") != "pending"]
+    # Ledger tab shows the current college week only; prior weeks live on CFB Historical.
+    ncaaf_settled = filter_plays_college_week(
+        [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") != "pending"]
+    )
     ncaaf_settled_sorted = sorted(
         ncaaf_settled, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True
     )
@@ -737,6 +744,32 @@ def _rating_row(team: str, ratings: list[dict]) -> str:
     return f"power {r['power']:.3f} · off {r['off_epa']:.3f} · def {r['def_epa']:.3f}"
 
 
+def _render_line_move(mdata: dict[str, Any]) -> str:
+    """"Open → now" for a market, using the first sharp line we ever recorded."""
+    open_line = mdata.get("open_line")
+    cur_line = mdata.get("line")
+    if open_line is None or cur_line is None:
+        return ""
+    try:
+        open_f, cur_f = float(open_line), float(cur_line)
+    except (TypeError, ValueError):
+        return ""
+
+    delta = cur_f - open_f
+    if abs(delta) < 0.25:
+        move = "<span class='line-move flat'>no move</span>"
+    else:
+        move = f"<span class='line-move {'pos' if delta > 0 else 'neg'}'>{delta:+g}</span>"
+
+    stamp = ""
+    ts = mdata.get("open_line_ts")
+    if ts:
+        book = mdata.get("open_line_book")
+        who = f" · {book}" if book else ""
+        stamp = f" <span class='line-open-ts'>(open captured {_esc(format_kickoff_et(ts))}{_esc(who)})</span>"
+    return f" <span class='line-open'>· open {open_f:g} → now {cur_f:g}</span> {move}{stamp}"
+
+
 def _render_splits_table(board: dict[str, Any]) -> str:
     markets = board.get("markets") or {}
     if not markets:
@@ -766,7 +799,7 @@ def _render_splits_table(board: dict[str, Any]) -> str:
         line = mdata.get("line")
         line_s = f" line {line}" if line is not None else ""
         parts.append(
-            f"<div class='phase-sub'>{_esc(mkey)}{line_s}</div>"
+            f"<div class='phase-sub'>{_esc(mkey)}{line_s}{_render_line_move(mdata)}</div>"
             f"<div class='table-wrap'><table><thead><tr>"
             f"<th>Side</th><th>Tickets</th><th>Money</th><th>Diff</th></tr></thead>"
             f"<tbody>{''.join(rows)}</tbody></table></div>"
@@ -1256,6 +1289,31 @@ def _render_stage_weeks_html(cards: list[dict], *, sport: str = "ncaaf") -> str:
     return "".join(parts)
 
 
+def _render_week_ledger_block(
+    week_plays: list[dict[str, Any]],
+    *,
+    prefix: str,
+    slug: str,
+) -> str:
+    """Graded plays for an archived week, so settled plays leave the current ledger tab."""
+    graded = [p for p in week_plays if (p.get("status") or "pending") != "pending"]
+    if not graded:
+        return ""
+    table_id = f"hist-{prefix}-ledger-{slug}"
+    record = _compute_play_record(graded)["record"]
+    toolbar = _section_toolbar(
+        f"Graded Plays · {record}", table_id, f"sharp-scout-{prefix}-ledger-{slug}.csv"
+    )
+    return (
+        f"{toolbar}"
+        f'<div class="table-wrap"><table id="{table_id}">'
+        "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th>"
+        "<th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>"
+        f"<tbody>{_render_ledger_rows(graded)}</tbody>"
+        "</table></div>"
+    )
+
+
 def _render_historical_weeks(
     weeks: list[tuple[Any, list[dict[str, Any]]]],
     *,
@@ -1285,6 +1343,7 @@ def _render_historical_weeks(
             f'<div class="week-block historical-week">'
             f'<div class="section-label" style="margin-top:18px">{_esc(label)}</div>'
             f"{_render_weekly_lens_scorecard(week_cards, ledger_plays=week_ledger)}"
+            f"{_render_week_ledger_block(week_ledger, prefix=prefix, slug=slug)}"
             f"{_section_toolbar('Quant Pick Leans', leans_id, f'sharp-scout-{prefix}-leans-{slug}.csv')}"
             f"{_render_hybrid_leans_section(week_cards, sport=sport, show_intro=False, table_id=leans_id, ledger_plays=week_ledger)}"
             f"{_section_toolbar('Pregame Stage Winners', stages_id, f'sharp-scout-{prefix}-stages-{slug}.csv')}"
@@ -2115,6 +2174,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   }}
   .phase-note {{ font-size: 13px; color: var(--color-text-muted); margin: 4px 0; line-height: 1.65; font-weight: 300; }}
   .phase-sub {{ font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin: 8px 0 4px; }}
+  .line-open {{ color: var(--color-text); text-transform: none; letter-spacing: 0; }}
+  .line-move {{ font-weight: 700; text-transform: none; letter-spacing: 0; }}
+  .line-move.pos {{ color: var(--color-win); }}
+  .line-move.neg {{ color: var(--color-loss); }}
+  .line-move.flat {{ color: var(--color-text-muted); }}
+  .line-open-ts {{ color: var(--color-text-muted); text-transform: none; letter-spacing: 0; font-weight: 400; }}
   .footer {{ color: var(--color-text-muted); font-size: 11px; padding: 32px 16px; text-align: center; line-height: 1.7; font-weight: 300; }}
   @media (max-width: 640px) {{
     .ssq-logo {{ width: 56px; height: 56px; }}

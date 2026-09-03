@@ -50,3 +50,35 @@ def test_closing_sample_prefers_before_kickoff(tmp_path: Path):
     )
     assert close is not None
     assert close["line"] == -3.5  # last sample before kickoff, ignores the post-kick -7
+
+
+def test_opening_sample_is_first_seen_line(tmp_path: Path):
+    p = tmp_path / "lh.json"
+    line_store.record_snapshot([_event(-2.5)], path=p)
+    line_store.record_snapshot([_event(-3.0)], path=p)
+    line_store.record_snapshot([_event(-3.5)], path=p)
+
+    opening = line_store.opening_sample("e1", "spreads", "home", path=p)
+    closing = line_store.closing_sample("e1", "spreads", "home", path=p)
+    assert opening is not None and closing is not None
+    assert opening["line"] == -2.5
+    assert closing["line"] == -3.5
+
+
+def test_backfill_open_lines_uses_line_history(tmp_path: Path, monkeypatch):
+    """Open lines must survive across CI runs, otherwise open == current and RLM never fires."""
+    from sharp_scout.data import splits_board
+
+    p = tmp_path / "lh.json"
+    line_store.record_snapshot([_event(-2.5)], path=p)
+    line_store.record_snapshot([_event(-4.0)], path=p)
+    history = line_store.load_history(p)
+    monkeypatch.setattr(line_store, "load_history", lambda *a, **k: history)
+
+    board = {
+        "event_id": "e1",
+        "markets": {"spread": {"line": -4.0, "open_line": None}},
+    }
+    splits_board._backfill_open_lines(board)
+    assert board["markets"]["spread"]["open_line"] == -2.5
+    assert board["markets"]["spread"]["open_line_book"] == "pinnacle"

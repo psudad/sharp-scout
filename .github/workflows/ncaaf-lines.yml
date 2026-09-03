@@ -3,8 +3,9 @@ name: NCAAF Line Snapshots (CLV)
 # Schedule-driven sharp line capture + gameday board refresh for college football:
 #   • Tuesday 10:00 ET — rebuild plan + opening lines for the college week
 #   • Hourly gate — only calls the Odds API when a game is at T-6h / T-4h / T-3h / T-1h
-#   • T-3h / T-1h — full board rebuild (plays, splits, open→now, When-to-bet) → docs/,
-#     which auto-triggers the Pages deploy on push.
+#   • T-3h / T-1h — full board rebuild (plays, splits, open→now, When-to-bet) → docs/
+#     and an in-workflow GitHub Pages deploy (pushes from the Actions token don't
+#     trigger the separate pages.yml, so this workflow deploys itself).
 #
 # Requires repo secret: ODDS_API_KEY (ACTION_NETWORK_TOKEN optional for money %)
 
@@ -31,6 +32,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: ncaaf-lines
@@ -39,6 +42,8 @@ concurrency:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.deployflag.outputs.deploy }}
     steps:
       - uses: actions/checkout@v4
 
@@ -105,6 +110,15 @@ jobs:
           fi
           python scripts/run_ncaaf.py --build-site --skip-pbp
 
+      - name: Flag whether a Pages deploy is needed
+        id: deployflag
+        run: |
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.rebuild_report }}" = "true" ] || [ "${{ steps.gate.outputs.rebuild }}" = "true" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Commit plan + line history + site
         run: |
           git config user.name "sharp-scout-bot"
@@ -117,3 +131,20 @@ jobs:
             git pull --rebase --autostash origin main
             git push
           fi
+
+      - name: Upload Pages artifact
+        if: steps.deployflag.outputs.deploy == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: snapshot
+    if: needs.snapshot.outputs.deploy == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

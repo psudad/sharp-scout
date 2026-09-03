@@ -97,6 +97,56 @@ def _status_badge(status: str) -> str:
     return f'<span class="card-result {cls}">{label}</span>'
 
 
+def _hours_until_kickoff(raw: Any, *, now: datetime | None = None) -> float | None:
+    kickoff = parse_commence(raw)
+    if kickoff is None:
+        return None
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return (kickoff - now).total_seconds() / 3600.0
+
+
+def _play_timing_status_html(play: dict[str, Any]) -> str:
+    """When to bet guidance for open Sharp Plays (replaces a bare PENDING badge)."""
+    st = play.get("status") or "pending"
+    if st in ("win", "loss", "push", "void"):
+        return _status_badge(st)
+
+    htk = _hours_until_kickoff(play.get("kickoff") or play.get("commence_time"))
+    if htk is None:
+        return (
+            '<span class="play-timing hold">'
+            "Don't play yet — lock in closer to game time"
+            "</span>"
+        )
+    if htk <= 0:
+        return '<span class="play-timing started">Game started — too late to bet</span>'
+    if htk <= 1:
+        return (
+            '<span class="play-timing lock">'
+            "Lock in now if the number still holds"
+            "</span>"
+        )
+    if htk <= 3:
+        return (
+            '<span class="play-timing soon">'
+            "Almost time — confirm at the T-1h refresh"
+            "</span>"
+        )
+    if htk <= 12:
+        return (
+            '<span class="play-timing watch">'
+            "Watch — confirm at the T-3h pregame refresh"
+            "</span>"
+        )
+    return (
+        '<span class="play-timing hold">'
+        "Don't play yet — lock in closer to game time"
+        "</span>"
+    )
+
+
 def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
     """Prefer the signals file with the fullest current slate (avoids stale empty artifacts)."""
     best: dict[str, Any] = {}
@@ -331,7 +381,9 @@ def build_site(
         collapse_best_signals(ncaaf_week_plays),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
-    ncaaf_plays_html = _render_play_table(ncaaf_week_plays_sorted, live_fallback=[], sport="ncaaf")
+    ncaaf_plays_html = _render_play_table(
+        ncaaf_week_plays_sorted, live_fallback=[], sport="ncaaf", large=True, use_timing=True
+    )
     ncaaf_stage_cards = normalize_stage_cards_team_lines(
         _merge_stage_cards(
             ncaaf_ledger.get("stage_cards") or [],
@@ -583,8 +635,10 @@ def _render_play_table(
     live_fallback: list[dict] | None = None,
     sport: str = "nfl",
     table_id: str = "",
+    large: bool = False,
+    use_timing: bool = False,
 ) -> str:
-    """Compact table for This Week's Plays — replaces the large card bands."""
+    """Table for This Week's Plays — compact by default; CFB uses larger type + timing guidance."""
     source = plays if plays else (live_fallback or [])
     if not source:
         return '<div class="empty">No open plays. Run the pipeline to generate signals.</div>'
@@ -594,8 +648,6 @@ def _render_play_table(
         source,
         key=lambda x: kickoff_sort_key(x.get("kickoff") or x.get("commence_time")),
     ):
-        tier = p.get("tier") or "lean"
-        row_cls = ' class="lean-row-sharp-play"' if tier == "play" else ""
         kick = format_kickoff_et(p.get("kickoff") or p.get("commence_time"))
         away = str(p.get("away_team") or "")
         home = str(p.get("home_team") or "")
@@ -603,33 +655,38 @@ def _render_play_table(
             game = f"{_esc(ncaaf_display_code(away))} @ {_esc(ncaaf_display_code(home))}"
         else:
             game = f"{_esc(away)} @ {_esc(home)}"
+        tier = p.get("tier") or "lean"
         units = p.get("units") or {"play": 1.5, "lean": 1.0}.get(tier, 0.5)
         edge = p.get("edge")
         edge_s = f"{edge * 100:.1f}%" if edge is not None else "—"
         st = p.get("status") or "pending"
-        if "filter_passed" in p and not p.get("status"):
+        if use_timing:
+            status_html = _play_timing_status_html(p)
+        elif "filter_passed" in p and not p.get("status"):
             status_html = '<span class="card-result pending">OPEN</span>'
         else:
             status_html = _status_badge(st)
         rationale = format_play_rationale(p).replace("\n", " · ")
         rows.append(
-            f"<tr{row_cls}>"
+            "<tr>"
             f"<td>{_esc(kick)}</td>"
             f"<td>{game}</td>"
-            f"<td>{_esc(_side_label(p))}</td>"
+            f"<td class='play-pick-cell'>{_esc(_side_label(p))}</td>"
             f"<td>{units}u</td>"
             f"<td class='pos'>{edge_s}</td>"
             f"<td>{_esc(p.get('book') or '—')}</td>"
-            f"<td>{status_html}</td>"
+            f"<td class='play-timing-cell'>{status_html}</td>"
             f"<td class='rationale-cell'>{_esc(rationale)}</td>"
             "</tr>"
         )
 
+    size_cls = " plays-table-large" if large else ""
+    status_hdr = "When to bet" if use_timing else "Status"
     id_attr = f' id="{_esc(table_id)}"' if table_id else ""
     return (
-        f'<div class="table-wrap"><table class="export-table plays-table"{id_attr}>'
+        f'<div class="table-wrap"><table class="export-table plays-table{size_cls}"{id_attr}>'
         "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th>"
-        "<th>EV</th><th>Book</th><th>Status</th><th>Why</th></tr></thead>"
+        f"<th>EV</th><th>Book</th><th>{status_hdr}</th><th>Why</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table></div>"
     )
@@ -746,8 +803,9 @@ def _render_ledger_rows(plays: list[dict]) -> str:
         if p.get("home_score") is not None:
             score = f"{p.get('away_team')} {p.get('away_score')} – {p.get('home_team')} {p.get('home_score')}"
         kick = format_kickoff_et(p.get("kickoff") or p.get("commence_time") or p.get("created_at"))
+        row_cls = ' class="lean-row-sharp-play"' if st == "pending" else ""
         rows.append(
-            f"<tr>"
+            f"<tr{row_cls}>"
             f"<td>{_esc(kick)}</td>"
             f"<td>{_esc(p.get('away_team'))} @ {_esc(p.get('home_team'))}</td>"
             f"<td>{_esc(_side_label(p))}</td>"
@@ -2222,6 +2280,17 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   }}
   .plays-table td, .plays-table th {{ padding: 8px 10px; font-size: 13px; }}
   .plays-table .rationale-cell {{ font-size: 12px; font-weight: 400; max-width: 280px; }}
+  .plays-table-large td, .plays-table-large th {{ padding: 14px 12px; font-size: 16px; }}
+  .plays-table-large .play-pick-cell {{ font-size: 17px; font-weight: 600; }}
+  .plays-table-large .rationale-cell {{ font-size: 14px; max-width: 360px; line-height: 1.5; }}
+  .plays-table-large .play-timing-cell {{ min-width: 220px; }}
+  .play-timing {{ display: inline-block; font-size: 0.92em; font-weight: 600; line-height: 1.35; }}
+  .plays-table-large .play-timing {{ font-size: 0.95em; }}
+  .play-timing.hold {{ color: #92400e; }}
+  .play-timing.watch {{ color: #1d4ed8; }}
+  .play-timing.soon {{ color: #7c3aed; }}
+  .play-timing.lock {{ color: var(--color-win); }}
+  .play-timing.started {{ color: var(--color-text-muted); }}
   .lean-row-sharp-play td.pos {{
     color: #854d0e;
     font-weight: 800;
@@ -2302,7 +2371,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {nfl_clv_banner_html}
   <div class="section-label">This Week's Plays · {nfl_signal_count} validated</div>
   {plays_html}
-  <p class="phase-note" style="padding:8px 0 4px">Only plays highlighted in yellow are the plays for this week's quant pick plays. See above.</p>
+  <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks. Only rows highlighted in yellow in the <b>NFL Ledger</b> below are the posted Sharp Plays we track.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
   <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET; advances to the next slate when this week is empty). Prior weeks are on <b>NFL Historical</b>. Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
   {nfl_stage_weeks_html}
@@ -2369,7 +2438,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {ncaaf_clv_banner_html}
   <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
   {ncaaf_plays_html}
-  <p class="phase-note" style="padding:8px 0 4px">Only plays highlighted in yellow are the plays for this week's quant pick plays. See above.</p>
+  <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks — use the <b>When to bet</b> column for timing. Only rows highlighted in yellow in the <b>NCAAF Ledger</b> below are the posted Sharp Plays we track.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
   <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}

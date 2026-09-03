@@ -30,6 +30,7 @@ from sharp_scout.utils.slate import (
     ET,
     college_week_bounds,
     college_week_label,
+    filter_events_college_week,
     filter_plays_college_week,
     filter_plays_nfl_display_slate,
     filter_events_nfl_display_slate,
@@ -348,6 +349,23 @@ def build_site(
         sport="ncaaf",
         ledger_plays=ncaaf_ledger.get("plays") or [],
     )
+    ncaaf_games_week = filter_events_college_week(ncaaf_signals.get("games") or [])
+    ncaaf_week_event_ids = {str(g.get("event_id")) for g in ncaaf_games_week}
+    ncaaf_games_html = _render_games_pipeline(
+        ncaaf_games_week,
+        [
+            b
+            for b in (ncaaf_signals.get("split_boards") or [])
+            if str(b.get("event_id")) in ncaaf_week_event_ids
+        ],
+        [c for c in ncaaf_current_stage_cards if str(c.get("event_id")) in ncaaf_week_event_ids],
+        [
+            s
+            for s in (ncaaf_signals.get("signals") or [])
+            if str(s.get("event_id")) in ncaaf_week_event_ids
+        ],
+        ncaaf_signals.get("ratings") or [],
+    )
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
     ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
     ncaaf_fade_n = ncaaf_stage_summary.get("fade_public_games", "—")
@@ -459,6 +477,7 @@ def build_site(
         ncaaf_rlm_n=ncaaf_stage_summary.get("rlm_games", "—"),
         ncaaf_historical_html=ncaaf_historical_html,
         ncaaf_leans_html=ncaaf_leans_html,
+        ncaaf_games_html=ncaaf_games_html,
         ncaaf_demo_note="DEMO data" if ncaaf_signals.get("demo") else "Live pipeline",
         ncaaf_clv_banner_html=ncaaf_clv_banner_html,
         ncaaf_ledger_rows=ncaaf_ledger_rows,
@@ -2306,6 +2325,9 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </table></div>
   <div class="section-label">This Week — Quant Pick Leans</div>
   {ncaaf_leans_html}
+  <div class="section-label">This Week — Public / Sharp Money &amp; Line Movement</div>
+  <p class="phase-note" style="padding:4px 0 10px">Every college game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>
+  {ncaaf_games_html}
 </div>
 
 <div id="tab-cfb-historical" class="content">

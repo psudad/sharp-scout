@@ -43,6 +43,21 @@ from sharp_scout.utils.slate import (
     partition_stage_cards_nfl_current_historical,
 )
 from sharp_scout.stage_picks import normalize_stage_cards_team_lines
+
+# Season-opening caution shown at the top of the NFL and CFB tabs. The model
+# re-tunes how it reads each week's games over the first few weeks, so early
+# output is noisier — flag it loudly.
+_WEEK1_BANNER = (
+    '<div class="week1-banner" role="note">'
+    "<b>WEEK 1 — READ THIS FIRST.</b> "
+    "These plays are the raw first output of the system for the new season. "
+    "The model re-tunes itself each week based on how games are actually "
+    "playing out, so the <b>first 2–3 weeks are the least reliable of the year</b>. "
+    "Be very cautious right now: <b>only make a play when the system explicitly "
+    "tells you to</b> (a posted Sharp Play). If you want to bet anything else off "
+    "this board, treat it as informational and bet at your own risk."
+    "</div>"
+)
 from sharp_scout.utils.teams import ncaaf_display_code
 
 DOCS_DIR = ROOT / "docs"
@@ -492,6 +507,7 @@ def build_site(
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         ssq_logo=_ssq_logo_svg(embedded=True),
         board_updated=board_updated,
+        week1_banner_html=_WEEK1_BANNER,
         nfl_record=record["record"],
         nfl_win_pct=nfl_win_pct,
         nfl_pnl=nfl_pnl_s,
@@ -2120,6 +2136,18 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     text-transform: uppercase;
     margin: 24px 0 12px;
   }}
+  .week1-banner {{
+    border: 2px solid #d40000;
+    background: #fff1f1;
+    color: #a30000;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 16px 0 20px;
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 600;
+  }}
+  .week1-banner b {{ color: #b00000; font-weight: 800; }}
   .section-toolbar {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 8px; flex-wrap: wrap; }}
   .section-toolbar-title {{ margin: 0; font-size: 9px; }}
   .csv-btn {{
@@ -2366,6 +2394,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-plays" class="content active">
+  {week1_banner_html}
   <div class="summary-grid">{nfl_top_stats_html}</div>
   <div class="section-label">Closing Line Value</div>
   {nfl_clv_banner_html}
@@ -2433,6 +2462,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-cfb" class="content">
+  {week1_banner_html}
   <div class="summary-grid">{ncaaf_top_stats_html}</div>
   <div class="section-label">Closing Line Value</div>
   {ncaaf_clv_banner_html}

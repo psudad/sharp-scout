@@ -30,7 +30,11 @@ OPENING_MINUTE = 0
 EARLY_OPENING_HOUR_ET = 18
 EARLY_OPENING_MINUTE = 0
 
-DEFAULT_LINE_WINDOWS_HOURS = (6.0, 4.0, 1.0)
+DEFAULT_LINE_WINDOWS_HOURS = (6.0, 4.0, 3.0, 1.0)
+
+# Windows that trigger a full board rebuild (not just a line snapshot): the public
+# report — plays, splits, open→now movement, When-to-bet — refreshes before kickoff.
+REBUILD_WINDOWS_HOURS = (3.0, 1.0)
 
 
 def _next_weekday_at(
@@ -232,3 +236,27 @@ def should_run_now(
         if abs(now - run_at) <= tol:
             matched.append(r)
     return bool(matched), matched
+
+
+def rebuild_due(
+    plan: dict[str, Any] | None = None,
+    *,
+    now: datetime | None = None,
+    tolerance_minutes: int | None = None,
+    rebuild_windows: tuple[float, ...] = REBUILD_WINDOWS_HOURS,
+) -> tuple[bool, list[dict[str, Any]]]:
+    """True when a pre-kick window that warrants a full board rebuild is due.
+
+    Only pre-kick game windows (T-3h / T-1h by default) trigger a rebuild — weekly
+    opening captures still run as plain snapshots.
+    """
+    ok, matched = should_run_now(plan, now=now, tolerance_minutes=tolerance_minutes)
+    if not ok:
+        return False, []
+    windows = set(rebuild_windows)
+    hits = [
+        r
+        for r in matched
+        if r.get("kind") == "prekick" and float(r.get("window_hours") or 0) in windows
+    ]
+    return bool(hits), hits

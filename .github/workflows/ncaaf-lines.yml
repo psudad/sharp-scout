@@ -1,10 +1,12 @@
 name: NCAAF Line Snapshots (CLV)
 
-# Schedule-driven sharp line capture for college football:
+# Schedule-driven sharp line capture + gameday board refresh for college football:
 #   • Tuesday 10:00 ET — rebuild plan + opening lines for the college week
-#   • Hourly gate — only calls the Odds API when a game is at T-6h / T-4h / T-1h
+#   • Hourly gate — only calls the Odds API when a game is at T-6h / T-4h / T-3h / T-1h
+#   • T-3h / T-1h — full board rebuild (plays, splits, open→now, When-to-bet) → docs/,
+#     which auto-triggers the Pages deploy on push.
 #
-# Requires repo secret: ODDS_API_KEY
+# Requires repo secret: ODDS_API_KEY (ACTION_NETWORK_TOKEN optional for money %)
 
 on:
   schedule:
@@ -20,6 +22,10 @@ on:
         default: false
       rebuild_plan:
         description: "Rebuild ncaaf_line_plan.json before snapshot"
+        type: boolean
+        default: false
+      rebuild_report:
+        description: "Force a full board rebuild now (plays, splits, When-to-bet)"
         type: boolean
         default: false
 
@@ -45,7 +51,12 @@ jobs:
         run: pip install -e .
 
       - name: Configure env
-        run: echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
+        run: |
+          echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
+          echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
+          echo "ACTION_NETWORK_COOKIE=${{ secrets.ACTION_NETWORK_COOKIE }}" >> $GITHUB_ENV
+          echo "MONTE_CARLO_SIMS=5000" >> $GITHUB_ENV
+          echo "GA_MEASUREMENT_ID=${{ secrets.GA_MEASUREMENT_ID }}" >> $GITHUB_ENV
 
       - name: Tuesday — rebuild plan and capture opening lines
         if: github.event.schedule == '0 14 * * 2' || (github.event_name == 'workflow_dispatch' && inputs.rebuild_plan)
@@ -63,9 +74,11 @@ jobs:
         run: python scripts/check_ncaaf_snapshot_plan.py
 
       - name: Run due pre-kick line snapshots
+        # Snapshot-only when a window is due but no full rebuild is (T-6h / T-4h).
+        # At T-3h / T-1h the full pipeline below records snapshots itself.
         if: |
-          (github.event_name == 'workflow_dispatch' && inputs.force) ||
-          (steps.gate.outputs.run == 'true')
+          (github.event_name == 'workflow_dispatch' && inputs.force && !inputs.rebuild_report) ||
+          (steps.gate.outputs.run == 'true' && steps.gate.outputs.rebuild != 'true')
         run: |
           if [ -z "$ODDS_API_KEY" ]; then
             echo "No ODDS_API_KEY — skipping"
@@ -73,15 +86,34 @@ jobs:
           fi
           python scripts/record_line_snapshots.py --sport ncaaf --week-only
 
-      - name: Commit plan + line history
+      - name: Settle prior NCAAF plays (gameday rebuild)
+        if: |
+          (github.event_name == 'workflow_dispatch' && inputs.rebuild_report) ||
+          (steps.gate.outputs.rebuild == 'true')
+        continue-on-error: true
+        run: python scripts/settle_plays.py --sport ncaaf
+
+      - name: Gameday full board rebuild (T-3h / T-1h)
+        # Refreshes the public report — plays, splits, open→now, When-to-bet — before kickoff.
+        if: |
+          (github.event_name == 'workflow_dispatch' && inputs.rebuild_report) ||
+          (steps.gate.outputs.rebuild == 'true')
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "No ODDS_API_KEY — skipping rebuild"
+            exit 0
+          fi
+          python scripts/run_ncaaf.py --build-site --skip-pbp
+
+      - name: Commit plan + line history + site
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ncaaf_line_plan.json data/line_history.json data/open_lines.json 2>/dev/null || git add data/line_history.json data/open_lines.json
+          git add data/ncaaf_line_plan.json data/line_history.json data/open_lines.json data/ncaaf_ledger.json docs/ 2>/dev/null || git add data/line_history.json data/open_lines.json
           if git diff --staged --quiet; then
-            echo "No plan/line history changes"
+            echo "No plan/line history/site changes"
           else
-            git commit -m "chore: NCAAF line snapshots (scheduled)"
-            git pull --rebase origin main
+            git commit -m "chore: NCAAF line snapshots + gameday board refresh (scheduled)"
+            git pull --rebase --autostash origin main
             git push
           fi

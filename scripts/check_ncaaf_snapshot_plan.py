@@ -12,7 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from sharp_scout.scheduler.ncaaf_lines import load_plan, should_run_now  # noqa: E402
+from sharp_scout.scheduler.ncaaf_lines import (  # noqa: E402
+    load_plan,
+    rebuild_due,
+    should_run_now,
+)
 
 PLAN_PATH = ROOT / "data" / "ncaaf_line_plan.json"
 
@@ -21,11 +25,12 @@ def main() -> None:
     now = datetime.now(timezone.utc)
     if not PLAN_PATH.exists():
         print(f"No plan at {PLAN_PATH} — skip (run plan_ncaaf_snapshots.py on Monday)")
-        _set_output(False)
+        _set_output(False, False)
         return
 
     plan = load_plan()
     ok, matched = should_run_now(plan, now=now)
+    do_rebuild, rebuild_hits = rebuild_due(plan, now=now)
     if ok:
         print(f"Planned NCAAF line snapshot(s) due: {len(matched)}")
         for m in matched[:8]:
@@ -39,18 +44,21 @@ def main() -> None:
                     f"  {m.get('matchup')} T-{m.get('window_hours')}h "
                     f"kickoff {m.get('kickoff')}"
                 )
+        if do_rebuild:
+            print(f"Full board rebuild due (T-3h / T-1h): {len(rebuild_hits)} game window(s)")
     else:
         tol = plan.get("tolerance_minutes", 25)
         print(f"No planned snapshot within ±{tol} min of {now.isoformat()}")
 
-    _set_output(ok)
+    _set_output(ok, do_rebuild)
 
 
-def _set_output(run: bool) -> None:
+def _set_output(run: bool, rebuild: bool) -> None:
     out = os.environ.get("GITHUB_OUTPUT")
     if out:
         with open(out, "a", encoding="utf-8") as fh:
             fh.write(f"run={'true' if run else 'false'}\n")
+            fh.write(f"rebuild={'true' if rebuild else 'false'}\n")
     if not run:
         sys.exit(0)
 

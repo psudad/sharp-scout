@@ -56,6 +56,37 @@ def test_group_of_five_mascots_and_abbrs_converge():
         assert normalize_ncaaf(an_abbr) == normalize_ncaaf(odds_name), (an_abbr, odds_name)
 
 
+def test_school_qualifiers_never_collapse_onto_flagship():
+    """Trimming trailing words blindly attaches the wrong team's splits."""
+    assert normalize_ncaaf("ARKANSAS-PINE BLUFF GOLDEN LIONS") != normalize_ncaaf("ARKANSAS")
+    assert normalize_ncaaf("NORTH CAROLINA A&T AGGIES") != normalize_ncaaf("NORTH CAROLINA")
+    assert normalize_ncaaf("INDIANA STATE SYCAMORES") != normalize_ncaaf("INDIANA")
+    assert normalize_ncaaf("SOUTHEAST MISSOURI STATE") != normalize_ncaaf("MISSOURI")
+    assert normalize_ncaaf("TEXAS STATE") != normalize_ncaaf("TEXAS")
+
+
+def test_registered_mascots_strip_without_an_alias():
+    """AN's short_name teaches us mascots we never hardcoded (e.g. BLAZERS)."""
+    from sharp_scout.utils.teams import register_mascots
+
+    register_mascots(["Blazers", "Minutemen"])
+    assert normalize_ncaaf("UAB BLAZERS") == normalize_ncaaf("UAB")
+    assert normalize_ncaaf("UMASS MINUTEMEN") == normalize_ncaaf("UMASS")
+
+
+def test_punctuation_is_flattened():
+    assert normalize_ncaaf("ARKANSAS-PINE BLUFF") == normalize_ncaaf("ARKANSAS PINE BLUFF")
+    assert normalize_ncaaf("MIAMI (OH)") == normalize_ncaaf("MIAMI OHIO")
+
+
+def test_action_network_prefers_mascot_free_location():
+    """`location` lines up with the Odds API; `abbr` often does not."""
+    from sharp_scout.data.action_network import ActionNetworkClient
+
+    team = {"location": "North Carolina", "abbr": "UNC", "full_name": "North Carolina Tar Heels"}
+    assert ActionNetworkClient._team_name(team) == "North Carolina"
+
+
 def test_fcs_mascots_strip_to_school():
     assert normalize_ncaaf("MAINE BLACK BEARS") == normalize_ncaaf("MAINE")
     assert normalize_ncaaf("ARKANSAS PINE BLUFF GOLDEN LIONS") == normalize_ncaaf(

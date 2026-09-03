@@ -133,7 +133,26 @@ class ActionNetworkClient:
         games = payload.get("games") or []
         if isinstance(games, dict):
             games = list(games.values())
-        return [self._normalize_game(g) for g in games if isinstance(g, dict)]
+        games = [g for g in games if isinstance(g, dict)]
+        self._learn_mascots(games)
+        return [self._normalize_game(g) for g in games]
+
+    def _learn_mascots(self, games: list[dict[str, Any]]) -> None:
+        """Teach the normalizer every mascot in this payload (AN's ``short_name``).
+
+        Odds API names arrive as "School Mascot"; knowing the real mascot set is what
+        lets us strip it without ever mistaking a school qualifier for a mascot.
+        """
+        if self.norm_sport != "ncaaf":
+            return
+        from sharp_scout.utils.teams import register_mascots
+
+        register_mascots(
+            str(t.get("short_name") or "")
+            for g in games
+            for t in (g.get("teams") or [])
+            if isinstance(t, dict)
+        )
 
     def fetch_scoreboard_dates(self, dates: Iterable[str]) -> list[dict[str, Any]]:
         """Fetch and merge several slate dates (YYYYMMDD).
@@ -203,6 +222,20 @@ class ActionNetworkClient:
             ),
         }
 
+    @staticmethod
+    def _team_name(team: dict[str, Any]) -> str:
+        """Best school identifier for matching.
+
+        ``location`` is the mascot-free school name ("North Carolina"), which lines up
+        with the Odds API far more often than the abbreviation does. Fall back to the
+        abbreviation, then the full name.
+        """
+        for key in ("location", "abbr", "abbreviation", "full_name", "display_name", "name"):
+            value = team.get(key)
+            if value:
+                return str(value)
+        return ""
+
     def _normalize_game(self, g: dict[str, Any]) -> dict[str, Any]:
         teams = g.get("teams") or []
         by_id: dict[Any, dict] = {}
@@ -224,14 +257,8 @@ class ActionNetworkClient:
                 else:
                     away_t = away_t or t
 
-        home = normalize_team(
-            str(home_t.get("abbr") or home_t.get("abbreviation") or home_t.get("name") or ""),
-            self.norm_sport,
-        )
-        away = normalize_team(
-            str(away_t.get("abbr") or away_t.get("abbreviation") or away_t.get("name") or ""),
-            self.norm_sport,
-        )
+        home = normalize_team(self._team_name(home_t), self.norm_sport)
+        away = normalize_team(self._team_name(away_t), self.norm_sport)
 
         markets = self._extract_markets(g, home_id=home_id, away_id=away_id)
         return {

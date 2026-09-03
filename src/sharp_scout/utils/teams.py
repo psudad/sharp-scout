@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Iterable
 
 # Common mascots stripped so "Alabama Crimson Tide" → "ALABAMA"
 _MASCOTS = {
@@ -612,19 +613,26 @@ def _strip_mascot(name: str) -> str:
     return up
 
 
-def _alias_by_dropping_trailing_words(name: str) -> str | None:
-    """Resolve "UAB BLAZERS" → UAB by trimming trailing words until an alias hits.
+# Mascots learned at runtime from the Action Network payload's ``short_name`` field.
+# The feed tells us every mascot, which beats hand-maintaining a list that silently
+# rots. Never trim a *school* qualifier here: "Arkansas-Pine Bluff" must not collapse
+# to "Arkansas", so only known mascots are ever removed.
+_LEARNED_MASCOTS: set[str] = set()
 
-    Feeds are full of mascots we have not enumerated, so rather than growing ``_MASCOTS``
-    forever we trim from the right and take the longest prefix that is a known school.
-    Requires at least two words so a bare mascot can never resolve on its own.
-    """
-    words = name.split()
-    for cut in range(len(words) - 1, 0, -1):
-        prefix = " ".join(words[:cut])
-        if prefix in NCAAF_ALIASES:
-            return NCAAF_ALIASES[prefix]
-    return None
+
+def register_mascots(names: Iterable[str]) -> None:
+    for name in names:
+        cleaned = re.sub(r"\s+", " ", _simplify_punct(name or "")).strip()
+        if len(cleaned) > 2:
+            _LEARNED_MASCOTS.add(cleaned)
+
+
+def _simplify_punct(name: str) -> str:
+    """Upper-case and flatten punctuation so "Arkansas-Pine Bluff" == "ARKANSAS PINE BLUFF"."""
+    up = (name or "").upper().replace("&", " AND ")
+    up = re.sub(r"[.'`’]", "", up)
+    up = re.sub(r"[-/(),]", " ", up)
+    return re.sub(r"\s+", " ", up).strip()
 
 
 def normalize_ncaaf(name: str) -> str:
@@ -636,10 +644,20 @@ def normalize_ncaaf(name: str) -> str:
     stripped = _strip_mascot(raw)
     if stripped in NCAAF_ALIASES:
         return NCAAF_ALIASES[stripped]
-    # Unknown mascot: fall back to the longest known-school prefix.
-    by_prefix = _alias_by_dropping_trailing_words(stripped) or _alias_by_dropping_trailing_words(raw)
-    if by_prefix is not None:
-        return by_prefix
+
+    # Punctuation-insensitive retry, then remove a mascot the feed taught us.
+    flat = _simplify_punct(raw)
+    if flat in NCAAF_ALIASES:
+        return NCAAF_ALIASES[flat]
+    flat_stripped = _strip_mascot(flat)
+    if flat_stripped in NCAAF_ALIASES:
+        return NCAAF_ALIASES[flat_stripped]
+    for mascot in sorted(_LEARNED_MASCOTS, key=len, reverse=True):
+        if flat.endswith(" " + mascot):
+            school = flat[: -len(mascot) - 1].strip()
+            return NCAAF_ALIASES.get(school, school)
+    if flat_stripped != raw:
+        return flat_stripped
     if stripped in NCAAF_ALIASES:
         return NCAAF_ALIASES[stripped]
     # Already a short code

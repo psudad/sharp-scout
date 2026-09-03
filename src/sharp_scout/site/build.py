@@ -122,44 +122,42 @@ def _hours_until_kickoff(raw: Any, *, now: datetime | None = None) -> float | No
     return (kickoff - now).total_seconds() / 3600.0
 
 
+def _timing_class_text(htk: float | None) -> tuple[str, str]:
+    """(css class, guidance) for hours-until-kickoff. Mirrors the JS in _TIMING_SCRIPT."""
+    if htk is None:
+        return "hold", "Don't play yet — lock in closer to game time"
+    if htk <= 0:
+        return "started", "Game started — too late to bet"
+    if htk <= 1:
+        return "lock", "Lock in now if the number still holds"
+    if htk <= 3:
+        return "soon", "Almost time — confirm at the T-1h refresh"
+    if htk <= 12:
+        return "watch", "Watch — confirm at the T-3h pregame refresh"
+    return "hold", "Don't play yet — lock in closer to game time"
+
+
 def _play_timing_status_html(play: dict[str, Any]) -> str:
-    """When to bet guidance for open Sharp Plays (replaces a bare PENDING badge)."""
+    """When to bet guidance for open Sharp Plays (replaces a bare PENDING badge).
+
+    Emits the kickoff timestamp so the browser can recompute the guidance live
+    (see _TIMING_SCRIPT) — the text flips to "Lock in now" at T-1h even if the
+    static board has not rebuilt since.
+    """
     st = play.get("status") or "pending"
     if st in ("win", "loss", "push", "void"):
         return _status_badge(st)
 
-    htk = _hours_until_kickoff(play.get("kickoff") or play.get("commence_time"))
-    if htk is None:
-        return (
-            '<span class="play-timing hold">'
-            "Don't play yet — lock in closer to game time"
-            "</span>"
-        )
-    if htk <= 0:
-        return '<span class="play-timing started">Game started — too late to bet</span>'
-    if htk <= 1:
-        return (
-            '<span class="play-timing lock">'
-            "Lock in now if the number still holds"
-            "</span>"
-        )
-    if htk <= 3:
-        return (
-            '<span class="play-timing soon">'
-            "Almost time — confirm at the T-1h refresh"
-            "</span>"
-        )
-    if htk <= 12:
-        return (
-            '<span class="play-timing watch">'
-            "Watch — confirm at the T-3h pregame refresh"
-            "</span>"
-        )
-    return (
-        '<span class="play-timing hold">'
-        "Don't play yet — lock in closer to game time"
-        "</span>"
-    )
+    raw = play.get("kickoff") or play.get("commence_time")
+    kickoff = parse_commence(raw)
+    htk = _hours_until_kickoff(raw)
+    cls, text = _timing_class_text(htk)
+    data_attr = ""
+    if kickoff is not None:
+        if kickoff.tzinfo is None:
+            kickoff = kickoff.replace(tzinfo=timezone.utc)
+        data_attr = f' data-kickoff="{_esc(kickoff.astimezone(timezone.utc).isoformat())}"'
+    return f'<span class="play-timing js-timing {cls}"{data_attr}>{text}</span>'
 
 
 def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
@@ -2595,6 +2593,41 @@ function downloadTableCsv(tableId, filename) {{
   }});
   window.addEventListener('scroll', hideTip, true);
   window.addEventListener('resize', hideTip);
+}})();
+
+// Live "When to bet" — recompute guidance in the browser from each play's
+// kickoff, so it flips (Watch → Almost time → Lock in now) at the right moment
+// even if the static board has not rebuilt since. Mirrors _timing_class_text.
+(function () {{
+  function classText(htk) {{
+    if (htk === null) return ['hold', "Don't play yet — lock in closer to game time"];
+    if (htk <= 0) return ['started', 'Game started — too late to bet'];
+    if (htk <= 1) return ['lock', 'Lock in now if the number still holds'];
+    if (htk <= 3) return ['soon', 'Almost time — confirm at the T-1h refresh'];
+    if (htk <= 12) return ['watch', 'Watch — confirm at the T-3h pregame refresh'];
+    return ['hold', "Don't play yet — lock in closer to game time"];
+  }}
+  function countdown(ms) {{
+    if (ms <= 0) return '';
+    var mins = Math.floor(ms / 60000);
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return h > 0 ? ' (kickoff in ' + h + 'h ' + m + 'm)' : ' (kickoff in ' + m + 'm)';
+  }}
+  var CLASSES = ['hold', 'watch', 'soon', 'lock', 'started'];
+  function tick() {{
+    var now = Date.now();
+    document.querySelectorAll('.js-timing[data-kickoff]').forEach(function (el) {{
+      var t = Date.parse(el.getAttribute('data-kickoff'));
+      if (isNaN(t)) return;
+      var htk = (t - now) / 3600000;
+      var ct = classText(htk);
+      CLASSES.forEach(function (c) {{ el.classList.remove(c); }});
+      el.classList.add(ct[0]);
+      el.textContent = ct[1] + (htk > 0 && htk <= 12 ? countdown(t - now) : '');
+    }});
+  }}
+  tick();
+  setInterval(tick, 60000);
 }})();
 </script>
 </body>

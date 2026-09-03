@@ -1,68 +1,66 @@
-"""Gameday full-board rebuild gating for NCAAF (T-3h / T-1h)."""
+"""Gameday full-board rebuild gating for NCAAF (drift-proof pregame zone)."""
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
 from sharp_scout.scheduler.ncaaf_lines import (
-    REBUILD_WINDOWS_HOURS,
+    REBUILD_LEAD_HOURS,
     rebuild_due,
-    should_run_now,
 )
 
 
-def _plan_with(run_at: datetime, *, window_hours, kind="prekick") -> dict:
+def _plan(kickoff: datetime) -> dict:
     return {
-        "tolerance_minutes": 25,
-        "runs": [
+        "games": [
             {
-                "run_at": run_at.isoformat(),
-                "window_hours": window_hours,
-                "kind": kind,
+                "event_id": "akron-wake",
                 "matchup": "AKRON@WAKE",
-                "kickoff": (run_at + timedelta(hours=window_hours or 0)).isoformat(),
+                "kickoff": kickoff.isoformat(),
             }
         ],
     }
 
 
-def test_rebuild_windows_are_t3_and_t1():
-    assert set(REBUILD_WINDOWS_HOURS) == {3.0, 1.0}
+def test_lead_covers_t3_with_drift_margin():
+    # Slightly over 3h so a T-3h window survives cron drift.
+    assert REBUILD_LEAD_HOURS >= 3.0
 
 
-def test_rebuild_due_at_t3():
-    run_at = datetime(2026, 9, 3, 20, 0, tzinfo=timezone.utc)
-    plan = _plan_with(run_at, window_hours=3)
-    ok, hits = rebuild_due(plan, now=run_at + timedelta(minutes=10))
+def test_rebuild_at_t3():
+    kickoff = datetime(2026, 9, 3, 23, 0, tzinfo=timezone.utc)  # 7pm ET
+    now = kickoff - timedelta(hours=3)
+    ok, hits = rebuild_due(_plan(kickoff), now=now)
     assert ok is True
     assert len(hits) == 1
 
 
-def test_rebuild_due_at_t1():
-    run_at = datetime(2026, 9, 3, 22, 0, tzinfo=timezone.utc)
-    plan = _plan_with(run_at, window_hours=1)
-    ok, _ = rebuild_due(plan, now=run_at)
+def test_rebuild_anywhere_inside_zone_not_just_exact_points():
+    # 2h07m out — a drifted cron that missed the exact T-3h point still rebuilds.
+    kickoff = datetime(2026, 9, 3, 23, 0, tzinfo=timezone.utc)
+    now = kickoff - timedelta(hours=2, minutes=7)
+    ok, _ = rebuild_due(_plan(kickoff), now=now)
     assert ok is True
 
 
-def test_no_rebuild_at_t6_but_snapshot_still_due():
-    run_at = datetime(2026, 9, 3, 17, 0, tzinfo=timezone.utc)
-    plan = _plan_with(run_at, window_hours=6)
-    snap_ok, _ = should_run_now(plan, now=run_at)
-    reb_ok, _ = rebuild_due(plan, now=run_at)
-    assert snap_ok is True
-    assert reb_ok is False
+def test_rebuild_at_t1():
+    kickoff = datetime(2026, 9, 3, 23, 0, tzinfo=timezone.utc)
+    ok, _ = rebuild_due(_plan(kickoff), now=kickoff - timedelta(hours=1))
+    assert ok is True
 
 
-def test_open_window_never_triggers_rebuild():
-    run_at = datetime(2026, 9, 3, 14, 0, tzinfo=timezone.utc)
-    plan = _plan_with(run_at, window_hours=None, kind="open")
-    reb_ok, _ = rebuild_due(plan, now=run_at)
-    assert reb_ok is False
+def test_no_rebuild_well_before_zone():
+    kickoff = datetime(2026, 9, 3, 23, 0, tzinfo=timezone.utc)
+    ok, _ = rebuild_due(_plan(kickoff), now=kickoff - timedelta(hours=6))
+    assert ok is False
 
 
-def test_no_rebuild_outside_tolerance():
-    run_at = datetime(2026, 9, 3, 20, 0, tzinfo=timezone.utc)
-    plan = _plan_with(run_at, window_hours=3)
-    ok, _ = rebuild_due(plan, now=run_at + timedelta(hours=2))
+def test_no_rebuild_after_kickoff():
+    kickoff = datetime(2026, 9, 3, 23, 0, tzinfo=timezone.utc)
+    ok, _ = rebuild_due(_plan(kickoff), now=kickoff + timedelta(minutes=5))
+    assert ok is False
+
+
+def test_empty_plan_never_rebuilds():
+    ok, _ = rebuild_due({"games": []}, now=datetime(2026, 9, 3, 20, 0, tzinfo=timezone.utc))
     assert ok is False

@@ -13,8 +13,10 @@ on:
   schedule:
     # Tuesday 14:00 UTC (~10:00 ET) — weekly opening lines + refresh plan
     - cron: "0 14 * * 2"
-    # Hourly — exits in seconds unless a planned window is due
-    - cron: "0 * * * *"
+    # Every 15 min — exits in seconds unless a snapshot window or pregame rebuild
+    # is due. Frequent cadence defeats GitHub's schedule drift (15–40 min) so the
+    # T-3h / T-1h board refresh is never skipped; rebuilds are throttled in the gate.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -109,6 +111,8 @@ jobs:
             exit 0
           fi
           python scripts/run_ncaaf.py --build-site --skip-pbp
+          # Stamp the rebuild so the gate can throttle the next runs.
+          printf '{"last_rebuild": "%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" > data/ncaaf_rebuild_state.json
 
       - name: Flag whether a Pages deploy is needed
         id: deployflag
@@ -123,7 +127,7 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ncaaf_line_plan.json data/line_history.json data/open_lines.json data/ncaaf_ledger.json docs/ 2>/dev/null || git add data/line_history.json data/open_lines.json
+          git add data/ncaaf_line_plan.json data/line_history.json data/open_lines.json data/ncaaf_ledger.json data/ncaaf_rebuild_state.json docs/ 2>/dev/null || git add data/line_history.json data/open_lines.json
           if git diff --staged --quiet; then
             echo "No plan/line history/site changes"
           else

@@ -238,25 +238,39 @@ def should_run_now(
     return bool(matched), matched
 
 
+# A game is in the "pregame zone" from T-3h until kickoff. Any scheduled run that
+# lands in this zone triggers a full board rebuild — this is deliberately NOT tied
+# to the exact T-3h/T-1h points, because GitHub's cron drifts 15–40 min and would
+# otherwise skip the window entirely (as happened live on 2026-09-03).
+REBUILD_LEAD_HOURS = 3.25
+
+
 def rebuild_due(
     plan: dict[str, Any] | None = None,
     *,
     now: datetime | None = None,
-    tolerance_minutes: int | None = None,
-    rebuild_windows: tuple[float, ...] = REBUILD_WINDOWS_HOURS,
+    lead_hours: float = REBUILD_LEAD_HOURS,
 ) -> tuple[bool, list[dict[str, Any]]]:
-    """True when a pre-kick window that warrants a full board rebuild is due.
+    """True when any game is inside the pregame zone (kickoff within the next
+    ``lead_hours`` and not yet started), so the board should be rebuilt.
 
-    Only pre-kick game windows (T-3h / T-1h by default) trigger a rebuild — weekly
-    opening captures still run as plain snapshots.
+    Drift-proof by design: it keys off game kickoffs, not exact window points, so
+    every run during the pregame window refreshes the board (plays, splits,
+    open→now, When-to-bet). Weekly opening captures do not trigger a rebuild.
     """
-    ok, matched = should_run_now(plan, now=now, tolerance_minutes=tolerance_minutes)
-    if not ok:
-        return False, []
-    windows = set(rebuild_windows)
-    hits = [
-        r
-        for r in matched
-        if r.get("kind") == "prekick" and float(r.get("window_hours") or 0) in windows
-    ]
+    plan = plan or load_plan()
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+
+    hits: list[dict[str, Any]] = []
+    for g in plan.get("games") or []:
+        kickoff = parse_commence(g.get("kickoff"))
+        if kickoff is None:
+            continue
+        if kickoff.tzinfo is None:
+            kickoff = kickoff.replace(tzinfo=timezone.utc)
+        htk = (kickoff - now).total_seconds() / 3600.0
+        if 0 < htk <= lead_hours:
+            hits.append(g)
     return bool(hits), hits

@@ -74,6 +74,30 @@ def test_registered_mascots_strip_without_an_alias():
     assert normalize_ncaaf("UMASS MINUTEMEN") == normalize_ncaaf("UMASS")
 
 
+def test_cross_feed_naming_variants_converge():
+    """Last 5 unmatched college games were pure naming differences between feeds."""
+    pairs = [
+        ("UNIVERSITY AT ALBANY", "ALBANY"),
+        ("THE CITADEL", "CITADEL"),
+        ("YOUNGSTOWN STATE", "YOUNGSTOWN ST"),
+        ("SAM HOUSTON", "SAM HOUSTON STATE"),
+        ("HOUSTON CHRISTIAN", "HOUSTON BAPTIST"),
+    ]
+    for an_name, odds_name in pairs:
+        assert normalize_ncaaf(an_name) == normalize_ncaaf(odds_name), (an_name, odds_name)
+
+
+def test_directional_and_renamed_schools_stay_distinct():
+    assert normalize_ncaaf("HOUSTON BAPTIST") != normalize_ncaaf("HOUSTON")
+    assert normalize_ncaaf("SAM HOUSTON STATE") != normalize_ncaaf("HOUSTON")
+    assert normalize_ncaaf("WESTERN KENTUCKY") != normalize_ncaaf("KENTUCKY")
+    assert normalize_ncaaf("EASTERN KENTUCKY") != normalize_ncaaf("KENTUCKY")
+
+
+def test_state_suffix_applies_after_mascot_removal():
+    assert normalize_ncaaf("YOUNGSTOWN ST PENGUINS") == normalize_ncaaf("YOUNGSTOWN STATE")
+
+
 def test_punctuation_is_flattened():
     assert normalize_ncaaf("ARKANSAS-PINE BLUFF") == normalize_ncaaf("ARKANSAS PINE BLUFF")
     assert normalize_ncaaf("MIAMI (OH)") == normalize_ncaaf("MIAMI OHIO")

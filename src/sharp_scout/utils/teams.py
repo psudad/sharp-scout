@@ -607,6 +607,17 @@ NCAAF_ALIASES: dict[str, str] = {
     "ALABAMA A AND M": "ALABAMA A&M",
     "PRAIRIE VIEW A&M": "PRAIRIE VIEW A&M",
     "PRAIRIE VIEW A AND M": "PRAIRIE VIEW A&M",
+    # Schools the two feeds simply name differently.
+    "SAM HOUSTON": "SAM HOUSTON",
+    "SAM HOUSTON STATE": "SAM HOUSTON",
+    "HOUSTON CHRISTIAN": "HOUSTON CHRISTIAN",
+    "HOUSTON BAPTIST": "HOUSTON CHRISTIAN",  # renamed in 2022; Odds API still uses the old name
+    "UNIVERSITY AT ALBANY": "ALBANY",
+    "UALBANY": "ALBANY",
+    "ALBANY": "ALBANY",
+    "THE CITADEL": "CITADEL",
+    "CITADEL": "CITADEL",
+    "YOUNGSTOWN STATE": "YOUNGSTOWN STATE",
 }
 
 NCAAF_DEMO_TEAMS = [
@@ -644,7 +655,10 @@ def _simplify_punct(name: str) -> str:
     up = (name or "").upper().replace("&", " AND ")
     up = re.sub(r"[.'`’]", "", up)
     up = re.sub(r"[-/(),]", " ", up)
-    return re.sub(r"\s+", " ", up).strip()
+    up = re.sub(r"\s+", " ", up).strip()
+    # Feeds mix "Youngstown St" and "Youngstown State"; treat the suffix as one token.
+    up = re.sub(r"\bST$", "STATE", up)
+    return re.sub(r"^(THE|UNIVERSITY AT|UNIV AT) ", "", up)
 
 
 def normalize_ncaaf(name: str) -> str:
@@ -661,12 +675,13 @@ def normalize_ncaaf(name: str) -> str:
     flat = _simplify_punct(raw)
     if flat in NCAAF_ALIASES:
         return NCAAF_ALIASES[flat]
-    flat_stripped = _strip_mascot(flat)
+    # Re-simplify after mascot removal so suffix rules ("ST" → "STATE") still apply.
+    flat_stripped = _simplify_punct(_strip_mascot(flat))
     if flat_stripped in NCAAF_ALIASES:
         return NCAAF_ALIASES[flat_stripped]
     for mascot in sorted(_LEARNED_MASCOTS, key=len, reverse=True):
         if flat.endswith(" " + mascot):
-            school = flat[: -len(mascot) - 1].strip()
+            school = _simplify_punct(flat[: -len(mascot) - 1])
             return NCAAF_ALIASES.get(school, school)
     if flat_stripped != raw:
         return flat_stripped

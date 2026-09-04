@@ -24,11 +24,6 @@ def site(tmp_path: Path, monkeypatch) -> Path:
 TAB_NAMES = (
     "plays",
     "cfb",
-    "games",
-    "stages",
-    "ratings",
-    "nfl-historical",
-    "cfb-historical",
     "guide",
 )
 
@@ -50,6 +45,35 @@ def test_board_tabs_are_anchors_with_hash_targets(site: Path):
     for name in TAB_NAMES:
         assert f'href="#tab-{name}"' in html, name
         assert f'data-tab="{name}"' in html, name
+
+
+def test_nfl_and_cfb_tabs_are_symmetric(site: Path):
+    """NFL and CFB must mirror each other: plays, stage winners, sharp money/line
+    movement, stage records, ledger, leans, and collapsible ratings + archive."""
+    html = (site / "board.html").read_text()
+    nfl = html[html.index('id="tab-plays"'):html.index('id="tab-cfb"')]
+    cfb = html[html.index('id="tab-cfb"'):html.index('id="tab-guide"')]
+    shared = (
+        "Closing Line Value",
+        "PLAY THESE QUANTS NOW",
+        "This Week — Pregame Stage Winners",
+        "Sharp Money &amp; Line Movement",
+        "Stage Records (season)",
+        "Ledger ·",
+        "Quant Pick Leans",
+        "<summary>Power Ratings</summary>",
+        "Prior weeks (archive)",
+    )
+    for token in shared:
+        assert token in nfl, f"NFL missing {token}"
+        assert token in cfb, f"CFB missing {token}"
+
+
+def test_standalone_stages_ratings_games_tabs_are_gone(site: Path):
+    html = (site / "board.html").read_text()
+    for gone in ('id="tab-games"', 'id="tab-stages"', 'id="tab-ratings"',
+                 'id="tab-nfl-historical"', 'id="tab-cfb-historical"'):
+        assert gone not in html, gone
 
 
 def test_board_routes_hash_to_tab_on_load(site: Path):

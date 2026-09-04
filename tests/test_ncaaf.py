@@ -129,8 +129,8 @@ def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
     assert "Sharp Scout Quant" in html
     assert "board-updated-bar" in html
     assert "Picks &amp; prices updated" in html
-    assert "CFB Historical" in html
-    assert 'data-tab="cfb-historical"' in html
+    # Historical is now folded into each sport tab as a collapsible archive.
+    assert "Prior weeks (archive)" in html
     assert "This Week — Pregame Stage Winners" in html
     assert "NCAAF Power Ratings" not in html
     assert "Closing Line Value" in html

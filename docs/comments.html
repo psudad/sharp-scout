@@ -176,6 +176,16 @@
   .tab.active:hover { color: #ffffff; background: var(--color-navy); }
   .tab.tab-home { color: #0a5c25; }
   .tab.tab-home.active { color: #ffffff; background: #0a7d32; border-bottom-color: var(--color-navy); }
+  .collapsible { margin: 22px 0 0; border-top: 2px solid var(--color-border); }
+  .collapsible > summary {
+    cursor: pointer; list-style: none; padding: 14px 2px 6px;
+    font-family: var(--font-serif); font-size: 21px; font-weight: 500;
+    color: var(--color-text); display: flex; align-items: center; gap: 8px;
+  }
+  .collapsible > summary::-webkit-details-marker { display: none; }
+  .collapsible > summary::before { content: "\25B8"; color: var(--color-text-muted); font-size: 14px; }
+  .collapsible[open] > summary::before { content: "\25BE"; }
+  .collapsible > summary:hover { color: var(--color-navy); }
   .tab.tab-comments { color: var(--color-navy); }
   .tab.tab-comments.active { color: #ffffff; background: var(--color-navy); border-bottom-color: #0a7d32; }
   @media (max-width: 700px) {
@@ -636,11 +646,6 @@
   <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
   <a class="tab" href="board.html#tab-plays">NFL</a>
   <a class="tab" href="board.html#tab-cfb">CFB</a>
-  <a class="tab" href="board.html#tab-games">Games</a>
-  <a class="tab" href="board.html#tab-stages">Stages</a>
-  <a class="tab" href="board.html#tab-ratings">Ratings</a>
-  <a class="tab" href="board.html#tab-nfl-historical">NFL Historical</a>
-  <a class="tab" href="board.html#tab-cfb-historical">CFB Historical</a>
   <a class="tab" href="board.html#tab-guide">How to use</a>
   <span class="tab tab-comments active">Comments</span>
 </div>

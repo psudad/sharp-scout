@@ -527,6 +527,7 @@ def build_site(
         sport="ncaaf",
         ledger_plays=ncaaf_ledger.get("plays") or [],
     )
+    ncaaf_ratings_rows = _render_ratings(ncaaf_signals.get("ratings") or [])
     ncaaf_games_week = filter_events_college_week(ncaaf_signals.get("games") or [])
     ncaaf_week_event_ids = {str(g.get("event_id")) for g in ncaaf_games_week}
     ncaaf_games_html = _render_games_pipeline(
@@ -663,6 +664,7 @@ def build_site(
         nfl_leans_html=nfl_leans_html,
         nfl_historical_html=nfl_historical_html,
         ratings_rows=ratings_rows,
+        ncaaf_ratings_rows=ncaaf_ratings_rows,
         stage_rows=stage_rows,
         stage_table_head=_render_stage_table_head(),
         stage_record_rows=stage_record_rows,
@@ -875,11 +877,6 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   <span class="tab tab-home active">★ This Week's Plays</span>
   <a class="tab" href="board.html#tab-plays">NFL</a>
   <a class="tab" href="board.html#tab-cfb">CFB</a>
-  <a class="tab" href="board.html#tab-games">Games</a>
-  <a class="tab" href="board.html#tab-stages">Stages</a>
-  <a class="tab" href="board.html#tab-ratings">Ratings</a>
-  <a class="tab" href="board.html#tab-nfl-historical">NFL Historical</a>
-  <a class="tab" href="board.html#tab-cfb-historical">CFB Historical</a>
   <a class="tab" href="board.html#tab-guide">How to use</a>
   <a class="tab tab-comments" href="comments.html">Comments</a>
 </div>
@@ -991,11 +988,6 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
   <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
   <a class="tab" href="board.html#tab-plays">NFL</a>
   <a class="tab" href="board.html#tab-cfb">CFB</a>
-  <a class="tab" href="board.html#tab-games">Games</a>
-  <a class="tab" href="board.html#tab-stages">Stages</a>
-  <a class="tab" href="board.html#tab-ratings">Ratings</a>
-  <a class="tab" href="board.html#tab-nfl-historical">NFL Historical</a>
-  <a class="tab" href="board.html#tab-cfb-historical">CFB Historical</a>
   <a class="tab" href="board.html#tab-guide">How to use</a>
   <span class="tab tab-comments active">Comments</span>
 </div>
@@ -2677,6 +2669,16 @@ _SITE_CSS = """\
   .tab.active:hover { color: #ffffff; background: var(--color-navy); }
   .tab.tab-home { color: #0a5c25; }
   .tab.tab-home.active { color: #ffffff; background: #0a7d32; border-bottom-color: var(--color-navy); }
+  .collapsible { margin: 22px 0 0; border-top: 2px solid var(--color-border); }
+  .collapsible > summary {
+    cursor: pointer; list-style: none; padding: 14px 2px 6px;
+    font-family: var(--font-serif); font-size: 21px; font-weight: 500;
+    color: var(--color-text); display: flex; align-items: center; gap: 8px;
+  }
+  .collapsible > summary::-webkit-details-marker { display: none; }
+  .collapsible > summary::before { content: "\\25B8"; color: var(--color-text-muted); font-size: 14px; }
+  .collapsible[open] > summary::before { content: "\\25BE"; }
+  .collapsible > summary:hover { color: var(--color-navy); }
   .tab.tab-comments { color: var(--color-navy); }
   .tab.tab-comments.active { color: #ffffff; background: var(--color-navy); border-bottom-color: #0a7d32; }
   @media (max-width: 700px) {
@@ -3137,11 +3139,6 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
   <a class="tab active" href="#tab-plays" data-tab="plays">NFL</a>
   <a class="tab" href="#tab-cfb" data-tab="cfb">CFB</a>
-  <a class="tab" href="#tab-games" data-tab="games">Games</a>
-  <a class="tab" href="#tab-stages" data-tab="stages">Stages</a>
-  <a class="tab" href="#tab-ratings" data-tab="ratings">Ratings</a>
-  <a class="tab" href="#tab-nfl-historical" data-tab="nfl-historical">NFL Historical</a>
-  <a class="tab" href="#tab-cfb-historical" data-tab="cfb-historical">CFB Historical</a>
   <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
   <a class="tab tab-comments" href="comments.html">Comments</a>
 </div>
@@ -3157,9 +3154,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks. Only rows highlighted in yellow in the <b>NFL Ledger</b> below are the posted Sharp Plays we track.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
   {leans_caps_note}
-  <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET; advances to the next slate when this week is empty). Prior weeks are on <b>NFL Historical</b>. Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
+  <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET; advances to the next slate when this week is empty). Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
   {nfl_stage_weeks_html}
-  <div class="section-label">NFL Stage Records (season)</div>
+  <div class="section-label">This Week — Public &amp; Sharp Money &amp; Line Movement</div>
+  <p class="phase-note" style="padding:4px 0 10px">Every NFL game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>
+  {games_html}
+  <div class="section-label">Stage Records (season)</div>
   <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
   <div class="summary-grid">{stage_alarm_stats_html}</div>
   <div class="table-wrap"><table>
@@ -3174,47 +3174,19 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">This Week — Quant Pick Leans</div>
   {leans_caps_note}
   {nfl_leans_html}
-</div>
-
-<div id="tab-nfl-historical" class="content">
-  <p class="phase-note" style="padding:8px 0">Archive of completed NFL weeks. Each Wednesday ET, the prior week's stage winners and quant pick leans move here from the NFL tab. Use <b>Download CSV</b> on each table to export.</p>
-  {nfl_historical_html}
-</div>
-
-<div id="tab-games" class="content">
-  <p class="phase-note" style="padding:12px 0">Per-game pipeline output: EPA model → Monte Carlo → market EV → money/ticket splits → stage picks.</p>
-  {games_html}
-</div>
-
-<div id="tab-stages" class="content">
-  <div class="summary-grid">{stage_alarm_stats_html}</div>
-  {stage_highlights_html}
-  <div class="section-label">Stage Records (settled)</div>
-  <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
-  <div class="table-wrap"><table>
-    {stage_records_thead}
-    <tbody>{stage_record_rows}</tbody>
-  </table></div>
-  <div class="section-label">Why Is Our Model Wrong? (disagreement log)</div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Category</th><th>Count</th><th>Record · Hit %</th></tr></thead>
-    <tbody>{disagreement_rows}</tbody>
-  </table></div>
-  <div class="section-label">Per-Game Stage Winners</div>
-  <div class="table-wrap stage-table-wrap"><table class="stage-table">
-    {stage_table_head}
-    <tbody>{stage_rows}</tbody>
-  </table></div>
-  <p class="footer" style="padding:12px 0">Each column is an independent lens. <b>Quant Pick</b> is the system pick per market — Sharp Plays come from validated quant pick ML/spread/total rows.</p>
-</div>
-
-<div id="tab-ratings" class="content">
-  <p class="phase-note" style="padding:8px 0">Power ratings from nflverse play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
-  <div class="section-label">Power Ratings</div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
-    <tbody>{ratings_rows}</tbody>
-  </table></div>
+  <details class="collapsible">
+    <summary>Power Ratings</summary>
+    <p class="phase-note" style="padding:8px 0">Power ratings from nflverse play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
+      <tbody>{ratings_rows}</tbody>
+    </table></div>
+  </details>
+  <details class="collapsible">
+    <summary>Prior weeks (archive)</summary>
+    <p class="phase-note" style="padding:8px 0">Archive of completed NFL weeks. Each Wednesday ET, the prior week's stage winners and quant pick leans move here. Use <b>Download CSV</b> on each table to export.</p>
+    {nfl_historical_html}
+  </details>
 </div>
 
 <div id="tab-cfb" class="content">
@@ -3227,9 +3199,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks — use the <b>When to bet</b> column for timing. Only rows highlighted in yellow in the <b>NCAAF Ledger</b> below are the posted Sharp Plays we track.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
   {leans_caps_note}
-  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
+  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
-  <div class="section-label">NCAAF Stage Records (season)</div>
+  <div class="section-label">This Week — Public &amp; Sharp Money &amp; Line Movement</div>
+  <p class="phase-note" style="padding:4px 0 10px">Every college game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>
+  {ncaaf_games_html}
+  <div class="section-label">Stage Records (season)</div>
   <p class="phase-note" style="padding:4px 0 10px">{stage_record_section_note}</p>
   <div class="summary-grid">{ncaaf_alarm_stats_html}</div>
   <div class="table-wrap"><table>
@@ -3244,14 +3219,19 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">This Week — Quant Pick Leans</div>
   {leans_caps_note}
   {ncaaf_leans_html}
-  <div class="section-label">This Week — Public / Sharp Money &amp; Line Movement</div>
-  <p class="phase-note" style="padding:4px 0 10px">Every college game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>
-  {ncaaf_games_html}
-</div>
-
-<div id="tab-cfb-historical" class="content">
-  <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Monday ET, the prior week's stage winners and quant pick leans move here from the CFB tab. Use <b>Download CSV</b> on each table to export.</p>
-  {ncaaf_historical_html}
+  <details class="collapsible">
+    <summary>Power Ratings</summary>
+    <p class="phase-note" style="padding:8px 0">Power ratings from cfbfastR play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
+      <tbody>{ncaaf_ratings_rows}</tbody>
+    </table></div>
+  </details>
+  <details class="collapsible">
+    <summary>Prior weeks (archive)</summary>
+    <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Monday ET, the prior week's stage winners and quant pick leans move here. Use <b>Download CSV</b> on each table to export.</p>
+    {ncaaf_historical_html}
+  </details>
 </div>
 
 <div id="tab-guide" class="content">

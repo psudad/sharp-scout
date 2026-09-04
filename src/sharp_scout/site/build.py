@@ -161,26 +161,37 @@ def _play_timing_status_html(play: dict[str, Any]) -> str:
 
 
 def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
-    """Prefer the freshest fullest signals file.
+    """Load the best signals JSON for site generation.
 
-    More games wins; on a tie prefer newer ``generated_at``, then ``artifacts/``
-    over committed ``docs/`` (CI rebuild writes to artifacts first).
+    After a pipeline run, ``artifacts/`` holds the fresh board — prefer it whenever
+    it has games. Fall back to the fullest committed ``docs/`` copy for local dev.
     """
-    best: dict[str, Any] = {}
-    best_rank: tuple[int, float, int] = (-1, 0.0, -1)
     for name in path_names:
-        for source_prio, path in enumerate((ARTIFACTS_DIR / name, DOCS_DIR / name)):
-            if not path.exists():
-                continue
+        art_path = ARTIFACTS_DIR / name
+        if art_path.exists():
             try:
-                data = json.loads(path.read_text())
+                data = json.loads(art_path.read_text())
             except json.JSONDecodeError:
                 continue
             n = int(data.get("n_games") or len(data.get("games") or []))
-            ts = parse_commence(data.get("generated_at"))
-            rank = (n, ts.timestamp() if ts else 0.0, -source_prio)
-            if rank > best_rank:
-                best, best_rank = data, rank
+            if n > 0:
+                return data
+
+    best: dict[str, Any] = {}
+    best_rank: tuple[int, float] = (-1, 0.0)
+    for name in path_names:
+        path = DOCS_DIR / name
+        if not path.exists():
+            continue
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError:
+            continue
+        n = int(data.get("n_games") or len(data.get("games") or []))
+        ts = parse_commence(data.get("generated_at"))
+        rank = (n, ts.timestamp() if ts else 0.0)
+        if rank > best_rank:
+            best, best_rank = data, rank
     return best
 
 

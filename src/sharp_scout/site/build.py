@@ -246,6 +246,32 @@ def _pick_ncaaf_signals() -> dict[str, Any]:
     return _pick_signals((NCAAF.artifact_name, "latest_ncaaf_signals.json"))
 
 
+def _strip_demo_signals(sig: dict[str, Any]) -> dict[str, Any]:
+    """Drop demo/seed entries (event_id starting with 'demo') so placeholder games
+    like the ALA@UGA seed never surface on the live site. When a run has no real
+    board yet, the pipeline falls back to a demo signals file; without this guard
+    that phantom game leaks into the Stages/Ratings tabs and merged stage cards.
+    Real, ledger-driven content is unaffected."""
+    if not sig:
+        return sig
+
+    def _is_demo(row: Any) -> bool:
+        return isinstance(row, dict) and str(row.get("event_id") or "").startswith("demo")
+
+    cleaned = dict(sig)
+    for key in ("games", "plays", "stage_picks", "signals", "split_boards"):
+        rows = sig.get(key)
+        if isinstance(rows, list):
+            cleaned[key] = [r for r in rows if not _is_demo(r)]
+    if isinstance(cleaned.get("games"), list):
+        cleaned["n_games"] = len(cleaned["games"])
+    # Ratings in a demo file are synthetic — drop them wholesale for a demo board.
+    if sig.get("demo"):
+        cleaned["ratings"] = []
+        cleaned["stage_summary"] = {}
+    return cleaned
+
+
 def _format_timestamp_et(dt: datetime) -> str:
     return dt.astimezone(ET).strftime("%a %b %-d, %-I:%M %p ET")
 
@@ -328,6 +354,7 @@ def build_site(
         )
     else:
         signals = _pick_nfl_signals()
+    signals = _strip_demo_signals(signals)
 
     # Copy data for client-side refresh / debugging
     (out / "ledger.json").write_text(json.dumps(ledger, indent=2) + "\n")
@@ -345,7 +372,7 @@ def build_site(
         if new_n >= existing_n:
             out_signals.write_text(json.dumps(signals, indent=2, default=str) + "\n")
 
-    ncaaf_signals: dict[str, Any] = _pick_ncaaf_signals()
+    ncaaf_signals: dict[str, Any] = _strip_demo_signals(_pick_ncaaf_signals())
     ncaaf_ledger = load_ledger(path=DATA_DIR / NCAAF.ledger_name)
     ncaaf_record = compute_record(ncaaf_ledger)
     (out / "ncaaf_ledger.json").write_text(json.dumps(ncaaf_ledger, indent=2) + "\n")

@@ -839,6 +839,17 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 <body>
+<div class="tabs" role="navigation" aria-label="Sections">
+  <span class="tab tab-home active">★ This Week's Plays</span>
+  <a class="tab" href="board.html#tab-plays">NFL</a>
+  <a class="tab" href="board.html#tab-cfb">CFB</a>
+  <a class="tab" href="board.html#tab-games">Games</a>
+  <a class="tab" href="board.html#tab-stages">Stages</a>
+  <a class="tab" href="board.html#tab-ratings">Ratings</a>
+  <a class="tab" href="board.html#tab-nfl-historical">NFL Historical</a>
+  <a class="tab" href="board.html#tab-cfb-historical">CFB Historical</a>
+  <a class="tab" href="board.html#tab-guide">How to use</a>
+</div>
 <div class="lp-wrap">
   <div class="lp-hero">
     {ssq_logo}
@@ -977,6 +988,7 @@ def _render_play_table(
     if not source:
         return '<div class="empty">No open plays. Run the pipeline to generate signals.</div>'
 
+    status_hdr = "When to bet" if use_timing else "Status"
     rows: list[str] = []
     for p in sorted(
         source,
@@ -1001,21 +1013,21 @@ def _render_play_table(
         else:
             status_html = _status_badge(st)
         rationale = format_play_rationale(p).replace("\n", " · ")
+        # data-label drives the stacked card layout on phones (see .plays-table rules).
         rows.append(
             "<tr>"
-            f"<td>{_esc(kick)}</td>"
-            f"<td>{game}</td>"
-            f"<td class='play-pick-cell'>{_esc(_side_label(p))}</td>"
-            f"<td>{units}u</td>"
-            f"<td class='pos'>{edge_s}</td>"
-            f"<td>{_esc(p.get('book') or '—')}</td>"
-            f"<td class='play-timing-cell'>{status_html}</td>"
-            f"<td class='rationale-cell'>{_esc(rationale)}</td>"
+            f"<td data-label='Kickoff'>{_esc(kick)}</td>"
+            f"<td data-label='Game'>{game}</td>"
+            f"<td class='play-pick-cell' data-label='Play'>{_esc(_side_label(p))}</td>"
+            f"<td data-label='Units'>{units}u</td>"
+            f"<td class='pos' data-label='EV'>{edge_s}</td>"
+            f"<td data-label='Book'>{_esc(p.get('book') or '—')}</td>"
+            f"<td class='play-timing-cell' data-label='{_esc(status_hdr)}'>{status_html}</td>"
+            f"<td class='rationale-cell' data-label='Why'>{_esc(rationale)}</td>"
             "</tr>"
         )
 
     size_cls = " plays-table-large" if large else ""
-    status_hdr = "When to bet" if use_timing else "Status"
     id_attr = f' id="{_esc(table_id)}"' if table_id else ""
     return (
         f'<div class="table-wrap"><table class="export-table plays-table{size_cls}"{id_attr}>'
@@ -2435,29 +2447,52 @@ _SITE_CSS = """\
     padding: 5px 12px;
     border-radius: 0;
   }
+  /* Tab strip: a single horizontally scrollable row. On wide screens the tabs share
+     the width; on phones they keep their natural size and the strip scrolls, which
+     beats squeezing nine labels into 390px. */
   .tabs {
     display: flex;
     background: var(--color-bg);
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 2px solid var(--color-navy);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab {
-    flex: 1;
-    padding: 14px 8px;
+    flex: 1 0 auto;
+    padding: 15px 16px;
     text-align: center;
     cursor: pointer;
-    color: var(--color-text-muted);
+    white-space: nowrap;
+    text-decoration: none;
+    color: var(--color-text);
     font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    border-bottom: 2px solid transparent;
+    border-bottom: 4px solid transparent;
+    transition: background 0.12s, color 0.12s;
   }
+  .tab:hover { background: var(--color-slate); color: var(--color-navy); }
   .tab.active {
     color: #ffffff;
-    font-weight: 600;
-    border-bottom-color: var(--color-navy);
+    font-weight: 800;
+    border-bottom-color: #0a7d32;
     background: var(--color-navy);
+  }
+  .tab.active:hover { color: #ffffff; background: var(--color-navy); }
+  .tab.tab-home { color: #0a5c25; }
+  .tab.tab-home.active { color: #ffffff; background: #0a7d32; border-bottom-color: var(--color-navy); }
+  @media (max-width: 700px) {
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    .tab { flex: 0 0 auto; padding: 13px 13px; font-size: 12px; letter-spacing: 0.05em; }
   }
   .content { display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }
   .content.active { display: block; }
@@ -2792,6 +2827,79 @@ _SITE_CSS = """\
     .ssq-logo { width: 56px; height: 56px; }
     .header h1 { font-size: 28px; }
   }
+
+  /* ---- Phone layout ----------------------------------------------------------
+     The plays table has eight columns including a long rationale, which is
+     unreadable at 390px. Below 640px each row becomes a stacked card with the
+     column name as an inline label (from each cell's data-label attribute).
+     Wide reference tables (stage winners, ledger) keep horizontal scrolling. */
+  @media (max-width: 640px) {
+    .content { padding: 16px 12px 28px; }
+
+    .plays-table, .plays-table tbody, .plays-table tr, .plays-table td { display: block; width: 100%; }
+    .plays-table thead { display: none; }
+    .plays-table { min-width: 0; font-size: 14px; }
+    .plays-table tr {
+      border: 2px solid var(--color-border);
+      margin: 0 0 10px;
+      padding: 4px 0;
+      background: var(--color-bg);
+    }
+    .plays-table tr:last-child { margin-bottom: 0; }
+    .plays-table td {
+      border: none;
+      border-bottom: 1px solid #f0f0f0;
+      padding: 8px 12px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .plays-table td:last-child { border-bottom: none; }
+    .plays-table td::before {
+      content: attr(data-label);
+      flex: 0 0 auto;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    /* The pick and the timing guidance are what you actually act on — give them
+       the full width rather than a cramped right-hand column. */
+    .plays-table td.play-pick-cell, .plays-table td.play-timing-cell,
+    .plays-table td.rationale-cell {
+      display: block;
+    }
+    .plays-table td.play-pick-cell::before, .plays-table td.play-timing-cell::before,
+    .plays-table td.rationale-cell::before {
+      display: block;
+      margin-bottom: 3px;
+    }
+    .plays-table td.play-pick-cell { font-size: 17px; font-weight: 700; }
+    .plays-table td.rationale-cell { max-width: none; font-size: 12.5px; }
+    .plays-table-large { font-size: 14px; }
+
+    /* Landing page */
+    .lp-wrap { padding: 0 12px 32px; }
+    .lp-hero { padding: 20px 4px 14px; }
+    .lp-hero h1 { font-size: 27px; }
+    .lp-hero .lp-sub { font-size: 13px; }
+    .lp-chips { gap: 8px; }
+    .lp-chip { padding: 6px 11px; }
+    .lp-section h2 { font-size: 20px; }
+    .lp-cta { margin-top: 26px; padding: 14px; }
+
+    .plays-heading { padding: 12px 13px; margin: 20px 0 10px; }
+    .week1-banner { font-size: 12.5px; line-height: 1.6; }
+    .leans-caps-note { font-size: 14px; }
+    .stat-card { padding: 12px 8px; }
+    .summary-grid { gap: 8px; margin-bottom: 16px; }
+    .board-updated-bar { font-size: 10px; padding: 8px 10px; }
+    .footer { padding: 24px 12px; }
+  }
 """
 
 
@@ -2831,16 +2939,16 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <span class="board-updated-label">Picks &amp; prices updated</span>
     <span class="board-updated-time">{board_updated}</span>
   </div>
-<div class="tabs">
-  <a class="tab tab-link" href="index.html">← This Week's Plays</a>
-  <div class="tab active" onclick="showTab('plays', this)">NFL</div>
-  <div class="tab" onclick="showTab('nfl-historical', this)">NFL Historical</div>
-  <div class="tab" onclick="showTab('games', this)">Games</div>
-  <div class="tab" onclick="showTab('stages', this)">Stages</div>
-  <div class="tab" onclick="showTab('ratings', this)">Ratings</div>
-  <div class="tab" onclick="showTab('cfb', this)">CFB</div>
-  <div class="tab" onclick="showTab('cfb-historical', this)">CFB Historical</div>
-  <div class="tab" onclick="showTab('guide', this)">How to use</div>
+<div class="tabs" role="tablist">
+  <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
+  <a class="tab active" href="#tab-plays" data-tab="plays">NFL</a>
+  <a class="tab" href="#tab-cfb" data-tab="cfb">CFB</a>
+  <a class="tab" href="#tab-games" data-tab="games">Games</a>
+  <a class="tab" href="#tab-stages" data-tab="stages">Stages</a>
+  <a class="tab" href="#tab-ratings" data-tab="ratings">Ratings</a>
+  <a class="tab" href="#tab-nfl-historical" data-tab="nfl-historical">NFL Historical</a>
+  <a class="tab" href="#tab-cfb-historical" data-tab="cfb-historical">CFB Historical</a>
+  <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
 </div>
 </div>
 
@@ -2959,10 +3067,17 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 Source: ledger.json · record.json · ncaaf_ledger.json · ncaaf_record.json · latest signals</p>
 <script>
 function showTab(name, el) {{
+  var panel = document.getElementById('tab-' + name);
+  if (!panel) return;
   document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  el.classList.add('active');
+  panel.classList.add('active');
+  var btn = el || document.querySelector('.tab[data-tab="' + name + '"]');
+  if (btn) {{
+    btn.classList.add('active');
+    // Keep the current tab visible in the scrolling strip on narrow screens.
+    if (btn.scrollIntoView) btn.scrollIntoView({{ block: 'nearest', inline: 'center' }});
+  }}
   if (typeof gtag === 'function') {{
     gtag('event', 'page_view', {{
       page_title: 'Sharp Scout Quant — ' + name,
@@ -2971,6 +3086,35 @@ function showTab(name, el) {{
     }});
   }}
 }}
+
+// Tab deep links: the tab strip is real anchors (#tab-cfb), so the landing page and
+// shared/bookmarked URLs can open a specific tab. Route the hash to showTab on load
+// and on every hash change, and keep the hash in sync when a tab is clicked.
+(function () {{
+  function nameFromHash() {{
+    var h = (window.location.hash || '').replace(/^#/, '');
+    if (h.indexOf('tab-') === 0) h = h.slice(4);
+    return h && document.getElementById('tab-' + h) ? h : '';
+  }}
+  function route() {{
+    var name = nameFromHash();
+    if (name) showTab(name, null);
+  }}
+  document.querySelectorAll('.tab[data-tab]').forEach(function (a) {{
+    a.addEventListener('click', function (e) {{
+      e.preventDefault();
+      var name = a.getAttribute('data-tab');
+      showTab(name, a);
+      // replaceState avoids stacking a history entry per tab click, and avoids the
+      // browser jumping to the (now visible) panel anchor.
+      if (window.history && window.history.replaceState) {{
+        window.history.replaceState(null, '', '#tab-' + name);
+      }}
+    }});
+  }});
+  window.addEventListener('hashchange', route);
+  route();
+}})();
 
 function downloadTableCsv(tableId, filename) {{
   var table = document.getElementById(tableId);

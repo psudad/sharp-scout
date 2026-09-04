@@ -117,7 +117,8 @@ def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
         get_settings.cache_clear()
     # The full board now lives at board.html; index.html is the plays-only landing page.
     html = (out / "board.html").read_text()
-    assert "showTab('cfb'" in html
+    # Tabs are anchors with hash targets so they can be deep-linked.
+    assert 'data-tab="cfb"' in html
     assert "NCAAF" in html or "CFB" in html
     assert "This Week — Pregame Stage Winners" in html
     assert "This Week's Plays" in html
@@ -129,7 +130,7 @@ def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
     assert "board-updated-bar" in html
     assert "Picks &amp; prices updated" in html
     assert "CFB Historical" in html
-    assert "showTab('cfb-historical'" in html
+    assert 'data-tab="cfb-historical"' in html
     assert "This Week — Pregame Stage Winners" in html
     assert "NCAAF Power Ratings" not in html
     assert "Closing Line Value" in html

@@ -686,6 +686,11 @@ def build_site(
             analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         )
     )
+    (out / "comments.html").write_text(
+        _render_comments_page(
+            analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+        )
+    )
 
     assets_dir = out / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
@@ -849,6 +854,7 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="board.html#tab-nfl-historical">NFL Historical</a>
   <a class="tab" href="board.html#tab-cfb-historical">CFB Historical</a>
   <a class="tab" href="board.html#tab-guide">How to use</a>
+  <a class="tab tab-comments" href="comments.html">Comments</a>
 </div>
 <div class="lp-wrap">
   <div class="lp-hero">
@@ -882,6 +888,161 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   Updated {board_updated}
 </div>
 {timing_script}
+</body>
+</html>
+"""
+
+
+# Where visitor comments are delivered. Static site (GitHub Pages) has no backend,
+# so the form composes an email to this address from the visitor's own mail client.
+COMMENTS_TO_EMAIL = "jasoneger@gmail.com"
+
+
+def _render_comments_page(*, analytics_head: str) -> str:
+    """Standalone Comments page: name + email + comment, delivered by email."""
+    return COMMENTS_TEMPLATE.format(
+        site_css=_SITE_CSS,
+        analytics_head=analytics_head,
+        ssq_logo=_ssq_logo_svg(embedded=True),
+        to_email=COMMENTS_TO_EMAIL,
+        to_email_js=json.dumps(COMMENTS_TO_EMAIL),
+    )
+
+
+COMMENTS_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comments · Sharp Scout Quant</title>
+<meta name="description" content="Send a comment to Sharp Scout Quant">
+{analytics_head}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+{site_css}
+  .cf-wrap {{ max-width: 640px; margin: 0 auto; padding: 0 20px 48px; }}
+  .cf-hero {{ text-align: center; padding: 30px 16px 8px; }}
+  .cf-hero h1 {{ font-family: var(--font-serif); font-size: 38px; font-weight: 500; margin: 10px 0 4px; }}
+  .cf-hero p {{ color: var(--color-text-muted); font-size: 14px; font-weight: 300; }}
+  .cf-form {{ margin-top: 22px; }}
+  .cf-field {{ margin: 0 0 16px; }}
+  .cf-row {{ display: flex; gap: 14px; }}
+  .cf-row .cf-field {{ flex: 1; }}
+  .cf-field label {{ display: block; font-family: var(--font-mono); font-size: 10.5px;
+    font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--color-text-muted); margin-bottom: 5px; }}
+  .cf-field input, .cf-field textarea {{
+    width: 100%; box-sizing: border-box; padding: 11px 12px;
+    border: 2px solid var(--color-border); border-radius: 0; background: var(--color-bg);
+    font-family: var(--font-sans); font-size: 15px; color: var(--color-text);
+  }}
+  .cf-field textarea {{ min-height: 150px; resize: vertical; line-height: 1.55; }}
+  .cf-field input:focus, .cf-field textarea:focus {{ outline: none; border-color: var(--color-navy); }}
+  .cf-req {{ color: #b91c1c; }}
+  .cf-submit {{
+    display: inline-block; border: none; cursor: pointer; background: var(--color-navy);
+    color: #fff; font-family: var(--font-mono); font-size: 13px; font-weight: 800;
+    letter-spacing: 0.08em; text-transform: uppercase; padding: 13px 26px; border-radius: 0;
+  }}
+  .cf-submit:hover {{ background: #0a7d32; }}
+  .cf-status {{ margin-top: 14px; font-size: 13.5px; font-weight: 500; min-height: 20px; }}
+  .cf-status.err {{ color: #b91c1c; }}
+  .cf-status.ok {{ color: #0a5c25; }}
+  .cf-fallback {{ margin-top: 18px; font-size: 12.5px; color: var(--color-text-muted);
+    font-weight: 300; line-height: 1.6; }}
+  .cf-fallback a {{ color: var(--color-navy); }}
+  @media (max-width: 640px) {{
+    .cf-hero h1 {{ font-size: 29px; }}
+    .cf-row {{ display: block; }}
+  }}
+</style>
+</head>
+<body>
+<div class="tabs" role="navigation" aria-label="Sections">
+  <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
+  <a class="tab" href="board.html#tab-plays">NFL</a>
+  <a class="tab" href="board.html#tab-cfb">CFB</a>
+  <a class="tab" href="board.html#tab-games">Games</a>
+  <a class="tab" href="board.html#tab-stages">Stages</a>
+  <a class="tab" href="board.html#tab-ratings">Ratings</a>
+  <a class="tab" href="board.html#tab-nfl-historical">NFL Historical</a>
+  <a class="tab" href="board.html#tab-cfb-historical">CFB Historical</a>
+  <a class="tab" href="board.html#tab-guide">How to use</a>
+  <span class="tab tab-comments active">Comments</span>
+</div>
+<div class="cf-wrap">
+  <div class="cf-hero">
+    {ssq_logo}
+    <h1>Comments</h1>
+    <p>Questions, feedback, or a bug? Send it our way.</p>
+  </div>
+
+  <form id="cf-form" class="cf-form" novalidate>
+    <div class="cf-row">
+      <div class="cf-field">
+        <label for="cf-first">First name <span class="cf-req">*</span></label>
+        <input id="cf-first" name="first" type="text" autocomplete="given-name" required>
+      </div>
+      <div class="cf-field">
+        <label for="cf-last">Last name <span class="cf-req">*</span></label>
+        <input id="cf-last" name="last" type="text" autocomplete="family-name" required>
+      </div>
+    </div>
+    <div class="cf-field">
+      <label for="cf-email">Email <span class="cf-req">*</span></label>
+      <input id="cf-email" name="email" type="email" autocomplete="email" required>
+    </div>
+    <div class="cf-field">
+      <label for="cf-comment">Comment <span class="cf-req">*</span></label>
+      <textarea id="cf-comment" name="comment" required></textarea>
+    </div>
+    <button type="submit" class="cf-submit">Send comment</button>
+    <p id="cf-status" class="cf-status" role="status" aria-live="polite"></p>
+  </form>
+
+  <p class="cf-fallback">Your comment opens in your email app addressed to
+  <a href="mailto:{to_email}">{to_email}</a>. If nothing opens, email us there directly.</p>
+</div>
+<div class="footer">
+  Sharp Scout Quant · research and entertainment only · not betting advice.
+</div>
+<script>
+  (function () {{
+    var TO = {to_email_js};
+    var form = document.getElementById('cf-form');
+    var status = document.getElementById('cf-status');
+    if (!form) return;
+    function val(id) {{ var e = document.getElementById(id); return e ? e.value.trim() : ''; }}
+    form.addEventListener('submit', function (e) {{
+      e.preventDefault();
+      var first = val('cf-first'), last = val('cf-last');
+      var email = val('cf-email'), comment = val('cf-comment');
+      status.className = 'cf-status';
+      if (!first || !last || !email || !comment) {{
+        status.className = 'cf-status err';
+        status.textContent = 'Please fill in every field before sending.';
+        return;
+      }}
+      if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) {{
+        status.className = 'cf-status err';
+        status.textContent = 'Please enter a valid email address.';
+        return;
+      }}
+      var subject = 'Sharp Scout Quant comment from ' + first + ' ' + last;
+      var body = 'Name: ' + first + ' ' + last + '\\n'
+        + 'Email: ' + email + '\\n\\n'
+        + 'Comment:\\n' + comment + '\\n';
+      var href = 'mailto:' + TO
+        + '?subject=' + encodeURIComponent(subject)
+        + '&body=' + encodeURIComponent(body);
+      window.location.href = href;
+      status.className = 'cf-status ok';
+      status.textContent = 'Opening your email app to send — thank you!';
+    }});
+  }})();
+</script>
 </body>
 </html>
 """
@@ -2485,6 +2646,8 @@ _SITE_CSS = """\
   .tab.active:hover { color: #ffffff; background: var(--color-navy); }
   .tab.tab-home { color: #0a5c25; }
   .tab.tab-home.active { color: #ffffff; background: #0a7d32; border-bottom-color: var(--color-navy); }
+  .tab.tab-comments { color: var(--color-navy); }
+  .tab.tab-comments.active { color: #ffffff; background: var(--color-navy); border-bottom-color: #0a7d32; }
   @media (max-width: 700px) {
     .tabs {
       position: sticky;
@@ -2949,6 +3112,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="#tab-nfl-historical" data-tab="nfl-historical">NFL Historical</a>
   <a class="tab" href="#tab-cfb-historical" data-tab="cfb-historical">CFB Historical</a>
   <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
+  <a class="tab tab-comments" href="comments.html">Comments</a>
 </div>
 </div>
 

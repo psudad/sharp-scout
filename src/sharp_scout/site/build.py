@@ -1091,12 +1091,17 @@ def _render_guide_html() -> str:
 
 <div class="guide-block">
   <h2>How to read the tabs</h2>
-  <h3>NFL / CFB (main boards)</h3>
+  <h3>NFL and CFB (the two main boards)</h3>
+  <p>The site is now just two boards — <b>NFL</b> and <b>CFB</b> — and they are laid out identically, top to bottom:</p>
   <ul>
     <li><b>PLAY THESE QUANTS NOW</b> — validated Sharp Plays only. These are the bets we would actually track on the ledger, and the only rows on the site that are a recommendation.</li>
     <li><b>Pregame Stage Winners</b> — every game, three markets (spread, moneyline, total). <b>These are leans, not picks.</b> Each column is a different system (see below). The green <b>Quant Pick</b> is the system side for that market.</li>
-    <li><b>Quant Pick Leans</b> — all Quant Pick rows for the week. Yellow rows are posted Sharp Plays; the rest are leans / research, not auto-ledger bets.</li>
+    <li><b>Public &amp; Sharp Money &amp; Line Movement</b> — every game on the board with ticket vs money splits and the line we first recorded. <b>Open → now</b> shows which way the number ran off our earliest sharp price.</li>
+    <li><b>Stage Records</b> — season-long scorecards for each lens, so you can compare how the different systems have performed.</li>
     <li><b>Ledger</b> — full history of posted plays, results, CLV, and units.</li>
+    <li><b>Quant Pick Leans</b> — all Quant Pick rows for the week. Yellow rows are posted Sharp Plays; the rest are leans / research, not auto-ledger bets.</li>
+    <li><b>Power Ratings</b> (collapsible) — current offense / defense EPA ratings for that sport. Good for “who is actually strong right now?” before you dig into a line.</li>
+    <li><b>Prior weeks (archive)</b> (collapsible) — completed weeks roll here after they finish (NFL Wed–Tue ET; CFB Mon–Sun ET). Download CSV from any table for your own spreadsheet.</li>
   </ul>
   <h3>What each lens column means</h3>
   <p>The lens columns answer different questions. Two of them are about <b>price</b>, two are about <b>who is betting</b> — don't mix them up:</p>
@@ -1108,14 +1113,7 @@ def _render_guide_html() -> str:
     <li><b>Sharp Money</b> — <b>this is the column to watch if you want to follow the money rather than the price.</b> It is Handle % minus Public % on a side. A big positive gap means the dollars are much heavier than the bet count: fewer, larger wagers, which is the classic sharp-money tell. We flag it <b>SHARP MONEY</b> (green) at a 20%+ gap, <b>sharp money</b> (amber) at 10%+, and grey it out below 10% because at that point the dollars and the ticket count are basically in line and there is no real signal.</li>
     <li><b>RLM</b> — reverse line movement: the number moved <i>against</i> the public side, another sign the respected money is on the other team.</li>
   </ul>
-  <h3>Games</h3>
-  <p>Deep dive per matchup: model numbers, splits boards, and stage picks in one place. Use it when you want context on a single game.</p>
-  <h3>Stages</h3>
-  <p>Season-long scorecards for each lens, plus disagreement notes when the model and market diverge. Helpful for process review — not the first place to look for today's bet.</p>
-  <h3>Ratings</h3>
-  <p>Current power ratings (offense / defense EPA). Good for “who is actually strong right now?” before you dig into a line.</p>
-  <h3>NFL Historical / CFB Historical</h3>
-  <p>Prior weeks archived after the week rolls (NFL Wed–Tue ET; CFB Mon–Sun ET). Download CSV from any table if you want your own spreadsheet.</p>
+  <p>Everything lives inside those two boards now — there are no separate Games, Stages, Ratings, or Historical tabs to hunt through. Per-game detail, lens scorecards, power ratings, and prior-week archives are all folded into the NFL and CFB boards in the order above.</p>
 </div>
 
 <div class="guide-block">

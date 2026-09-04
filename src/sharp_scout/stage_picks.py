@@ -136,8 +136,27 @@ def _consensus_total_line(event: dict[str, Any]) -> float | None:
     return None
 
 
-def _consensus_spread_line(event: dict[str, Any]) -> float | None:
-    """Market spread in home perspective (neg => home favored), from the sharp consensus."""
+def _spread_line_from_split(split_game: dict[str, Any] | None) -> float | None:
+    """Action Network spread in home perspective (neg => home favored)."""
+    if not split_game:
+        return None
+    block = (split_game.get("markets") or {}).get("spread") or {}
+    line = block.get("current_line")
+    if line is None:
+        return None
+    return float(line)
+
+
+def _consensus_spread_line(
+    event: dict[str, Any],
+    split_game: dict[str, Any] | None = None,
+) -> float | None:
+    """Market spread in home perspective (neg => home favored).
+
+  Preference order: sharp consensus → any posted book → Action Network line.
+  Many CFB slates (especially early-week / lower-tier) have splits but no
+  Odds API bookmakers on the event row.
+    """
     sharp = sharp_consensus(event, "spreads")
     outcomes = (sharp or {}).get("outcomes") or []
     for o in outcomes:
@@ -146,10 +165,25 @@ def _consensus_spread_line(event: dict[str, Any]) -> float | None:
     for o in outcomes:
         if o.get("side") == "away" and o.get("point") is not None:
             return -float(o["point"])
-    return None
+    for bm in (event.get("bookmakers") or {}).values():
+        spreads = (bm.get("markets") or {}).get("spreads") or []
+        for o in spreads:
+            if o.get("side") == "home" and o.get("point") is not None:
+                return float(o["point"])
+        for o in spreads:
+            if o.get("side") == "away" and o.get("point") is not None:
+                return -float(o["point"])
+    return _spread_line_from_split(split_game)
 
 
-def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread", event: dict[str, Any] | None = None) -> StagePick:
+def pick_model(
+    sim: GameSimResult,
+    home: str,
+    away: str,
+    market: str = "spread",
+    event: dict[str, Any] | None = None,
+    split_game: dict[str, Any] | None = None,
+) -> StagePick:
     if market == "h2h":
         side: Side = "home" if sim.p_home_win >= sim.p_away_win else "away"
         conf = max(sim.p_home_win, sim.p_away_win)
@@ -183,7 +217,7 @@ def pick_model(sim: GameSimResult, home: str, away: str, market: str = "spread",
     # The model's lean is which side COVERS the market number, not who wins outright.
     # Home covers iff the model's projected home margin beats the market spread, i.e.
     # model_spread < market_line (e.g. model -3 vs market -29 => home doesn't cover).
-    mkt = _consensus_spread_line(event or {})
+    mkt = _consensus_spread_line(event or {}, split_game)
     if mkt is None:
         # No market line to bet against — fall back to the raw model lean.
         side = "home" if sim.model_spread <= 0 else "away"
@@ -461,7 +495,7 @@ def build_game_stage_card(
 ) -> GameStageCard:
     home, away = event["home_team"], event["away_team"]
     split = _find_split_game(splits, home, away, sport=str(event.get("sport") or "nfl"))
-    model = pick_model(sim, home, away, market=market, event=event)
+    model = pick_model(sim, home, away, market=market, event=event, split_game=split)
     sharp = pick_sharp(event, home, away, market=market)
     public = pick_public(split, home, away, market=market)
     money = pick_money(split, home, away, market=market)

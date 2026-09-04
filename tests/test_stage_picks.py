@@ -61,6 +61,31 @@ def test_model_spread_falls_back_when_no_market_line():
     assert pick.line == -3.0
 
 
+def test_model_spread_uses_action_network_when_no_odds_books():
+    # Many CFB games have AN splits but empty Odds API bookmakers on the event row.
+    sim = SimpleNamespace(model_spread=-3.0, p_home_win=0.85, p_away_win=0.15, cover_probs={})
+    split = {
+        "markets": {
+            "spread": {
+                "current_line": -23.5,
+                "home_bet_pct": 0.8,
+                "away_bet_pct": 0.2,
+            }
+        }
+    }
+    pick = pick_model(
+        sim,
+        "UK",
+        "YOUNGSTOWN STATE",
+        market="spread",
+        event={"bookmakers": {}},
+        split_game=split,
+    )
+    assert pick.side == "away"
+    assert pick.team == "YOUNGSTOWN STATE"
+    assert pick.line == 23.5
+
+
 def test_public_and_money_diverge():
     split = mock_splits()[0]
     pub = pick_public(split, "BUF", "KC")

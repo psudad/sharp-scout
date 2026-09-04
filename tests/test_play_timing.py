@@ -36,6 +36,11 @@ def test_timing_lock_within_one_hour():
     assert "Lock in now" in html
 
 
-def test_timing_settled_uses_badge():
+def test_timing_settled_shows_game_over():
     html = _play_timing_status_html({"status": "win", "kickoff": "2026-09-01T00:00:00+00:00"})
-    assert "WIN" in html
+    assert "Game Over" in html
+    assert "WON" in html
+    assert "settled-win" in html
+    html_loss = _play_timing_status_html({"status": "loss", "kickoff": "2026-09-01T00:00:00+00:00"})
+    assert "LOST" in html_loss
+    assert "settled-loss" in html_loss

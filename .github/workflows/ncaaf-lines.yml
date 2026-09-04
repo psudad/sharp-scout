@@ -65,6 +65,20 @@ jobs:
           echo "MONTE_CARLO_SIMS=5000" >> $GITHUB_ENV
           echo "GA_MEASUREMENT_ID=${{ secrets.GA_MEASUREMENT_ID }}" >> $GITHUB_ENV
 
+      - name: Settle finished CFB games (T+3h after kickoff)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        id: settle
+        continue-on-error: true
+        run: |
+          HASH_BEFORE=$(sha256sum data/ncaaf_ledger.json 2>/dev/null | cut -d' ' -f1 || echo none)
+          python scripts/settle_plays.py --sport ncaaf --build-site
+          HASH_AFTER=$(sha256sum data/ncaaf_ledger.json | cut -d' ' -f1)
+          if [ "$HASH_BEFORE" != "$HASH_AFTER" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Tuesday — rebuild plan and capture opening lines
         if: github.event.schedule == '0 14 * * 2' || (github.event_name == 'workflow_dispatch' && inputs.rebuild_plan)
         run: |
@@ -98,7 +112,7 @@ jobs:
           (github.event_name == 'workflow_dispatch' && inputs.rebuild_report) ||
           (steps.gate.outputs.rebuild == 'true')
         continue-on-error: true
-        run: python scripts/settle_plays.py --sport ncaaf
+        run: python scripts/settle_plays.py --sport ncaaf --build-site
 
       - name: Gameday full board rebuild (T-3h / T-1h)
         # Refreshes the public report — plays, splits, open→now, When-to-bet — before kickoff.
@@ -117,7 +131,7 @@ jobs:
       - name: Flag whether a Pages deploy is needed
         id: deployflag
         run: |
-          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.rebuild_report }}" = "true" ] || [ "${{ steps.gate.outputs.rebuild }}" = "true" ]; then
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.rebuild_report }}" = "true" ] || [ "${{ steps.gate.outputs.rebuild }}" = "true" ] || [ "${{ steps.settle.outputs.changed }}" = "true" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "deploy=false" >> "$GITHUB_OUTPUT"

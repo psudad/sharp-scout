@@ -161,11 +161,15 @@ def _play_timing_status_html(play: dict[str, Any]) -> str:
 
 
 def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
-    """Prefer the signals file with the fullest current slate (avoids stale empty artifacts)."""
+    """Prefer the freshest fullest signals file.
+
+    More games wins; on a tie prefer newer ``generated_at``, then ``artifacts/``
+    over committed ``docs/`` (CI rebuild writes to artifacts first).
+    """
     best: dict[str, Any] = {}
-    best_n = -1
+    best_rank: tuple[int, float, int] = (-1, 0.0, -1)
     for name in path_names:
-        for path in (ARTIFACTS_DIR / name, DOCS_DIR / name):
+        for source_prio, path in enumerate((ARTIFACTS_DIR / name, DOCS_DIR / name)):
             if not path.exists():
                 continue
             try:
@@ -173,8 +177,10 @@ def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
             except json.JSONDecodeError:
                 continue
             n = int(data.get("n_games") or len(data.get("games") or []))
-            if n > best_n:
-                best, best_n = data, n
+            ts = parse_commence(data.get("generated_at"))
+            rank = (n, ts.timestamp() if ts else 0.0, -source_prio)
+            if rank > best_rank:
+                best, best_rank = data, rank
     return best
 
 

@@ -2770,7 +2770,7 @@ _SITE_CSS = """\
     font-size: 9.5px; font-weight: 900; letter-spacing: 0.06em; vertical-align: middle;
     white-space: nowrap; }
   .sharp-flag.strong { background: #0a7d32; color: #fff; }
-  .sharp-flag.mild { background: #fde68a; color: #7c5c07; text-transform: uppercase; }
+  .sharp-flag.mild { background: #fde68a; color: #7c5c07; font-weight: 700; letter-spacing: 0.02em; }
   .sharp-money.strong { color: #0a5c25; font-weight: 800; }
   .sharp-money.mild { color: #7c5c07; }
   .sharp-money.none { color: var(--color-text-muted); font-weight: 300; }

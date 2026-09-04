@@ -14,7 +14,7 @@ STAGE_LABELS: dict[str, str] = {
     "sharp": "Sharp book price",
     "public": "Public tickets",
     "money": "Handle (dollars)",
-    "sharp_edge": "Handle vs tickets",
+    "sharp_edge": "Sharp money (handle vs tickets)",
     "rlm": "Reverse line move",
     "hybrid": "Quant pick",
 }
@@ -46,9 +46,11 @@ STAGE_COLUMN_TIPS: dict[str, str] = {
         "Action Network money % — share of the DOLLARS wagered. This is where money is "
         "actually flowing."
     ),
-    "Diff": (
-        "Handle % minus ticket % on a side. Positive means dollars are heavier than bet "
-        "count — the classic sharp-money tell. A ≥20% gap is a strong signal."
+    "Sharp Money": (
+        "Where the sharp money is. Handle % minus ticket % on a side: a big positive gap "
+        "means the dollars are far heavier than the bet count, i.e. fewer but much larger "
+        "wagers. Flagged SHARP MONEY at a ≥20% gap, lowercase 'sharp money' at ≥10%, and "
+        "greyed out below that (dollars and tickets are basically in line — no signal)."
     ),
     "RLM": "Reverse line movement — the line moved against the public toward this side.",
     "Quant Pick": "Quant pick — validated play when filters pass, else best model + market lean.",

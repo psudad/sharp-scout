@@ -398,8 +398,8 @@ def settle_from_scores(
         if kick is None:
             # Manual / missing kickoff: allow (operator responsibility)
             return True
-        # Require kickoff at least ~2.5h ago so the game is finished enough to grade.
-        return kick <= datetime.now(timezone.utc) - timedelta(hours=2, minutes=30)
+        # Grade once kickoff was at least 3h ago (CFB games typically ~3.5h; settle nightly).
+        return kick <= datetime.now(timezone.utc) - timedelta(hours=3)
 
     ledger = load_ledger(path)
     sport = "ncaaf" if path and "ncaaf" in path.name else "nfl"

@@ -94,7 +94,14 @@ def test_directional_and_renamed_schools_stay_distinct():
     assert normalize_ncaaf("EASTERN KENTUCKY") != normalize_ncaaf("KENTUCKY")
 
 
-def test_state_suffix_applies_after_mascot_removal():
+def test_espn_score_aliases_converge_with_ledger():
+    from sharp_scout.utils.teams import normalize_ncaaf
+
+    assert normalize_ncaaf("ALB") == normalize_ncaaf("ALBANY")
+    assert normalize_ncaaf("RUTG") == normalize_ncaaf("RUT")
+    assert normalize_ncaaf("MASS") == normalize_ncaaf("MASSACHUSETTS")
+    assert normalize_ncaaf("BUFF") == normalize_ncaaf("BUFFALO BULLS")
+    assert normalize_ncaaf("EIU") == normalize_ncaaf("EASTERN ILLINOIS")
     assert normalize_ncaaf("YOUNGSTOWN ST PENGUINS") == normalize_ncaaf("YOUNGSTOWN STATE")
 
 

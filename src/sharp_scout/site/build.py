@@ -145,7 +145,11 @@ def _play_timing_status_html(play: dict[str, Any]) -> str:
     static board has not rebuilt since.
     """
     st = play.get("status") or "pending"
-    if st in ("win", "loss", "push", "void"):
+    if st == "win":
+        return '<span class="play-timing settled-win">Game Over — WON</span>'
+    if st == "loss":
+        return '<span class="play-timing settled-loss">Game Over — LOST</span>'
+    if st in ("push", "void"):
         return _status_badge(st)
 
     raw = play.get("kickoff") or play.get("commence_time")
@@ -334,12 +338,25 @@ def build_site(
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
     nfl_games_all = signals.get("games") or []
-    nfl_week_plays = filter_plays_nfl_display_slate(
-        pending, events=nfl_games_all or [{"commence_time": p.get("kickoff")} for p in pending]
+    nfl_week_all = filter_plays_nfl_display_slate(
+        ledger["plays"], events=nfl_games_all or [{"commence_time": p.get("kickoff")} for p in ledger["plays"]]
     )
     nfl_week_plays_sorted = sorted(
-        collapse_best_signals(nfl_week_plays),
+        collapse_best_signals(nfl_week_all),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
+    nfl_week_stats = _compute_play_record(nfl_week_all)
+    nfl_week_pnl = sum(
+        float(p.get("pnl_units") or 0)
+        for p in nfl_week_all
+        if (p.get("status") or "pending") not in ("pending", None)
+    )
+    nfl_week_pnl_s = f"+{nfl_week_pnl:.2f}" if nfl_week_pnl >= 0 else f"{nfl_week_pnl:.2f}"
+    nfl_week_pnl_cls = "pos" if nfl_week_pnl >= 0 else "neg"
+    nfl_week_win_pct = (
+        f"{nfl_week_stats['win_pct'] * 100:.1f}%"
+        if nfl_week_stats["win_pct"] is not None
+        else "—"
     )
     plays_html = _render_play_table(nfl_week_plays_sorted, live_fallback=[], sport="nfl")
     nfl_clv_banner_html = _render_clv_banner(record.get("clv"))
@@ -406,10 +423,23 @@ def build_site(
     )
 
     ncaaf_pending = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") == "pending"]
-    ncaaf_week_plays = filter_plays_college_week(ncaaf_pending)
+    ncaaf_week_all = filter_plays_college_week(ncaaf_ledger["plays"])
     ncaaf_week_plays_sorted = sorted(
-        collapse_best_signals(ncaaf_week_plays),
+        collapse_best_signals(ncaaf_week_all),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
+    ncaaf_week_stats = _compute_play_record(ncaaf_week_all)
+    ncaaf_week_pnl = sum(
+        float(p.get("pnl_units") or 0)
+        for p in ncaaf_week_all
+        if (p.get("status") or "pending") not in ("pending", None)
+    )
+    ncaaf_week_pnl_s = f"+{ncaaf_week_pnl:.2f}" if ncaaf_week_pnl >= 0 else f"{ncaaf_week_pnl:.2f}"
+    ncaaf_week_pnl_cls = "pos" if ncaaf_week_pnl >= 0 else "neg"
+    ncaaf_week_win_pct = (
+        f"{ncaaf_week_stats['win_pct'] * 100:.1f}%"
+        if ncaaf_week_stats["win_pct"] is not None
+        else "—"
     )
     ncaaf_plays_html = _render_play_table(
         ncaaf_week_plays_sorted, live_fallback=[], sport="ncaaf", large=True, use_timing=True
@@ -479,18 +509,44 @@ def build_site(
 
     nfl_top_stats_html = "".join(
         [
-            _stat_card(str(record["record"]), "NFL Record", "Validated Sharp Plays on the NFL ledger."),
-            _stat_card(nfl_win_pct, "Win %", "Win rate on validated NFL Sharp Plays."),
-            _stat_card(f"{nfl_pnl_s}u", "Profit", "Net units on NFL Sharp Plays.", val_cls=nfl_pnl_cls),
-            _stat_card(demo_note, "Mode", "Live pipeline or demo mock data."),
+            _stat_card(
+                nfl_week_stats["record"] if nfl_week_stats["wins"] + nfl_week_stats["losses"] else "0-0",
+                "This Week's Plays Record",
+                "Recommended NFL plays for the current week (Wed–Tue ET). Resets each week; updated after games finish.",
+            ),
+            _stat_card(nfl_week_win_pct, "Week Win %", "Win rate on graded plays this NFL week."),
+            _stat_card(
+                f"{nfl_week_pnl_s}u",
+                "Week Profit",
+                "Net units on graded plays this NFL week.",
+                val_cls=nfl_week_pnl_cls,
+            ),
+            _stat_card(
+                str(record["record"]),
+                "Overall Record",
+                "Season record on all recommended NFL Sharp Plays tracked on the ledger.",
+            ),
         ]
     )
     ncaaf_top_stats_html = "".join(
         [
-            _stat_card(ncaaf_record["record"], "CFB Record", BOARD_STAT_TIPS["cfb_record"]),
-            _stat_card(ncaaf_win_pct, "Win %", "Win rate on validated CFB Sharp Plays."),
-            _stat_card(f"{ncaaf_pnl_s}u", "Profit", BOARD_STAT_TIPS["cfb_profit"], val_cls=ncaaf_pnl_cls),
-            _stat_card("DEMO data" if ncaaf_signals.get("demo") else "Live pipeline", "Mode", "Live odds/splits or demo mock."),
+            _stat_card(
+                ncaaf_week_stats["record"] if ncaaf_week_stats["wins"] + ncaaf_week_stats["losses"] else "0-0",
+                "This Week's Plays Record",
+                "Recommended CFB plays for the current college week (Mon–Sun ET). Resets each week; updated after games finish.",
+            ),
+            _stat_card(ncaaf_week_win_pct, "Week Win %", "Win rate on graded plays this college week."),
+            _stat_card(
+                f"{ncaaf_week_pnl_s}u",
+                "Week Profit",
+                "Net units on graded plays this college week.",
+                val_cls=ncaaf_week_pnl_cls,
+            ),
+            _stat_card(
+                ncaaf_record["record"],
+                "Overall Record",
+                "Season record on all recommended CFB Sharp Plays tracked on the ledger.",
+            ),
         ]
     )
     stage_alarm_stats_html = "".join(
@@ -2334,6 +2390,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .play-timing.soon {{ color: #7c3aed; }}
   .play-timing.lock {{ color: var(--color-win); }}
   .play-timing.started {{ color: var(--color-text-muted); }}
+  .play-timing.settled-win {{ color: #15803d; font-weight: 800; font-size: 1.02em; }}
+  .play-timing.settled-loss {{ color: #b91c1c; font-weight: 800; font-size: 1.02em; }}
   .lean-row-sharp-play td.pos {{
     color: #854d0e;
     font-weight: 800;
@@ -2387,7 +2445,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <div class="header-text">
       <h1>Sharp Scout Quant</h1>
       <p>NFL + NCAAF quant model · ratings → Monte Carlo → sharp EV → split filter</p>
-      <span class="pill">NFL {nfl_record} · {nfl_pnl}u · CFB {ncaaf_record} · {ncaaf_pnl}u · {ncaaf_demo_note}</span>
+      <span class="pill">NFL {nfl_record} · {nfl_pnl}u · CFB {ncaaf_record} · {ncaaf_pnl}u</span>
     </div>
   </div>
 </div>

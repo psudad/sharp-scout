@@ -44,3 +44,26 @@ def test_timing_settled_shows_game_over():
     html_loss = _play_timing_status_html({"status": "loss", "kickoff": "2026-09-01T00:00:00+00:00"})
     assert "LOST" in html_loss
     assert "settled-loss" in html_loss
+
+
+def test_settled_play_shows_final_score():
+    play = {
+        "status": "win",
+        "kickoff": "2026-09-03T00:00:00+00:00",
+        "sport": "ncaaf",
+        "away_team": "EASTERN ILLINOIS",
+        "home_team": "MINNESOTA",
+        "away_score": 7,
+        "home_score": 59,
+    }
+    html = _play_timing_status_html(play, sport="ncaaf")
+    assert "Game Over — WON" in html
+    assert "final-score" in html
+    assert "7" in html and "59" in html
+    assert "Final" in html
+
+
+def test_settled_play_without_scores_omits_final_line():
+    html = _play_timing_status_html({"status": "loss", "kickoff": "2026-09-03T00:00:00+00:00"})
+    assert "Game Over — LOST" in html
+    assert "final-score" not in html

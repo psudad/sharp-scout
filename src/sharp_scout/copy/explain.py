@@ -11,18 +11,18 @@ ET = ZoneInfo("America/New_York")
 
 STAGE_LABELS: dict[str, str] = {
     "model": "Model",
-    "sharp": "Sharp line",
+    "sharp": "Sharp book price",
     "public": "Public tickets",
-    "money": "Sharp money",
-    "sharp_edge": "Money vs tickets",
+    "money": "Handle (dollars)",
+    "sharp_edge": "Handle vs tickets",
     "rlm": "Reverse line move",
     "hybrid": "Quant pick",
 }
 
 STAGE_INTROS: dict[str, str] = {
     "model": "Our EPA ratings + Monte Carlo simulation favor",
-    "sharp": "Pinnacle / sharp books lean toward",
-    "public": "Most bet tickets are on",
+    "sharp": "Pinnacle / sharp books price the favorite as",
+    "public": "Most bet tickets (count) are on",
     "money": "Most handle (dollars) is on",
     "sharp_edge": "Sharp money signal (handle minus tickets) points to",
     "rlm": "Line moved against the public toward",
@@ -33,10 +33,23 @@ STAGE_INTROS: dict[str, str] = {
 STAGE_COLUMN_TIPS: dict[str, str] = {
     "Mkt": "Spread, moneyline (ML), or total — one row per market per game.",
     "Model": "EPA ratings + Monte Carlo simulation — our independent lean before splits.",
-    "Sharp": "Pinnacle / Betfair consensus — where sharp books price this market.",
-    "Public": "Action Network ticket % — which side most bettors are taking.",
-    "Money": "Action Network handle % — where the dollars are flowing.",
-    "Diff": "Money minus tickets on a side; a ≥20% gap flags sharp-money interest.",
+    "Sharp Book": (
+        "PRICE, not money flow: the side Pinnacle / Circa / Betfair make the favorite on "
+        "their no-vig line. This is where the sharpest books price the game — it does NOT "
+        "show where money is being bet."
+    ),
+    "Public": (
+        "Action Network ticket % — share of the NUMBER of bets. This is the crowd/public "
+        "count, not dollars."
+    ),
+    "Handle": (
+        "Action Network money % — share of the DOLLARS wagered. This is where money is "
+        "actually flowing."
+    ),
+    "Diff": (
+        "Handle % minus ticket % on a side. Positive means dollars are heavier than bet "
+        "count — the classic sharp-money tell. A ≥20% gap is a strong signal."
+    ),
     "RLM": "Reverse line movement — the line moved against the public toward this side.",
     "Quant Pick": "Quant pick — validated play when filters pass, else best model + market lean.",
 }

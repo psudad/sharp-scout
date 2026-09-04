@@ -137,7 +137,43 @@ def _timing_class_text(htk: float | None) -> tuple[str, str]:
     return "hold", "Don't play yet — lock in closer to game time"
 
 
-def _play_timing_status_html(play: dict[str, Any]) -> str:
+def _render_plays_heading(count: int) -> str:
+    """Loud heading over This Week's Plays — these are the actual recommendations."""
+    return (
+        '<div class="plays-heading">'
+        '<div class="plays-heading-main">PLAY THESE QUANTS NOW</div>'
+        '<div class="plays-heading-sub">RECOMMENDED PLAYS FOR YOU'
+        f'<span class="plays-heading-count"> · {count} validated</span></div>'
+        "</div>"
+    )
+
+
+# Everything below the plays table is research, not a recommendation. Say it loudly so
+# nobody mistakes a stage/lens column for a posted play.
+_LEANS_CAPS_NOTE = (
+    '<p class="leans-caps-note">THESE ARE LEANS, NOT ACTUAL PICKS.'
+    '<span class="leans-caps-sub">Each column is a different system — see the column '
+    "headers (Model, Sharp Book, Public, Handle, Diff, RLM) to tell which one. Only the "
+    "plays in <b>PLAY THESE QUANTS NOW</b> above are our actual recommendations.</span></p>"
+)
+
+
+def _final_score_text(play: dict[str, Any], *, sport: str = "nfl") -> str:
+    """"Final AWAY 7 - HOME 59" for a graded play, or "" when scores are missing."""
+    home_s, away_s = play.get("home_score"), play.get("away_score")
+    if home_s is None or away_s is None:
+        return ""
+    away = str(play.get("away_team") or "")
+    home = str(play.get("home_team") or "")
+    if (sport or str(play.get("sport") or "")).lower() == "ncaaf":
+        away, home = ncaaf_display_code(away), ncaaf_display_code(home)
+    try:
+        return f"Final {away} {int(away_s)} - {home} {int(home_s)}"
+    except (TypeError, ValueError):
+        return ""
+
+
+def _play_timing_status_html(play: dict[str, Any], *, sport: str = "nfl") -> str:
     """When to bet guidance for open Sharp Plays (replaces a bare PENDING badge).
 
     Emits the kickoff timestamp so the browser can recompute the guidance live
@@ -145,12 +181,14 @@ def _play_timing_status_html(play: dict[str, Any]) -> str:
     static board has not rebuilt since.
     """
     st = play.get("status") or "pending"
-    if st == "win":
-        return '<span class="play-timing settled-win">Game Over — WON</span>'
-    if st == "loss":
-        return '<span class="play-timing settled-loss">Game Over — LOST</span>'
-    if st in ("push", "void"):
-        return _status_badge(st)
+    if st in ("win", "loss", "push", "void"):
+        label = {"win": "WON", "loss": "LOST", "push": "PUSH", "void": "VOID"}[st]
+        cls = {"win": "settled-win", "loss": "settled-loss"}.get(st, "settled-push")
+        score = _final_score_text(play, sport=sport)
+        score_html = f'<span class="final-score">{_esc(score)}</span>' if score else ""
+        return (
+            f'<span class="play-timing {cls}">Game Over — {label}</span>{score_html}'
+        )
 
     raw = play.get("kickoff") or play.get("commence_time")
     kickoff = parse_commence(raw)
@@ -579,6 +617,9 @@ def build_site(
         ssq_logo=_ssq_logo_svg(embedded=True),
         board_updated=board_updated,
         week1_banner_html=_WEEK1_BANNER,
+        leans_caps_note=_LEANS_CAPS_NOTE,
+        nfl_plays_heading=_render_plays_heading(nfl_signal_count),
+        ncaaf_plays_heading=_render_plays_heading(len(ncaaf_week_plays_sorted)),
         nfl_record=record["record"],
         nfl_win_pct=nfl_win_pct,
         nfl_pnl=nfl_pnl_s,
@@ -665,10 +706,20 @@ def _render_guide_html() -> str:
   <h2>How to read the tabs</h2>
   <h3>NFL / CFB (main boards)</h3>
   <ul>
-    <li><b>This Week's Plays</b> — validated Sharp Plays only. These are the bets we would actually track on the ledger.</li>
-    <li><b>Pregame Stage Winners</b> — every game, three markets (spread, moneyline, total). Each column is a different lens (model, sharp books, public tickets, money, etc.). The green <b>Quant Pick</b> is the system side for that market.</li>
+    <li><b>PLAY THESE QUANTS NOW</b> — validated Sharp Plays only. These are the bets we would actually track on the ledger, and the only rows on the site that are a recommendation.</li>
+    <li><b>Pregame Stage Winners</b> — every game, three markets (spread, moneyline, total). <b>These are leans, not picks.</b> Each column is a different system (see below). The green <b>Quant Pick</b> is the system side for that market.</li>
     <li><b>Quant Pick Leans</b> — all Quant Pick rows for the week. Yellow rows are posted Sharp Plays; the rest are leans / research, not auto-ledger bets.</li>
     <li><b>Ledger</b> — full history of posted plays, results, CLV, and units.</li>
+  </ul>
+  <h3>What each lens column means</h3>
+  <p>The lens columns answer different questions. Two of them are about <b>price</b>, two are about <b>who is betting</b> — don't mix them up:</p>
+  <ul>
+    <li><b>Model</b> — our own number, before we look at any betting data. Side we project to cover the market line.</li>
+    <li><b>Sharp Book</b> — <b>a price, not money flow.</b> The side Pinnacle / Circa / Betfair make the favorite on their no-vig line. It tells you how the sharpest books have the game rated; it says nothing about how much is being wagered.</li>
+    <li><b>Public</b> — ticket %, i.e. the share of the <b>number of bets</b>. This is bettor headcount.</li>
+    <li><b>Handle</b> — money %, i.e. the share of the <b>dollars wagered</b>. This is where money is actually flowing.</li>
+    <li><b>Diff</b> — Handle % minus Public %. A big positive gap means the dollars are much heavier than the bet count on that side: fewer, larger bets. That is the classic sharp-money tell, and it is the column to watch if you want to follow the money rather than the price.</li>
+    <li><b>RLM</b> — reverse line movement: the number moved <i>against</i> the public side, another sign the respected money is on the other team.</li>
   </ul>
   <h3>Games</h3>
   <p>Deep dive per matchup: model numbers, splits boards, and stage picks in one place. Use it when you want context on a single game.</p>
@@ -748,7 +799,7 @@ def _render_play_table(
         edge_s = f"{edge * 100:.1f}%" if edge is not None else "—"
         st = p.get("status") or "pending"
         if use_timing:
-            status_html = _play_timing_status_html(p)
+            status_html = _play_timing_status_html(p, sport=sport)
         elif "filter_passed" in p and not p.get("status"):
             status_html = '<span class="card-result pending">OPEN</span>'
         else:
@@ -1255,9 +1306,9 @@ def _render_stage_table_head() -> str:
         ("Mkt", STAGE_COLUMN_TIPS.get("Mkt")),
         ("Quant Pick", STAGE_COLUMN_TIPS.get("Quant Pick")),
         ("Model", STAGE_COLUMN_TIPS.get("Model")),
-        ("Sharp", STAGE_COLUMN_TIPS.get("Sharp")),
+        ("Sharp Book", STAGE_COLUMN_TIPS.get("Sharp Book")),
         ("Public", STAGE_COLUMN_TIPS.get("Public")),
-        ("Money", STAGE_COLUMN_TIPS.get("Money")),
+        ("Handle", STAGE_COLUMN_TIPS.get("Handle")),
         ("Diff", STAGE_COLUMN_TIPS.get("Diff")),
         ("RLM", STAGE_COLUMN_TIPS.get("RLM")),
         ("Notes", None),
@@ -2392,6 +2443,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .play-timing.started {{ color: var(--color-text-muted); }}
   .play-timing.settled-win {{ color: #15803d; font-weight: 800; font-size: 1.02em; }}
   .play-timing.settled-loss {{ color: #b91c1c; font-weight: 800; font-size: 1.02em; }}
+  .play-timing.settled-push {{ color: #6b7280; font-weight: 800; font-size: 1.02em; }}
   .lean-row-sharp-play td.pos {{
     color: #854d0e;
     font-weight: 800;
@@ -2422,6 +2474,24 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     margin-bottom: 8px;
   }}
   .phase-note {{ font-size: 13px; color: var(--color-text-muted); margin: 4px 0; line-height: 1.65; font-weight: 300; }}
+  .plays-heading {{ margin: 26px 0 10px; padding: 14px 18px; border-left: 6px solid #0a7d32;
+    background: #f2fbf4; border-radius: 4px; }}
+  .plays-heading-main {{ font-size: 30px; font-weight: 900; letter-spacing: 0.02em;
+    line-height: 1.15; color: #0a5c25; text-transform: uppercase; }}
+  .plays-heading-sub {{ margin-top: 4px; font-size: 15px; font-weight: 800;
+    letter-spacing: 0.08em; color: #14181c; text-transform: uppercase; }}
+  .plays-heading-count {{ font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; }}
+  .leans-caps-note {{ margin: 8px 0 12px; padding: 10px 14px; border-left: 5px solid #b21f2d;
+    background: #fff5f5; border-radius: 4px; }}
+  .leans-caps-note {{ font-size: 16px; font-weight: 900; letter-spacing: 0.05em; color: #8c1620; }}
+  .leans-caps-sub {{ display: block; margin-top: 5px; font-size: 12.5px; font-weight: 400;
+    letter-spacing: normal; text-transform: none; color: var(--color-text-muted); line-height: 1.6; }}
+  .final-score {{ display: block; margin-top: 3px; font-size: 12px; font-weight: 700;
+    color: var(--color-text-muted); letter-spacing: 0.02em; }}
+  @media (max-width: 640px) {{
+    .plays-heading-main {{ font-size: 22px; }}
+    .plays-heading-sub {{ font-size: 13px; }}
+  }}
   .phase-sub {{ font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin: 8px 0 4px; }}
   .line-open {{ color: var(--color-text); text-transform: none; letter-spacing: 0; }}
   .line-move {{ font-weight: 700; text-transform: none; letter-spacing: 0; }}
@@ -2471,10 +2541,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="summary-grid">{nfl_top_stats_html}</div>
   <div class="section-label">Closing Line Value</div>
   {nfl_clv_banner_html}
-  <div class="section-label">This Week's Plays · {nfl_signal_count} validated</div>
+  {nfl_plays_heading}
   {plays_html}
   <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks. Only rows highlighted in yellow in the <b>NFL Ledger</b> below are the posted Sharp Plays we track.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
+  {leans_caps_note}
   <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET; advances to the next slate when this week is empty). Prior weeks are on <b>NFL Historical</b>. Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
   {nfl_stage_weeks_html}
   <div class="section-label">NFL Stage Records (season)</div>
@@ -2490,6 +2561,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <tbody>{nfl_ledger_rows}</tbody>
   </table></div>
   <div class="section-label">This Week — Quant Pick Leans</div>
+  {leans_caps_note}
   {nfl_leans_html}
 </div>
 
@@ -2539,10 +2611,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="summary-grid">{ncaaf_top_stats_html}</div>
   <div class="section-label">Closing Line Value</div>
   {ncaaf_clv_banner_html}
-  <div class="section-label">This Week's Plays · {ncaaf_week_play_count} validated</div>
+  {ncaaf_plays_heading}
   {ncaaf_plays_html}
   <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks — use the <b>When to bet</b> column for timing. Only rows highlighted in yellow in the <b>NCAAF Ledger</b> below are the posted Sharp Plays we track.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
+  {leans_caps_note}
   <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Prior weeks are on <b>CFB Historical</b>. Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">NCAAF Stage Records (season)</div>
@@ -2558,6 +2631,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <tbody>{ncaaf_ledger_rows}</tbody>
   </table></div>
   <div class="section-label">This Week — Quant Pick Leans</div>
+  {leans_caps_note}
   {ncaaf_leans_html}
   <div class="section-label">This Week — Public / Sharp Money &amp; Line Movement</div>
   <p class="phase-note" style="padding:4px 0 10px">Every college game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>

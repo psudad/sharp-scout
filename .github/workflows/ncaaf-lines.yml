@@ -13,9 +13,11 @@ on:
   schedule:
     # Tuesday 14:00 UTC (~10:00 ET) — weekly opening lines + refresh plan
     - cron: "0 14 * * 2"
-    # Every 15 min — exits in seconds unless a snapshot window or pregame rebuild
-    # is due. Frequent cadence defeats GitHub's schedule drift (15–40 min) so the
-    # T-3h / T-1h board refresh is never skipped; rebuilds are throttled in the gate.
+    # Every 15 min (best effort). GitHub does NOT honor this reliably — on this repo
+    # it fires roughly every 3–5h. So we do NOT rely on hitting a narrow T-3h/T-1h
+    # point; instead the gate rebuilds whenever a game is within REBUILD_LEAD_HOURS
+    # (~6.5h) of kickoff, which is wider than the real cron gap, so every game gets a
+    # pregame refresh. Rebuilds are throttled to ~45 min apart to bound API usage.
     - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:

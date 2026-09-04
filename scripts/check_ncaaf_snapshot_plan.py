@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.scheduler.ncaaf_lines import (  # noqa: E402
+    REBUILD_LEAD_HOURS,
     load_plan,
     rebuild_due,
     should_run_now,
@@ -20,8 +21,10 @@ from sharp_scout.scheduler.ncaaf_lines import (  # noqa: E402
 
 PLAN_PATH = ROOT / "data" / "ncaaf_line_plan.json"
 STATE_PATH = ROOT / "data" / "ncaaf_rebuild_state.json"
-# Min gap between full rebuilds. The cron runs every 15 min so a window is never
-# missed to drift, but we only rebuild the board (and hit the Odds API) this often.
+# Min gap between full rebuilds. GitHub's schedule is best-effort and only fires this
+# workflow every few hours (not every 15 min), so the pregame zone is deliberately
+# wide (see REBUILD_LEAD_HOURS) to catch a fire. This throttle just bounds Odds API
+# usage / commits on the rare occasions fires do cluster close together.
 REBUILD_THROTTLE_MINUTES = 45
 
 
@@ -71,7 +74,7 @@ def main() -> None:
     if in_zone:
         n = len(rebuild_hits)
         if do_rebuild:
-            print(f"Full board rebuild: {n} game(s) inside the pregame zone (T≤3h)")
+            print(f"Full board rebuild: {n} game(s) inside the pregame zone (T≤{REBUILD_LEAD_HOURS:g}h)")
         else:
             print(f"In pregame zone ({n} game(s)) but throttled — last rebuild {last.isoformat()}")
 

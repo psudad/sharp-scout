@@ -22,9 +22,24 @@ def _plan(kickoff: datetime) -> dict:
     }
 
 
-def test_lead_covers_t3_with_drift_margin():
-    # Slightly over 3h so a T-3h window survives cron drift.
-    assert REBUILD_LEAD_HOURS >= 3.0
+def test_lead_covers_real_github_cron_gaps():
+    # GitHub's `*/15` schedule really fires every 3–5h on this repo, so the pregame
+    # zone must be wider than that gap or a game's whole window can be skipped.
+    assert REBUILD_LEAD_HOURS >= 5.5
+
+
+def test_rebuild_at_t2():
+    kickoff = datetime(2026, 9, 3, 23, 0, tzinfo=timezone.utc)
+    ok, _ = rebuild_due(_plan(kickoff), now=kickoff - timedelta(hours=2))
+    assert ok is True
+
+
+def test_rebuild_fires_even_when_only_a_far_cron_lands():
+    # A single fire ~5h before kickoff (typical of GitHub's sparse cron) still
+    # rebuilds, so the game is not skipped entirely.
+    kickoff = datetime(2026, 9, 3, 23, 0, tzinfo=timezone.utc)
+    ok, _ = rebuild_due(_plan(kickoff), now=kickoff - timedelta(hours=5))
+    assert ok is True
 
 
 def test_rebuild_at_t3():
@@ -51,7 +66,7 @@ def test_rebuild_at_t1():
 
 def test_no_rebuild_well_before_zone():
     kickoff = datetime(2026, 9, 3, 23, 0, tzinfo=timezone.utc)
-    ok, _ = rebuild_due(_plan(kickoff), now=kickoff - timedelta(hours=6))
+    ok, _ = rebuild_due(_plan(kickoff), now=kickoff - timedelta(hours=9))
     assert ok is False
 
 

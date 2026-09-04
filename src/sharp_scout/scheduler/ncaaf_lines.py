@@ -30,11 +30,13 @@ OPENING_MINUTE = 0
 EARLY_OPENING_HOUR_ET = 18
 EARLY_OPENING_MINUTE = 0
 
-DEFAULT_LINE_WINDOWS_HOURS = (6.0, 4.0, 3.0, 1.0)
+DEFAULT_LINE_WINDOWS_HOURS = (6.0, 4.0, 3.0, 2.0, 1.0)
 
 # Windows that trigger a full board rebuild (not just a line snapshot): the public
 # report — plays, splits, open→now movement, When-to-bet — refreshes before kickoff.
-REBUILD_WINDOWS_HOURS = (3.0, 1.0)
+# Note: the rebuild gate (rebuild_due) is zone-based, not tied to these exact points,
+# so T-3h / T-2h / T-1h are all covered by the pregame zone. These stay as labels.
+REBUILD_WINDOWS_HOURS = (3.0, 2.0, 1.0)
 
 
 def _next_weekday_at(
@@ -238,11 +240,19 @@ def should_run_now(
     return bool(matched), matched
 
 
-# A game is in the "pregame zone" from T-3h until kickoff. Any scheduled run that
-# lands in this zone triggers a full board rebuild — this is deliberately NOT tied
-# to the exact T-3h/T-1h points, because GitHub's cron drifts 15–40 min and would
-# otherwise skip the window entirely (as happened live on 2026-09-03).
-REBUILD_LEAD_HOURS = 3.25
+# A game is in the "pregame zone" from T-LEAD until kickoff. Any scheduled run that
+# lands in this zone triggers a full board rebuild — deliberately NOT tied to exact
+# T-3h/T-2h/T-1h points.
+#
+# Why 6.5h and not ~3h: GitHub's `*/15` schedule does NOT fire every 15 min. On this
+# repo it is best-effort and actually fires every 3–5 hours (observed gaps up to
+# 5h09m on 2026-09-04), because GitHub heavily deprioritizes frequent crons. A 3.25h
+# zone is narrower than that gap, so a game's entire pregame window could fall between
+# two fires and get no refresh at all — which is exactly what happened to the early
+# 2026-09-04 games. Making the zone wider than the real cron gap guarantees that at
+# least one fire lands inside it, so every game gets a pregame board rebuild. The
+# 45-min rebuild throttle still bounds Odds API usage when fires do cluster.
+REBUILD_LEAD_HOURS = 6.5
 
 
 def rebuild_due(

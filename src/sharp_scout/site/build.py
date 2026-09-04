@@ -2544,6 +2544,10 @@ _SITE_CSS = """\
     display: block;
     width: 76px;
     height: 76px;
+    /* Center the fixed-width logo on text-align:center heroes (landing, comments);
+       harmless inside the board's flex header where it's already centered. */
+    margin-left: auto;
+    margin-right: auto;
   }
   .header h1 {
     font-family: var(--font-serif);

@@ -115,7 +115,8 @@ def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
         out = build_site(docs_dir=tmp_path / "docs")
     finally:
         get_settings.cache_clear()
-    html = (out / "index.html").read_text()
+    # The full board now lives at board.html; index.html is the plays-only landing page.
+    html = (out / "board.html").read_text()
     assert "showTab('cfb'" in html
     assert "NCAAF" in html or "CFB" in html
     assert "This Week — Pregame Stage Winners" in html

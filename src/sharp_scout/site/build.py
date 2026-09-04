@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -153,7 +154,7 @@ def _render_plays_heading(count: int) -> str:
 _LEANS_CAPS_NOTE = (
     '<p class="leans-caps-note">THESE ARE LEANS, NOT ACTUAL PICKS.'
     '<span class="leans-caps-sub">Each column is a different system — see the column '
-    "headers (Model, Sharp Book, Public, Handle, Diff, RLM) to tell which one. Only the "
+    "headers (Model, Sharp Book, Public, Handle, Sharp Money, RLM) to tell which one. Only the "
     "plays in <b>PLAY THESE QUANTS NOW</b> above are our actual recommendations.</span></p>"
 )
 
@@ -718,7 +719,7 @@ def _render_guide_html() -> str:
     <li><b>Sharp Book</b> — <b>a price, not money flow.</b> The side Pinnacle / Circa / Betfair make the favorite on their no-vig line. It tells you how the sharpest books have the game rated; it says nothing about how much is being wagered.</li>
     <li><b>Public</b> — ticket %, i.e. the share of the <b>number of bets</b>. This is bettor headcount.</li>
     <li><b>Handle</b> — money %, i.e. the share of the <b>dollars wagered</b>. This is where money is actually flowing.</li>
-    <li><b>Diff</b> — Handle % minus Public %. A big positive gap means the dollars are much heavier than the bet count on that side: fewer, larger bets. That is the classic sharp-money tell, and it is the column to watch if you want to follow the money rather than the price.</li>
+    <li><b>Sharp Money</b> — <b>this is the column to watch if you want to follow the money rather than the price.</b> It is Handle % minus Public % on a side. A big positive gap means the dollars are much heavier than the bet count: fewer, larger wagers, which is the classic sharp-money tell. We flag it <b>SHARP MONEY</b> (green) at a 20%+ gap, <b>sharp money</b> (amber) at 10%+, and grey it out below 10% because at that point the dollars and the ticket count are basically in line and there is no real signal.</li>
     <li><b>RLM</b> — reverse line movement: the number moved <i>against</i> the public side, another sign the respected money is on the other team.</li>
   </ul>
   <h3>Games</h3>
@@ -1309,7 +1310,7 @@ def _render_stage_table_head() -> str:
         ("Sharp Book", STAGE_COLUMN_TIPS.get("Sharp Book")),
         ("Public", STAGE_COLUMN_TIPS.get("Public")),
         ("Handle", STAGE_COLUMN_TIPS.get("Handle")),
-        ("Diff", STAGE_COLUMN_TIPS.get("Diff")),
+        ("Sharp Money", STAGE_COLUMN_TIPS.get("Sharp Money")),
         ("RLM", STAGE_COLUMN_TIPS.get("RLM")),
         ("Notes", None),
     ]
@@ -1345,6 +1346,60 @@ def _pick_cell(pick: dict | None, *, sport: str = "nfl") -> str:
     elif line is not None and market == "total":
         label_s = f"{label_s} {float(line):,.1f}"
     return f"<b>{_esc(label_s)}</b>"
+
+
+# Handle-minus-ticket gap needed before we call it sharp money rather than noise.
+# Below MILD the dollars and bet count are basically in line, so we grey the row out.
+SHARP_MONEY_STRONG_PCT = 0.20
+SHARP_MONEY_MILD_PCT = 0.10
+
+
+def _sharp_edge_diff_pct(pick: dict[str, Any]) -> float | None:
+    """Recover the handle-minus-ticket gap from a stored sharp_edge pick."""
+    m = re.search(r"\+(\d+(?:\.\d+)?)%", str(pick.get("reason") or ""))
+    if m:
+        try:
+            return float(m.group(1)) / 100.0
+        except ValueError:
+            pass
+    # Older cards without a parseable reason: pick_sharp_edge stored 0.5 + diff.
+    conf = pick.get("confidence")
+    if conf is None:
+        return None
+    try:
+        diff = float(conf) - 0.5
+    except (TypeError, ValueError):
+        return None
+    return diff if diff > 0 else None
+
+
+def _sharp_money_cell(pick: dict | None, *, sport: str = "nfl") -> str:
+    """Sharp Money column: which side the dollars favor, flagged by how big the gap is."""
+    if not pick or not pick.get("available"):
+        return "<span class='pending'>—</span>"
+    label = pick.get("team") or pick.get("side") or ""
+    if not label:
+        return "<span class='pending'>—</span>"
+    label_s = str(label)
+    side = str(pick.get("side") or "").lower()
+    if sport == "ncaaf" and side not in ("over", "under") and label_s.upper() not in ("OVER", "UNDER"):
+        label_s = ncaaf_display_code(label_s)
+
+    diff = _sharp_edge_diff_pct(pick)
+    if diff is None:
+        return f"<b>{_esc(label_s)}</b>"
+    gap = f"+{diff * 100:.0f}%"
+    if diff >= SHARP_MONEY_STRONG_PCT:
+        return (
+            f'<span class="sharp-money strong"><b>{_esc(label_s)}</b> {gap}'
+            f'<span class="sharp-flag strong">SHARP MONEY</span></span>'
+        )
+    if diff >= SHARP_MONEY_MILD_PCT:
+        return (
+            f'<span class="sharp-money mild"><b>{_esc(label_s)}</b> {gap}'
+            f'<span class="sharp-flag mild">sharp money</span></span>'
+        )
+    return f'<span class="sharp-money none">{_esc(label_s)} {gap}</span>'
 
 
 def _stage_card_key(card: dict[str, Any]) -> str:
@@ -1799,7 +1854,7 @@ def _render_stage_rows(cards: list[dict], *, sport: str = "nfl") -> str:
             f"<td>{_pick_cell(picks.get('sharp'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('public'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('money'), sport=sport)}</td>"
-            f"<td>{_pick_cell(picks.get('sharp_edge'), sport=sport)}</td>"
+            f"<td>{_sharp_money_cell(picks.get('sharp_edge'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('rlm'), sport=sport)}</td>"
             f"<td>{_esc(flag or agrees)}</td>"
             "</tr>"
@@ -2486,6 +2541,14 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   .leans-caps-note {{ font-size: 16px; font-weight: 900; letter-spacing: 0.05em; color: #8c1620; }}
   .leans-caps-sub {{ display: block; margin-top: 5px; font-size: 12.5px; font-weight: 400;
     letter-spacing: normal; text-transform: none; color: var(--color-text-muted); line-height: 1.6; }}
+  .sharp-flag {{ display: inline-block; margin-left: 5px; padding: 1px 5px; border-radius: 3px;
+    font-size: 9.5px; font-weight: 900; letter-spacing: 0.06em; vertical-align: middle;
+    white-space: nowrap; }}
+  .sharp-flag.strong {{ background: #0a7d32; color: #fff; }}
+  .sharp-flag.mild {{ background: #fde68a; color: #7c5c07; text-transform: uppercase; }}
+  .sharp-money.strong {{ color: #0a5c25; font-weight: 800; }}
+  .sharp-money.mild {{ color: #7c5c07; }}
+  .sharp-money.none {{ color: var(--color-text-muted); font-weight: 300; }}
   .final-score {{ display: block; margin-top: 3px; font-size: 12px; font-weight: 700;
     color: var(--color-text-muted); letter-spacing: 0.02em; }}
   @media (max-width: 640px) {{

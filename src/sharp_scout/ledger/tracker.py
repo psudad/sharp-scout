@@ -100,6 +100,7 @@ def append_signals(
     existing = {_play_key(p) for p in ledger["plays"]}
     added = 0
     replaced = 0
+    refreshed = 0
     for s in signals:
         if only_validated and not s.get("filter_passed"):
             continue
@@ -147,6 +148,22 @@ def append_signals(
         }
         key = _play_key(row)
         if key in existing:
+            # Same game/market/side/line/book/window is already tracked. If it is still
+            # pending, refresh the model-derived fields: ratings and sims can change even
+            # when the market line does not, so edge/p_true/tier must never go stale
+            # (e.g. a bad-ratings run must be correctable by a later good run).
+            for p in ledger["plays"]:
+                if (p.get("status") or "pending") == "pending" and _play_key(p) == key:
+                    for field in (
+                        "edge", "p_true", "p_mkt", "model_spread",
+                        "model_total", "model_mean", "price", "rationale",
+                    ):
+                        if row.get(field) is not None:
+                            p[field] = row[field]
+                    p["tier"] = row["tier"]
+                    p["units"] = row["units"]
+                    refreshed += 1
+                    break
             continue
         logical = _logical_play_key(row)
         before_len = len(ledger["plays"])
@@ -163,9 +180,10 @@ def append_signals(
         added += 1
     save_ledger(ledger, path)
     logger.info(
-        "Ledger: added %d plays, replaced %d pending (total %d)",
+        "Ledger: added %d plays, replaced %d pending, refreshed %d pending (total %d)",
         added,
         replaced,
+        refreshed,
         len(ledger["plays"]),
     )
     return ledger

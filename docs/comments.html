@@ -448,11 +448,16 @@
   .stage-table th .th-tip:hover, .stage-table th .th-tip:focus { color: #fff; }
   .stage-table th.hybrid-col { background: var(--color-hybrid); color: #fff; }
   .conf { font-family: var(--font-mono); font-weight: 700; font-size: 12px; letter-spacing: 0.02em;
-    padding: 1px 7px; border-radius: 3px; white-space: nowrap; }
-  .conf-hi { background: #0a7d32; color: #fff; }
-  .conf-mid { background: #d7f3df; color: #0a5c25; }
-  .conf-even { background: #f1f3f5; color: #495057; }
+    padding: 1px 7px; border-radius: 3px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+  .conf-badge { font-size: 12px; line-height: 1; }
+  .conf-gold { background: #fff7db; color: #8a6d0b; border: 1px solid #f2d574; }
+  .conf-diamond { background: #e6f6ff; color: #0b6b8a; border: 1px solid #9ad9ef; }
+  .conf-ddiamond { background: #d8f0ff; color: #075673; border: 1px solid #4bb8e0; font-weight: 800; }
   .conf-lo { background: #fff; color: #868e96; border: 1px solid #dee2e6; font-weight: 600; }
+  .conf-legend { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--color-text-muted); text-transform: none; }
+  .conf-legend .conf { font-size: 10.5px; }
   td { padding: 10px; border-bottom: 1px solid #ececec; color: var(--color-text); }
   tr:last-child td { border-bottom: none; }
   .lean-row-sharp-play td {

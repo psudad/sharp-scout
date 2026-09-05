@@ -8,6 +8,12 @@ Sharp Scout is a single Python 3.12 package (`src/sharp_scout`, installed editab
 - Dependencies are installed into a virtualenv at `.venv` by the update script (`pip install -e ".[dev]"`). Activate it with `source .venv/bin/activate` before running anything.
 - No system services (DB/queue/etc.) are required. Persistence is local SQLite (`data/sharp_scout.db`) and JSON files; these are created automatically.
 
+### Common operator commands
+- **"Settle the ledger" / "update results"** → `python scripts/settle_now.py --push`
+  - Grades finished NFL + NCAAF games from public final scores (ESPN / nflverse / cfbfastR — **no API keys needed**), rebuilds `docs/`, then commits & pushes so the live GitHub Pages board updates. Drop `--push` for a dry run, or add `--sport ncaaf` / `--sport nfl` to limit it.
+  - This is the safe, self-contained way for a cloud agent to refresh results on demand. It does **not** require `ODDS_API_KEY` (settlement only reads scores).
+- **Force a full data refresh (odds + splits + settle + deploy)** without local keys → trigger CI instead: `gh workflow run "NCAAF Line Snapshots (CLV)" -f rebuild_report=true` (the repo secrets live in GitHub Actions).
+
 ### Run / test / build (all from repo root, venv active)
 - Tests: `pytest -q` (see `README.md`). Fully offline; no keys needed.
 - Pipeline (NFL sides): `python scripts/run_pipeline.py --demo --build-site`

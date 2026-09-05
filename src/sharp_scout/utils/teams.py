@@ -730,7 +730,14 @@ def ncaaf_display_code(name: str) -> str:
     if len(canon) <= 8:
         # Already board-sized ("NC A&T"); initials would only obscure it.
         return canon
-    parts = [p for p in canon.split() if p not in {"STATE", "ST", "UNIVERSITY", "OF"}]
+    tokens = canon.split()
+    parts = [p for p in tokens if p not in {"STATE", "ST", "UNIVERSITY", "OF"}]
     if len(parts) == 1:
+        # A single remaining word. If we dropped "STATE", tag the code with "ST" so
+        # a State school never masquerades as its parent FBS program (e.g. INDIANA
+        # STATE must not read as "INDIANA", TENNESSEE STATE not "TENNESSE"). We only
+        # do this for the full word "STATE" — a leading "ST" can mean "Saint".
+        if "STATE" in tokens:
+            return parts[0][:4] + "ST"
         return parts[0][:8]
     return "".join(p[0] for p in parts)[:6]

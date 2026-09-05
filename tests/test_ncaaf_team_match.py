@@ -150,3 +150,15 @@ def test_ncaaf_display_code_abbreviates_long_names():
     assert ncaaf_display_code("SAN JOSE STATE") == "SJSU"
     assert ncaaf_display_code("NEW MEXICO STATE") == "NMSU"
     assert ncaaf_display_code("TCU") == "TCU"
+
+
+def test_state_schools_never_masquerade_as_parent_program():
+    """A single-word State school must not truncate into its flagship FBS name."""
+    # Before the fix these rendered as INDIANA / MISSOURI / TENNESSE — confusing.
+    assert ncaaf_display_code("INDIANA STATE") == "INDIST"
+    assert ncaaf_display_code("INDIANA STATE") != ncaaf_display_code("INDIANA")
+    assert ncaaf_display_code("MISSOURI STATE") == "MISSST"
+    assert ncaaf_display_code("TENNESSEE STATE") == "TENNST"
+    assert ncaaf_display_code("TENNESSEE STATE") != ncaaf_display_code("TENNESSEE")
+    # A leading "ST" means Saint, not State — must not get an "ST" suffix.
+    assert ncaaf_display_code("ST FRANCIS") == "FRANCIS"

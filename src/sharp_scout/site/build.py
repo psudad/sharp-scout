@@ -923,8 +923,14 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
     that for every $100 you'd risk over the long run, you'd expect to come out about $4 ahead
     on average. A bet with <b>negative</b> EV is overpriced — you're paying too much, so we
     don't post it.</p>
+    <p class="lp-ev-body"><b>Win %</b> (right next to EV) is the other half of the story: it's our
+    model's estimated chance that <i>this exact bet</i> cashes. EV tells you if the <b>price</b> is
+    good; Win % tells you how <b>likely</b> it is to hit. They work together — a favorite might be
+    70%+ to win, while a well-priced underdog can be under 50% and still be +EV because it pays more
+    when it does hit.</p>
     <ul class="lp-ev-list">
       <li><b>Bigger EV % = better price = more of your long-run edge.</b> Favor the higher numbers.</li>
+      <li><b>Higher Win % = more likely to hit</b>, but check the price too — the two together tell the full story.</li>
       <li>EV is about <i>value</i>, not certainty — good-EV bets still lose sometimes. The edge
       shows up over many plays, not one.</li>
       <li>Shop for the number: your real EV depends on getting a line at least as good as the
@@ -1186,6 +1192,28 @@ def _render_guide_html() -> str:
 """
 
 
+def _win_pct_cell(p_true: Any) -> str:
+    """Model's probability this exact bet wins, formatted for a table cell.
+
+    p_true comes from the Monte Carlo sim (cover prob for spread/total, win prob
+    for moneyline). Tiered colour makes the confidence readable at a glance;
+    note a +EV moneyline dog can still sit below 50% and be a good price."""
+    try:
+        pw = float(p_true)
+    except (TypeError, ValueError):
+        return "<span class='pending'>—</span>"
+    pct = f"{pw * 100:.0f}%"
+    if pw >= 0.65:
+        cls = "conf-hi"
+    elif pw >= 0.55:
+        cls = "conf-mid"
+    elif pw >= 0.45:
+        cls = "conf-even"
+    else:
+        cls = "conf-lo"
+    return f"<span class='conf {cls}'>{pct}</span>"
+
+
 def _render_play_table(
     plays: list[dict],
     *,
@@ -1217,6 +1245,7 @@ def _render_play_table(
         units = p.get("units") or {"play": 1.5, "lean": 1.0}.get(tier, 0.5)
         edge = p.get("edge")
         edge_s = f"{edge * 100:.1f}%" if edge is not None else "—"
+        win_cell = _win_pct_cell(p.get("p_true"))
         st = p.get("status") or "pending"
         if use_timing:
             status_html = _play_timing_status_html(p, sport=sport)
@@ -1233,6 +1262,7 @@ def _render_play_table(
             f"<td class='play-pick-cell' data-label='Play'>{_esc(_side_label(p))}</td>"
             f"<td data-label='Units'>{units}u</td>"
             f"<td class='pos' data-label='EV'>{edge_s}</td>"
+            f"<td data-label='Win %'>{win_cell}</td>"
             f"<td data-label='Book'>{_esc(p.get('book') or '—')}</td>"
             f"<td class='play-timing-cell' data-label='{_esc(status_hdr)}'>{status_html}</td>"
             f"<td class='rationale-cell' data-label='Why'>{_esc(rationale)}</td>"
@@ -1244,7 +1274,7 @@ def _render_play_table(
     return (
         f'<div class="table-wrap"><table class="export-table plays-table{size_cls}"{id_attr}>'
         "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th>"
-        f"<th>EV</th><th>Book</th><th>{status_hdr}</th><th>Why</th></tr></thead>"
+        f"<th>EV</th><th>Win %</th><th>Book</th><th>{status_hdr}</th><th>Why</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table></div>"
     )
@@ -1502,7 +1532,7 @@ def _render_splits_table(board: dict[str, Any]) -> str:
 
 def _render_edge_rows(signals: list[dict]) -> str:
     if not signals:
-        return "<tr><td colspan='6'>No EV candidates (phase 3).</td></tr>"
+        return "<tr><td colspan='7'>No EV candidates (phase 3).</td></tr>"
     collapsed = collapse_best_signals(signals)
     rows = []
     for s in collapsed[:12]:
@@ -1519,6 +1549,7 @@ def _render_edge_rows(signals: list[dict]) -> str:
             f"<td>{_esc(side_label)}</td>"
             f"<td>{_esc(s.get('book'))}</td>"
             f"<td class='{cls}'>{edge_s}</td>"
+            f"<td>{_win_pct_cell(s.get('p_true'))}</td>"
             f"<td>{flag}</td>"
             f"<td class='rationale-cell'>{_esc(rationale)}</td></tr>"
         )
@@ -1619,7 +1650,7 @@ def _render_games_pipeline(
         <div class="phase-block">
           <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Win %</th><th>Pass</th><th>Rationale</th></tr></thead>
             <tbody>{_render_edge_rows(game_sigs)}</tbody>
           </table></div>
         </div>
@@ -2972,6 +3003,12 @@ _SITE_CSS = """\
   .stage-table th .th-tip { color: #d1d5db; }
   .stage-table th .th-tip:hover, .stage-table th .th-tip:focus { color: #fff; }
   .stage-table th.hybrid-col { background: var(--color-hybrid); color: #fff; }
+  .conf { font-family: var(--font-mono); font-weight: 700; font-size: 12px; letter-spacing: 0.02em;
+    padding: 1px 7px; border-radius: 3px; white-space: nowrap; }
+  .conf-hi { background: #0a7d32; color: #fff; }
+  .conf-mid { background: #d7f3df; color: #0a5c25; }
+  .conf-even { background: #f1f3f5; color: #495057; }
+  .conf-lo { background: #fff; color: #868e96; border: 1px solid #dee2e6; font-weight: 600; }
   td { padding: 10px; border-bottom: 1px solid #ececec; color: var(--color-text); }
   tr:last-child td { border-bottom: none; }
   .lean-row-sharp-play td {

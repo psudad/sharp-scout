@@ -39,3 +39,22 @@ def test_board_headers_stick_on_scroll(site: Path):
     css = (site / "board.html").read_text()
     assert "position: sticky; top: 0; z-index: 4" in css
     assert "@media (min-width: 701px)" in css
+
+
+def test_win_pct_cell_tiers():
+    from sharp_scout.site.build import _win_pct_cell
+
+    assert "71%" in _win_pct_cell(0.706) and "conf-hi" in _win_pct_cell(0.706)
+    assert "conf-mid" in _win_pct_cell(0.57)
+    assert "conf-even" in _win_pct_cell(0.50)
+    assert "conf-lo" in _win_pct_cell(0.38)
+    assert "—" in _win_pct_cell(None)
+
+
+def test_plays_table_has_win_pct_alongside_ev(site: Path):
+    for page in ("index.html", "board.html"):
+        html = (site / page).read_text()
+        assert "<th>Win %</th>" in html, page
+        # Landing EV explainer describes the new column.
+    landing = (site / "index.html").read_text()
+    assert "Win %" in landing and "estimated chance" in landing

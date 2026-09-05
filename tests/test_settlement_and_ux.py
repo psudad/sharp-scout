@@ -44,23 +44,36 @@ def test_board_headers_stick_on_scroll(site: Path):
 def test_win_pct_cell_tiers():
     from sharp_scout.site.build import _win_pct_cell
 
-    # Double Diamond 70%+
-    ddiamond = _win_pct_cell(0.74)
+    # Hybrid: high win% + strong EV earns the premium tiers.
+    ddiamond = _win_pct_cell(0.74, 0.20)
     assert "74%" in ddiamond and "conf-ddiamond" in ddiamond and "Double Diamond" in ddiamond
-    # Diamond 60–70%
-    diamond = _win_pct_cell(0.63)
+    diamond = _win_pct_cell(0.63, 0.12)
     assert "conf-diamond" in diamond and ">Diamond" in diamond and "Double" not in diamond
-    # Band boundaries
-    assert "conf-diamond" in _win_pct_cell(0.60)
-    assert "conf-ddiamond" in _win_pct_cell(0.70)
-    # Gold 55–60%
-    gold = _win_pct_cell(0.57)
+    # Band boundaries (with value clearing the gate)
+    assert "conf-diamond" in _win_pct_cell(0.60, 0.06)
+    assert "conf-ddiamond" in _win_pct_cell(0.70, 0.10)
+    # Gold 55%+ (all posted plays are +EV, no strict value gate here)
+    gold = _win_pct_cell(0.57, 0.03)
     assert "conf-gold" in gold and "Gold" in gold
-    assert "conf-gold" in _win_pct_cell(0.55)
+    assert "conf-gold" in _win_pct_cell(0.55, 0.03)
     # Silver catches everything under 55%, including +EV moneyline dogs under 50%
-    assert "conf-silver" in _win_pct_cell(0.54) and "Silver" in _win_pct_cell(0.54)
-    assert "conf-silver" in _win_pct_cell(0.38)
+    assert "conf-silver" in _win_pct_cell(0.54, 0.30) and "Silver" in _win_pct_cell(0.54, 0.30)
+    assert "conf-silver" in _win_pct_cell(0.38, 0.30)
     assert "—" in _win_pct_cell(None)
+
+
+def test_win_pct_cell_value_gate_caps_cheap_but_likely_plays():
+    """A likely play with weak EV is capped below the premium tiers."""
+    from sharp_scout.site.build import _win_pct_cell
+
+    # 74% to win but only 4% EV -> fails Diamond (5%) and Double Diamond (10%) gates.
+    assert "conf-gold" in _win_pct_cell(0.74, 0.04)
+    # 65% to win but only 3% EV -> fails Diamond gate, capped at Gold.
+    assert "conf-gold" in _win_pct_cell(0.65, 0.03)
+    # 72% to win with 6% EV -> clears Diamond but not Double Diamond.
+    assert "conf-diamond" in _win_pct_cell(0.72, 0.06)
+    # Missing EV is treated as no value -> capped at Silver even if likely.
+    assert "conf-silver" in _win_pct_cell(0.75, None)
 
 
 def test_plays_table_has_win_pct_alongside_ev(site: Path):

@@ -59,6 +59,17 @@ jobs:
       - name: Install
         run: pip install -e .
 
+      # Cache cfbfastR play-by-play parquet so the gameday rebuild builds REAL power
+      # ratings without re-downloading ~400MB every run. Keyed by month so a new
+      # season's data is refetched when it lands.
+      - name: Cache CFB play-by-play
+        uses: actions/cache@v4
+        with:
+          path: data/cfb_pbp_cache
+          key: cfb-pbp-${{ github.run_id }}
+          restore-keys: |
+            cfb-pbp-
+
       - name: Configure env
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
@@ -126,7 +137,7 @@ jobs:
             echo "No ODDS_API_KEY — skipping rebuild"
             exit 0
           fi
-          python scripts/run_ncaaf.py --build-site --skip-pbp
+          python scripts/run_ncaaf.py --build-site
           # Stamp the rebuild so the gate can throttle the next runs.
           printf '{"last_rebuild": "%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" > data/ncaaf_rebuild_state.json
 

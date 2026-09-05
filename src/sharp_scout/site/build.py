@@ -1292,11 +1292,24 @@ def _render_play_table(
         return '<div class="empty">No open plays. Run the pipeline to generate signals.</div>'
 
     status_hdr = "When to bet" if use_timing else "Status"
-    rows: list[str] = []
-    for p in sorted(
-        source,
+
+    def _is_final(x: dict) -> bool:
+        return (x.get("status") or "pending") in ("win", "loss", "push", "void")
+
+    # Open/upcoming plays on top (soonest kickoff first); finished games sink to a
+    # greyed "Settled today" section at the bottom (most recently settled first) so
+    # the newest actionable plays are always front-and-center.
+    open_plays = sorted(
+        [p for p in source if not _is_final(p)],
         key=lambda x: kickoff_sort_key(x.get("kickoff") or x.get("commence_time")),
-    ):
+    )
+    final_plays = sorted(
+        [p for p in source if _is_final(p)],
+        key=lambda x: (x.get("settled_at") or x.get("kickoff") or x.get("commence_time") or ""),
+        reverse=True,
+    )
+
+    def _play_row(p: dict, *, final: bool = False) -> str:
         kick = format_kickoff_et(p.get("kickoff") or p.get("commence_time"))
         away = str(p.get("away_team") or "")
         home = str(p.get("home_team") or "")
@@ -1317,9 +1330,10 @@ def _render_play_table(
         else:
             status_html = _status_badge(st)
         rationale = format_play_rationale(p).replace("\n", " · ")
+        tr_cls = " class='settled-row'" if final else ""
         # data-label drives the stacked card layout on phones (see .plays-table rules).
-        rows.append(
-            "<tr>"
+        return (
+            f"<tr{tr_cls}>"
             f"<td data-label='Kickoff'>{_esc(kick)}</td>"
             f"<td data-label='Game'>{game}</td>"
             f"<td class='play-pick-cell' data-label='Play'>{_esc(_side_label(p))}</td>"
@@ -1331,6 +1345,15 @@ def _render_play_table(
             f"<td class='rationale-cell' data-label='Why'>{_esc(rationale)}</td>"
             "</tr>"
         )
+
+    rows: list[str] = [_play_row(p) for p in open_plays]
+    if final_plays:
+        if open_plays:
+            rows.append(
+                "<tr class='settled-divider'><td colspan='9'>"
+                "Settled today — see the History tab for full results</td></tr>"
+            )
+        rows.extend(_play_row(p, final=True) for p in final_plays)
 
     size_cls = " plays-table-large" if large else ""
     id_attr = f' id="{_esc(table_id)}"' if table_id else ""
@@ -3093,6 +3116,12 @@ _SITE_CSS = """\
   }
   .plays-table td, .plays-table th { padding: 8px 10px; font-size: 13px; }
   .plays-table .rationale-cell { font-size: 12px; font-weight: 400; max-width: 280px; }
+  /* Finished games sink below open plays, greyed out so the newest actionable
+     plays stay on top. A divider row labels the settled section. */
+  .plays-table .settled-divider td { background: var(--color-bg-soft); color: var(--color-text-muted);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 8px 10px; border-top: 2px solid var(--color-border); text-align: left; }
+  .plays-table .settled-row td { opacity: 0.6; background: var(--color-bg-soft); }
   .plays-table-large td, .plays-table-large th { padding: 14px 12px; font-size: 16px; }
   .plays-table-large .play-pick-cell { font-size: 17px; font-weight: 600; }
   .plays-table-large .rationale-cell { font-size: 14px; max-width: 360px; line-height: 1.5; }

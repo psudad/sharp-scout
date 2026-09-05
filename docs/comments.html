@@ -476,6 +476,12 @@
   }
   .plays-table td, .plays-table th { padding: 8px 10px; font-size: 13px; }
   .plays-table .rationale-cell { font-size: 12px; font-weight: 400; max-width: 280px; }
+  /* Finished games sink below open plays, greyed out so the newest actionable
+     plays stay on top. A divider row labels the settled section. */
+  .plays-table .settled-divider td { background: var(--color-bg-soft); color: var(--color-text-muted);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 8px 10px; border-top: 2px solid var(--color-border); text-align: left; }
+  .plays-table .settled-row td { opacity: 0.6; background: var(--color-bg-soft); }
   .plays-table-large td, .plays-table-large th { padding: 14px 12px; font-size: 16px; }
   .plays-table-large .play-pick-cell { font-size: 17px; font-weight: 600; }
   .plays-table-large .rationale-cell { font-size: 14px; max-width: 360px; line-height: 1.5; }

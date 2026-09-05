@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-05T22:32:33.260586+00:00",
+  "updated_at": "2026-09-05T22:43:26.835739+00:00",
   "starting_units": 100.0,
   "plays": [
     {
@@ -21144,11 +21144,18 @@
       "season": null,
       "week": null,
       "created_at": "2026-08-31T10:57:39.961873+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "loss",
+        "sharp": "win",
+        "public": "loss",
+        "money": "win",
+        "sharp_edge": "win",
+        "hybrid": "loss"
+      },
+      "home_score": 59,
+      "away_score": 7,
+      "settled_at": "2026-09-05T22:40:05.046137+00:00"
     },
     {
       "event_id": "932e0ced2b1a1ae5694574642bb186ae",
@@ -21260,11 +21267,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-08-31T10:57:39.961876+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "sharp": "win",
+        "public": "loss",
+        "money": "win",
+        "hybrid": "win"
+      },
+      "home_score": 59,
+      "away_score": 7,
+      "settled_at": "2026-09-05T22:40:05.046172+00:00"
     },
     {
       "event_id": "932e0ced2b1a1ae5694574642bb186ae",
@@ -21377,11 +21390,18 @@
       "season": null,
       "week": null,
       "created_at": "2026-08-31T10:57:39.961879+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "loss",
+        "sharp": "win",
+        "public": "loss",
+        "money": "loss",
+        "sharp_edge": "win",
+        "hybrid": "loss"
+      },
+      "home_score": 59,
+      "away_score": 7,
+      "settled_at": "2026-09-05T22:40:05.046197+00:00"
     },
     {
       "event_id": "2f1711e252f72bdbcfbce991ce7fd442",
@@ -35875,11 +35895,11 @@
         "model": {
           "stage": "model",
           "market": "spread",
-          "side": "away",
-          "team": "ALA",
-          "line": -2.5,
-          "confidence": 0.5486,
-          "reason": "S_mod=+3.92 vs mkt +2.50 (home persp) \u2192 ALA covers",
+          "side": "home",
+          "team": "UGA",
+          "line": 2.5,
+          "confidence": 0.7462,
+          "reason": "S_mod=-3.86 vs mkt +2.50 (home persp) \u2192 UGA covers",
           "available": true
         },
         "sharp": {
@@ -35935,34 +35955,33 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "away",
-          "team": "ALA",
-          "line": -2.5,
-          "confidence": 0.4389,
-          "reason": "model lean only \u2014 no confirming market stage",
+          "side": "home",
+          "team": "UGA",
+          "line": 2.5,
+          "confidence": 0.7462,
+          "reason": "model aligned with sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 3,
-        "home_votes": 1,
-        "away_votes": 1,
-        "unanimous": false,
+        "home_votes": 2,
+        "away_votes": 0,
+        "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": null,
-      "consensus_team": null,
+      "consensus_side": "home",
+      "consensus_team": "UGA",
       "hybrid_agrees_with": [
-        "model"
-      ],
-      "conflict_stages": [
+        "model",
         "sharp"
       ],
+      "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-05 22:32:32.401301+00:00",
-      "commence_time": "2026-09-05 22:32:32.401301+00:00",
+      "kickoff": "2026-09-05 22:43:25.899800+00:00",
+      "commence_time": "2026-09-05 22:43:25.899800+00:00",
       "season": null,
       "week": null,
       "created_at": "2026-09-05T22:32:33.260518+00:00",
@@ -35981,11 +36000,11 @@
         "model": {
           "stage": "model",
           "market": "h2h",
-          "side": "away",
-          "team": "ALA",
+          "side": "home",
+          "team": "UGA",
           "line": null,
-          "confidence": 0.6254,
-          "reason": "P_true win home=34.1% away=62.5%",
+          "confidence": 0.6304,
+          "reason": "P_true win home=63.0% away=32.7%",
           "available": true
         },
         "sharp": {
@@ -36041,33 +36060,34 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "h2h",
-          "side": "away",
-          "team": "ALA",
+          "side": "home",
+          "team": "UGA",
           "line": null,
-          "confidence": 0.6254,
-          "reason": "model aligned with sharp (no validated edge)",
+          "confidence": 0.5043,
+          "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 3,
-        "home_votes": 0,
-        "away_votes": 2,
-        "unanimous": true,
+        "home_votes": 1,
+        "away_votes": 1,
+        "unanimous": false,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "away",
-      "consensus_team": "ALA",
+      "consensus_side": null,
+      "consensus_team": null,
       "hybrid_agrees_with": [
-        "model",
+        "model"
+      ],
+      "conflict_stages": [
         "sharp"
       ],
-      "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-05 22:32:32.401301+00:00",
-      "commence_time": "2026-09-05 22:32:32.401301+00:00",
+      "kickoff": "2026-09-05 22:43:25.899800+00:00",
+      "commence_time": "2026-09-05 22:43:25.899800+00:00",
       "season": null,
       "week": null,
       "created_at": "2026-09-05T22:32:33.260539+00:00",
@@ -36089,8 +36109,8 @@
           "side": "over",
           "team": "Over",
           "line": 51.5,
-          "confidence": 0.6898,
-          "reason": "T_mod=57.9 vs market 51.5",
+          "confidence": 0.5792,
+          "reason": "T_mod=54.2 vs market 51.5",
           "available": true
         },
         "sharp": {
@@ -36149,7 +36169,7 @@
           "side": "over",
           "team": "Over",
           "line": 51.5,
-          "confidence": 0.6898,
+          "confidence": 0.5792,
           "reason": "model aligned with sharp (no validated edge)",
           "available": true
         }
@@ -36171,8 +36191,8 @@
       ],
       "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-05 22:32:32.401301+00:00",
-      "commence_time": "2026-09-05 22:32:32.401301+00:00",
+      "kickoff": "2026-09-05 22:43:25.899800+00:00",
+      "commence_time": "2026-09-05 22:43:25.899800+00:00",
       "season": null,
       "week": null,
       "created_at": "2026-09-05T22:32:33.260544+00:00",

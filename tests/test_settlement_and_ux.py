@@ -44,8 +44,9 @@ def test_landing_explains_ev_in_plain_english(site: Path):
 
 def test_board_headers_stick_on_scroll(site: Path):
     css = (site / "board.html").read_text()
+    # Header pins to the top of a capped-height scroll box (works at every width).
     assert "position: sticky; top: 0; z-index: 4" in css
-    assert "@media (min-width: 701px)" in css
+    assert ".table-wrap { overflow: auto; max-height: 80vh;" in css
 
 
 def test_win_pct_cell_tiers():

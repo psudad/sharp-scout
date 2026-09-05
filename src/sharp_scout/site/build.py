@@ -866,9 +866,23 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
     text-transform: uppercase; }}
   .lp-cta-sub {{ display: block; margin-top: 5px; font-size: 12.5px; font-weight: 300;
     color: var(--color-text-muted); line-height: 1.6; }}
+  .lp-ev {{ margin: 18px 0 6px; padding: 16px 20px; border: 1px solid var(--color-border);
+    border-left: 6px solid #0a7d32; border-radius: 4px; background: #f2fbf4; }}
+  .lp-ev-title {{ font-family: var(--font-serif); font-size: 22px; font-weight: 600;
+    color: var(--color-text); margin-bottom: 8px; }}
+  .lp-ev-tag {{ font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+    background: #0a7d32; color: #fff; padding: 1px 8px; border-radius: 3px;
+    letter-spacing: 0.04em; vertical-align: middle; }}
+  .lp-ev-lead {{ font-size: 15px; line-height: 1.6; color: var(--color-text); margin: 0 0 8px; }}
+  .lp-ev-body {{ font-size: 13.5px; line-height: 1.65; color: var(--color-text-muted); margin: 0 0 10px; }}
+  .lp-ev-list {{ margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6;
+    color: var(--color-text-muted); }}
+  .lp-ev-list li {{ margin: 4px 0; }}
   @media (max-width: 640px) {{
     .lp-hero h1 {{ font-size: 30px; }}
     .lp-section h2 {{ font-size: 22px; }}
+    .lp-ev-title {{ font-size: 19px; }}
+    .lp-ev-lead {{ font-size: 14px; }}
   }}
 </style>
 </head>
@@ -897,6 +911,26 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   <p class="phase-note" style="padding:2px 0 6px">Everything on this page is an actual
   recommended play that we track on the ledger. Use the <b>When to bet</b> column for
   timing — plays are not live until it says to lock them in.</p>
+
+  <div class="lp-ev">
+    <div class="lp-ev-title">What is <span class="lp-ev-tag">EV %</span> and why it matters</div>
+    <p class="lp-ev-lead"><b>EV = expected value.</b> It's the single most important number on
+    each play. In plain English: it's how good the <i>price</i> is compared to what the bet
+    is really worth. <b>The higher the EV %, the better the deal you're getting.</b></p>
+    <p class="lp-ev-body">Think of it like shopping. Our model figures out the "fair price" for
+    a game. If a sportsbook is offering a <b>better</b> number than fair, you're buying a $10
+    bill for $9 — that gap is your edge, and EV % measures it. A play at <b>+4% EV</b> means
+    that for every $100 you'd risk over the long run, you'd expect to come out about $4 ahead
+    on average. A bet with <b>negative</b> EV is overpriced — you're paying too much, so we
+    don't post it.</p>
+    <ul class="lp-ev-list">
+      <li><b>Bigger EV % = better price = more of your long-run edge.</b> Favor the higher numbers.</li>
+      <li>EV is about <i>value</i>, not certainty — good-EV bets still lose sometimes. The edge
+      shows up over many plays, not one.</li>
+      <li>Shop for the number: your real EV depends on getting a line at least as good as the
+      one we evaluated, so grab it before it moves.</li>
+    </ul>
+  </div>
 
   {cfb_section}
   {nfl_section}
@@ -2863,6 +2897,14 @@ _SITE_CSS = """\
   .stage-why { font-size: 12px; color: var(--color-text-muted); line-height: 1.55; max-width: 420px; }
   .splits-summary { color: var(--color-text); margin-bottom: 8px; }
   .table-wrap { overflow-x: auto; border: 2px solid var(--color-border); border-radius: 0; background: var(--color-bg); }
+  /* Sticky column headers: on wider screens the tables fit, so drop the scroll
+     container and let the header row stick to the top of the viewport as you
+     scroll down long leans / stage / ledger tables. */
+  @media (min-width: 701px) {
+    .table-wrap { overflow: visible; }
+    .table-wrap thead th { position: sticky; top: 0; z-index: 4; box-shadow: inset 0 -1px 0 var(--color-border); }
+    .stage-table thead th { z-index: 5; }
+  }
   .stage-table-wrap { margin-bottom: 8px; }
   .stage-table { min-width: 980px; font-size: 11px; }
   .stage-table th, .stage-table td { white-space: nowrap; padding: 6px 7px; }

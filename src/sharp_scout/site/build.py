@@ -829,6 +829,8 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
 <meta http-equiv="Expires" content="0">
 <title>This Week's Plays · Sharp Scout Quant</title>
 <meta name="description" content="Sharp Scout Quant — this week's actual recommended NFL and college football plays">
+<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
+<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -845,6 +847,10 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
 </script>
 <style>
 {site_css}
+  /* The landing page scrolls as one full-length page — no boxed/frozen tables here.
+     (The board keeps the capped-height sticky-header scroll boxes.) */
+  .lp-wrap .table-wrap {{ overflow-x: auto; overflow-y: visible; max-height: none; }}
+  .lp-wrap .table-wrap thead th {{ position: static; box-shadow: none; }}
   .lp-wrap {{ max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; }}
   .lp-hero {{ text-align: center; padding: 30px 16px 18px; }}
   .lp-hero h1 {{ font-family: var(--font-serif); font-size: 40px; font-weight: 500;
@@ -994,6 +1000,8 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Comments · Sharp Scout Quant</title>
 <meta name="description" content="Send a comment to Sharp Scout Quant">
+<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
+<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3253,6 +3261,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <meta http-equiv="Expires" content="0">
 <title>Sharp Scout Quant</title>
 <meta name="description" content="Sharp Scout Quant — NFL and CFB quant model plays and record">
+<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
+<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

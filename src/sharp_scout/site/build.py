@@ -890,6 +890,13 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   .lp-ev-list {{ margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6;
     color: var(--color-text-muted); }}
   .lp-ev-list li {{ margin: 4px 0; }}
+  .lp-tiers {{ margin-top: 10px; }}
+  .lp-tiers-head {{ font-size: 13.5px; color: var(--color-text); margin-bottom: 6px; }}
+  .lp-tier-list {{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }}
+  .lp-tier-list li {{ font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }}
+  .lp-tier-list .conf {{ display: inline-flex; vertical-align: middle; margin-right: 8px;
+    padding: 2px 8px; }}
+  .lp-tier-list .conf-tier {{ font-size: 9.5px; }}
   @media (max-width: 640px) {{
     .lp-hero h1 {{ font-size: 30px; }}
     .lp-section h2 {{ font-size: 22px; }}
@@ -925,34 +932,24 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   timing — plays are not live until it says to lock them in.</p>
 
   <div class="lp-ev">
-    <div class="lp-ev-title">What is <span class="lp-ev-tag">EV %</span> and why it matters</div>
-    <p class="lp-ev-lead"><b>EV = expected value.</b> It's the single most important number on
-    each play. In plain English: it's how good the <i>price</i> is compared to what the bet
-    is really worth. <b>The higher the EV %, the better the deal you're getting.</b></p>
-    <p class="lp-ev-body">Think of it like shopping. Our model figures out the "fair price" for
-    a game. If a sportsbook is offering a <b>better</b> number than fair, you're buying a $10
-    bill for $9 — that gap is your edge, and EV % measures it. A play at <b>+4% EV</b> means
-    that for every $100 you'd risk over the long run, you'd expect to come out about $4 ahead
-    on average. A bet with <b>negative</b> EV is overpriced — you're paying too much, so we
-    don't post it.</p>
-    <p class="lp-ev-body"><b>Win %</b> (right next to EV) is the other half of the story: it's our
-    model's estimated chance that <i>this exact bet</i> cashes. EV tells you if the <b>price</b> is
-    good; Win % tells you how <b>likely</b> it is to hit. They work together — a favorite might be
-    70%+ to win, while a well-priced underdog can be under 50% and still be +EV because it pays more
-    when it does hit.</p>
-    <ul class="lp-ev-list">
-      <li><b>Bigger EV % = better price = more of your long-run edge.</b> Favor the higher numbers.</li>
-      <li><b>Higher Win % = more likely to hit</b>, but check the price too — the two together tell the full story.</li>
-      <li><b>Confidence tiers</b> are our <b>overall confidence + value grade</b> — think
-      <i>"how strong is this play?"</i> Win % drives the tier, but a play only reaches the top
-      tiers if it's <b>also good value</b>: <b>Silver</b> = under 55%, <b>Gold</b> = 55%+,
-      <b>\U0001F48E Diamond</b> = 60%+ with EV ≥ 5%, <b>\U0001F48E\U0001F48E Double Diamond</b> =
-      70%+ with EV ≥ 10%. Higher tier = more likely to win <i>and</i> better priced.</li>
-      <li>EV is about <i>value</i>, not certainty — good-EV bets still lose sometimes. The edge
-      shows up over many plays, not one.</li>
-      <li>Shop for the number: your real EV depends on getting a line at least as good as the
-      one we evaluated, so grab it before it moves.</li>
-    </ul>
+    <div class="lp-ev-title">How to read a play</div>
+    <p class="lp-ev-lead"><b>EV %</b> = how good the <i>price</i> is vs. what the bet is really
+    worth. Higher EV = better deal. <b>Win %</b> = the model's chance this exact bet cashes
+    ("will it win?"). EV tells you the value; Win % tells you the likelihood.</p>
+    <div class="lp-tiers">
+      <div class="lp-tiers-head"><b>Confidence tier</b> = overall grade (Win % + value):</div>
+      <ul class="lp-tier-list">
+        <li><span class="conf conf-ddiamond"><span class="conf-tier">Double Diamond \U0001F48E\U0001F48E</span></span>
+          Win <b>&gt; 70%</b> and strong value. Our best plays — but 70% still
+          <b>loses about 1 in every 3–4 bets</b>, so it's not a lock.</li>
+        <li><span class="conf conf-diamond"><span class="conf-tier">Diamond \U0001F48E</span></span>
+          Win <b>60%+</b> with solid value. Strong read.</li>
+        <li><span class="conf conf-gold"><span class="conf-tier">Gold</span></span>
+          Win <b>55%+</b>. A real edge.</li>
+        <li><span class="conf conf-silver"><span class="conf-tier">Silver</span></span>
+          Win <b>under 55%</b>. Slight lean — the value is mostly in the price.</li>
+      </ul>
+    </div>
   </div>
 
   {cfb_section}

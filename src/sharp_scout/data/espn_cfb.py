@@ -13,9 +13,28 @@ from sharp_scout.utils.odds import normalize_team
 
 logger = logging.getLogger(__name__)
 
+# ESPN's `site.api.espn.com` host now 403s automated requests, which silently
+# broke ledger settlement. The `site.web.api.espn.com` host serves the same
+# scoreboard payload and still responds 200 with a browser User-Agent, so it is
+# the primary; the old host is kept as a fallback.
 ESPN_SCOREBOARD = (
+    "https://site.web.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard"
+)
+ESPN_SCOREBOARD_FALLBACK = (
     "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard"
 )
+# ESPN 403s non-browser User-Agents (e.g. "SharpScout/1.0"), which silently
+# breaks automatic settlement. Present as a real browser instead.
+_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.espn.com/college-football/scoreboard/",
+    "Origin": "https://www.espn.com",
+}
 _FINAL_STATUSES = frozenset({"STATUS_FINAL", "STATUS_FINAL_OVERTIME"})
 
 
@@ -75,18 +94,29 @@ def _parse_event(event: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
-    url = f"{ESPN_SCOREBOARD}?{urlencode(params)}"
+def _get_json(url: str) -> dict[str, Any] | None:
+    """GET a URL as a browser and parse JSON, or None on any failure."""
     try:
-        req = Request(url, headers={"User-Agent": "SharpScout/1.0"})
+        req = Request(url, headers=_BROWSER_HEADERS)
         with urlopen(req, timeout=30) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("ESPN CFB scoreboard failed %s: %s", params, exc)
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
+    qs = urlencode(params)
+    payload = _get_json(f"{ESPN_SCOREBOARD}?{qs}")
+    events = payload.get("events") if isinstance(payload, dict) else None
+    if not events:
+        payload = _get_json(f"{ESPN_SCOREBOARD_FALLBACK}?{qs}")
+        events = payload.get("events") if isinstance(payload, dict) else None
+    if not events:
+        logger.warning("ESPN CFB scoreboard returned no events for %s", params)
         return []
 
     rows: list[dict[str, Any]] = []
-    for event in payload.get("events") or []:
+    for event in events:
         parsed = _parse_event(event)
         if parsed:
             rows.append(parsed)

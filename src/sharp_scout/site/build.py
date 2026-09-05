@@ -2982,15 +2982,17 @@ _SITE_CSS = """\
   .rationale-cell { font-size: 12px; color: var(--color-text-muted); line-height: 1.55; max-width: 320px; }
   .stage-why { font-size: 12px; color: var(--color-text-muted); line-height: 1.55; max-width: 420px; }
   .splits-summary { color: var(--color-text); margin-bottom: 8px; }
-  .table-wrap { overflow-x: auto; border: 2px solid var(--color-border); border-radius: 0; background: var(--color-bg); }
-  /* Sticky column headers: on wider screens the tables fit, so drop the scroll
-     container and let the header row stick to the top of the viewport as you
-     scroll down long leans / stage / ledger tables. */
-  @media (min-width: 701px) {
-    .table-wrap { overflow: visible; }
-    .table-wrap thead th { position: sticky; top: 0; z-index: 4; box-shadow: inset 0 -1px 0 var(--color-border); }
-    .stage-table thead th { z-index: 5; }
-  }
+  /* The table box scrolls both ways inside a capped height. That makes the box
+     itself the scroll container, so the header row can pin to its top as you
+     scroll down long leans / stage / ledger tables — and it moves with the
+     columns when you scroll sideways. Works at every width (a wide table needs
+     overflow-x: auto, which forces overflow-y to auto and would otherwise break
+     a viewport-level sticky header). Short tables never hit the cap, so nothing
+     changes for them. */
+  .table-wrap { overflow: auto; max-height: 80vh; border: 2px solid var(--color-border); border-radius: 0; background: var(--color-bg); }
+  .table-wrap thead th { position: sticky; top: 0; z-index: 4; box-shadow: inset 0 -1px 0 var(--color-border); }
+  .stage-table thead th { z-index: 5; }
+  @media (max-width: 700px) { .table-wrap { max-height: 75vh; } }
   .stage-table-wrap { margin-bottom: 8px; }
   .stage-table { min-width: 980px; font-size: 11px; }
   .stage-table th, .stage-table td { white-space: nowrap; padding: 6px 7px; }

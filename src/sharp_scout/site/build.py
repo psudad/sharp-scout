@@ -153,9 +153,10 @@ def _render_plays_heading(count: int) -> str:
 # Legend for the Win % confidence tiers (shown above every plays table).
 _CONF_LEGEND = (
     '<div class="conf-legend">Confidence (Win %): '
-    '<span class="conf conf-gold">\U0001FA99 Gold 50–70%</span>'
-    '<span class="conf conf-diamond">\U0001F48E Diamond 70–80%</span>'
-    '<span class="conf conf-ddiamond">\U0001F48E\U0001F48E Double 80%+</span>'
+    '<span class="conf conf-silver"><span class="conf-tier">Silver</span><span class="conf-pct">&lt;55%</span></span>'
+    '<span class="conf conf-gold"><span class="conf-tier">Gold</span><span class="conf-pct">55–60%</span></span>'
+    '<span class="conf conf-diamond"><span class="conf-tier">Diamond \U0001F48E</span><span class="conf-pct">60–70%</span></span>'
+    '<span class="conf conf-ddiamond"><span class="conf-tier">Double Diamond \U0001F48E\U0001F48E</span><span class="conf-pct">70%+</span></span>'
     "</div>"
 )
 
@@ -942,8 +943,10 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
     <ul class="lp-ev-list">
       <li><b>Bigger EV % = better price = more of your long-run edge.</b> Favor the higher numbers.</li>
       <li><b>Higher Win % = more likely to hit</b>, but check the price too — the two together tell the full story.</li>
-      <li><b>Confidence tiers</b> make Win % easy to scan: <b>\U0001FA99 Gold</b> = 50–70%,
-      <b>\U0001F48E Diamond</b> = 70–80%, <b>\U0001F48E\U0001F48E Double Diamond</b> = 80%+.</li>
+      <li><b>Confidence tiers</b> make Win % easy to scan: <b>Silver</b> = under 55%,
+      <b>Gold</b> = 55–60%, <b>\U0001F48E Diamond</b> = 60–70%,
+      <b>\U0001F48E\U0001F48E Double Diamond</b> = 70%+. Higher tier = more confident, but always
+      weigh it against EV.</li>
       <li>EV is about <i>value</i>, not certainty — good-EV bets still lose sometimes. The edge
       shows up over many plays, not one.</li>
       <li>Shop for the number: your real EV depends on getting a line at least as good as the
@@ -1205,46 +1208,50 @@ def _render_guide_html() -> str:
 """
 
 
-# Confidence tiers on model win probability (p_true), with at-a-glance icons:
-#   Gold coin      50.1%–69.9%
-#   Diamond        70.0%–80.0%
-#   Double diamond 80.1%+
+# Confidence tiers on model win probability (p_true). Bands are anchored to the
+# ~52.4% break-even at -110 and calibrated to the real spread of model win
+# probabilities (which top out around 80%), so all four tiers actually occur:
+#   Silver          under 55%   — slight lean; edge is mostly the price
+#   Gold            55–60%      — solid edge on the number
+#   Diamond         60–70%      — strong model read
+#   Double Diamond  70%+        — highest conviction, rare
 CONF_TIERS = (
-    (0.801, "conf-ddiamond", "\U0001F48E\U0001F48E", "Double diamond"),  # 💎💎
-    (0.70, "conf-diamond", "\U0001F48E", "Diamond"),  # 💎
-    (0.501, "conf-gold", "\U0001FA99", "Gold"),  # 🪙
+    (0.70, "conf-ddiamond", "Double Diamond", "\U0001F48E\U0001F48E"),  # 💎💎
+    (0.60, "conf-diamond", "Diamond", "\U0001F48E"),  # 💎
+    (0.55, "conf-gold", "Gold", ""),
+    (0.0, "conf-silver", "Silver", ""),
 )
 
 
 def _conf_tier(p_true: Any) -> tuple[str, str, str] | None:
-    """Return (css_class, icons, label) for a win probability, or None below the gold cut."""
+    """Return (css_class, label, icons) for a win probability, or None if unknown."""
     try:
         pw = float(p_true)
     except (TypeError, ValueError):
         return None
-    for threshold, cls, icons, label in CONF_TIERS:
+    for threshold, cls, label, icons in CONF_TIERS:
         if pw >= threshold:
-            return cls, icons, label
+            return cls, label, icons
     return None
 
 
 def _win_pct_cell(p_true: Any) -> str:
-    """Model's probability this exact bet wins, with a Gold/Diamond tier icon.
+    """Model's probability this exact bet wins, shown as a named confidence tier
+    (Silver / Gold / Diamond / Double Diamond) over the raw percentage.
 
     p_true comes from the Monte Carlo sim (cover prob for spread/total, win prob
-    for moneyline). A +EV moneyline dog can still sit below 50% (no tier icon)."""
-    try:
-        pw = float(p_true)
-    except (TypeError, ValueError):
-        return "<span class='pending'>—</span>"
-    pct = f"{pw * 100:.0f}%"
-    tier = _conf_tier(pw)
+    for moneyline)."""
+    tier = _conf_tier(p_true)
     if not tier:
-        return f"<span class='conf conf-lo'>{pct}</span>"
-    cls, icons, label = tier
+        return "<span class='pending'>—</span>"
+    cls, label, icons = tier
+    pct = f"{float(p_true) * 100:.0f}%"
+    label_html = f"{label} {icons}".strip() if icons else label
     return (
-        f"<span class='conf {cls}'>{pct}"
-        f"<span class='conf-badge' title='{label} play'>{icons}</span></span>"
+        f"<span class='conf {cls}'>"
+        f"<span class='conf-tier'>{label_html}</span>"
+        f"<span class='conf-pct'>{pct}</span>"
+        "</span>"
     )
 
 
@@ -3037,17 +3044,22 @@ _SITE_CSS = """\
   .stage-table th .th-tip { color: #d1d5db; }
   .stage-table th .th-tip:hover, .stage-table th .th-tip:focus { color: #fff; }
   .stage-table th.hybrid-col { background: var(--color-hybrid); color: #fff; }
-  .conf { font-family: var(--font-mono); font-weight: 700; font-size: 12px; letter-spacing: 0.02em;
-    padding: 1px 7px; border-radius: 3px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
-  .conf-badge { font-size: 12px; line-height: 1; }
-  .conf-gold { background: #fff7db; color: #8a6d0b; border: 1px solid #f2d574; }
-  .conf-diamond { background: #e6f6ff; color: #0b6b8a; border: 1px solid #9ad9ef; }
-  .conf-ddiamond { background: #d8f0ff; color: #075673; border: 1px solid #4bb8e0; font-weight: 800; }
-  .conf-lo { background: #fff; color: #868e96; border: 1px solid #dee2e6; font-weight: 600; }
+  .conf { display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
+    padding: 3px 9px; border-radius: 4px; white-space: nowrap; border: 1px solid transparent; }
+  .conf-tier { font-family: var(--font-mono); font-weight: 800; font-size: 9.5px;
+    letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+  .conf-pct { font-family: var(--font-mono); font-weight: 700; font-size: 12px; line-height: 1.1; }
+  .conf-silver { background: #f1f3f5; color: #5c636a; border-color: #d3d7db; }
+  .conf-gold { background: #fff7db; color: #8a6d0b; border-color: #f2d574; }
+  .conf-diamond { background: #e6f6ff; color: #0b6b8a; border-color: #9ad9ef; }
+  .conf-ddiamond { background: #dbeafe; color: #1e40af; border-color: #6ea8fe; }
+  .conf-ddiamond .conf-tier { font-weight: 900; }
   .conf-legend { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
     font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
     color: var(--color-text-muted); text-transform: none; }
-  .conf-legend .conf { font-size: 10.5px; }
+  .conf-legend .conf { flex-direction: row; gap: 5px; padding: 2px 8px; }
+  .conf-legend .conf-tier { font-size: 9.5px; }
+  .conf-legend .conf-pct { font-size: 10.5px; font-weight: 600; }
   td { padding: 10px; border-bottom: 1px solid #ececec; color: var(--color-text); }
   tr:last-child td { border-bottom: none; }
   .lean-row-sharp-play td {

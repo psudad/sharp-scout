@@ -152,11 +152,11 @@ def _render_plays_heading(count: int) -> str:
 
 # Legend for the Win % confidence tiers (shown above every plays table).
 _CONF_LEGEND = (
-    '<div class="conf-legend">Confidence (Win %): '
+    '<div class="conf-legend">Confidence &amp; value grade (Win % drives it; premium tiers also need good EV): '
     '<span class="conf conf-silver"><span class="conf-tier">Silver</span><span class="conf-pct">&lt;55%</span></span>'
     '<span class="conf conf-gold"><span class="conf-tier">Gold</span><span class="conf-pct">55–60%</span></span>'
-    '<span class="conf conf-diamond"><span class="conf-tier">Diamond \U0001F48E</span><span class="conf-pct">60–70%</span></span>'
-    '<span class="conf conf-ddiamond"><span class="conf-tier">Double Diamond \U0001F48E\U0001F48E</span><span class="conf-pct">70%+</span></span>'
+    '<span class="conf conf-diamond"><span class="conf-tier">Diamond \U0001F48E</span><span class="conf-pct">60%+ &amp; EV≥5%</span></span>'
+    '<span class="conf conf-ddiamond"><span class="conf-tier">Double Diamond \U0001F48E\U0001F48E</span><span class="conf-pct">70%+ &amp; EV≥10%</span></span>'
     "</div>"
 )
 
@@ -943,10 +943,11 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
     <ul class="lp-ev-list">
       <li><b>Bigger EV % = better price = more of your long-run edge.</b> Favor the higher numbers.</li>
       <li><b>Higher Win % = more likely to hit</b>, but check the price too — the two together tell the full story.</li>
-      <li><b>Confidence tiers</b> make Win % easy to scan: <b>Silver</b> = under 55%,
-      <b>Gold</b> = 55–60%, <b>\U0001F48E Diamond</b> = 60–70%,
-      <b>\U0001F48E\U0001F48E Double Diamond</b> = 70%+. Higher tier = more confident, but always
-      weigh it against EV.</li>
+      <li><b>Confidence tiers</b> are our <b>overall confidence + value grade</b> — think
+      <i>"how strong is this play?"</i> Win % drives the tier, but a play only reaches the top
+      tiers if it's <b>also good value</b>: <b>Silver</b> = under 55%, <b>Gold</b> = 55%+,
+      <b>\U0001F48E Diamond</b> = 60%+ with EV ≥ 5%, <b>\U0001F48E\U0001F48E Double Diamond</b> =
+      70%+ with EV ≥ 10%. Higher tier = more likely to win <i>and</i> better priced.</li>
       <li>EV is about <i>value</i>, not certainty — good-EV bets still lose sometimes. The edge
       shows up over many plays, not one.</li>
       <li>Shop for the number: your real EV depends on getting a line at least as good as the
@@ -1208,40 +1209,56 @@ def _render_guide_html() -> str:
 """
 
 
-# Confidence tiers on model win probability (p_true). Bands are anchored to the
-# ~52.4% break-even at -110 and calibrated to the real spread of model win
-# probabilities (which top out around 80%), so all four tiers actually occur:
-#   Silver          under 55%   — slight lean; edge is mostly the price
-#   Gold            55–60%      — solid edge on the number
-#   Diamond         60–70%      — strong model read
-#   Double Diamond  70%+        — highest conviction, rare
+# Confidence tiers are a HYBRID grade of overall confidence + value. Win %
+# (model cover/win probability, anchored to the ~52.4% break-even at -110) drives
+# the tier so it still reads as "will my bet win" — but a play can only reach the
+# premium tiers if it ALSO clears a value (EV) gate, so Diamond/Double Diamond
+# always mean "likely AND good value." Tiers, ordered strongest-first:
+#   Double Diamond  win 70%+  AND EV ≥ 10%   — highest conviction, rare
+#   Diamond         win 60%+  AND EV ≥ 5%    — strong read, real value
+#   Gold            win 55%+                 — solid edge on the number
+#   Silver          under 55%                — slight lean; edge is mostly price
+# Order is strongest→weakest; index 0 = Silver .. 3 = Double Diamond.
 CONF_TIERS = (
-    (0.70, "conf-ddiamond", "Double Diamond", "\U0001F48E\U0001F48E"),  # 💎💎
-    (0.60, "conf-diamond", "Diamond", "\U0001F48E"),  # 💎
-    (0.55, "conf-gold", "Gold", ""),
-    (0.0, "conf-silver", "Silver", ""),
+    ("conf-silver", "Silver", ""),
+    ("conf-gold", "Gold", ""),
+    ("conf-diamond", "Diamond", "\U0001F48E"),  # 💎
+    ("conf-ddiamond", "Double Diamond", "\U0001F48E\U0001F48E"),  # 💎💎
 )
+# Win-probability floor to *qualify* for each tier index.
+_CONF_WIN_FLOOR = (0.0, 0.55, 0.60, 0.70)
+# Value (EV / edge) floor required to *unlock* each tier index. A likely-but-cheap
+# play is capped at the best tier its EV allows.
+_CONF_EV_FLOOR = (float("-inf"), 0.0, 0.05, 0.10)
 
 
-def _conf_tier(p_true: Any) -> tuple[str, str, str] | None:
-    """Return (css_class, label, icons) for a win probability, or None if unknown."""
+def _conf_tier(p_true: Any, edge: Any = None) -> tuple[str, str, str] | None:
+    """Return (css_class, label, icons) for the hybrid confidence/value grade.
+
+    Win % sets the ceiling; EV can only pull the tier *down* (a likely play with
+    weak value can't reach Diamond/Double Diamond). Returns None if win% unknown."""
     try:
         pw = float(p_true)
     except (TypeError, ValueError):
         return None
-    for threshold, cls, label, icons in CONF_TIERS:
-        if pw >= threshold:
-            return cls, label, icons
-    return None
+    try:
+        ev = float(edge)
+    except (TypeError, ValueError):
+        ev = float("-inf")
+    win_idx = max(i for i, floor in enumerate(_CONF_WIN_FLOOR) if pw >= floor)
+    ev_idx = max(i for i, floor in enumerate(_CONF_EV_FLOOR) if ev >= floor)
+    idx = min(win_idx, ev_idx)
+    return CONF_TIERS[idx]
 
 
-def _win_pct_cell(p_true: Any) -> str:
-    """Model's probability this exact bet wins, shown as a named confidence tier
-    (Silver / Gold / Diamond / Double Diamond) over the raw percentage.
+def _win_pct_cell(p_true: Any, edge: Any = None) -> str:
+    """Overall confidence/value grade for a play — a named tier
+    (Silver / Gold / Diamond / Double Diamond) over the raw win %.
 
-    p_true comes from the Monte Carlo sim (cover prob for spread/total, win prob
-    for moneyline)."""
-    tier = _conf_tier(p_true)
+    p_true is the Monte Carlo win/cover probability ("will my bet win"); edge is
+    the EV. Win % drives the tier; a play must also be good value to reach the
+    premium tiers (see CONF_TIERS)."""
+    tier = _conf_tier(p_true, edge)
     if not tier:
         return "<span class='pending'>—</span>"
     cls, label, icons = tier
@@ -1286,7 +1303,7 @@ def _render_play_table(
         units = p.get("units") or {"play": 1.5, "lean": 1.0}.get(tier, 0.5)
         edge = p.get("edge")
         edge_s = f"{edge * 100:.1f}%" if edge is not None else "—"
-        win_cell = _win_pct_cell(p.get("p_true"))
+        win_cell = _win_pct_cell(p.get("p_true"), edge)
         st = p.get("status") or "pending"
         if use_timing:
             status_html = _play_timing_status_html(p, sport=sport)
@@ -1590,7 +1607,7 @@ def _render_edge_rows(signals: list[dict]) -> str:
             f"<td>{_esc(side_label)}</td>"
             f"<td>{_esc(s.get('book'))}</td>"
             f"<td class='{cls}'>{edge_s}</td>"
-            f"<td>{_win_pct_cell(s.get('p_true'))}</td>"
+            f"<td>{_win_pct_cell(s.get('p_true'), s.get('edge'))}</td>"
             f"<td>{flag}</td>"
             f"<td class='rationale-cell'>{_esc(rationale)}</td></tr>"
         )

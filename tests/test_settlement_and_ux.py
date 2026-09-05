@@ -49,6 +49,20 @@ def test_board_headers_stick_on_scroll(site: Path):
     assert ".table-wrap { overflow: auto; max-height: 80vh;" in css
 
 
+def test_landing_scrolls_as_full_page_not_boxed(site: Path):
+    """Landing page tables flow with the page (no capped-height frame / frozen header)."""
+    html = (site / "index.html").read_text()
+    assert ".lp-wrap .table-wrap { overflow-x: auto; overflow-y: visible; max-height: none; }" in html
+    assert ".lp-wrap .table-wrap thead th { position: static;" in html
+
+
+def test_all_pages_have_ssq_favicon(site: Path):
+    for page in ("index.html", "board.html", "comments.html"):
+        html = (site / page).read_text()
+        assert '<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">' in html, page
+    assert (site / "assets" / "ssq-logo.svg").exists()
+
+
 def test_win_pct_cell_tiers():
     from sharp_scout.site.build import _win_pct_cell
 

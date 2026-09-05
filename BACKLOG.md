@@ -27,3 +27,38 @@ Even with real power ratings, two failure modes still produce plays that "look o
 
 **Notes:** `--skip-pbp` was removed from the gameday rebuild (2026-09-05) so ratings are
 now real; this guard addresses the residual unrated/outlier cases. Small, testable change.
+
+### QA gate: block demo/stale data + verify (don't blindly kill) high-EV plays
+**Priority:** high · **Queued:** 2026-09-05
+
+Tonight two failures stacked silently: the Odds API returned 401 → silent fallback to
+demo events, and `--skip-pbp` → demo ratings. Nothing flagged that the live board was
+showing fake data. Add QA layers, deterministic first.
+
+**Layer 1 — Data-provenance gate (CI, deterministic; highest value).**
+- **Block the Pages deploy** if `demo == True`, if odds/AN fell back to mock, or if
+  `n_games` is below a gameday floor.
+- Assert ratings are real: team count > threshold AND power spread (stdev) > 0 — catches
+  the flat/demo table.
+- On failure, **alert** (email via Gmail integration or open a GitHub issue) instead of
+  silently deploying stale data.
+
+**Layer 2 — Play sanity checks (deterministic). High EV is QUARANTINED, not deleted.**
+- Do **not** hard-cap EV — high EV can be legitimate (soft small-market line, early FCS/FBS
+  totals). Gate on *why* the edge exists, via a **corroboration test**:
+  - Trusted (post, maybe tag "High EV — verify") when built on a real market line:
+    multiple books present, a consensus/mid exists, AND both teams are rated.
+  - **Held for review** (quarantine list + alert) when the edge comes from an unrated
+    team, a single book, or no consensus — i.e. the model is guessing.
+  - Example: Ark State +51% (flat ratings, no corroboration) → quarantined; a genuine
+    +18% on a fully-rated, multi-book game → posts.
+- Also flag suspicious duplicate-`p_true` clusters (a tell that sims ran on degenerate
+  inputs). Nothing is silently dropped — quarantined plays surface for a quick eyeball.
+
+**Layer 3 — LLM QA review (the "agent"). Optional, second.**
+- Cloud agent reads the freshly built slate and reports anything implausible in plain
+  English. Sits *behind* Layers 1–2 (free, fast, can't hallucinate) as a backstop only.
+
+**Suggested build:** `scripts/qa_gate.py` wired into the gameday workflow before deploy;
+regression tests for each rule (demo-fallback fails the gate; unrated/no-consensus high-EV
+is quarantined; a corroborated high-EV play passes).

@@ -44,9 +44,20 @@ def test_board_headers_stick_on_scroll(site: Path):
 def test_win_pct_cell_tiers():
     from sharp_scout.site.build import _win_pct_cell
 
-    assert "71%" in _win_pct_cell(0.706) and "conf-hi" in _win_pct_cell(0.706)
-    assert "conf-mid" in _win_pct_cell(0.57)
-    assert "conf-even" in _win_pct_cell(0.50)
+    # Double diamond 80.1%+
+    ddiamond = _win_pct_cell(0.82)
+    assert "82%" in ddiamond and "conf-ddiamond" in ddiamond and "\U0001F48E\U0001F48E" in ddiamond
+    # Diamond 70–80%
+    diamond = _win_pct_cell(0.74)
+    assert "conf-diamond" in diamond and "\U0001F48E" in diamond and "\U0001F48E\U0001F48E" not in diamond
+    # 80.0% is still a single diamond; 80.1% flips to double
+    assert "conf-diamond" in _win_pct_cell(0.80)
+    assert "conf-ddiamond" in _win_pct_cell(0.801)
+    # Gold 50.1–69.9%
+    gold = _win_pct_cell(0.57)
+    assert "conf-gold" in gold and "\U0001FA99" in gold
+    # At/below 50% — no tier icon
+    assert "conf-lo" in _win_pct_cell(0.50) and "\U0001FA99" not in _win_pct_cell(0.50)
     assert "conf-lo" in _win_pct_cell(0.38)
     assert "—" in _win_pct_cell(None)
 

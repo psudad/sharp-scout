@@ -8,6 +8,7 @@ from typing import Iterable
 # Common mascots stripped so "Alabama Crimson Tide" → "ALABAMA"
 _MASCOTS = {
     "CRIMSON TIDE",
+    "SHARKS",
     "BULLDOGS",
     "TIGERS",
     "WILDCATS",
@@ -181,6 +182,8 @@ _MASCOTS = {
 
 # Maps school / nickname / Odds API full name → stable code
 NCAAF_ALIASES: dict[str, str] = {
+    "LIU SHARKS": "LIU",
+    "LONG ISLAND": "LIU",
     # SEC
     "ALA": "ALA",
     "ALABAMA": "ALA",

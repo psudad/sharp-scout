@@ -31,8 +31,15 @@ def site(tmp_path: Path, monkeypatch) -> Path:
 
 def test_landing_explains_ev_in_plain_english(site: Path):
     html = (site / "index.html").read_text()
-    assert "EV = expected value" in html
-    assert "higher the EV %, the better" in html.replace("</b>", "").replace("<b>", "")
+    plain = html.replace("</b>", "").replace("<b>", "").replace("</i>", "").replace("<i>", "")
+    # Concise explainer: EV, Win %, and the named confidence tiers.
+    assert "How to read a play" in html
+    assert "EV %" in html and "how good the price is" in plain
+    # All four tiers are explained, including the Double Diamond loss caveat.
+    for tier in ("Double Diamond", "Diamond", "Gold", "Silver"):
+        assert tier in html
+    assert "> 70%" in plain or "&gt; 70%" in html
+    assert "1 in every 3–4" in plain
 
 
 def test_board_headers_stick_on_scroll(site: Path):
@@ -82,4 +89,4 @@ def test_plays_table_has_win_pct_alongside_ev(site: Path):
         assert "<th>Win %</th>" in html, page
         # Landing EV explainer describes the new column.
     landing = (site / "index.html").read_text()
-    assert "Win %" in landing and "estimated chance" in landing
+    assert "Win %" in landing and "chance this exact bet cashes" in landing

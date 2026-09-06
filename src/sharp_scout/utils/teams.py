@@ -408,6 +408,9 @@ NCAAF_ALIASES: dict[str, str] = {
     "AIR FORCE FALCONS": "AF",
     "BSU": "BSU",
     "BOIS": "BSU",  # ESPN abbreviation for Boise State
+    "CIT": "CITADEL",  # ESPN abbreviation for The Citadel
+    "CLT": "CHARLOTTE",  # ESPN abbreviation for Charlotte
+    "NORF": "NORFOLK STATE",  # ESPN abbreviation for Norfolk State
     "BOISE STATE": "BSU",
     "BOISE ST": "BSU",
     "BOISE STATE BRONCOS": "BSU",

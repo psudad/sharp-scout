@@ -63,11 +63,12 @@ showing fake data. Add QA layers, deterministic first.
 regression tests for each rule (demo-fallback fails the gate; unrated/no-consensus high-EV
 is quarantined; a corroborated high-EV play passes).
 
-### End-of-week evaluator agent (planning — user request 2026-09-06)
-**Priority:** medium · **Planning only — no build until confirmed**
+### End-of-week evaluator cloud agent (APPROVED to build — 2026-09-06)
+**Priority:** high · **Build as Sunday auto-run cloud agent**
 
 Weekly retrospective that grades **every lens**, not just tracked ledger plays, and explains
-*why* high-EV model leans did or didn't become recommendations.
+*why* high-EV model leans did or didn't become recommendations. **User confirmed: build as
+a cloud agent that runs automatically on Sundays and surfaces questions/trends for review.**
 
 **Systems to score independently (from `stage_picks.py`):**
 | UI label | Stage key | What it is |
@@ -105,3 +106,19 @@ Weekly retrospective that grades **every lens**, not just tracked ledger plays, 
 - Should mega-dog spreads (e.g. +21) with huge model EV but no handle confirmation ever post?
 - Is the 20% money-ticket gap too strict early season when splits are thin?
 - Should Double Diamond in Games auto-flag for human review even when Phase 4 rejects?
+- Is 20% handle gap right for CFB vs NFL separately?
+- What patterns emerge in Week 1–3 vs mid-season performance?
+- Which stage systems (Quant, Handle, Sharp Book, RLM) have highest ROI by sport/week?
+
+**Implementation as cloud agent:**
+- Trigger: Sunday mornings after all weekend games settle (or Monday for holiday weeks).
+- Inputs: week's `ncaaf_ledger.json`, `nfl_ledger.json`, `stage_cards`, `*_signals.json`, final scores.
+- Agent task:
+  1. Grade every stage system (model, sharp, public, money, RLM, hybrid) W-L-P, units, ROI.
+  2. List near-misses: plays with high EV + Win % but rejected by Phase 4 — with rejection reason.
+  3. Compare recommended plays vs all model leans — where did we leave value on table?
+  4. Surface **questions** for review: "Handle gap: current 20% → if lowered to 15%, would have
+     captured Wisconsin +21 (WIN) + 3 others; but also added 2 losses. Net ROI +2.1u. Recommend?"
+  5. Trends: early-season vs mid-season filter performance, CFB vs NFL gap differences, etc.
+- Output: Markdown report (or canvas) saved to `reports/week-{N}-eval-{sport}.md` + summary to Slack/email.
+- **Goal:** help tune filters/thresholds to make Quant the business-driving model.

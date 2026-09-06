@@ -437,7 +437,7 @@ def build_site(
         else "—"
     )
     plays_html = _render_play_table(nfl_week_plays_sorted, live_fallback=[], sport="nfl")
-    nfl_clv_banner_html = _render_clv_banner(record.get("clv"))
+    nfl_overall_banner_html = _render_overall_banner(record.get("win_pct"), record.get("pnl_units") or 0)
     nfl_ledger_rows = _render_ledger_rows(settled_sorted + pending_sorted)
     nfl_win_pct = f"{record['win_pct'] * 100:.1f}%" if record["win_pct"] is not None else "—"
     nfl_pnl = record["pnl_units"]
@@ -583,7 +583,7 @@ def build_site(
         collapse_best_signals(ncaaf_pending),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
-    ncaaf_clv_banner_html = _render_clv_banner(ncaaf_record.get("clv"))
+    ncaaf_overall_banner_html = _render_overall_banner(ncaaf_record.get("win_pct"), ncaaf_record.get("pnl_units") or 0)
     ncaaf_ledger_rows = _render_ledger_rows(ncaaf_settled_sorted + ncaaf_pending_sorted)
 
     nfl_top_stats_html = "".join(
@@ -670,7 +670,7 @@ def build_site(
         nfl_signal_count=nfl_signal_count,
         demo_note=demo_note,
         plays_html=plays_html,
-        nfl_clv_banner_html=nfl_clv_banner_html,
+        nfl_overall_banner_html=nfl_overall_banner_html,
         nfl_ledger_rows=nfl_ledger_rows,
         nfl_stage_weeks_html=nfl_stage_weeks_html,
         nfl_leans_html=nfl_leans_html,
@@ -701,7 +701,7 @@ def build_site(
         ncaaf_leans_html=ncaaf_leans_html,
         ncaaf_games_html=ncaaf_games_html,
         ncaaf_demo_note="DEMO data" if ncaaf_signals.get("demo") else "Live pipeline",
-        ncaaf_clv_banner_html=ncaaf_clv_banner_html,
+        ncaaf_overall_banner_html=ncaaf_overall_banner_html,
         ncaaf_ledger_rows=ncaaf_ledger_rows,
         nfl_top_stats_html=nfl_top_stats_html,
         ncaaf_top_stats_html=ncaaf_top_stats_html,
@@ -1493,27 +1493,15 @@ def _render_ledger_rows(plays: list[dict]) -> str:
     return "\n".join(rows)
 
 
-def _render_clv_banner(clv: dict[str, Any] | None) -> str:
-    """Summary of Closing Line Value — the earliest proof the process beats the market."""
-    clv = clv or {}
-    n = clv.get("n_plays_with_clv") or 0
-    if not n:
-        return (
-            '<p class="phase-note" style="padding:6px 0">Closing Line Value appears here once '
-            "plays are graded against their closing line (captured at the T-1h pregame run).</p>"
-        )
-    avg_pts = clv.get("avg_clv_points")
-    beat_pct = clv.get("beat_close_pct")
-    rec = clv.get("beat_close_record") or "—"
-    pts_s = f"{avg_pts:+g}" if avg_pts is not None else "—"
-    beat_s = f"{beat_pct * 100:.0f}%" if beat_pct is not None else "—"
-    cls = "pos" if (avg_pts or 0) > 0 else "neg" if (avg_pts or 0) < 0 else ""
+def _render_overall_banner(win_pct: float | None, pnl_units: float) -> str:
+    """Season overview: overall win % and net profit in units."""
+    win_pct_s = f"{win_pct * 100:.1f}%" if win_pct is not None else "—"
+    pnl_s = f"+{pnl_units:.2f}u" if pnl_units >= 0 else f"{pnl_units:.2f}u"
+    pnl_cls = "pos" if pnl_units >= 0 else "neg"
     return (
         '<div class="summary-grid" style="margin-top:6px">'
-        + _stat_card(pts_s, "Avg CLV (pts)", BOARD_STAT_TIPS["clv_avg_pts"], val_cls=cls)
-        + _stat_card(beat_s, "Beat Close %", BOARD_STAT_TIPS["clv_beat_pct"])
-        + _stat_card(str(rec), "Beat-Close W-L", BOARD_STAT_TIPS["clv_beat_record"])
-        + _stat_card(str(n), "Plays w/ CLV", BOARD_STAT_TIPS["clv_n_plays"])
+        + _stat_card(win_pct_s, "Overall Win %", "Win rate on all graded Sharp Plays this season.")
+        + _stat_card(pnl_s, "Overall Profit", "Net units on all graded Sharp Plays this season.", val_cls=pnl_cls)
         + "</div>"
     )
 
@@ -2880,6 +2868,14 @@ _SITE_CSS = """\
   .guide-callout p { margin: 0; font-size: 14px; }
   .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 22px; }
   @media (min-width: 700px) { .summary-grid { grid-template-columns: repeat(4, 1fr); } }
+  
+  /* Team search box - sits above stats boxes on each tab */
+  .team-search-wrap { margin: 16px 0 20px; }
+  .team-search-input { width: 100%; max-width: 600px; padding: 12px 16px; font-size: 15px;
+    border: 2px solid var(--color-border); border-radius: 4px; font-family: var(--font-sans);
+    background: var(--color-bg); color: var(--color-text); }
+  .team-search-input:focus { outline: none; border-color: var(--color-navy); }
+  .team-search-input::placeholder { color: var(--color-text-muted); }
   .stat-card {
     background: var(--color-slate);
     border: 2px solid var(--color-border);
@@ -3329,9 +3325,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 
 <div id="tab-plays" class="content active">
   {week1_banner_html}
+  <div class="team-search-wrap">
+    <input type="text" id="nfl-team-search" class="team-search-input" placeholder="Search for a team (e.g. Chiefs, KC)..." />
+  </div>
   <div class="summary-grid">{nfl_top_stats_html}</div>
-  <div class="section-label">Closing Line Value</div>
-  {nfl_clv_banner_html}
+  <div class="section-label">Season Overview</div>
+  {nfl_overall_banner_html}
   {nfl_plays_heading}
   {plays_html}
   <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks. Only rows highlighted in yellow in the <b>NFL Ledger</b> below are the posted Sharp Plays we track.</p>
@@ -3374,9 +3373,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 
 <div id="tab-cfb" class="content">
   {week1_banner_html}
+  <div class="team-search-wrap">
+    <input type="text" id="cfb-team-search" class="team-search-input" placeholder="Search for a team (e.g. Alabama, Crimson Tide)..." />
+  </div>
   <div class="summary-grid">{ncaaf_top_stats_html}</div>
-  <div class="section-label">Closing Line Value</div>
-  {ncaaf_clv_banner_html}
+  <div class="section-label">Season Overview</div>
+  {ncaaf_overall_banner_html}
   {ncaaf_plays_heading}
   {ncaaf_plays_html}
   <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks — use the <b>When to bet</b> column for timing. Only rows highlighted in yellow in the <b>NCAAF Ledger</b> below are the posted Sharp Plays we track.</p>
@@ -3472,6 +3474,35 @@ function showTab(name, el) {{
   }});
   window.addEventListener('hashchange', route);
   route();
+}})();
+
+// Team search: filter all tables in a tab to show only rows matching the search query.
+(function () {{
+  function setupSearch(inputId, tabId) {{
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    input.addEventListener('input', function () {{
+      var query = input.value.toLowerCase().trim();
+      var tab = document.getElementById(tabId);
+      if (!tab) return;
+      var tables = tab.querySelectorAll('table tbody');
+      tables.forEach(function (tbody) {{
+        var rows = tbody.querySelectorAll('tr');
+        rows.forEach(function (row) {{
+          // Don't filter divider rows, heading rows, or stage summary rows
+          if (row.classList.contains('settled-divider') || row.classList.contains('week-heading') ||
+              row.classList.contains('stage-summary')) {{
+            row.style.display = '';
+            return;
+          }}
+          var text = row.textContent.toLowerCase();
+          row.style.display = (query === '' || text.indexOf(query) !== -1) ? '' : 'none';
+        }});
+      }});
+    }});
+  }}
+  setupSearch('nfl-team-search', 'tab-plays');
+  setupSearch('cfb-team-search', 'tab-cfb');
 }})();
 
 function downloadTableCsv(tableId, filename) {{

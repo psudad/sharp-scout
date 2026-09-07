@@ -27,10 +27,17 @@ def test_strong_gap_flags_sharp_money_in_caps():
 
 
 def test_mild_gap_flags_lowercase_sharp_money():
-    html = _sharp_money_cell(_pick("+13% money vs tickets on BUF"))
+    html = _sharp_money_cell(_pick("+11% money vs tickets on BUF"))
     assert "sharp-flag mild" in html
     assert "SHARP MONEY" not in html
-    assert "+13%" in html
+    assert "+11%" in html
+
+
+def test_12pct_gap_flags_strong_sharp_money():
+    html = _sharp_money_cell(_pick("+12% money vs tickets on BUF"))
+    assert "SHARP MONEY" in html
+    assert "sharp-flag strong" in html
+    assert "+12%" in html
 
 
 def test_small_gap_is_greyed_out_with_no_flag():

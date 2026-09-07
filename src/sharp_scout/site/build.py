@@ -1205,7 +1205,7 @@ def _render_guide_html() -> str:
     <li><b>Sharp Book</b> — <b>a price, not money flow.</b> The side Pinnacle / Circa / Betfair make the favorite on their no-vig line. It tells you how the sharpest books have the game rated; it says nothing about how much is being wagered.</li>
     <li><b>Public</b> — ticket %, i.e. the share of the <b>number of bets</b>. This is bettor headcount.</li>
     <li><b>Handle</b> — money %, i.e. the share of the <b>dollars wagered</b>. This is where money is actually flowing.</li>
-    <li><b>Sharp Money</b> — <b>this is the column to watch if you want to follow the money rather than the price.</b> It is Handle % minus Public % on a side. A big positive gap means the dollars are much heavier than the bet count: fewer, larger wagers, which is the classic sharp-money tell. We flag it <b>SHARP MONEY</b> (green) at a 20%+ gap, <b>sharp money</b> (amber) at 10%+, and grey it out below 10% because at that point the dollars and the ticket count are basically in line and there is no real signal.</li>
+    <li><b>Sharp Money</b> — <b>this is the column to watch if you want to follow the money rather than the price.</b> It is Handle % minus Public % on a side. A big positive gap means the dollars are much heavier than the bet count: fewer, larger wagers, which is the classic sharp-money tell. We flag it <b>SHARP MONEY</b> (green) at a 12%+ gap, <b>sharp money</b> (amber) at 10%+, and grey it out below 10% because at that point the dollars and the ticket count are basically in line and there is no real signal.</li>
     <li><b>RLM</b> — reverse line movement: the number moved <i>against</i> the public side, another sign the respected money is on the other team.</li>
   </ul>
   <p>Everything lives inside those two boards now — there are no separate Games, Stages, Ratings, or Historical tabs to hunt through. Per-game detail, lens scorecards, power ratings, and prior-week archives are all folded into the NFL and CFB boards in the order above.</p>
@@ -1935,7 +1935,7 @@ def _pick_cell(pick: dict | None, *, sport: str = "nfl") -> str:
 
 # Handle-minus-ticket gap needed before we call it sharp money rather than noise.
 # Below MILD the dollars and bet count are basically in line, so we grey the row out.
-SHARP_MONEY_STRONG_PCT = 0.20
+SHARP_MONEY_STRONG_PCT = 0.12
 SHARP_MONEY_MILD_PCT = 0.10
 
 

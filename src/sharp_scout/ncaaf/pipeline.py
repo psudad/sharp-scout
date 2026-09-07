@@ -21,6 +21,7 @@ from sharp_scout.phase1.ratings import (
 )
 from sharp_scout.phase2.monte_carlo import simulate_game
 from sharp_scout.phase3.market import discover_edges
+from sharp_scout.data.splits_board import prepare_splits_for_filters
 from sharp_scout.phase4.filters import attach_filters
 from sharp_scout.sports import NCAAF
 from sharp_scout.utils.odds import setup_logging
@@ -125,6 +126,8 @@ def run_ncaaf_pipeline(
             record_snapshot(events)
         except Exception as exc:  # noqa: BLE001
             logger.warning("NCAAF line snapshot skipped: %s", exc)
+
+    splits = prepare_splits_for_filters(splits, events, sport="ncaaf")
 
     game_results: list[dict[str, Any]] = []
     all_signals: list[dict[str, Any]] = []

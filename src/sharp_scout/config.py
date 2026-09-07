@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     action_network_token: str = ""
 
     ev_threshold: float = 0.02
-    money_ticket_gap: float = 0.20
+    money_ticket_gap: float = 0.12
     # Moneyline guardrails — block stale/offshore misquotes from auto-plays
     max_h2h_edge: float = 0.50
     max_h2h_plus_price: float = 1200.0

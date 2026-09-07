@@ -16,6 +16,7 @@ from sharp_scout.db.models import Signal, TeamRating, get_session, init_db
 from sharp_scout.phase1.ratings import build_power_ratings, matchup_means, ratings_as_of_now
 from sharp_scout.phase2.monte_carlo import simulate_game
 from sharp_scout.phase3.market import discover_edges
+from sharp_scout.data.splits_board import prepare_splits_for_filters
 from sharp_scout.phase4.filters import attach_filters
 from sharp_scout.utils.odds import setup_logging
 
@@ -102,6 +103,8 @@ def run_pipeline(
             record_snapshot(events)
         except Exception as exc:  # noqa: BLE001
             logger.warning("line snapshot skipped: %s", exc)
+
+    splits = prepare_splits_for_filters(splits, events, sport="nfl")
 
     # Probability calibrator (identity until fit from settled history).
     from sharp_scout.analysis.calibration import load_calibrator

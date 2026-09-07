@@ -108,8 +108,22 @@ def _side_label(p: dict[str, Any]) -> str:
 
 def _status_badge(status: str) -> str:
     st = status or "pending"
-    cls = {"win": "win", "loss": "loss", "push": "pending", "pending": "pending", "void": "pending"}.get(st, "pending")
-    label = {"win": "WIN", "loss": "LOSS", "push": "PUSH", "pending": "PENDING", "void": "VOID"}.get(st, st.upper())
+    cls = {
+        "win": "win",
+        "loss": "loss",
+        "push": "pending",
+        "pending": "pending",
+        "void": "pending",
+        "quarantined": "pending",
+    }.get(st, "pending")
+    label = {
+        "win": "WIN",
+        "loss": "LOSS",
+        "push": "PUSH",
+        "pending": "PENDING",
+        "void": "VOID",
+        "quarantined": "HELD",
+    }.get(st, st.upper())
     return f'<span class="card-result {cls}">{label}</span>'
 
 
@@ -403,7 +417,14 @@ def build_site(
             json.dumps(ncaaf_signals.get("ratings") or [], indent=2, default=str) + "\n"
         )
 
-    pending = [p for p in ledger["plays"] if (p.get("status") or "pending") == "pending"]
+    pending = [
+        p
+        for p in ledger["plays"]
+        if (p.get("status") or "pending") == "pending"
+    ]
+    quarantined = [
+        p for p in ledger["plays"] if (p.get("status") or "") == "quarantined"
+    ]
     # Ledger tab shows the current NFL week only; prior weeks live on NFL Historical.
     settled = filter_plays_nfl_display_slate(
         [p for p in ledger["plays"] if (p.get("status") or "pending") != "pending"],
@@ -419,8 +440,18 @@ def build_site(
     nfl_week_all = filter_plays_nfl_display_slate(
         ledger["plays"], events=nfl_games_all or [{"commence_time": p.get("kickoff")} for p in ledger["plays"]]
     )
+    nfl_week_pending = [
+        p for p in nfl_week_all if (p.get("status") or "pending") == "pending"
+    ]
+    nfl_week_quarantined = [
+        p for p in nfl_week_all if (p.get("status") or "") == "quarantined"
+    ]
     nfl_week_plays_sorted = sorted(
-        collapse_best_signals(nfl_week_all),
+        collapse_best_signals(nfl_week_pending),
+        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
+    nfl_quarantine_sorted = sorted(
+        collapse_best_signals(nfl_week_quarantined),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
     nfl_week_stats = _compute_play_record(nfl_week_all)
@@ -437,6 +468,7 @@ def build_site(
         else "—"
     )
     plays_html = _render_play_table(nfl_week_plays_sorted, live_fallback=[], sport="nfl")
+    quarantine_html = _render_quarantine_section(nfl_quarantine_sorted, sport="nfl")
     nfl_overall_banner_html = _render_overall_banner(record.get("win_pct"), record.get("pnl_units") or 0)
     nfl_ledger_rows = _render_ledger_rows(settled_sorted + pending_sorted)
     nfl_win_pct = f"{record['win_pct'] * 100:.1f}%" if record["win_pct"] is not None else "—"
@@ -670,6 +702,7 @@ def build_site(
         nfl_signal_count=nfl_signal_count,
         demo_note=demo_note,
         plays_html=plays_html,
+        quarantine_html=quarantine_html,
         nfl_overall_banner_html=nfl_overall_banner_html,
         nfl_ledger_rows=nfl_ledger_rows,
         nfl_stage_weeks_html=nfl_stage_weeks_html,
@@ -1274,6 +1307,34 @@ def _win_pct_cell(p_true: Any, edge: Any = None) -> str:
         f"<span class='conf-tier'>{label_html}</span>"
         f"<span class='conf-pct'>{pct}</span>"
         "</span>"
+    )
+
+
+def _render_quarantine_section(plays: list[dict], *, sport: str = "nfl") -> str:
+    """Held-for-review plays flagged by the QA gate — not recommended."""
+    if not plays:
+        return ""
+    rows = []
+    for p in plays:
+        kick = format_kickoff_et(p.get("kickoff") or p.get("commence_time"))
+        away = str(p.get("away_team") or "")
+        home = str(p.get("home_team") or "")
+        game = f"{_esc(away)} @ {_esc(home)}"
+        pick = _esc(_side_label(p))
+        notes = p.get("qa_notes") or []
+        reason = notes[0].get("message") if notes else (p.get("rationale") or "QA review")
+        rows.append(
+            f"<tr><td>{kick}</td><td>{game}</td><td>{pick}</td>"
+            f"<td class='rationale-cell'>{_esc(str(reason))}</td></tr>"
+        )
+    body = "\n".join(rows)
+    return (
+        '<div class="section-label" style="margin-top:18px">Held for Review (QA Gate)</div>'
+        '<p class="phase-note" style="padding:4px 0 10px">These plays failed automated sanity checks '
+        "and are <b>not</b> recommended. Review before acting.</p>"
+        '<div class="table-wrap"><table class="export-table plays-table">'
+        "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Why held</th></tr></thead>"
+        f"<tbody>{body}</tbody></table></div>"
     )
 
 
@@ -3333,6 +3394,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {nfl_overall_banner_html}
   {nfl_plays_heading}
   {plays_html}
+  {quarantine_html}
   <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks. Only rows highlighted in yellow in the <b>NFL Ledger</b> below are the posted Sharp Plays we track.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
   {leans_caps_note}

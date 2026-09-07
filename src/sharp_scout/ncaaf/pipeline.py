@@ -243,15 +243,27 @@ def run_ncaaf_pipeline(
     if persist:
         _persist(rating_rows, validated)
 
+    ledger_path = DATA_DIR / sport.ledger_name
     if update_ledger:
         from sharp_scout.ledger.tracker import append_signals, append_stage_cards, compute_record
 
-        ledger_path = DATA_DIR / sport.ledger_name
         if validated:
             append_signals(validated, season=season, week=week, path=ledger_path)
         if stage_cards:
             append_stage_cards(stage_cards, season=season, week=week, path=ledger_path)
         payload["record"] = compute_record(path=ledger_path)
+
+    from sharp_scout.qa.gate import apply_qa_gate
+
+    qa_result = apply_qa_gate(
+        "ncaaf",
+        signals=payload,
+        apply=update_ledger,
+        ledger_path=ledger_path,
+    )
+    payload["qa"] = qa_result.summary()
+    if qa_result.block_deploy:
+        logger.warning("QA gate Layer 1 failed: %s", [i.message for i in qa_result.layer1_issues])
 
     if build_pages:
         from sharp_scout.site.build import build_site

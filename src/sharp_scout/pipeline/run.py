@@ -197,6 +197,18 @@ def run_pipeline(
     for s in validated:
         s["rationale"] = format_play_rationale(s)
 
+    from sharp_scout.utils.slate import filter_events_nfl_display_slate
+
+    display_events = filter_events_nfl_display_slate(game_results)
+    display_ids = {str(g.get("event_id")) for g in display_events}
+    week_validated = [s for s in validated if str(s.get("event_id")) in display_ids]
+    if len(week_validated) < len(validated):
+        logger.info(
+            "Scoped ledger posting to display week: %d of %d validated plays",
+            len(week_validated),
+            len(validated),
+        )
+
     # ── Stage picks: independent winners per data lens ────────
     from sharp_scout.stage_picks import STAGE_MARKETS, build_slate_stage_picks, summarize_stage_slate
 
@@ -233,6 +245,7 @@ def run_pipeline(
         "games": game_results,
         "signals": all_signals,
         "plays": validated,
+        "week_plays": week_validated,
         "stage_picks": stage_cards,
         "stage_summary": stage_summary,
         "split_boards": split_boards,
@@ -253,8 +266,8 @@ def run_pipeline(
             compute_record,
         )
 
-        if validated:
-            append_signals(validated, season=season, week=week)
+        if week_validated:
+            append_signals(week_validated, season=season, week=week)
         if stage_cards:
             append_stage_cards(stage_cards, season=season, week=week)
 
@@ -267,6 +280,13 @@ def run_pipeline(
             append_disagreements(disagreements)
 
         payload["record"] = compute_record()
+
+    from sharp_scout.qa.gate import apply_qa_gate
+
+    qa_result = apply_qa_gate("nfl", signals=payload, apply=update_ledger)
+    payload["qa"] = qa_result.summary()
+    if qa_result.block_deploy:
+        logger.warning("QA gate Layer 1 failed: %s", [i.message for i in qa_result.layer1_issues])
 
     if build_pages:
         from sharp_scout.site.build import build_site

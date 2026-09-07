@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-07T18:00:25.349945+00:00",
+  "updated_at": "2026-09-07T18:02:39.140946+00:00",
   "starting_units": 100.0,
   "plays": [
     {
@@ -1041,6 +1041,59 @@
       "prop_result": null,
       "pnl_units": -1.0,
       "settled_at": "2026-09-07T01:14:23.466282+00:00"
+    },
+    {
+      "id": "2f775390",
+      "created_at": "2026-09-07T18:02:38.998269+00:00",
+      "event_id": "a570687d47661da4982cfd885cdb4a44",
+      "season": 2026,
+      "week": 2,
+      "kickoff": "2026-09-07T23:30:00+00:00",
+      "away_team": "SMU",
+      "home_team": "FSU",
+      "play_type": "side",
+      "player_name": null,
+      "market": "spreads",
+      "side": "home",
+      "line": 3.0,
+      "book": "rebet",
+      "price": -125.0,
+      "units": 1.5,
+      "tier": "play",
+      "edge": 0.3644,
+      "p_true": 0.758,
+      "p_mkt": 0.4862,
+      "model_spread": -4.48,
+      "model_total": 56.47,
+      "model_mean": null,
+      "is_alternate": false,
+      "window": null,
+      "rationale": "EV=36.44% at rebet -125; money-ticket gap only -5% on home (need \u226512%); RLM: public 64% away but line 3.0\u21922.5 toward home",
+      "close_line": null,
+      "close_price": null,
+      "close_book": null,
+      "clv_points": null,
+      "clv_prob": null,
+      "clv_at": null,
+      "status": "quarantined",
+      "home_score": null,
+      "away_score": null,
+      "prop_result": null,
+      "pnl_units": null,
+      "settled_at": null,
+      "qa_at": "2026-09-07T18:02:39.140236+00:00",
+      "qa_notes": [
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team SMU missing from power ratings"
+        },
+        {
+          "code": "duplicate_p_true",
+          "severity": "quarantine",
+          "message": "p_true=0.7580 appears in a suspicious cluster \u2014 degenerate sim inputs?"
+        }
+      ]
     }
   ],
   "stage_cards": [
@@ -36745,12 +36798,12 @@
         "rlm": {
           "stage": "rlm",
           "market": "spread",
-          "side": null,
-          "team": null,
-          "line": null,
-          "confidence": null,
-          "reason": "line flat (2.5\u21922.5)",
-          "available": false
+          "side": "home",
+          "team": "FSU",
+          "line": 2.5,
+          "confidence": 0.6,
+          "reason": "RLM: public 64% away but line 3.0\u21922.5 toward home",
+          "available": true
         },
         "hybrid": {
           "stage": "hybrid",
@@ -36758,14 +36811,14 @@
           "side": "home",
           "team": "FSU",
           "line": 2.5,
-          "confidence": 0.6064,
-          "reason": "model lean only \u2014 no confirming market stage",
+          "confidence": 0.758,
+          "reason": "validated play EV=55.4% @ onexbet",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 1,
+        "n_available": 7,
+        "home_votes": 2,
         "away_votes": 4,
         "unanimous": false,
         "sharp_vs_public": {
@@ -36777,12 +36830,13 @@
           "money": "SMU",
           "public": "SMU"
         },
-        "rlm_active": false
+        "rlm_active": true
       },
       "consensus_side": "away",
       "consensus_team": "SMU",
       "hybrid_agrees_with": [
-        "model"
+        "model",
+        "rlm"
       ],
       "conflict_stages": [
         "sharp",
@@ -36981,7 +37035,7 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "total flat (54.5\u219254.5)",
+          "reason": "no totals RLM (public=over, 53.0\u219254.5)",
           "available": false
         },
         "hybrid": {

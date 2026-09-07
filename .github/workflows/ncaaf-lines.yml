@@ -137,6 +137,7 @@ jobs:
             echo "No ODDS_API_KEY — skipping rebuild"
             exit 0
           fi
+          # Pipeline auto-determines current CFB week if not specified
           python scripts/run_ncaaf.py --build-site
           # Stamp the rebuild so the gate can throttle the next runs.
           printf '{"last_rebuild": "%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" > data/ncaaf_rebuild_state.json

@@ -59,6 +59,14 @@ def run_ncaaf_pipeline(
     setup_logging(settings.log_level)
     init_db()
     sport = NCAAF
+    
+    # Auto-determine current CFB season and week if not provided
+    if season is None or week is None:
+        from sharp_scout.utils.cfb_calendar import current_cfb_week
+        auto_season, auto_week = current_cfb_week()
+        season = season or auto_season
+        week = week or auto_week
+        logger.info("Auto-determined CFB calendar: %d Week %d", season, week)
 
     if skip_pbp or demo:
         ratings = _demo_ratings()
@@ -205,6 +213,8 @@ def run_ncaaf_pipeline(
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "sport": "ncaaf",
+        "season": season,
+        "week": week,
         "demo": demo or not settings.odds_api_key,
         "n_games": len(game_results),
         "n_candidates": len(all_signals),

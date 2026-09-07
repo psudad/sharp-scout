@@ -2493,6 +2493,8 @@ def _extract_hybrid_leans(
     ledger_keys = _ledger_play_keys(ledger_plays or [])
     leans: list[dict[str, Any]] = []
     for card in stage_cards:
+        if str(card.get("event_id") or "").startswith("demo"):
+            continue
         hybrid = (card.get("picks") or {}).get("hybrid") or {}
         if not hybrid.get("available") or not hybrid.get("side"):
             continue

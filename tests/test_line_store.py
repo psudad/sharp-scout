@@ -182,3 +182,58 @@ def test_prepare_splits_for_filters_backfills_open_before_rlm(tmp_path: Path, mo
     fr = validate_edge(edge, prepared)
     assert fr.flags["rlm"] is True
     assert fr.passed is True
+
+
+def test_prepare_splits_prefers_line_history_over_open_memory(tmp_path: Path, monkeypatch):
+    """Stale open_lines.json must not block durable line_history backfill."""
+    from sharp_scout.data import line_memory, splits_board
+
+    monkeypatch.setattr(line_memory, "OPEN_LINES_PATH", tmp_path / "open_lines.json")
+    line_memory._save({"smu-an|spread": 2.5})
+
+    p = tmp_path / "lh.json"
+    line_store.record_snapshot(
+        [
+            {
+                "event_id": "smu-fsu",
+                "home_team": "FSU",
+                "away_team": "SMU",
+                "bookmakers": {
+                    "pinnacle": {
+                        "is_sharp": True,
+                        "markets": {
+                            "spreads": [
+                                {"side": "home", "point": 3.0, "price": -110},
+                                {"side": "away", "point": -3.0, "price": -110},
+                            ]
+                        },
+                    }
+                },
+            }
+        ],
+        path=p,
+    )
+    history = line_store.load_history(p)
+    monkeypatch.setattr(line_store, "load_history", lambda *a, **k: history)
+
+    splits = [
+        {
+            "game_id": "smu-an",
+            "home_team": "FSU",
+            "away_team": "SMU",
+            "markets": {
+                "spread": {
+                    "home_bet_pct": 0.34,
+                    "away_bet_pct": 0.66,
+                    "home_money_pct": 0.31,
+                    "away_money_pct": 0.69,
+                    "open_line": None,
+                    "current_line": 2.5,
+                }
+            },
+        }
+    ]
+    events = [{"event_id": "smu-fsu", "home_team": "FSU", "away_team": "SMU"}]
+
+    prepared = splits_board.prepare_splits_for_filters(splits, events, sport="ncaaf")
+    assert prepared[0]["markets"]["spread"]["open_line"] == 3.0

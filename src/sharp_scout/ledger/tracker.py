@@ -538,7 +538,7 @@ def compute_record(
     if ledger is None:
         ledger = load_ledger(path)
     plays = ledger.get("plays") or []
-    wins = losses = pushes = pending = void = 0
+    wins = losses = pushes = pending = void = quarantined = 0
     pnl = 0.0
     by_week: dict[str, dict[str, Any]] = {}
 
@@ -552,6 +552,8 @@ def compute_record(
             pushes += 1
         elif st == "void":
             void += 1
+        elif st == "quarantined":
+            quarantined += 1
         else:
             pending += 1
         if p.get("pnl_units") is not None:
@@ -618,6 +620,7 @@ def compute_record(
         "pushes": pushes,
         "pending": pending,
         "void": void,
+        "quarantined": quarantined,
         "record": f"{wins}-{losses}" + (f"-{pushes}" if pushes else ""),
         "win_pct": win_pct,
         "pnl_units": round(pnl, 2),

@@ -68,7 +68,7 @@ def main() -> None:
         _run(ncaaf_args)
 
     if not args.no_site:
-        _run(["scripts/build_site.py"])
+        _run(["scripts/qa_gate.py", "--strict", "--build-site"])
 
 
 if __name__ == "__main__":

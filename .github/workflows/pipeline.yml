@@ -102,6 +102,9 @@ jobs:
           fi
           python scripts/run_pipeline.py $ARGS
 
+      - name: QA gate (block demo/stale deploys)
+        run: python scripts/qa_gate.py --sport nfl --strict
+
       - name: Commit site + shared data
         run: |
           git config user.name "sharp-scout-bot"

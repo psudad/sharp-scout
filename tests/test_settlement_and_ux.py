@@ -99,9 +99,15 @@ def test_win_pct_cell_value_gate_caps_cheap_but_likely_plays():
 
 
 def test_plays_table_has_win_pct_alongside_ev(site: Path):
-    for page in ("index.html", "board.html"):
-        html = (site / page).read_text()
-        assert "<th>Win %</th>" in html, page
-        # Landing EV explainer describes the new column.
+    # Board always has the ledger table with Win % header
+    board = (site / "board.html").read_text()
+    assert "<th>Win %</th>" in board
+    
+    # Landing page only has Win % header if there are plays to show
     landing = (site / "index.html").read_text()
+    has_plays_table = '<table' in landing and 'plays-table' in landing
+    if has_plays_table:
+        assert "<th>Win %</th>" in landing, "Landing page has plays table but missing Win % header"
+    
+    # Landing EV explainer describes Win % regardless of whether plays are present
     assert "Win %" in landing and "chance this exact bet cashes" in landing

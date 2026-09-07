@@ -103,7 +103,7 @@ STAGE_COLUMN_TIPS: dict[str, str] = {
     "Sharp Money": (
         "Where the sharp money is. Handle % minus ticket % on a side: a big positive gap "
         "means the dollars are far heavier than the bet count, i.e. fewer but much larger "
-        "wagers. Flagged SHARP MONEY at a ≥20% gap, lowercase 'sharp money' at ≥10%, and "
+        "wagers. Flagged SHARP MONEY at a ≥12% gap, lowercase 'sharp money' at ≥10%, and "
         "greyed out below that (dollars and tickets are basically in line — no signal)."
     ),
     "RLM": "Reverse line movement — the line moved against the public toward this side.",
@@ -157,7 +157,7 @@ STAGE_RECORD_TIPS: dict[str, str] = {
         "Record = win rate if you bet the money side on every graded row."
     ),
     "sharp_edge": (
-        "Sharp edge (Diff) = the side with the largest money-minus-tickets gap (≥20% flags "
+        "Sharp edge (Diff) = the side with the largest money-minus-tickets gap (≥12% flags "
         "sharp interest). Record = win rate betting that diff side every time."
     ),
     "rlm": (

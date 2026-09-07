@@ -185,6 +185,50 @@ def build_game_split_board(
     }
 
 
+def prepare_splits_for_filters(
+    splits: list[dict[str, Any]],
+    events: list[dict[str, Any]] | None = None,
+    *,
+    sport: str = "nfl",
+) -> list[dict[str, Any]]:
+    """Enrich Action Network rows before Phase 4 validation.
+
+    Phase 4 needs durable opening lines for RLM, but the raw AN feed usually omits
+    them. Site boards backfill from ``line_history.json`` later; filters must see the
+    same numbers at validation time or plays like contrarian RLM spots get dropped.
+    """
+    from sharp_scout.data.line_memory import overlay_open_lines
+
+    prepared = list(splits)
+    overlay_open_lines(prepared)
+
+    targets: list[dict[str, Any]] = []
+    if events:
+        for ev in events:
+            home, away = ev["home_team"], ev["away_team"]
+            sg = _find_split_game(prepared, home, away, sport=sport)
+            if sg is None:
+                continue
+            eid = str(ev.get("event_id") or "")
+            if eid:
+                sg["event_id"] = eid
+            targets.append(sg)
+    else:
+        targets = prepared
+
+    seen: set[int] = set()
+    for sg in targets:
+        key = id(sg)
+        if key in seen:
+            continue
+        seen.add(key)
+        eid = str(sg.get("event_id") or sg.get("game_id") or "")
+        if not eid:
+            continue
+        _backfill_open_lines({"event_id": eid, "markets": sg.get("markets") or {}})
+    return prepared
+
+
 def build_slate_split_boards(
     events: list[dict[str, Any]],
     splits: list[dict[str, Any]],

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from sharp_scout.copy.explain import (
     STAGE_RECORD_TIPS,
+    action_network_auth_status,
     collapse_best_signals,
+    describe_splits_board,
+    describe_stage_pick,
+    explain_action_network_gap,
     format_kickoff_et,
     format_play_rationale,
 )
@@ -64,3 +68,99 @@ def test_format_play_rationale_includes_edge():
     text = format_play_rationale(play)
     assert "12.0%" in text or "12%" in text
     assert "NYG" in text
+
+
+def test_explain_no_action_network_row_does_not_blame_cookie(monkeypatch):
+    monkeypatch.delenv("ACTION_NETWORK_TOKEN", raising=False)
+    monkeypatch.delenv("ACTION_NETWORK_COOKIE", raising=False)
+    from sharp_scout.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        msg = explain_action_network_gap("no_row")
+        assert "not on Action Network" in msg
+        assert "ACTION_NETWORK_COOKIE" not in msg
+
+        play = {
+            "market": "spreads",
+            "side": "away",
+            "home_team": "MIA",
+            "away_team": "FLORIDA A AND M RATTLERS",
+            "filter_notes": ["no Action Network split row matched"],
+        }
+        text = format_play_rationale(play)
+        assert "not on Action Network" in text
+        assert "ACTION_NETWORK_COOKIE" not in text
+    finally:
+        get_settings.cache_clear()
+
+
+def test_explain_splits_incomplete_without_auth_suggests_setup(monkeypatch):
+    monkeypatch.delenv("ACTION_NETWORK_TOKEN", raising=False)
+    monkeypatch.delenv("ACTION_NETWORK_COOKIE", raising=False)
+    from sharp_scout.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        msg = explain_action_network_gap("incomplete")
+        assert "ACTION_NETWORK_TOKEN" in msg
+        assert "diagnose_action_network.py" in msg
+    finally:
+        get_settings.cache_clear()
+
+
+def test_explain_splits_incomplete_with_auth_suggests_refresh(monkeypatch):
+    monkeypatch.setenv("ACTION_NETWORK_TOKEN", "Bearer test-token")
+    monkeypatch.delenv("ACTION_NETWORK_COOKIE", raising=False)
+    from sharp_scout.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        assert action_network_auth_status()["configured"] is True
+        msg = explain_action_network_gap("incomplete")
+        assert "expired" in msg.lower()
+        assert "ACTION_NETWORK_COOKIE" not in msg
+
+        play = {
+            "market": "spreads",
+            "side": "home",
+            "home_team": "BUF",
+            "away_team": "KC",
+            "filter_notes": ["splits incomplete (money/ticket % missing — run scripts/diagnose_action_network.py)"],
+        }
+        text = format_play_rationale(play)
+        assert "expired" in text.lower()
+        assert "ACTION_NETWORK_COOKIE" not in text
+    finally:
+        get_settings.cache_clear()
+
+
+def test_describe_splits_board_no_row(monkeypatch):
+    monkeypatch.delenv("ACTION_NETWORK_TOKEN", raising=False)
+    monkeypatch.delenv("ACTION_NETWORK_COOKIE", raising=False)
+    from sharp_scout.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        text = describe_splits_board({"available": False, "reason": "no Action Network row matched"})
+        assert "not on Action Network" in text
+    finally:
+        get_settings.cache_clear()
+
+
+def test_describe_stage_pick_no_row(monkeypatch):
+    monkeypatch.delenv("ACTION_NETWORK_TOKEN", raising=False)
+    monkeypatch.delenv("ACTION_NETWORK_COOKIE", raising=False)
+    from sharp_scout.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        text = describe_stage_pick(
+            "money",
+            {"available": False, "reason": "no Action Network row"},
+            "MIA",
+            "FLORIDA A AND M RATTLERS",
+        )
+        assert "not on Action Network" in text
+    finally:
+        get_settings.cache_clear()

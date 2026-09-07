@@ -9,6 +9,60 @@ from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
 
+_AN_SETUP_HINT = (
+    "Set ACTION_NETWORK_TOKEN (preferred) or ACTION_NETWORK_COOKIE in .env / GitHub secrets, "
+    "then run scripts/diagnose_action_network.py to verify."
+)
+_AN_EXPIRED_HINT = (
+    "Action Network auth is configured but money % did not come back — the token or cookie "
+    "may have expired. Re-copy from a logged-in browser session and run "
+    "scripts/diagnose_action_network.py."
+)
+_AN_NO_ROW_HINT = (
+    "This game is not on Action Network's public betting feed (common for smaller FCS "
+    "matchups or games Action Network does not track). Splits are unavailable for this game."
+)
+
+
+def action_network_auth_status() -> dict[str, bool | str]:
+    """Whether Action Network credentials are loaded from the environment."""
+    from sharp_scout.config import get_settings
+
+    settings = get_settings()
+    has_token = bool(settings.action_network_token)
+    has_cookie = bool(settings.action_network_cookie)
+    if has_token:
+        mode = "token"
+    elif has_cookie:
+        mode = "cookie"
+    else:
+        mode = "anonymous"
+    return {"configured": has_token or has_cookie, "mode": mode}
+
+
+def explain_action_network_gap(kind: str) -> str:
+    """Plain-English reason when Action Network splits are missing.
+
+    kind:
+      - ``no_row`` — game not matched in the Action Network feed
+      - ``incomplete`` — row matched but ticket and/or money % missing
+      - ``money_missing`` — handle % missing on a matched row
+    """
+    if kind == "no_row":
+        return _AN_NO_ROW_HINT
+
+    if action_network_auth_status()["configured"]:
+        if kind == "money_missing":
+            return (
+                "Action Network handle % is missing for this market even though auth is "
+                f"configured. {_AN_EXPIRED_HINT}"
+            )
+        return f"Money/ticket splits were incomplete for this market. {_AN_EXPIRED_HINT}"
+
+    if kind == "money_missing":
+        return f"Action Network handle % is missing for this market. {_AN_SETUP_HINT}"
+    return f"Money/ticket splits were not available for Phase 4 confirmation. {_AN_SETUP_HINT}"
+
 STAGE_LABELS: dict[str, str] = {
     "model": "Model",
     "sharp": "Sharp book price",
@@ -237,12 +291,6 @@ def format_play_rationale(play: dict[str, Any]) -> str:
         lines.append("Reverse line movement supports this side — line moved against the public.")
     if flags.get("steam"):
         lines.append("Steam move detected — the line jumped across multiple sharp books toward this side.")
-    if flags.get("ev_ok") and not flags.get("money_split") and not flags.get("rlm"):
-        if any("splits incomplete" in str(n).lower() for n in notes):
-            lines.append(
-                "Money/ticket splits were not available — add ACTION_NETWORK_COOKIE for Phase 4 confirmation."
-            )
-
     return "\n".join(lines) if lines else "No rationale recorded."
 
 
@@ -279,11 +327,13 @@ def _translate_filter_note(note: str, play: dict[str, Any]) -> str:
             "records the current line as the open; later runs compare movement against it."
         )
 
-    if "no Action Network" in n or "splits incomplete" in n:
-        return (
-            "Action Network money % missing — log in to Pro and set ACTION_NETWORK_COOKIE "
-            "in GitHub secrets for full split data."
-        )
+    lower = n.lower()
+    if "no action network" in lower and "row" in lower:
+        return explain_action_network_gap("no_row")
+    if "splits incomplete" in lower:
+        return explain_action_network_gap("incomplete")
+    if "money % missing" in lower or "ticket % missing" in lower:
+        return explain_action_network_gap("money_missing" if "money" in lower else "incomplete")
 
     if "edge lacks RLM or money" in n:
         return "Did not pass Phase 4: needs either sharp-money or reverse-line confirmation."
@@ -301,10 +351,14 @@ def format_edge_rationale(signal: dict[str, Any]) -> str:
 def describe_splits_board(board: dict[str, Any]) -> str:
     """Plain English summary of which side sharp money favors."""
     if not board.get("available"):
-        reason = board.get("reason") or "No Action Network data for this game."
-        if "cookie" not in reason.lower():
-            reason += " Set ACTION_NETWORK_COOKIE if money % is locked."
-        return reason
+        raw = (board.get("reason") or "").lower()
+        if "no action network" in raw and "row" in raw:
+            return explain_action_network_gap("no_row")
+        if "money" in raw and "missing" in raw:
+            return explain_action_network_gap("money_missing")
+        if board.get("reason"):
+            return str(board["reason"])
+        return explain_action_network_gap("no_row")
 
     parts: list[str] = []
     markets = board.get("markets") or {}
@@ -339,6 +393,13 @@ def describe_splits_board(board: dict[str, Any]) -> str:
 def describe_stage_pick(stage: str, pick: dict[str, Any], home: str, away: str) -> str:
     if not pick.get("available"):
         reason = pick.get("reason") or "Not available for this game."
+        lower = reason.lower()
+        if "no action network" in lower and "row" in lower:
+            return explain_action_network_gap("no_row")
+        if "money % missing" in lower:
+            return explain_action_network_gap("money_missing")
+        if "ticket % missing" in lower:
+            return "Action Network ticket % is missing for this market."
         return reason
 
     team = pick.get("team") or pick.get("side") or "—"

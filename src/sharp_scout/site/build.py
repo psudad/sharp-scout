@@ -534,8 +534,18 @@ def build_site(
 
     ncaaf_pending = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") == "pending"]
     ncaaf_week_all = filter_plays_college_week(ncaaf_ledger["plays"])
+    ncaaf_week_pending = [
+        p for p in ncaaf_week_all if (p.get("status") or "pending") == "pending"
+    ]
+    ncaaf_week_quarantined = [
+        p for p in ncaaf_week_all if (p.get("status") or "") == "quarantined"
+    ]
     ncaaf_week_plays_sorted = sorted(
-        collapse_best_signals(ncaaf_week_all),
+        collapse_best_signals(ncaaf_week_pending),
+        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    )
+    ncaaf_quarantine_sorted = sorted(
+        collapse_best_signals(ncaaf_week_quarantined),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
     ncaaf_week_stats = _compute_play_record(ncaaf_week_all)
@@ -554,6 +564,7 @@ def build_site(
     ncaaf_plays_html = _render_play_table(
         ncaaf_week_plays_sorted, live_fallback=[], sport="ncaaf", large=True, use_timing=True
     )
+    ncaaf_quarantine_html = _render_quarantine_section(ncaaf_quarantine_sorted, sport="ncaaf")
     ncaaf_stage_cards = normalize_stage_cards_team_lines(
         _merge_stage_cards(
             ncaaf_ledger.get("stage_cards") or [],
@@ -725,6 +736,7 @@ def build_site(
         ncaaf_pending=ncaaf_record["pending"],
         ncaaf_n_plays=ncaaf_record["n_plays"],
         ncaaf_plays_html=ncaaf_plays_html,
+        ncaaf_quarantine_html=ncaaf_quarantine_html,
         ncaaf_week_play_count=len(ncaaf_week_plays_sorted),
         ncaaf_stage_weeks_html=ncaaf_stage_weeks_html,
         ncaaf_stage_record_rows=ncaaf_stage_record_rows,
@@ -2047,6 +2059,13 @@ def _ledger_play_keys(plays: list[dict[str, Any]]) -> set[tuple[str, str, str]]:
     return keys
 
 
+def _posted_sharp_play_keys(plays: list[dict[str, Any]]) -> set[tuple[str, str, str]]:
+    """Ledger keys for approved Sharp Plays only (pending QA — not quarantined/void)."""
+    return _ledger_play_keys(
+        [p for p in plays if (p.get("status") or "pending") == "pending"]
+    )
+
+
 def _quant_pick_row_key(card: dict[str, Any], hybrid: dict[str, Any]) -> tuple[str, str, str]:
     return (
         str(card.get("event_id") or ""),
@@ -2490,7 +2509,7 @@ def _extract_hybrid_leans(
     ledger_plays: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """All quant pick rows for the slate — flagged when posted as a Sharp Play."""
-    ledger_keys = _ledger_play_keys(ledger_plays or [])
+    ledger_keys = _posted_sharp_play_keys(ledger_plays or [])
     leans: list[dict[str, Any]] = []
     for card in stage_cards:
         if str(card.get("event_id") or "").startswith("demo"):
@@ -2499,7 +2518,7 @@ def _extract_hybrid_leans(
         if not hybrid.get("available") or not hybrid.get("side"):
             continue
         row_key = _quant_pick_row_key(card, hybrid)
-        is_sharp_play = _is_validated_hybrid(hybrid) or row_key in ledger_keys
+        is_sharp_play = row_key in ledger_keys
         if is_sharp_play:
             kind = "sharp_play"
         elif _hybrid_lean_kind(hybrid) == "aligned":
@@ -3445,6 +3464,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {ncaaf_overall_banner_html}
   {ncaaf_plays_heading}
   {ncaaf_plays_html}
+  {ncaaf_quarantine_html}
   <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks — use the <b>When to bet</b> column for timing. Only rows highlighted in yellow in the <b>NCAAF Ledger</b> below are the posted Sharp Plays we track.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
   {leans_caps_note}

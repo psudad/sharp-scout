@@ -104,6 +104,57 @@ def test_mia_ml_quarantined_for_model_conflict():
     assert "not_revalidated" in codes
 
 
+def test_spread_model_conflict_quarantined():
+    signals = _base_signals(
+        plays=[
+            {
+                "event_id": "ev1",
+                "home_team": "LV",
+                "away_team": "MIA",
+                "market": "spreads",
+                "side": "home",
+                "line": 3.0,
+                "filter_passed": True,
+            }
+        ],
+        games=[
+            {
+                "event_id": "ev1",
+                "home_team": "LV",
+                "away_team": "MIA",
+                "p_home_win": 0.65,
+                "model_spread": -4.5,
+                "commence_time": "2026-09-13T20:25:00+00:00",
+            }
+        ],
+        signals=[
+            {"event_id": "ev1", "market": "spreads", "side": "home", "line": 3.0, "book": "draftkings"},
+            {"event_id": "ev1", "market": "spreads", "side": "home", "line": 3.0, "book": "fanduel"},
+        ],
+    )
+    play = {
+        "id": "fsu-style",
+        "event_id": "ev1",
+        "home_team": "LV",
+        "away_team": "MIA",
+        "market": "spreads",
+        "side": "home",
+        "line": 3.0,
+        "book": "rebet",
+        "price": -125,
+        "p_true": 0.758,
+        "p_mkt": 0.486,
+        "model_spread": -4.48,
+        "edge": 0.364,
+        "kickoff": "2026-09-13T20:25:00+00:00",
+        "status": "pending",
+    }
+    review = review_play(play, signals, sport="nfl")
+    codes = {i.code for i in review.issues}
+    assert review.action == "quarantine"
+    assert "spread_model_conflict" in codes
+
+
 def test_corroborated_spread_passes():
     signals = _base_signals(
         plays=[

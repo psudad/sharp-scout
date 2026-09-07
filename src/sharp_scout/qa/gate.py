@@ -318,6 +318,38 @@ def review_play(
 
     market = play.get("market")
     side = play.get("side")
+    settings = get_settings()
+    if market == "spreads":
+        p_true = play.get("p_true")
+        p_mkt = play.get("p_mkt")
+        if p_true is not None and p_mkt is not None:
+            prob_gap = abs(float(p_true) - float(p_mkt))
+            if prob_gap >= settings.spread_model_prob_gap:
+                issues.append(
+                    QAIssue(
+                        "spread_model_conflict",
+                        "quarantine",
+                        f"Model cover prob {float(p_true):.1%} vs sharp market "
+                        f"{float(p_mkt):.1%} (Δ{prob_gap:.0%}) — implausible disagreement",
+                    )
+                )
+
+        model_spread = play.get("model_spread")
+        if model_spread is None and game is not None:
+            model_spread = game.get("model_spread")
+        line = play.get("line")
+        if model_spread is not None and line is not None and side in ("home", "away"):
+            home_line = float(line) if side == "home" else -float(line)
+            line_gap = abs(float(model_spread) - home_line)
+            if line_gap >= settings.spread_model_line_gap:
+                issues.append(
+                    QAIssue(
+                        "spread_model_conflict",
+                        "quarantine",
+                        f"Model spread {float(model_spread):+.1f} vs market home line "
+                        f"{home_line:+.1f} (Δ{line_gap:.1f} pts) — implausible disagreement",
+                    )
+                )
     if market == "h2h" and game is not None:
         p_home_win = game.get("p_home_win")
         p_true = float(play.get("p_true") or 0)
@@ -375,7 +407,6 @@ def review_play(
                     )
                 )
 
-    settings = get_settings()
     book = str(play.get("book") or "")
     all_known = set(settings.sharp_books + settings.retail_books)
     if book and book not in all_known:

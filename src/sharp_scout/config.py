@@ -63,6 +63,9 @@ class Settings(BaseSettings):
 
     # Model-vs-market disagreement logging ("why is our model wrong?")
     disagreement_prob_threshold: float = 0.05  # |p_true - p_mkt| to flag a disagreement
+    # QA gate — quarantine spreads when model and sharp market disagree implausibly
+    spread_model_prob_gap: float = 0.15  # |p_true - p_mkt| quarantine threshold
+    spread_model_line_gap: float = 4.0  # |model_spread - home market line| in points
     # Steam detection (pre-kick line velocity across sharp books)
     steam_window_minutes: int = 90  # look-back window for velocity
     steam_min_points: float = 0.5  # minimum aggregate move to consider

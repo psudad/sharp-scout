@@ -91,11 +91,12 @@ def _normalize_cfb_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
             rename[src] = dest
     if rename:
         df = df.rename(columns=rename)
-
+    # Normalize team names to the standard aliases for sims + dedup
+    import pandas as pd
     for col in ("posteam", "defteam", "home_team", "away_team"):
         if col in df.columns:
-            df[col] = df[col].astype(str).map(
-                lambda x: normalize_team(x, "ncaaf") if x and x != "nan" else x
+            df[col] = df[col].apply(
+                lambda x: normalize_team(str(x), "ncaaf") if pd.notna(x) and str(x).lower() not in ("nan", "none", "") else str(x)
             )
 
     cols = [

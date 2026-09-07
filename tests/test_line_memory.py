@@ -23,3 +23,15 @@ def test_overlay_open_lines_stores_first_seen(tmp_path: Path, monkeypatch):
     games[0]["markets"]["spread"]["current_line"] = 3.0
     out2 = lm.overlay_open_lines(games)
     assert out2[0]["markets"]["spread"]["open_line"] == 2.5
+
+
+def test_overlay_skips_existing_open_line(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(lm, "OPEN_LINES_PATH", tmp_path / "open_lines.json")
+    games = [
+        {
+            "game_id": "123",
+            "markets": {"spread": {"current_line": 2.5, "open_line": 3.0}},
+        }
+    ]
+    out = lm.overlay_open_lines(games)
+    assert out[0]["markets"]["spread"]["open_line"] == 3.0

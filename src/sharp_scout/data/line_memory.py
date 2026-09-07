@@ -48,6 +48,8 @@ def overlay_open_lines(games: list[dict[str, Any]]) -> list[dict[str, Any]]:
             except (TypeError, ValueError):
                 continue
             mem_key = f"{gid}|{mkey}"
+            if block.get("open_line") is not None:
+                continue
             if mem_key not in memory:
                 memory[mem_key] = cur_f
                 updated = True

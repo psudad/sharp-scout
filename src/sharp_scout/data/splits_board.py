@@ -200,7 +200,6 @@ def prepare_splits_for_filters(
     from sharp_scout.data.line_memory import overlay_open_lines
 
     prepared = list(splits)
-    overlay_open_lines(prepared)
 
     targets: list[dict[str, Any]] = []
     if events:
@@ -226,6 +225,9 @@ def prepare_splits_for_filters(
         if not eid:
             continue
         _backfill_open_lines({"event_id": eid, "markets": sg.get("markets") or {}})
+
+    # In-run memory only fills gaps; committed line_history wins when present.
+    overlay_open_lines(prepared)
     return prepared
 
 

@@ -261,6 +261,7 @@ def mock_odds_events() -> list[dict[str, Any]]:
         {
             "event_id": "demo-kc-buf",
             "sport_key": SPORT,
+            "sport": "nfl",
             "commence_time": now,
             "home_team": "BUF",
             "away_team": "KC",

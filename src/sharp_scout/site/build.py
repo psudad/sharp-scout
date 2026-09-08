@@ -230,10 +230,30 @@ def _play_timing_status_html(play: dict[str, Any], *, sport: str = "nfl") -> str
     return f'<span class="play-timing js-timing {cls}"{data_attr}>{text}</span>'
 
 
+def _live_score_team_code(name: str, *, sport: str) -> str:
+    """Short team code for matching ESPN scoreboard abbreviations."""
+    from sharp_scout.utils.teams import _simplify_punct, _strip_mascot
+
+    sport_key = (sport or "nfl").lower()
+    raw = str(name or "")
+    if sport_key == "ncaaf":
+        flat = _simplify_punct(_strip_mascot(raw))
+        candidates = [raw, flat]
+        tokens = flat.split()
+        if len(tokens) > 2:
+            candidates.append(" ".join(tokens[:-1]))
+        for candidate in reversed(candidates):
+            code = ncaaf_display_code(normalize_team(str(candidate), sport_key))
+            if len(code) <= 6:
+                return code
+        return ncaaf_display_code(normalize_team(raw, sport_key))
+    return normalize_team(raw, sport_key)
+
+
 def _live_score_html(play: dict[str, Any], *, sport: str) -> str:
     """Empty score target populated from ESPN while a game is in progress."""
-    away = normalize_team(str(play.get("away_team") or ""), sport)
-    home = normalize_team(str(play.get("home_team") or ""), sport)
+    away = _live_score_team_code(str(play.get("away_team") or ""), sport=sport)
+    home = _live_score_team_code(str(play.get("home_team") or ""), sport=sport)
     if not away or not home:
         return ""
     return (
@@ -988,9 +1008,10 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
     <p class="lp-sub">Sharp Scout Quant · {total_plays} validated plays across NFL and college football</p>
     <div class="lp-chips">{week_chips}</div>
     <div class="board-updated-bar" role="status" aria-live="polite" style="justify-content:center;margin-top:14px">
-      <span class="board-updated-label">Picks &amp; prices updated</span>
+      <span class="board-updated-label">Picks &amp; prices updated · scores refresh live every 30s</span>
       <span class="board-updated-time">{board_updated}</span>
     </div>
+    <div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite" style="margin-top:12px"></div>
   </div>
 
   {week1_banner_html}
@@ -2754,43 +2775,99 @@ _TIMING_SCRIPT = """<script>
     nfl: 'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100',
     ncaaf: 'https://site.web.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=400'
   };
-  function scoreKey(sport, away, home) {
-    return sport + ':' + away + '@' + home;
+  function normToken(s) {
+    return (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+  function teamsFromComp(comp) {
+    var away = { tokens: [], abbrev: '', score: '0' };
+    var home = { tokens: [], abbrev: '', score: '0' };
+    (comp.competitors || []).forEach(function (side) {
+      var team = side.team || {};
+      var bucket = side.homeAway === 'home' ? home : away;
+      bucket.score = side.score || '0';
+      bucket.abbrev = (team.abbreviation || '').toUpperCase();
+      ['abbreviation', 'shortDisplayName', 'displayName', 'name'].forEach(function (key) {
+        var val = team[key];
+        if (val) bucket.tokens.push(normToken(val));
+      });
+    });
+    return { away: away, home: home, comp: comp };
   }
   function describe(comp) {
     var status = comp.status || {}, type = status.type || {};
     if (type.state === 'in') return 'LIVE — ' + (type.shortDetail || status.displayClock || 'In progress');
     if (type.state === 'post') return 'FINAL';
+    if (type.state === 'pre') return type.shortDetail || 'Scheduled';
     return '';
+  }
+  function scoreLine(entry) {
+    var label = describe(entry.comp);
+    if (!label) return '';
+    return label + ' · ' + entry.away.abbrev + ' ' + entry.away.score + ' – ' + entry.home.abbrev + ' ' + entry.home.score;
+  }
+  function teamMatches(token, bucket) {
+    var t = normToken(token);
+    if (!t) return false;
+    for (var i = 0; i < bucket.tokens.length; i++) {
+      var bt = bucket.tokens[i];
+      if (t === bt) return true;
+      if (bt.length >= 3 && t.length >= 3 && (bt.indexOf(t) >= 0 || t.indexOf(bt) >= 0)) return true;
+    }
+    return false;
+  }
+  function findEvent(events, awayToken, homeToken) {
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (teamMatches(awayToken, ev.away) && teamMatches(homeToken, ev.home)) return ev;
+    }
+    return null;
   }
   function load(sport) {
     return fetch(URLS[sport], { cache: 'no-store' })
       .then(function (response) { return response.ok ? response.json() : null; })
       .then(function (payload) {
-        var scores = {};
+        var events = [];
         ((payload && payload.events) || []).forEach(function (event) {
           var comp = (event.competitions || [])[0];
           if (!comp) return;
-          var label = describe(comp);
-          if (!label) return;
-          var teams = {}, competitors = comp.competitors || [];
-          competitors.forEach(function (side) {
-            var team = side.team || {};
-            teams[side.homeAway] = { code: (team.abbreviation || '').toUpperCase(), score: side.score };
-          });
-          if (!teams.away || !teams.home || !teams.away.code || !teams.home.code) return;
-          scores[scoreKey(sport, teams.away.code, teams.home.code)] =
-            label + ' · ' + teams.away.code + ' ' + teams.away.score + ' – ' + teams.home.code + ' ' + teams.home.score;
+          var entry = teamsFromComp(comp);
+          entry.comp = comp;
+          entry.sport = sport;
+          events.push(entry);
         });
-        return scores;
+        return events;
       })
-      .catch(function () { return {}; });
+      .catch(function () { return []; });
+  }
+  function renderBar(allEvents) {
+    var bar = document.getElementById('gameday-scores-bar');
+    if (!bar) return;
+    var active = allEvents.filter(function (ev) {
+      var state = (((ev.comp || {}).status || {}).type || {}).state;
+      return state === 'in' || state === 'post';
+    });
+    if (!active.length) {
+      bar.innerHTML = '';
+      bar.style.display = 'none';
+      return;
+    }
+    bar.style.display = '';
+    var chips = active.slice(0, 24).map(function (ev) {
+      var sportLabel = ev.sport === 'nfl' ? 'NFL' : 'CFB';
+      return '<span class="gameday-score-chip"><b>' + sportLabel + '</b> ' + scoreLine(ev) + '</span>';
+    });
+    bar.innerHTML = '<span class="gameday-scores-label">Live scores</span>' + chips.join('');
   }
   function refresh() {
-    ['nfl', 'ncaaf'].forEach(function (sport) {
-      load(sport).then(function (scores) {
+    Promise.all([load('nfl'), load('ncaaf')]).then(function (results) {
+      var nflEvents = results[0], cfbEvents = results[1];
+      var allEvents = nflEvents.concat(cfbEvents);
+      renderBar(allEvents);
+      ['nfl', 'ncaaf'].forEach(function (sport) {
+        var events = sport === 'nfl' ? nflEvents : cfbEvents;
         document.querySelectorAll('.js-live-score[data-live-sport="' + sport + '"]').forEach(function (el) {
-          el.textContent = scores[scoreKey(sport, el.dataset.liveAway, el.dataset.liveHome)] || '';
+          var match = findEvent(events, el.dataset.liveAway || '', el.dataset.liveHome || '');
+          el.textContent = match ? scoreLine(match) : '';
         });
       });
     });
@@ -3290,6 +3367,16 @@ _SITE_CSS = """\
   .play-timing.settled-loss { color: #b91c1c; font-weight: 800; font-size: 1.02em; }
   .play-timing.settled-push { color: #6b7280; font-weight: 800; font-size: 1.02em; }
   .live-score { display: block; margin-top: 3px; color: #b91c1c; font-size: 0.88em; font-weight: 800; }
+  .gameday-scores-bar {
+    display: none; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 10px 14px; margin: 0 auto 10px; max-width: 1240px;
+    background: #fff7ed; border: 1px solid #fdba74; font-size: 12px;
+  }
+  .gameday-scores-label { font-weight: 800; color: #c2410c; margin-right: 4px; }
+  .gameday-score-chip {
+    display: inline-block; padding: 4px 8px; background: #fff;
+    border: 1px solid #fed7aa; border-radius: 4px; white-space: nowrap;
+  }
   .lean-row-sharp-play td.pos {
     color: #854d0e;
     font-weight: 800;
@@ -3469,9 +3556,10 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div class="board-nav">
   <div class="board-updated-bar" role="status" aria-live="polite">
-    <span class="board-updated-label">Picks &amp; prices updated</span>
+    <span class="board-updated-label">Picks &amp; prices updated · scores refresh live every 30s</span>
     <span class="board-updated-time">{board_updated}</span>
   </div>
+<div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite"></div>
 <div class="tabs" role="tablist">
   <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
   <a class="tab active" href="#tab-plays" data-tab="plays">NFL</a>

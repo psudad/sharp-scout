@@ -78,3 +78,13 @@ def test_live_score_target_normalizes_team_codes():
     assert 'data-live-away="WAS"' in html
     assert 'data-live-home="KC"' in html
     assert "js-live-score" in html
+
+
+def test_live_score_target_uses_ncaaf_display_codes():
+    html = _live_score_html(
+        {"away_team": "Florida A&M Rattlers", "home_team": "Miami Hurricanes"},
+        sport="ncaaf",
+    )
+    assert 'data-live-sport="ncaaf"' in html
+    assert 'data-live-away="FAMU"' in html
+    assert 'data-live-home="MIA"' in html

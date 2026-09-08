@@ -502,6 +502,16 @@
   .play-timing.settled-loss { color: #b91c1c; font-weight: 800; font-size: 1.02em; }
   .play-timing.settled-push { color: #6b7280; font-weight: 800; font-size: 1.02em; }
   .live-score { display: block; margin-top: 3px; color: #b91c1c; font-size: 0.88em; font-weight: 800; }
+  .gameday-scores-bar {
+    display: none; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 10px 14px; margin: 0 auto 10px; max-width: 1240px;
+    background: #fff7ed; border: 1px solid #fdba74; font-size: 12px;
+  }
+  .gameday-scores-label { font-weight: 800; color: #c2410c; margin-right: 4px; }
+  .gameday-score-chip {
+    display: inline-block; padding: 4px 8px; background: #fff;
+    border: 1px solid #fed7aa; border-radius: 4px; white-space: nowrap;
+  }
   .lean-row-sharp-play td.pos {
     color: #854d0e;
     font-weight: 800;
@@ -680,9 +690,10 @@
 </div>
 <div class="board-nav">
   <div class="board-updated-bar" role="status" aria-live="polite">
-    <span class="board-updated-label">Picks &amp; prices updated</span>
+    <span class="board-updated-label">Picks &amp; prices updated · scores refresh live every 30s</span>
     <span class="board-updated-time">Mon Sep 7, 9:26 PM ET</span>
   </div>
+<div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite"></div>
 <div class="tabs" role="tablist">
   <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
   <a class="tab active" href="#tab-plays" data-tab="plays">NFL</a>
@@ -1627,7 +1638,7 @@
         <div class="game-head">
           <div class="game-title">FLORIDA A AND M RATTLERS @ MIA</div>
           <div class="game-kick">Thu Sep 10, 8:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="FLORIDA A AND M RATTLERS" data-live-home="MIA"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="FAMU" data-live-home="MIA"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -1659,7 +1670,7 @@
         <div class="game-head">
           <div class="game-title">VILLANOVA @ LOU</div>
           <div class="game-kick">Fri Sep 11, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="VILLANOVA" data-live-home="LOU"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="VILLANOV" data-live-home="LOU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -1724,7 +1735,7 @@
         <div class="game-head">
           <div class="game-title">NORFOLK STATE @ UVA</div>
           <div class="game-kick">Fri Sep 11, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="NORFOLK STATE" data-live-home="UVA"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="NORF" data-live-home="UVA"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -1790,7 +1801,7 @@
         <div class="game-head">
           <div class="game-title">MIZZ @ KU</div>
           <div class="game-kick">Fri Sep 11, 8:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MIZZ" data-live-home="KU"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MIZ" data-live-home="KU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -1823,7 +1834,7 @@
         <div class="game-head">
           <div class="game-title">APPALACHIAN STATE @ EAST CAROLINA</div>
           <div class="game-kick">Sat Sep 12, 12:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="APPALACHIAN STATE" data-live-home="EAST CAROLINA"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="APP" data-live-home="ECU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -1922,7 +1933,7 @@
         <div class="game-head">
           <div class="game-title">EAST TENNESSEE STATE @ UNC</div>
           <div class="game-kick">Sat Sep 12, 12:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="EAST TENNESSEE STATE" data-live-home="UNC"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="ET" data-live-home="UNC"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2020,7 +2031,7 @@
         <div class="game-head">
           <div class="game-title">WOFFORD @ KENT STATE</div>
           <div class="game-kick">Sat Sep 12, 12:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WOFFORD" data-live-home="KENT STATE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WOFFORD" data-live-home="KENT"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2119,7 +2130,7 @@
         <div class="game-head">
           <div class="game-title">OLD DOMINION @ VT</div>
           <div class="game-kick">Sat Sep 12, 12:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="OLD DOMINION" data-live-home="VT"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="ODU" data-live-home="VT"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2152,7 +2163,7 @@
         <div class="game-head">
           <div class="game-title">PSU @ TEMPLE</div>
           <div class="game-kick">Sat Sep 12, 12:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="PSU" data-live-home="TEMPLE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="PSU" data-live-home="TEM"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2218,7 +2229,7 @@
         <div class="game-head">
           <div class="game-title">WESTERN KENTUCKY @ UGA</div>
           <div class="game-kick">Sat Sep 12, 12:45 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WESTERN KENTUCKY" data-live-home="UGA"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WKU" data-live-home="UGA"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2251,7 +2262,7 @@
         <div class="game-head">
           <div class="game-title">COLGATE RAIDERS @ CENTRAL MICHIGAN</div>
           <div class="game-kick">Sat Sep 12, 1:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="COLGATE RAIDERS" data-live-home="CENTRAL MICHIGAN"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="CR" data-live-home="CMU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2284,7 +2295,7 @@
         <div class="game-head">
           <div class="game-title">HOLY CROSS @ MIAMI OHIO</div>
           <div class="game-kick">Sat Sep 12, 1:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="HOLY CROSS" data-live-home="MIAMI OHIO"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="HC" data-live-home="M-OH"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2317,7 +2328,7 @@
         <div class="game-head">
           <div class="game-title">STONY BROOK SEAWOLVES @ BALL STATE</div>
           <div class="game-kick">Sat Sep 12, 2:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="STONY BROOK SEAWOLVES" data-live-home="BALL STATE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SB" data-live-home="BALL"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2349,7 +2360,7 @@
         <div class="game-head">
           <div class="game-title">ROBERT MORRIS COLONIALS @ AKRON</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="ROBERT MORRIS COLONIALS" data-live-home="AKRON"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="RM" data-live-home="AKR"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2481,7 +2492,7 @@
         <div class="game-head">
           <div class="game-title">CENTRAL CONNECTICUT @ TOLEDO</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="CENTRAL CONNECTICUT" data-live-home="TOLEDO"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="CC" data-live-home="TOL"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2513,7 +2524,7 @@
         <div class="game-head">
           <div class="game-title">WEBER STATE @ COLO</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WEBER STATE" data-live-home="COLO"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WEBEST" data-live-home="COLO"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2577,7 +2588,7 @@
         <div class="game-head">
           <div class="game-title">EASTERN MICHIGAN @ MSU</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="EASTERN MICHIGAN" data-live-home="MSU"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="EMU" data-live-home="MSU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2610,7 +2621,7 @@
         <div class="game-head">
           <div class="game-title">WAGNER @ JMU</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WAGNER" data-live-home="JAMES MADISON"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WAGNER" data-live-home="JMU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2642,7 +2653,7 @@
         <div class="game-head">
           <div class="game-title">MD @ CONNECTICUT</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MD" data-live-home="CONNECTICUT"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MD" data-live-home="UCONN"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2773,7 +2784,7 @@
         <div class="game-head">
           <div class="game-title">SACRED HEART PIONEERS @ MASSACHUSETTS</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SACRED HEART PIONEERS" data-live-home="MASSACHUSETTS"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SH" data-live-home="MASS"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2805,7 +2816,7 @@
         <div class="game-head">
           <div class="game-title">UTSA @ TEXAS STATE</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="UTSA" data-live-home="TEXAS STATE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="UTSA" data-live-home="TXST"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2836,7 +2847,7 @@
         <div class="game-head">
           <div class="game-title">UL MONROE @ UAB</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="UL MONROE" data-live-home="UAB"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="ULM" data-live-home="UAB"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2869,7 +2880,7 @@
         <div class="game-head">
           <div class="game-title">UTAH STATE @ WASH</div>
           <div class="game-kick">Sat Sep 12, 3:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="UTAH STATE" data-live-home="WASH"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="USU" data-live-home="WASH"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2902,7 +2913,7 @@
         <div class="game-head">
           <div class="game-title">UNLV @ NORTH TEXAS</div>
           <div class="game-kick">Sat Sep 12, 3:45 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="UNLV" data-live-home="NORTH TEXAS"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="UNLV" data-live-home="UNT"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2935,7 +2946,7 @@
         <div class="game-head">
           <div class="game-title">ALABAMA STATE @ TROY</div>
           <div class="game-kick">Sat Sep 12, 4:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="ALABAMA STATE" data-live-home="TROY"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="ALABST" data-live-home="TROY"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2968,7 +2979,7 @@
         <div class="game-head">
           <div class="game-title">MERCYHURST @ NEW MEXICO</div>
           <div class="game-kick">Sat Sep 12, 4:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MERCYHURST" data-live-home="NEW MEXICO"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MERC" data-live-home="UNM"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3000,7 +3011,7 @@
         <div class="game-head">
           <div class="game-title">NORTHERN COLORADO @ WYOMING</div>
           <div class="game-kick">Sat Sep 12, 4:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="NORTHERN COLORADO" data-live-home="WYOMING"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="NC" data-live-home="WYO"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3033,7 +3044,7 @@
         <div class="game-head">
           <div class="game-title">DELAWARE @ VAN</div>
           <div class="game-kick">Sat Sep 12, 4:15 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="DELAWARE" data-live-home="VAN"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="DEL" data-live-home="VAN"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3132,7 +3143,7 @@
         <div class="game-head">
           <div class="game-title">BUFFALO @ FLORIDA INTERNATIONAL</div>
           <div class="game-kick">Sat Sep 12, 6:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="BUFFALO" data-live-home="FLORIDA INTERNATIONAL"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="BUFF" data-live-home="FIU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3165,7 +3176,7 @@
         <div class="game-head">
           <div class="game-title">GARDNER WEBB RUNNIN @ LIB</div>
           <div class="game-kick">Sat Sep 12, 6:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="GARDNER WEBB RUNNIN" data-live-home="LIB"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="GW" data-live-home="LIB"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3197,7 +3208,7 @@
         <div class="game-head">
           <div class="game-title">JACKSONVILLE STATE @ OHIO</div>
           <div class="game-kick">Sat Sep 12, 6:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="JACKSONVILLE STATE" data-live-home="OHIO"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="JVST" data-live-home="OHIO"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3230,7 +3241,7 @@
         <div class="game-head">
           <div class="game-title">MONMOUTH @ WESTERN MICHIGAN</div>
           <div class="game-kick">Sat Sep 12, 6:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MONMOUTH" data-live-home="WESTERN MICHIGAN"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MONMOUTH" data-live-home="WMU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3263,7 +3274,7 @@
         <div class="game-head">
           <div class="game-title">BOWLING GREEN @ NEB</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="BOWLING GREEN" data-live-home="NEB"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="BGSU" data-live-home="NEB"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3296,7 +3307,7 @@
         <div class="game-head">
           <div class="game-title">WESTERN CAROLINA @ CIN</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WESTERN CAROLINA" data-live-home="CIN"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="WC" data-live-home="CIN"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3329,7 +3340,7 @@
         <div class="game-head">
           <div class="game-title">SOUTHERN UTAH @ COLORADO STATE</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SOUTHERN UTAH" data-live-home="COLORADO STATE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SU" data-live-home="CSU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3361,7 +3372,7 @@
         <div class="game-head">
           <div class="game-title">GEORGIA STATE @ KENNESAW STATE</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="GEORGIA STATE" data-live-home="KENNESAW STATE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="GAST" data-live-home="KENN"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3426,7 +3437,7 @@
         <div class="game-head">
           <div class="game-title">SOUTHERN UNIVERSITY @ HOU</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SOUTHERN UNIVERSITY" data-live-home="HOU"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SOUTHERN" data-live-home="HOU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3458,7 +3469,7 @@
         <div class="game-head">
           <div class="game-title">MIDDLE TENNESSEE @ MARSHALL</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MIDDLE TENNESSEE" data-live-home="MARSHALL"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MTSU" data-live-home="MRSH"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3491,7 +3502,7 @@
         <div class="game-head">
           <div class="game-title">TULSA @ SAM HOUSTON</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="TULSA" data-live-home="SAM HOUSTON"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="TLSA" data-live-home="SHSU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3524,7 +3535,7 @@
         <div class="game-head">
           <div class="game-title">SOUTH ALABAMA @ TULN</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SOUTH ALABAMA" data-live-home="TULANE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="USA" data-live-home="TULN"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3556,7 +3567,7 @@
         <div class="game-head">
           <div class="game-title">TOWSON @ SCAR</div>
           <div class="game-kick">Sat Sep 12, 7:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="TOWSON" data-live-home="SCAR"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="TOW" data-live-home="SCAR"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3621,7 +3632,7 @@
         <div class="game-head">
           <div class="game-title">GEORGIA SOUTHERN @ CLEM</div>
           <div class="game-kick">Sat Sep 12, 7:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="GEORGIA SOUTHERN" data-live-home="CLEM"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="GASO" data-live-home="CLEM"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3654,7 +3665,7 @@
         <div class="game-head">
           <div class="game-title">FORDHAM @ COASTAL CAROLINA</div>
           <div class="game-kick">Sat Sep 12, 7:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="FORDHAM" data-live-home="COASTAL CAROLINA"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="FOR" data-live-home="CCU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3686,7 +3697,7 @@
         <div class="game-head">
           <div class="game-title">NAVY @ FLORIDA ATLANTIC</div>
           <div class="game-kick">Sat Sep 12, 7:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="NAVY" data-live-home="FLORIDA ATLANTIC"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="NAVY" data-live-home="FAU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3752,7 +3763,7 @@
         <div class="game-head">
           <div class="game-title">LOUISIANA TECH @ LSU</div>
           <div class="game-kick">Sat Sep 12, 7:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="LOUISIANA TECH" data-live-home="LSU"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="LT" data-live-home="LSU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3851,7 +3862,7 @@
         <div class="game-head">
           <div class="game-title">SOUTHERN MISS @ AUB</div>
           <div class="game-kick">Sat Sep 12, 7:45 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SOUTHERN MISS" data-live-home="AUB"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="USM" data-live-home="AUB"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3884,7 +3895,7 @@
         <div class="game-head">
           <div class="game-title">CHARLOTTE @ MISS</div>
           <div class="game-kick">Sat Sep 12, 7:45 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="CHARLOTTE" data-live-home="MISS"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="CLT" data-live-home="MISS"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3917,7 +3928,7 @@
         <div class="game-head">
           <div class="game-title">PRAIRIE VIEW A&amp;M @ BAY</div>
           <div class="game-kick">Sat Sep 12, 8:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="PRAIRIE VIEW A&amp;M" data-live-home="BAY"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="PVAA" data-live-home="BAY"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3949,7 +3960,7 @@
         <div class="game-head">
           <div class="game-title">GRAMBLING STATE @ TCU</div>
           <div class="game-kick">Sat Sep 12, 8:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="GRAMBLING STATE" data-live-home="TCU"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="GRAMST" data-live-home="TCU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -3981,7 +3992,7 @@
         <div class="game-head">
           <div class="game-title">CAL POLY @ SAN JOSE STATE</div>
           <div class="game-kick">Sat Sep 12, 9:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="CAL POLY" data-live-home="SAN JOSE STATE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="CAL POLY" data-live-home="SJSU"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -4013,7 +4024,7 @@
         <div class="game-head">
           <div class="game-title">TEXAS SOUTHERN @ UTEP</div>
           <div class="game-kick">Sat Sep 12, 9:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="TEXAS SOUTHERN" data-live-home="UTEP"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="TS" data-live-home="UTEP"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -4045,7 +4056,7 @@
         <div class="game-head">
           <div class="game-title">NORTH DAKOTA STATE @ AF</div>
           <div class="game-kick">Sat Sep 12, 10:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="NORTH DAKOTA STATE" data-live-home="AIR FORCE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="ND" data-live-home="AF"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -4111,7 +4122,7 @@
         <div class="game-head">
           <div class="game-title">SACRAMENTO STATE @ FRES</div>
           <div class="game-kick">Sat Sep 12, 10:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SACRAMENTO STATE" data-live-home="FRESNO STATE"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="SAC" data-live-home="FRES"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -4144,7 +4155,7 @@
         <div class="game-head">
           <div class="game-title">MONTANA STATE @ NEVADA</div>
           <div class="game-kick">Sat Sep 12, 10:30 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MONTANA STATE" data-live-home="NEVADA"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="MONTST" data-live-home="NEV"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -4177,7 +4188,7 @@
         <div class="game-head">
           <div class="game-title">LOUISIANA @ USC</div>
           <div class="game-kick">Sat Sep 12, 11:00 PM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="LOUISIANA" data-live-home="USC"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="UL" data-live-home="USC"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -4210,7 +4221,7 @@
         <div class="game-head">
           <div class="game-title">NEW MEXICO STATE @ HAWAII</div>
           <div class="game-kick">Sun Sep 13, 12:00 AM ET</div>
-          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="NEW MEXICO STATE" data-live-home="HAWAII"></span>
+          <span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="UNM" data-live-home="HAW"></span>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -5180,43 +5191,99 @@ function downloadTableCsv(tableId, filename) {
     nfl: 'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100',
     ncaaf: 'https://site.web.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=400'
   };
-  function scoreKey(sport, away, home) {
-    return sport + ':' + away + '@' + home;
+  function normToken(s) {
+    return (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+  function teamsFromComp(comp) {
+    var away = { tokens: [], abbrev: '', score: '0' };
+    var home = { tokens: [], abbrev: '', score: '0' };
+    (comp.competitors || []).forEach(function (side) {
+      var team = side.team || {};
+      var bucket = side.homeAway === 'home' ? home : away;
+      bucket.score = side.score || '0';
+      bucket.abbrev = (team.abbreviation || '').toUpperCase();
+      ['abbreviation', 'shortDisplayName', 'displayName', 'name'].forEach(function (key) {
+        var val = team[key];
+        if (val) bucket.tokens.push(normToken(val));
+      });
+    });
+    return { away: away, home: home, comp: comp };
   }
   function describe(comp) {
     var status = comp.status || {}, type = status.type || {};
     if (type.state === 'in') return 'LIVE — ' + (type.shortDetail || status.displayClock || 'In progress');
     if (type.state === 'post') return 'FINAL';
+    if (type.state === 'pre') return type.shortDetail || 'Scheduled';
     return '';
+  }
+  function scoreLine(entry) {
+    var label = describe(entry.comp);
+    if (!label) return '';
+    return label + ' · ' + entry.away.abbrev + ' ' + entry.away.score + ' – ' + entry.home.abbrev + ' ' + entry.home.score;
+  }
+  function teamMatches(token, bucket) {
+    var t = normToken(token);
+    if (!t) return false;
+    for (var i = 0; i < bucket.tokens.length; i++) {
+      var bt = bucket.tokens[i];
+      if (t === bt) return true;
+      if (bt.length >= 3 && t.length >= 3 && (bt.indexOf(t) >= 0 || t.indexOf(bt) >= 0)) return true;
+    }
+    return false;
+  }
+  function findEvent(events, awayToken, homeToken) {
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (teamMatches(awayToken, ev.away) && teamMatches(homeToken, ev.home)) return ev;
+    }
+    return null;
   }
   function load(sport) {
     return fetch(URLS[sport], { cache: 'no-store' })
       .then(function (response) { return response.ok ? response.json() : null; })
       .then(function (payload) {
-        var scores = {};
+        var events = [];
         ((payload && payload.events) || []).forEach(function (event) {
           var comp = (event.competitions || [])[0];
           if (!comp) return;
-          var label = describe(comp);
-          if (!label) return;
-          var teams = {}, competitors = comp.competitors || [];
-          competitors.forEach(function (side) {
-            var team = side.team || {};
-            teams[side.homeAway] = { code: (team.abbreviation || '').toUpperCase(), score: side.score };
-          });
-          if (!teams.away || !teams.home || !teams.away.code || !teams.home.code) return;
-          scores[scoreKey(sport, teams.away.code, teams.home.code)] =
-            label + ' · ' + teams.away.code + ' ' + teams.away.score + ' – ' + teams.home.code + ' ' + teams.home.score;
+          var entry = teamsFromComp(comp);
+          entry.comp = comp;
+          entry.sport = sport;
+          events.push(entry);
         });
-        return scores;
+        return events;
       })
-      .catch(function () { return {}; });
+      .catch(function () { return []; });
+  }
+  function renderBar(allEvents) {
+    var bar = document.getElementById('gameday-scores-bar');
+    if (!bar) return;
+    var active = allEvents.filter(function (ev) {
+      var state = (((ev.comp || {}).status || {}).type || {}).state;
+      return state === 'in' || state === 'post';
+    });
+    if (!active.length) {
+      bar.innerHTML = '';
+      bar.style.display = 'none';
+      return;
+    }
+    bar.style.display = '';
+    var chips = active.slice(0, 24).map(function (ev) {
+      var sportLabel = ev.sport === 'nfl' ? 'NFL' : 'CFB';
+      return '<span class="gameday-score-chip"><b>' + sportLabel + '</b> ' + scoreLine(ev) + '</span>';
+    });
+    bar.innerHTML = '<span class="gameday-scores-label">Live scores</span>' + chips.join('');
   }
   function refresh() {
-    ['nfl', 'ncaaf'].forEach(function (sport) {
-      load(sport).then(function (scores) {
+    Promise.all([load('nfl'), load('ncaaf')]).then(function (results) {
+      var nflEvents = results[0], cfbEvents = results[1];
+      var allEvents = nflEvents.concat(cfbEvents);
+      renderBar(allEvents);
+      ['nfl', 'ncaaf'].forEach(function (sport) {
+        var events = sport === 'nfl' ? nflEvents : cfbEvents;
         document.querySelectorAll('.js-live-score[data-live-sport="' + sport + '"]').forEach(function (el) {
-          el.textContent = scores[scoreKey(sport, el.dataset.liveAway, el.dataset.liveHome)] || '';
+          var match = findEvent(events, el.dataset.liveAway || '', el.dataset.liveHome || '');
+          el.textContent = match ? scoreLine(match) : '';
         });
       });
     });

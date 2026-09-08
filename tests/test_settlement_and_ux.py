@@ -28,6 +28,8 @@ def test_board_includes_client_side_live_score_polling(site: Path):
     assert "sports/football/college-football/scoreboard" in html
     assert "setInterval(refresh, 30000)" in html
     assert "js-live-score" in html
+    assert 'id="gameday-scores-bar"' in html
+    assert "scores refresh live every 30s" in html
 
 
 @pytest.fixture

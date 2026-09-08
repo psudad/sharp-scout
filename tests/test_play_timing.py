@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from sharp_scout.site.build import _play_timing_status_html
+from sharp_scout.site.build import _live_score_html, _play_timing_status_html
 
 
 def _play(kickoff: datetime) -> dict:
@@ -67,3 +67,14 @@ def test_settled_play_without_scores_omits_final_line():
     html = _play_timing_status_html({"status": "loss", "kickoff": "2026-09-03T00:00:00+00:00"})
     assert "Game Over — LOST" in html
     assert "final-score" not in html
+
+
+def test_live_score_target_normalizes_team_codes():
+    html = _live_score_html(
+        {"away_team": "Washington Commanders", "home_team": "Kansas City Chiefs"},
+        sport="nfl",
+    )
+    assert 'data-live-sport="nfl"' in html
+    assert 'data-live-away="WAS"' in html
+    assert 'data-live-home="KC"' in html
+    assert "js-live-score" in html

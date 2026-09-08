@@ -10,13 +10,7 @@
 <meta name="description" content="Sharp Scout Quant — this week's actual recommended NFL and college football plays">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
 <link rel="apple-touch-icon" href="assets/ssq-logo.svg">
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-1PT74LM4LF"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-1PT74LM4LF', { anonymize_ip: true });
-</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -517,6 +511,7 @@
   .play-timing.settled-win { color: #15803d; font-weight: 800; font-size: 1.02em; }
   .play-timing.settled-loss { color: #b91c1c; font-weight: 800; font-size: 1.02em; }
   .play-timing.settled-push { color: #6b7280; font-weight: 800; font-size: 1.02em; }
+  .live-score { display: block; margin-top: 3px; color: #b91c1c; font-size: 0.88em; font-weight: 800; }
   .lean-row-sharp-play td.pos {
     color: #854d0e;
     font-weight: 800;
@@ -836,6 +831,59 @@
   }
   tick();
   setInterval(tick, 60000);
+})();
+</script>
+<script>
+// ESPN's public scoreboards allow cross-origin GETs. Keep live scores in the
+// browser so GitHub Pages does not need a rebuild while games are in progress.
+(function () {
+  var URLS = {
+    nfl: 'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100',
+    ncaaf: 'https://site.web.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=400'
+  };
+  function scoreKey(sport, away, home) {
+    return sport + ':' + away + '@' + home;
+  }
+  function describe(comp) {
+    var status = comp.status || {}, type = status.type || {};
+    if (type.state === 'in') return 'LIVE — ' + (type.shortDetail || status.displayClock || 'In progress');
+    if (type.state === 'post') return 'FINAL';
+    return '';
+  }
+  function load(sport) {
+    return fetch(URLS[sport], { cache: 'no-store' })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (payload) {
+        var scores = {};
+        ((payload && payload.events) || []).forEach(function (event) {
+          var comp = (event.competitions || [])[0];
+          if (!comp) return;
+          var label = describe(comp);
+          if (!label) return;
+          var teams = {}, competitors = comp.competitors || [];
+          competitors.forEach(function (side) {
+            var team = side.team || {};
+            teams[side.homeAway] = { code: (team.abbreviation || '').toUpperCase(), score: side.score };
+          });
+          if (!teams.away || !teams.home || !teams.away.code || !teams.home.code) return;
+          scores[scoreKey(sport, teams.away.code, teams.home.code)] =
+            label + ' · ' + teams.away.code + ' ' + teams.away.score + ' – ' + teams.home.code + ' ' + teams.home.score;
+        });
+        return scores;
+      })
+      .catch(function () { return {}; });
+  }
+  function refresh() {
+    ['nfl', 'ncaaf'].forEach(function (sport) {
+      load(sport).then(function (scores) {
+        document.querySelectorAll('.js-live-score[data-live-sport="' + sport + '"]').forEach(function (el) {
+          el.textContent = scores[scoreKey(sport, el.dataset.liveAway, el.dataset.liveHome)] || '';
+        });
+      });
+    });
+  }
+  refresh();
+  setInterval(refresh, 30000);
 })();
 </script>
 

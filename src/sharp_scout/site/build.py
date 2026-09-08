@@ -27,6 +27,7 @@ from sharp_scout.copy.explain import (
 )
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.sports import NCAAF
+from sharp_scout.utils.odds import normalize_team
 from sharp_scout.utils.slate import (
     ET,
     college_week_bounds,
@@ -227,6 +228,20 @@ def _play_timing_status_html(play: dict[str, Any], *, sport: str = "nfl") -> str
             kickoff = kickoff.replace(tzinfo=timezone.utc)
         data_attr = f' data-kickoff="{_esc(kickoff.astimezone(timezone.utc).isoformat())}"'
     return f'<span class="play-timing js-timing {cls}"{data_attr}>{text}</span>'
+
+
+def _live_score_html(play: dict[str, Any], *, sport: str) -> str:
+    """Empty score target populated from ESPN while a game is in progress."""
+    away = normalize_team(str(play.get("away_team") or ""), sport)
+    home = normalize_team(str(play.get("home_team") or ""), sport)
+    if not away or not home:
+        return ""
+    return (
+        '<span class="live-score js-live-score" aria-live="polite"'
+        f' data-live-sport="{_esc(sport.lower())}"'
+        f' data-live-away="{_esc(away)}"'
+        f' data-live-home="{_esc(home)}"></span>'
+    )
 
 
 def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
@@ -530,6 +545,7 @@ def build_site(
         stage_cards,
         nfl_signals_list,
         signals.get("ratings") or [],
+        sport="nfl",
     )
 
     ncaaf_pending = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") == "pending"]
@@ -599,6 +615,7 @@ def build_site(
             if str(s.get("event_id")) in ncaaf_week_event_ids
         ],
         ncaaf_signals.get("ratings") or [],
+        sport="ncaaf",
     )
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
     ncaaf_stage_summary = ncaaf_signals.get("stage_summary") or {}
@@ -1402,6 +1419,8 @@ def _render_play_table(
             status_html = '<span class="card-result pending">OPEN</span>'
         else:
             status_html = _status_badge(st)
+        if not final:
+            status_html += _live_score_html(p, sport=sport)
         rationale = format_play_rationale(p).replace("\n", " · ")
         tr_cls = " class='settled-row'" if final else ""
         # data-label drives the stacked card layout on phones (see .plays-table rules).
@@ -1740,6 +1759,8 @@ def _render_games_pipeline(
     stage_cards: list[dict],
     signals: list[dict],
     ratings: list[dict],
+    *,
+    sport: str,
 ) -> str:
     if not games:
         return '<div class="empty">No games in latest pipeline run. Run scripts/run_today_slate.py or the NFL Pipeline workflow.</div>'
@@ -1785,6 +1806,7 @@ def _render_games_pipeline(
         <div class="game-head">
           <div class="game-title">{_esc(away)} @ {_esc(home)}</div>
           <div class="game-kick">{_esc(kick)}</div>
+          {_live_score_html(g, sport=sport)}
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 1 · EPA ratings → model</div>
@@ -2724,6 +2746,59 @@ _TIMING_SCRIPT = """<script>
   setInterval(tick, 60000);
 })();
 </script>
+<script>
+// ESPN's public scoreboards allow cross-origin GETs. Keep live scores in the
+// browser so GitHub Pages does not need a rebuild while games are in progress.
+(function () {
+  var URLS = {
+    nfl: 'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100',
+    ncaaf: 'https://site.web.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=400'
+  };
+  function scoreKey(sport, away, home) {
+    return sport + ':' + away + '@' + home;
+  }
+  function describe(comp) {
+    var status = comp.status || {}, type = status.type || {};
+    if (type.state === 'in') return 'LIVE — ' + (type.shortDetail || status.displayClock || 'In progress');
+    if (type.state === 'post') return 'FINAL';
+    return '';
+  }
+  function load(sport) {
+    return fetch(URLS[sport], { cache: 'no-store' })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (payload) {
+        var scores = {};
+        ((payload && payload.events) || []).forEach(function (event) {
+          var comp = (event.competitions || [])[0];
+          if (!comp) return;
+          var label = describe(comp);
+          if (!label) return;
+          var teams = {}, competitors = comp.competitors || [];
+          competitors.forEach(function (side) {
+            var team = side.team || {};
+            teams[side.homeAway] = { code: (team.abbreviation || '').toUpperCase(), score: side.score };
+          });
+          if (!teams.away || !teams.home || !teams.away.code || !teams.home.code) return;
+          scores[scoreKey(sport, teams.away.code, teams.home.code)] =
+            label + ' · ' + teams.away.code + ' ' + teams.away.score + ' – ' + teams.home.code + ' ' + teams.home.score;
+        });
+        return scores;
+      })
+      .catch(function () { return {}; });
+  }
+  function refresh() {
+    ['nfl', 'ncaaf'].forEach(function (sport) {
+      load(sport).then(function (scores) {
+        document.querySelectorAll('.js-live-score[data-live-sport="' + sport + '"]').forEach(function (el) {
+          el.textContent = scores[scoreKey(sport, el.dataset.liveAway, el.dataset.liveHome)] || '';
+        });
+      });
+    });
+  }
+  refresh();
+  setInterval(refresh, 30000);
+})();
+</script>
 """
 
 
@@ -3214,6 +3289,7 @@ _SITE_CSS = """\
   .play-timing.settled-win { color: #15803d; font-weight: 800; font-size: 1.02em; }
   .play-timing.settled-loss { color: #b91c1c; font-weight: 800; font-size: 1.02em; }
   .play-timing.settled-push { color: #6b7280; font-weight: 800; font-size: 1.02em; }
+  .live-score { display: block; margin-top: 3px; color: #b91c1c; font-size: 0.88em; font-weight: 800; }
   .lean-row-sharp-play td.pos {
     color: #854d0e;
     font-weight: 800;

@@ -22,6 +22,14 @@ def test_espn_requests_use_a_browser_user_agent():
     assert "Mozilla/5.0" in ua and "SharpScout" not in ua
 
 
+def test_board_includes_client_side_live_score_polling(site: Path):
+    html = (site / "board.html").read_text()
+    assert "sports/football/nfl/scoreboard" in html
+    assert "sports/football/college-football/scoreboard" in html
+    assert "setInterval(refresh, 30000)" in html
+    assert "js-live-score" in html
+
+
 @pytest.fixture
 def site(tmp_path: Path, monkeypatch) -> Path:
     monkeypatch.setattr("sharp_scout.site.build.DOCS_DIR", tmp_path)

@@ -167,6 +167,7 @@ def run_pipeline(
         game_results.append(
             {
                 "event_id": ev.get("event_id"),
+                "sport": ev.get("sport"),
                 "home_team": home,
                 "away_team": away,
                 "commence_time": ev.get("commence_time").isoformat()
@@ -191,6 +192,7 @@ def run_pipeline(
         for s in filtered:
             s["kickoff"] = kickoff
             s["commence_time"] = kickoff
+            s["sport"] = ev.get("sport")
         all_signals.extend(filtered)
 
     validated = [s for s in all_signals if s["filter_passed"]]

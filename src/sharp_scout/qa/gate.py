@@ -173,15 +173,37 @@ def _validated_keys(signals: dict[str, Any]) -> set[str]:
 
 
 def _duplicate_p_true_clusters(signals: dict[str, Any]) -> set[float]:
-    """p_true values that appear suspiciously often (degenerate sim inputs)."""
-    from collections import Counter
+    """p_true values that appear suspiciously often ACROSS DIFFERENT logical plays.
+    
+    Multiple books offering the same line naturally have the same p_true - that's expected.
+    We only flag if different logical plays (different games or markets) share identical p_true.
+    """
+    from collections import Counter, defaultdict
 
-    counts: Counter[float] = Counter()
+    # Group signals by logical play (event + market + side + line)
+    play_groups: dict[tuple, list[float]] = defaultdict(list)
     for s in signals.get("signals") or []:
         pt = s.get("p_true")
         if pt is not None:
-            counts[round(float(pt), 4)] += 1
-    return {p for p, n in counts.items() if n >= DUPLICATE_P_TRUE_MIN_CLUSTER}
+            key = (
+                str(s.get("event_id")),
+                str(s.get("market")),
+                str(s.get("side")),
+                s.get("line"),  # None for h2h is valid
+            )
+            play_groups[key].append(round(float(pt), 4))
+    
+    # Count how many DIFFERENT logical plays share each p_true value
+    p_true_to_plays: dict[float, set[tuple]] = defaultdict(set)
+    for play_key, p_trues in play_groups.items():
+        # Each logical play should have one consistent p_true across all books
+        unique_p_trues = set(p_trues)
+        for pt in unique_p_trues:
+            p_true_to_plays[pt].add(play_key)
+    
+    # Flag p_true values that appear across many DIFFERENT logical plays
+    # (suggesting the same simulation output for different game situations)
+    return {pt for pt, plays in p_true_to_plays.items() if len(plays) >= DUPLICATE_P_TRUE_MIN_CLUSTER}
 
 
 def review_signals(
@@ -312,7 +334,7 @@ def review_play(
             QAIssue(
                 "duplicate_p_true",
                 "quarantine",
-                f"p_true={float(pt):.4f} appears in a suspicious cluster — degenerate sim inputs?",
+                f"p_true={float(pt):.4f} appears across {DUPLICATE_P_TRUE_MIN_CLUSTER}+ different games/markets — degenerate sim inputs?",
             )
         )
 

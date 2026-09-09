@@ -110,6 +110,7 @@ def append_signals(
             "id": str(uuid.uuid4())[:8],
             "created_at": _now(),
             "event_id": s.get("event_id"),
+            "sport": s.get("sport"),
             "season": season,
             "week": week,
             "kickoff": s.get("kickoff") or s.get("commence_time"),

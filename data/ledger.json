@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-09T02:07:39.257717+00:00",
+  "updated_at": "2026-09-09T10:11:47.007137+00:00",
   "starting_units": 100.0,
   "plays": [
     {
@@ -647,6 +647,46 @@
           "message": "Spread sharp money on PIT (+25% gap) conflicts with ML play on ATL"
         }
       ]
+    },
+    {
+      "id": "ae9cb8af",
+      "created_at": "2026-09-09T10:11:45.337089+00:00",
+      "event_id": "17885cb8dcade8f6c3bce14b2de805e8",
+      "season": null,
+      "week": null,
+      "kickoff": "2026-09-13T20:25:00+00:00",
+      "away_team": "WAS",
+      "home_team": "PHI",
+      "play_type": "side",
+      "player_name": null,
+      "market": "spreads",
+      "side": "home",
+      "line": -4.5,
+      "book": "pinnacle",
+      "price": -105.0,
+      "units": 1.5,
+      "tier": "play",
+      "edge": 0.171,
+      "p_true": 0.5998,
+      "p_mkt": 0.4977,
+      "model_spread": -6.81,
+      "model_total": 45.5,
+      "model_mean": null,
+      "is_alternate": false,
+      "window": null,
+      "rationale": "We project PHI -4.5 on the spread at 60.0% true probability vs 49.8% implied at pinnacle \u2014 about 17.1% expected value.\nOn this side, 73% of handle vs 59% of tickets (+14% handle-minus-tickets gap) \u2014 sharp money signal.\nNo clear reverse line movement on this market.\nSharp money confirms this side (handle % well above ticket %).",
+      "close_line": null,
+      "close_price": null,
+      "close_book": null,
+      "clv_points": null,
+      "clv_prob": null,
+      "clv_at": null,
+      "status": "pending",
+      "home_score": null,
+      "away_score": null,
+      "prop_result": null,
+      "pnl_units": null,
+      "settled_at": null
     }
   ],
   "stage_cards": [
@@ -682,28 +722,28 @@
           "side": "away",
           "team": "NE",
           "line": 3.5,
-          "confidence": 0.52,
-          "reason": "tickets home=48% away=52%",
+          "confidence": 0.54,
+          "reason": "tickets home=46% away=54%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "spread",
-          "side": "home",
-          "team": "SEA",
-          "line": -3.5,
-          "confidence": 0.54,
-          "reason": "money home=54% away=46% (gap vs tickets +6% on home)",
+          "side": "away",
+          "team": "NE",
+          "line": 3.5,
+          "confidence": 0.57,
+          "reason": "money home=43% away=57% (gap vs tickets +3% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "home",
-          "team": "SEA",
-          "line": -3.5,
-          "confidence": 0.56,
-          "reason": "+6% money vs tickets on SEA",
+          "side": "away",
+          "team": "NE",
+          "line": 3.5,
+          "confidence": 0.53,
+          "reason": "+3% money vs tickets on NE",
           "available": true
         },
         "rlm": {
@@ -723,14 +763,14 @@
           "team": "SEA",
           "line": -3.0,
           "confidence": 0.5592,
-          "reason": "model aligned with money+sharp (no validated edge)",
+          "reason": "model aligned with sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 4,
-        "away_votes": 1,
+        "home_votes": 2,
+        "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
           "sharp": "SEA",
@@ -738,22 +778,22 @@
           "fade_public": true
         },
         "money_vs_public": {
-          "aligned": false,
-          "money": "SEA",
+          "aligned": true,
+          "money": "NE",
           "public": "NE"
         },
         "rlm_active": false
       },
-      "consensus_side": "home",
-      "consensus_team": "SEA",
+      "consensus_side": "away",
+      "consensus_team": "NE",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
-        "money",
-        "sharp_edge"
+        "sharp"
       ],
       "conflict_stages": [
-        "public"
+        "public",
+        "money",
+        "sharp_edge"
       ],
       "line_perspective": "team",
       "kickoff": "2026-09-10 00:20:00+00:00",
@@ -799,8 +839,8 @@
           "side": "home",
           "team": "SEA",
           "line": null,
-          "confidence": 0.85,
-          "reason": "tickets home=85% away=15%",
+          "confidence": 0.84,
+          "reason": "tickets home=84% away=16%",
           "available": true
         },
         "money": {
@@ -809,8 +849,8 @@
           "side": "home",
           "team": "SEA",
           "line": null,
-          "confidence": 0.68,
-          "reason": "money home=68% away=32% (gap vs tickets -17% on home)",
+          "confidence": 0.6,
+          "reason": "money home=60% away=40% (gap vs tickets -24% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -819,8 +859,8 @@
           "side": "away",
           "team": "NE",
           "line": null,
-          "confidence": 0.67,
-          "reason": "+17% money vs tickets on NE",
+          "confidence": 0.74,
+          "reason": "+24% money vs tickets on NE",
           "available": true
         },
         "rlm": {
@@ -925,8 +965,8 @@
           "side": "under",
           "team": "Under",
           "line": 44.5,
-          "confidence": 0.68,
-          "reason": "money over=32% under=68% (gap vs tickets -5% on under)",
+          "confidence": 0.64,
+          "reason": "money over=36% under=64% (gap vs tickets -9% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -935,8 +975,8 @@
           "side": "over",
           "team": "Over",
           "line": 44.5,
-          "confidence": 0.55,
-          "reason": "+5% money vs tickets on Over",
+          "confidence": 0.59,
+          "reason": "+9% money vs tickets on Over",
           "available": true
         },
         "rlm": {
@@ -1346,8 +1386,8 @@
           "side": "away",
           "team": "ATL",
           "line": 3.5,
-          "confidence": 0.52,
-          "reason": "tickets home=48% away=52%",
+          "confidence": 0.51,
+          "reason": "tickets home=49% away=51%",
           "available": true
         },
         "money": {
@@ -1357,7 +1397,7 @@
           "team": "PIT",
           "line": -3.5,
           "confidence": 0.73,
-          "reason": "money home=73% away=27% (gap vs tickets +25% on home)",
+          "reason": "money home=73% away=27% (gap vs tickets +24% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -1366,8 +1406,8 @@
           "side": "home",
           "team": "PIT",
           "line": -3.5,
-          "confidence": 0.75,
-          "reason": "+25% money vs tickets on PIT",
+          "confidence": 0.74,
+          "reason": "+24% money vs tickets on PIT",
           "available": true
         },
         "rlm": {
@@ -1472,8 +1512,8 @@
           "side": "home",
           "team": "PIT",
           "line": null,
-          "confidence": 0.75,
-          "reason": "money home=75% away=25% (gap vs tickets -10% on home)",
+          "confidence": 0.8,
+          "reason": "money home=80% away=20% (gap vs tickets -5% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -1482,8 +1522,8 @@
           "side": "away",
           "team": "ATL",
           "line": null,
-          "confidence": 0.6,
-          "reason": "+10% money vs tickets on ATL",
+          "confidence": 0.55,
+          "reason": "+5% money vs tickets on ATL",
           "available": true
         },
         "rlm": {
@@ -1578,8 +1618,8 @@
           "side": "under",
           "team": "Under",
           "line": 41.5,
-          "confidence": 0.67,
-          "reason": "tickets over=33% under=67%",
+          "confidence": 0.66,
+          "reason": "tickets over=34% under=66%",
           "available": true
         },
         "money": {
@@ -1588,19 +1628,19 @@
           "side": "under",
           "team": "Under",
           "line": 41.5,
-          "confidence": 0.65,
-          "reason": "money over=35% under=65% (gap vs tickets -2% on under)",
+          "confidence": 0.66,
+          "reason": "money over=34% under=66% (gap vs tickets +0% on under)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 41.5,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on Over",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -1624,8 +1664,8 @@
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 2,
+        "n_available": 5,
+        "home_votes": 1,
         "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
@@ -1642,8 +1682,7 @@
       "consensus_side": "under",
       "consensus_team": "Under",
       "hybrid_agrees_with": [
-        "model",
-        "sharp_edge"
+        "model"
       ],
       "conflict_stages": [
         "sharp",
@@ -1684,8 +1723,8 @@
           "side": "home",
           "team": "IND",
           "line": 3.5,
-          "confidence": 0.5161,
-          "reason": "pinnacle no-vig 51.6% @ -113",
+          "confidence": 0.526,
+          "reason": "pinnacle no-vig 52.6% @ -118",
           "available": true
         },
         "public": {
@@ -1694,8 +1733,8 @@
           "side": "away",
           "team": "BAL",
           "line": -3.5,
-          "confidence": 0.62,
-          "reason": "tickets home=38% away=62%",
+          "confidence": 0.63,
+          "reason": "tickets home=37% away=63%",
           "available": true
         },
         "money": {
@@ -1704,8 +1743,8 @@
           "side": "away",
           "team": "BAL",
           "line": -3.5,
-          "confidence": 0.85,
-          "reason": "money home=15% away=85% (gap vs tickets +23% on away)",
+          "confidence": 0.84,
+          "reason": "money home=16% away=84% (gap vs tickets +21% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -1714,8 +1753,8 @@
           "side": "away",
           "team": "BAL",
           "line": -3.5,
-          "confidence": 0.73,
-          "reason": "+23% money vs tickets on BAL",
+          "confidence": 0.71,
+          "reason": "+21% money vs tickets on BAL",
           "available": true
         },
         "rlm": {
@@ -1801,8 +1840,8 @@
           "side": "away",
           "team": "BAL",
           "line": null,
-          "confidence": 0.6229,
-          "reason": "pinnacle no-vig 62.3% @ -180",
+          "confidence": 0.6164,
+          "reason": "pinnacle no-vig 61.6% @ -174",
           "available": true
         },
         "public": {
@@ -1917,8 +1956,8 @@
           "side": "over",
           "team": "Over",
           "line": 47.5,
-          "confidence": 0.5179,
-          "reason": "pinnacle no-vig 51.8% @ -116",
+          "confidence": 0.5188,
+          "reason": "pinnacle no-vig 51.9% @ -117",
           "available": true
         },
         "public": {
@@ -2044,8 +2083,8 @@
           "side": "away",
           "team": "BUF",
           "line": -1.5,
-          "confidence": 0.61,
-          "reason": "tickets home=39% away=61%",
+          "confidence": 0.56,
+          "reason": "tickets home=44% away=56%",
           "available": true
         },
         "money": {
@@ -2054,8 +2093,8 @@
           "side": "away",
           "team": "BUF",
           "line": -1.5,
-          "confidence": 0.61,
-          "reason": "money home=39% away=61% (gap vs tickets +0% on away)",
+          "confidence": 0.56,
+          "reason": "money home=44% away=56% (gap vs tickets +0% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -2159,8 +2198,8 @@
           "side": "away",
           "team": "BUF",
           "line": null,
-          "confidence": 0.68,
-          "reason": "tickets home=32% away=68%",
+          "confidence": 0.69,
+          "reason": "tickets home=31% away=69%",
           "available": true
         },
         "money": {
@@ -2169,8 +2208,8 @@
           "side": "away",
           "team": "BUF",
           "line": null,
-          "confidence": 0.67,
-          "reason": "money home=33% away=67% (gap vs tickets -1% on away)",
+          "confidence": 0.65,
+          "reason": "money home=35% away=65% (gap vs tickets -4% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -2179,8 +2218,8 @@
           "side": "home",
           "team": "HOU",
           "line": null,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on HOU",
+          "confidence": 0.54,
+          "reason": "+4% money vs tickets on HOU",
           "available": true
         },
         "rlm": {
@@ -2399,8 +2438,8 @@
           "side": "away",
           "team": "CHI",
           "line": -3.0,
-          "confidence": 0.88,
-          "reason": "money home=12% away=88% (gap vs tickets +20% on away)",
+          "confidence": 0.86,
+          "reason": "money home=14% away=86% (gap vs tickets +18% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -2409,8 +2448,8 @@
           "side": "away",
           "team": "CHI",
           "line": -3.0,
-          "confidence": 0.7,
-          "reason": "+20% money vs tickets on CHI",
+          "confidence": 0.68,
+          "reason": "+18% money vs tickets on CHI",
           "available": true
         },
         "rlm": {
@@ -2505,8 +2544,8 @@
           "side": "away",
           "team": "CHI",
           "line": null,
-          "confidence": 0.86,
-          "reason": "tickets home=14% away=86%",
+          "confidence": 0.87,
+          "reason": "tickets home=13% away=87%",
           "available": true
         },
         "money": {
@@ -2515,8 +2554,8 @@
           "side": "away",
           "team": "CHI",
           "line": null,
-          "confidence": 0.93,
-          "reason": "money home=7% away=93% (gap vs tickets +7% on away)",
+          "confidence": 0.94,
+          "reason": "money home=6% away=94% (gap vs tickets +7% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -2620,8 +2659,8 @@
           "side": "under",
           "team": "Under",
           "line": 47.0,
-          "confidence": 0.87,
-          "reason": "tickets over=13% under=87%",
+          "confidence": 0.86,
+          "reason": "tickets over=14% under=86%",
           "available": true
         },
         "money": {
@@ -2630,8 +2669,8 @@
           "side": "under",
           "team": "Under",
           "line": 47.0,
-          "confidence": 0.79,
-          "reason": "money over=21% under=79% (gap vs tickets -8% on under)",
+          "confidence": 0.78,
+          "reason": "money over=22% under=78% (gap vs tickets -8% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -2746,19 +2785,19 @@
           "side": "away",
           "team": "TB",
           "line": 3.5,
-          "confidence": 0.54,
-          "reason": "money home=46% away=54% (gap vs tickets -2% on away)",
+          "confidence": 0.56,
+          "reason": "money home=44% away=56% (gap vs tickets +0% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "home",
-          "team": "CIN",
-          "line": -3.5,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on CIN",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -2782,10 +2821,10 @@
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 1,
+        "n_available": 5,
+        "home_votes": 0,
         "away_votes": 4,
-        "unanimous": false,
+        "unanimous": true,
         "sharp_vs_public": {
           "fade_public": false,
           "side": "TB"
@@ -2805,9 +2844,7 @@
         "public",
         "money"
       ],
-      "conflict_stages": [
-        "sharp_edge"
-      ],
+      "conflict_stages": [],
       "line_perspective": "team",
       "kickoff": "2026-09-13 17:00:00+00:00",
       "commence_time": "2026-09-13 17:00:00+00:00",
@@ -2862,8 +2899,8 @@
           "side": "home",
           "team": "CIN",
           "line": null,
-          "confidence": 0.79,
-          "reason": "money home=79% away=21% (gap vs tickets -7% on home)",
+          "confidence": 0.8,
+          "reason": "money home=80% away=20% (gap vs tickets -6% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -2872,8 +2909,8 @@
           "side": "away",
           "team": "TB",
           "line": null,
-          "confidence": 0.57,
-          "reason": "+7% money vs tickets on TB",
+          "confidence": 0.56,
+          "reason": "+6% money vs tickets on TB",
           "available": true
         },
         "rlm": {
@@ -3082,11 +3119,11 @@
         "public": {
           "stage": "public",
           "market": "spread",
-          "side": "away",
-          "team": "CLE",
-          "line": 8.5,
+          "side": "home",
+          "team": "JAX",
+          "line": -8.5,
           "confidence": 0.52,
-          "reason": "tickets home=48% away=52%",
+          "reason": "tickets home=52% away=48%",
           "available": true
         },
         "money": {
@@ -3096,7 +3133,7 @@
           "team": "JAX",
           "line": -8.5,
           "confidence": 0.76,
-          "reason": "money home=76% away=24% (gap vs tickets +28% on home)",
+          "reason": "money home=76% away=24% (gap vs tickets +24% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -3105,19 +3142,19 @@
           "side": "home",
           "team": "JAX",
           "line": -8.5,
-          "confidence": 0.78,
-          "reason": "+28% money vs tickets on JAX",
+          "confidence": 0.74,
+          "reason": "+24% money vs tickets on JAX",
           "available": true
         },
         "rlm": {
           "stage": "rlm",
           "market": "spread",
-          "side": "home",
-          "team": "JAX",
-          "line": -8.5,
-          "confidence": 0.6,
-          "reason": "RLM: public 52% away but line -7.5\u2192-8.5 toward home",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no RLM (public=home, line -7.5\u2192-8.5)",
+          "available": false
         },
         "hybrid": {
           "stage": "hybrid",
@@ -3131,32 +3168,32 @@
         }
       },
       "agreement": {
-        "n_available": 7,
+        "n_available": 6,
         "home_votes": 3,
-        "away_votes": 3,
+        "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "CLE"
+          "sharp": "CLE",
+          "public": "JAX",
+          "fade_public": true
         },
         "money_vs_public": {
-          "aligned": false,
+          "aligned": true,
           "money": "JAX",
-          "public": "CLE"
+          "public": "JAX"
         },
-        "rlm_active": true
+        "rlm_active": false
       },
-      "consensus_side": null,
-      "consensus_team": null,
+      "consensus_side": "home",
+      "consensus_team": "JAX",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
-        "public"
+        "sharp"
       ],
       "conflict_stages": [
+        "public",
         "money",
-        "sharp_edge",
-        "rlm"
+        "sharp_edge"
       ],
       "line_perspective": "team",
       "kickoff": "2026-09-13 17:00:00+00:00",
@@ -3435,8 +3472,8 @@
           "side": "away",
           "team": "NO",
           "line": 7.0,
-          "confidence": 0.65,
-          "reason": "tickets home=35% away=65%",
+          "confidence": 0.62,
+          "reason": "tickets home=38% away=62%",
           "available": true
         },
         "money": {
@@ -3445,8 +3482,8 @@
           "side": "home",
           "team": "DET",
           "line": -7.0,
-          "confidence": 0.74,
-          "reason": "money home=74% away=26% (gap vs tickets +39% on home)",
+          "confidence": 0.75,
+          "reason": "money home=75% away=25% (gap vs tickets +37% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -3455,8 +3492,8 @@
           "side": "home",
           "team": "DET",
           "line": -7.0,
-          "confidence": 0.89,
-          "reason": "+39% money vs tickets on DET",
+          "confidence": 0.87,
+          "reason": "+37% money vs tickets on DET",
           "available": true
         },
         "rlm": {
@@ -3561,8 +3598,8 @@
           "side": "home",
           "team": "DET",
           "line": null,
-          "confidence": 0.94,
-          "reason": "money home=94% away=6% (gap vs tickets -2% on home)",
+          "confidence": 0.95,
+          "reason": "money home=95% away=5% (gap vs tickets -1% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -3571,8 +3608,8 @@
           "side": "away",
           "team": "NO",
           "line": null,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on NO",
+          "confidence": 0.51,
+          "reason": "+1% money vs tickets on NO",
           "available": true
         },
         "rlm": {
@@ -4299,8 +4336,8 @@
           "side": "over",
           "team": "Over",
           "line": 47.0,
-          "confidence": 0.5067,
-          "reason": "pinnacle no-vig 50.7% @ -111",
+          "confidence": 0.5077,
+          "reason": "pinnacle no-vig 50.8% @ -112",
           "available": true
         },
         "public": {
@@ -4415,8 +4452,8 @@
           "side": "home",
           "team": "MIN",
           "line": -1.5,
-          "confidence": 0.64,
-          "reason": "tickets home=64% away=36%",
+          "confidence": 0.63,
+          "reason": "tickets home=63% away=37%",
           "available": true
         },
         "money": {
@@ -4425,8 +4462,8 @@
           "side": "home",
           "team": "MIN",
           "line": -1.5,
-          "confidence": 0.64,
-          "reason": "money home=64% away=36% (gap vs tickets +0% on home)",
+          "confidence": 0.63,
+          "reason": "money home=63% away=37% (gap vs tickets +0% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -4529,8 +4566,8 @@
           "side": "home",
           "team": "MIN",
           "line": null,
-          "confidence": 0.5,
-          "reason": "tickets home=50% away=50%",
+          "confidence": 0.51,
+          "reason": "tickets home=51% away=49%",
           "available": true
         },
         "money": {
@@ -4539,8 +4576,8 @@
           "side": "away",
           "team": "GB",
           "line": null,
-          "confidence": 0.51,
-          "reason": "money home=49% away=51% (gap vs tickets +1% on away)",
+          "confidence": 0.54,
+          "reason": "money home=46% away=54% (gap vs tickets +5% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -4549,8 +4586,8 @@
           "side": "away",
           "team": "GB",
           "line": null,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on GB",
+          "confidence": 0.55,
+          "reason": "+5% money vs tickets on GB",
           "available": true
         },
         "rlm": {
@@ -4888,8 +4925,8 @@
           "side": "home",
           "team": "LV",
           "line": null,
-          "confidence": 0.79,
-          "reason": "money home=79% away=21% (gap vs tickets -8% on home)",
+          "confidence": 0.8,
+          "reason": "money home=80% away=20% (gap vs tickets -7% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -4898,8 +4935,8 @@
           "side": "away",
           "team": "MIA",
           "line": null,
-          "confidence": 0.58,
-          "reason": "+8% money vs tickets on MIA",
+          "confidence": 0.57,
+          "reason": "+7% money vs tickets on MIA",
           "available": true
         },
         "rlm": {
@@ -4994,8 +5031,8 @@
           "side": "under",
           "team": "Under",
           "line": 40.5,
-          "confidence": 0.56,
-          "reason": "tickets over=44% under=56%",
+          "confidence": 0.57,
+          "reason": "tickets over=43% under=57%",
           "available": true
         },
         "money": {
@@ -5005,7 +5042,7 @@
           "team": "Under",
           "line": 40.5,
           "confidence": 0.59,
-          "reason": "money over=41% under=59% (gap vs tickets +3% on under)",
+          "reason": "money over=41% under=59% (gap vs tickets +2% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -5014,8 +5051,8 @@
           "side": "under",
           "team": "Under",
           "line": 40.5,
-          "confidence": 0.53,
-          "reason": "+3% money vs tickets on Under",
+          "confidence": 0.52,
+          "reason": "+2% money vs tickets on Under",
           "available": true
         },
         "rlm": {
@@ -5098,11 +5135,11 @@
         "sharp": {
           "stage": "sharp",
           "market": "spread",
-          "side": "home",
-          "team": "PHI",
-          "line": -4.5,
-          "confidence": 0.5069,
-          "reason": "pinnacle no-vig 50.7% @ -109",
+          "side": "away",
+          "team": "WAS",
+          "line": 4.5,
+          "confidence": 0.5023,
+          "reason": "pinnacle no-vig 50.2% @ -107",
           "available": true
         },
         "public": {
@@ -5152,18 +5189,19 @@
           "team": "PHI",
           "line": -4.5,
           "confidence": 0.5998,
-          "reason": "validated play EV=17.1% @ coolbet",
+          "reason": "validated play EV=17.1% @ pinnacle",
           "available": true
         }
       },
       "agreement": {
         "n_available": 7,
-        "home_votes": 5,
-        "away_votes": 1,
+        "home_votes": 4,
+        "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "PHI"
+          "sharp": "WAS",
+          "public": "PHI",
+          "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
@@ -5176,12 +5214,12 @@
       "consensus_team": "PHI",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
         "public",
         "money",
         "sharp_edge"
       ],
       "conflict_stages": [
+        "sharp",
         "rlm"
       ],
       "line_perspective": "team",
@@ -5218,8 +5256,8 @@
           "side": "home",
           "team": "PHI",
           "line": null,
-          "confidence": 0.675,
-          "reason": "pinnacle no-vig 67.5% @ -230",
+          "confidence": 0.6695,
+          "reason": "pinnacle no-vig 66.9% @ -224",
           "available": true
         },
         "public": {
@@ -5228,8 +5266,8 @@
           "side": "home",
           "team": "PHI",
           "line": null,
-          "confidence": 0.94,
-          "reason": "tickets home=94% away=6%",
+          "confidence": 0.95,
+          "reason": "tickets home=95% away=5%",
           "available": true
         },
         "money": {
@@ -5239,7 +5277,7 @@
           "team": "PHI",
           "line": null,
           "confidence": 0.93,
-          "reason": "money home=93% away=7% (gap vs tickets -1% on home)",
+          "reason": "money home=93% away=7% (gap vs tickets -2% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -5248,8 +5286,8 @@
           "side": "away",
           "team": "WAS",
           "line": null,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on WAS",
+          "confidence": 0.52,
+          "reason": "+2% money vs tickets on WAS",
           "available": true
         },
         "rlm": {
@@ -5334,8 +5372,8 @@
           "side": "under",
           "team": "Under",
           "line": 44.5,
-          "confidence": 0.5134,
-          "reason": "pinnacle no-vig 51.3% @ -114",
+          "confidence": 0.5122,
+          "reason": "pinnacle no-vig 51.2% @ -114",
           "available": true
         },
         "public": {
@@ -5776,8 +5814,8 @@
           "side": "away",
           "team": "DEN",
           "line": 2.5,
-          "confidence": 0.6,
-          "reason": "tickets home=40% away=60%",
+          "confidence": 0.64,
+          "reason": "tickets home=36% away=64%",
           "available": true
         },
         "money": {
@@ -5786,8 +5824,8 @@
           "side": "away",
           "team": "DEN",
           "line": 2.5,
-          "confidence": 0.7,
-          "reason": "money home=30% away=70% (gap vs tickets +10% on away)",
+          "confidence": 0.74,
+          "reason": "money home=26% away=74% (gap vs tickets +10% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -5891,8 +5929,8 @@
           "side": "home",
           "team": "KC",
           "line": null,
-          "confidence": 0.68,
-          "reason": "tickets home=68% away=32%",
+          "confidence": 0.67,
+          "reason": "tickets home=67% away=33%",
           "available": true
         },
         "money": {
@@ -5901,8 +5939,8 @@
           "side": "home",
           "team": "KC",
           "line": null,
-          "confidence": 0.94,
-          "reason": "money home=94% away=6% (gap vs tickets +26% on home)",
+          "confidence": 0.93,
+          "reason": "money home=93% away=7% (gap vs tickets +26% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -5986,19 +6024,19 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 43.0,
-          "confidence": 0.5864,
-          "reason": "T_mod=42.1 vs market 43.0",
+          "line": 44.0,
+          "confidence": 0.6272,
+          "reason": "T_mod=42.1 vs market 44.0",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 43.0,
-          "confidence": 0.5134,
-          "reason": "pinnacle no-vig 51.3% @ -114",
+          "side": "under",
+          "team": "Under",
+          "line": 44.0,
+          "confidence": 0.5067,
+          "reason": "pinnacle no-vig 50.7% @ -111",
           "available": true
         },
         "public": {
@@ -6017,8 +6055,8 @@
           "side": "under",
           "team": "Under",
           "line": 43.5,
-          "confidence": 0.7,
-          "reason": "money over=30% under=70% (gap vs tickets +2% on under)",
+          "confidence": 0.69,
+          "reason": "money over=31% under=69% (gap vs tickets +1% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -6027,8 +6065,8 @@
           "side": "under",
           "team": "Under",
           "line": 43.5,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on Under",
+          "confidence": 0.51,
+          "reason": "+1% money vs tickets on Under",
           "available": true
         },
         "rlm": {
@@ -6046,21 +6084,20 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 43.0,
-          "confidence": 0.5864,
-          "reason": "model aligned with money (no validated edge)",
+          "line": 44.0,
+          "confidence": 0.6272,
+          "reason": "model aligned with money+sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 1,
-        "away_votes": 4,
-        "unanimous": false,
+        "home_votes": 0,
+        "away_votes": 5,
+        "unanimous": true,
         "sharp_vs_public": {
-          "sharp": "Over",
-          "public": "Under",
-          "fade_public": true
+          "fade_public": false,
+          "side": "Under"
         },
         "money_vs_public": {
           "aligned": true,
@@ -6073,13 +6110,12 @@
       "consensus_team": "Under",
       "hybrid_agrees_with": [
         "model",
+        "sharp",
         "public",
         "money",
         "sharp_edge"
       ],
-      "conflict_stages": [
-        "sharp"
-      ],
+      "conflict_stages": [],
       "line_perspective": "team",
       "kickoff": "2026-09-15 00:15:00+00:00",
       "commence_time": "2026-09-15 00:15:00+00:00",
@@ -37636,8 +37672,8 @@
           "side": "away",
           "team": "KC",
           "line": 2.5,
-          "confidence": 0.6,
-          "reason": "tickets home=40% away=60%",
+          "confidence": 0.64,
+          "reason": "tickets home=36% away=64%",
           "available": true
         },
         "money": {
@@ -37646,8 +37682,8 @@
           "side": "away",
           "team": "KC",
           "line": 2.5,
-          "confidence": 0.7,
-          "reason": "money home=30% away=70% (gap vs tickets +10% on away)",
+          "confidence": 0.74,
+          "reason": "money home=26% away=74% (gap vs tickets +10% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -37748,8 +37784,8 @@
           "side": "home",
           "team": "DEN",
           "line": null,
-          "confidence": 0.68,
-          "reason": "tickets home=68% away=32%",
+          "confidence": 0.67,
+          "reason": "tickets home=67% away=33%",
           "available": true
         },
         "money": {
@@ -37758,8 +37794,8 @@
           "side": "home",
           "team": "DEN",
           "line": null,
-          "confidence": 0.94,
-          "reason": "money home=94% away=6% (gap vs tickets +26% on home)",
+          "confidence": 0.93,
+          "reason": "money home=93% away=7% (gap vs tickets +26% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -37869,8 +37905,8 @@
           "side": "under",
           "team": "Under",
           "line": 43.5,
-          "confidence": 0.7,
-          "reason": "money over=30% under=70% (gap vs tickets +2% on under)",
+          "confidence": 0.69,
+          "reason": "money over=31% under=69% (gap vs tickets +1% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -37879,8 +37915,8 @@
           "side": "under",
           "team": "Under",
           "line": 43.5,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on Under",
+          "confidence": 0.51,
+          "reason": "+1% money vs tickets on Under",
           "available": true
         },
         "rlm": {
@@ -38395,8 +38431,8 @@
           "side": "home",
           "team": "WAS",
           "line": null,
-          "confidence": 0.94,
-          "reason": "tickets home=94% away=6%",
+          "confidence": 0.95,
+          "reason": "tickets home=95% away=5%",
           "available": true
         },
         "money": {
@@ -38406,7 +38442,7 @@
           "team": "WAS",
           "line": null,
           "confidence": 0.93,
-          "reason": "money home=93% away=7% (gap vs tickets -1% on home)",
+          "reason": "money home=93% away=7% (gap vs tickets -2% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -38415,8 +38451,8 @@
           "side": "away",
           "team": "PHI",
           "line": null,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on PHI",
+          "confidence": 0.52,
+          "reason": "+2% money vs tickets on PHI",
           "available": true
         },
         "rlm": {
@@ -45481,8 +45517,8 @@
           "side": "home",
           "team": "GB",
           "line": -1.5,
-          "confidence": 0.64,
-          "reason": "tickets home=64% away=36%",
+          "confidence": 0.63,
+          "reason": "tickets home=63% away=37%",
           "available": true
         },
         "money": {
@@ -45491,8 +45527,8 @@
           "side": "home",
           "team": "GB",
           "line": -1.5,
-          "confidence": 0.64,
-          "reason": "money home=64% away=36% (gap vs tickets +0% on home)",
+          "confidence": 0.63,
+          "reason": "money home=63% away=37% (gap vs tickets +0% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -45592,8 +45628,8 @@
           "side": "home",
           "team": "GB",
           "line": null,
-          "confidence": 0.5,
-          "reason": "tickets home=50% away=50%",
+          "confidence": 0.51,
+          "reason": "tickets home=51% away=49%",
           "available": true
         },
         "money": {
@@ -45602,8 +45638,8 @@
           "side": "away",
           "team": "MIN",
           "line": null,
-          "confidence": 0.51,
-          "reason": "money home=49% away=51% (gap vs tickets +1% on away)",
+          "confidence": 0.54,
+          "reason": "money home=46% away=54% (gap vs tickets +5% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -45612,8 +45648,8 @@
           "side": "away",
           "team": "MIN",
           "line": null,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on MIN",
+          "confidence": 0.55,
+          "reason": "+5% money vs tickets on MIN",
           "available": true
         },
         "rlm": {
@@ -86035,7 +86071,7 @@
   ],
   "disagreements": [
     {
-      "id": "2a4eabc2",
+      "id": "89d233e4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86062,7 +86098,7 @@
       "outcome": null
     },
     {
-      "id": "d5f77b8b",
+      "id": "cb914378",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86089,7 +86125,7 @@
       "outcome": null
     },
     {
-      "id": "a1b9af49",
+      "id": "26e722b3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86116,7 +86152,7 @@
       "outcome": null
     },
     {
-      "id": "30d9c493",
+      "id": "5f23458c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86143,7 +86179,7 @@
       "outcome": null
     },
     {
-      "id": "dc6b7888",
+      "id": "e0e05a0f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86170,7 +86206,7 @@
       "outcome": null
     },
     {
-      "id": "107048f3",
+      "id": "683771a0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86197,7 +86233,7 @@
       "outcome": null
     },
     {
-      "id": "2ad4d4c5",
+      "id": "2c169042",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86224,7 +86260,7 @@
       "outcome": null
     },
     {
-      "id": "8f2c1951",
+      "id": "00442627",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86251,7 +86287,7 @@
       "outcome": null
     },
     {
-      "id": "f7efab0b",
+      "id": "6a0149f2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86278,7 +86314,7 @@
       "outcome": null
     },
     {
-      "id": "68cb47b0",
+      "id": "4469b20b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86305,7 +86341,7 @@
       "outcome": null
     },
     {
-      "id": "d962a902",
+      "id": "ce09dbe0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86332,7 +86368,7 @@
       "outcome": null
     },
     {
-      "id": "ec0d3630",
+      "id": "7a7f6ff1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86359,7 +86395,7 @@
       "outcome": null
     },
     {
-      "id": "c740fc5d",
+      "id": "9b290f52",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86386,7 +86422,7 @@
       "outcome": null
     },
     {
-      "id": "ff5ea2b5",
+      "id": "d77a1357",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86413,7 +86449,7 @@
       "outcome": null
     },
     {
-      "id": "b9e4f7e3",
+      "id": "4be66155",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86440,7 +86476,7 @@
       "outcome": null
     },
     {
-      "id": "851f9d38",
+      "id": "0facf313",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86453,7 +86489,7 @@
       "book": "betfair_ex_eu",
       "p_true": 0.6973,
       "p_mkt": 0.4043,
-      "edge": 0.6875,
+      "edge": 0.7014,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -86467,7 +86503,7 @@
       "outcome": null
     },
     {
-      "id": "f9aace52",
+      "id": "3a167a8a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86494,7 +86530,7 @@
       "outcome": null
     },
     {
-      "id": "e3113d3b",
+      "id": "be85893c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86521,7 +86557,7 @@
       "outcome": null
     },
     {
-      "id": "117c9c27",
+      "id": "ccc5f1d4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86548,7 +86584,7 @@
       "outcome": null
     },
     {
-      "id": "116aa477",
+      "id": "aed2670b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86575,7 +86611,7 @@
       "outcome": null
     },
     {
-      "id": "1678a829",
+      "id": "4a1392e0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86602,7 +86638,7 @@
       "outcome": null
     },
     {
-      "id": "b4ade473",
+      "id": "a7780da0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86629,7 +86665,7 @@
       "outcome": null
     },
     {
-      "id": "02e8b3e1",
+      "id": "535f1894",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86656,7 +86692,7 @@
       "outcome": null
     },
     {
-      "id": "4f20e686",
+      "id": "cb838fcb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86683,7 +86719,7 @@
       "outcome": null
     },
     {
-      "id": "209f0f9c",
+      "id": "5d1a7849",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86710,7 +86746,7 @@
       "outcome": null
     },
     {
-      "id": "830d2cca",
+      "id": "0cf8fe6e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86737,7 +86773,7 @@
       "outcome": null
     },
     {
-      "id": "8d706fc9",
+      "id": "6d3103d0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86764,7 +86800,7 @@
       "outcome": null
     },
     {
-      "id": "c71274c1",
+      "id": "58d1c16d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86791,7 +86827,7 @@
       "outcome": null
     },
     {
-      "id": "752c208a",
+      "id": "4a09f3be",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86818,7 +86854,7 @@
       "outcome": null
     },
     {
-      "id": "cb42a2d9",
+      "id": "ddb4818a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86845,7 +86881,7 @@
       "outcome": null
     },
     {
-      "id": "3c67a363",
+      "id": "b84c3aa1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86872,7 +86908,7 @@
       "outcome": null
     },
     {
-      "id": "ca3bdfc7",
+      "id": "d864b674",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86899,7 +86935,7 @@
       "outcome": null
     },
     {
-      "id": "50592625",
+      "id": "4a25104f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86926,7 +86962,7 @@
       "outcome": null
     },
     {
-      "id": "2ccf39e7",
+      "id": "f12a3be9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86953,7 +86989,7 @@
       "outcome": null
     },
     {
-      "id": "b7934b11",
+      "id": "7506657b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -86980,7 +87016,7 @@
       "outcome": null
     },
     {
-      "id": "b1dc18a4",
+      "id": "c2a0e230",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87007,7 +87043,7 @@
       "outcome": null
     },
     {
-      "id": "90bf4bdf",
+      "id": "02da17cb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87034,7 +87070,7 @@
       "outcome": null
     },
     {
-      "id": "c0d67fab",
+      "id": "ae983739",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87061,7 +87097,7 @@
       "outcome": null
     },
     {
-      "id": "01b4a10b",
+      "id": "60c0853f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87088,7 +87124,7 @@
       "outcome": null
     },
     {
-      "id": "8fdb902b",
+      "id": "14f41dc1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87115,7 +87151,7 @@
       "outcome": null
     },
     {
-      "id": "033be905",
+      "id": "b8799004",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87142,7 +87178,7 @@
       "outcome": null
     },
     {
-      "id": "57568121",
+      "id": "3af0caa8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87169,7 +87205,7 @@
       "outcome": null
     },
     {
-      "id": "0b20a267",
+      "id": "73c1f1cb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87196,7 +87232,7 @@
       "outcome": null
     },
     {
-      "id": "35c86ac2",
+      "id": "c09036f8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87223,7 +87259,7 @@
       "outcome": null
     },
     {
-      "id": "7c9abaeb",
+      "id": "1305fbfa",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87250,7 +87286,7 @@
       "outcome": null
     },
     {
-      "id": "bda150a1",
+      "id": "fb9cdb50",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87277,7 +87313,7 @@
       "outcome": null
     },
     {
-      "id": "fccce552",
+      "id": "850b4679",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87304,7 +87340,7 @@
       "outcome": null
     },
     {
-      "id": "803b9d7d",
+      "id": "b0f3edea",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87331,7 +87367,7 @@
       "outcome": null
     },
     {
-      "id": "57e7082c",
+      "id": "a06b706f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87358,7 +87394,7 @@
       "outcome": null
     },
     {
-      "id": "53923384",
+      "id": "bf8f5435",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87385,7 +87421,7 @@
       "outcome": null
     },
     {
-      "id": "a67ef686",
+      "id": "9e945031",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87412,7 +87448,7 @@
       "outcome": null
     },
     {
-      "id": "f56688bd",
+      "id": "6ef430e9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87439,7 +87475,7 @@
       "outcome": null
     },
     {
-      "id": "a94bcd80",
+      "id": "0a18a268",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87466,7 +87502,7 @@
       "outcome": null
     },
     {
-      "id": "5634ad9b",
+      "id": "bf355c25",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87493,7 +87529,7 @@
       "outcome": null
     },
     {
-      "id": "9447e743",
+      "id": "83757d92",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87520,7 +87556,7 @@
       "outcome": null
     },
     {
-      "id": "7a1c70e3",
+      "id": "4b0befc3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87546,7 +87582,7 @@
       "outcome": null
     },
     {
-      "id": "4d732386",
+      "id": "ae014917",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87573,7 +87609,7 @@
       "outcome": null
     },
     {
-      "id": "afcb4225",
+      "id": "6345398d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87600,7 +87636,7 @@
       "outcome": null
     },
     {
-      "id": "2e74baf6",
+      "id": "207d84a2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87627,7 +87663,7 @@
       "outcome": null
     },
     {
-      "id": "a5e87d7a",
+      "id": "a4a2c4cd",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87654,7 +87690,7 @@
       "outcome": null
     },
     {
-      "id": "ae8018a2",
+      "id": "5f02ce08",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87681,7 +87717,7 @@
       "outcome": null
     },
     {
-      "id": "a2a73f07",
+      "id": "ea8ed0d5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87708,7 +87744,7 @@
       "outcome": null
     },
     {
-      "id": "c867441b",
+      "id": "037a5391",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87735,7 +87771,7 @@
       "outcome": null
     },
     {
-      "id": "c74d1a02",
+      "id": "0865fba6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87762,7 +87798,7 @@
       "outcome": null
     },
     {
-      "id": "4b08bd17",
+      "id": "f4299b12",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87789,7 +87825,7 @@
       "outcome": null
     },
     {
-      "id": "1b9e6661",
+      "id": "3136e8fb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87816,7 +87852,7 @@
       "outcome": null
     },
     {
-      "id": "b86afaed",
+      "id": "69edac5c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87843,7 +87879,7 @@
       "outcome": null
     },
     {
-      "id": "f6d7309b",
+      "id": "7050b2bb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87870,7 +87906,7 @@
       "outcome": null
     },
     {
-      "id": "eeaea1d0",
+      "id": "5427293b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87897,7 +87933,7 @@
       "outcome": null
     },
     {
-      "id": "c836aed1",
+      "id": "8f79b8ca",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87924,7 +87960,7 @@
       "outcome": null
     },
     {
-      "id": "d4b2684d",
+      "id": "5e76d140",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87951,7 +87987,7 @@
       "outcome": null
     },
     {
-      "id": "cb2882e6",
+      "id": "3f01f928",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87963,7 +87999,7 @@
       "line": null,
       "book": "espnbet",
       "p_true": 0.5631,
-      "p_mkt": 0.3771,
+      "p_mkt": 0.3836,
       "edge": 0.4641,
       "tier": "rejected",
       "direction": "model_higher",
@@ -87971,14 +88007,14 @@
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.186",
+        "|p_true-p_mkt|=0.180",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.186,
+      "magnitude": 0.1795,
       "outcome": null
     },
     {
-      "id": "ca9bde0c",
+      "id": "94c33c07",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88005,7 +88041,7 @@
       "outcome": null
     },
     {
-      "id": "0153e418",
+      "id": "ad069e81",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88032,7 +88068,7 @@
       "outcome": null
     },
     {
-      "id": "9702fe2e",
+      "id": "9c010593",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88059,7 +88095,7 @@
       "outcome": null
     },
     {
-      "id": "3bd2bf2b",
+      "id": "6fcf1f5f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88086,7 +88122,7 @@
       "outcome": null
     },
     {
-      "id": "28a52467",
+      "id": "23dbfa29",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88113,7 +88149,7 @@
       "outcome": null
     },
     {
-      "id": "f7da4187",
+      "id": "b67dab2f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88140,7 +88176,7 @@
       "outcome": null
     },
     {
-      "id": "446c0798",
+      "id": "9c0b01aa",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88167,7 +88203,7 @@
       "outcome": null
     },
     {
-      "id": "a1669f55",
+      "id": "765e7491",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88194,7 +88230,7 @@
       "outcome": null
     },
     {
-      "id": "72840116",
+      "id": "a2126b20",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88221,7 +88257,7 @@
       "outcome": null
     },
     {
-      "id": "bb268a05",
+      "id": "5817ce95",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88248,7 +88284,7 @@
       "outcome": null
     },
     {
-      "id": "1f58a8c0",
+      "id": "fb7b6df9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88275,7 +88311,7 @@
       "outcome": null
     },
     {
-      "id": "5f423ae9",
+      "id": "9d53f8c9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88302,7 +88338,7 @@
       "outcome": null
     },
     {
-      "id": "c91312b9",
+      "id": "3a2a8640",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88329,7 +88365,7 @@
       "outcome": null
     },
     {
-      "id": "7b920d0f",
+      "id": "1c8a4905",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88356,7 +88392,7 @@
       "outcome": null
     },
     {
-      "id": "93a03af7",
+      "id": "056ae276",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88383,7 +88419,7 @@
       "outcome": null
     },
     {
-      "id": "770bbe4b",
+      "id": "c67babc9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88410,7 +88446,7 @@
       "outcome": null
     },
     {
-      "id": "da001ee0",
+      "id": "3396c7a6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88437,7 +88473,7 @@
       "outcome": null
     },
     {
-      "id": "307ef8d0",
+      "id": "2fc1a510",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88464,7 +88500,7 @@
       "outcome": null
     },
     {
-      "id": "54c24c4e",
+      "id": "6e885cd6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88491,7 +88527,7 @@
       "outcome": null
     },
     {
-      "id": "1f4ec777",
+      "id": "76b730b0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88518,7 +88554,7 @@
       "outcome": null
     },
     {
-      "id": "a39041b3",
+      "id": "d98ecfde",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88572,7 +88608,7 @@
       "outcome": null
     },
     {
-      "id": "6afe59c8",
+      "id": "b68634a6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88598,7 +88634,7 @@
       "outcome": null
     },
     {
-      "id": "dc661781",
+      "id": "79818550",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88625,7 +88661,7 @@
       "outcome": null
     },
     {
-      "id": "3234334a",
+      "id": "518dd6ba",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88652,7 +88688,7 @@
       "outcome": null
     },
     {
-      "id": "7e1bee42",
+      "id": "72ca2dca",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88679,7 +88715,7 @@
       "outcome": null
     },
     {
-      "id": "31fa39ea",
+      "id": "1ba9c397",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88706,7 +88742,7 @@
       "outcome": null
     },
     {
-      "id": "5fdbb06f",
+      "id": "a9d219db",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88733,7 +88769,7 @@
       "outcome": null
     },
     {
-      "id": "622563ff",
+      "id": "e20013c8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88760,7 +88796,7 @@
       "outcome": null
     },
     {
-      "id": "e95921d4",
+      "id": "28dfa85a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88787,7 +88823,7 @@
       "outcome": null
     },
     {
-      "id": "bfaeda4a",
+      "id": "6876d61a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88814,7 +88850,7 @@
       "outcome": null
     },
     {
-      "id": "0ff893cc",
+      "id": "e7587327",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88841,7 +88877,7 @@
       "outcome": null
     },
     {
-      "id": "a25a65bf",
+      "id": "d8e65550",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88868,7 +88904,7 @@
       "outcome": null
     },
     {
-      "id": "503140af",
+      "id": "b49dbf85",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88895,7 +88931,7 @@
       "outcome": null
     },
     {
-      "id": "67b27673",
+      "id": "bae50f3b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88922,7 +88958,7 @@
       "outcome": null
     },
     {
-      "id": "11522b2b",
+      "id": "52b979cb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88931,25 +88967,25 @@
       "home_team": "LAC",
       "market": "totals",
       "side": "under",
-      "line": 42.5,
-      "book": "onexbet",
-      "p_true": 0.7332,
-      "p_mkt": 0.4737,
-      "edge": 0.4664,
+      "line": 43.5,
+      "book": "williamhill_us",
+      "p_true": 0.768,
+      "p_mkt": 0.5,
+      "edge": 0.4662,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.259",
+        "|p_true-p_mkt|=0.268",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2595,
+      "magnitude": 0.268,
       "outcome": null
     },
     {
-      "id": "b9e65b87",
+      "id": "188070af",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -88962,7 +88998,7 @@
       "book": "matchbook",
       "p_true": 0.7224,
       "p_mkt": 0.5023,
-      "edge": 0.4104,
+      "edge": 0.4306,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -88976,7 +89012,7 @@
       "outcome": null
     },
     {
-      "id": "f4639056",
+      "id": "79aed3c4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89003,7 +89039,7 @@
       "outcome": null
     },
     {
-      "id": "0c9afff0",
+      "id": "0532eaaf",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89030,7 +89066,7 @@
       "outcome": null
     },
     {
-      "id": "85bc6205",
+      "id": "84772576",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89057,7 +89093,7 @@
       "outcome": null
     },
     {
-      "id": "cb7af2c6",
+      "id": "876be285",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89084,7 +89120,7 @@
       "outcome": null
     },
     {
-      "id": "6d1ed013",
+      "id": "87180567",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89111,7 +89147,7 @@
       "outcome": null
     },
     {
-      "id": "0dd5db7a",
+      "id": "398a6c57",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89138,7 +89174,7 @@
       "outcome": null
     },
     {
-      "id": "b4774d63",
+      "id": "eb9a093e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89165,7 +89201,7 @@
       "outcome": null
     },
     {
-      "id": "c9fb9dc4",
+      "id": "f07b27e1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89192,7 +89228,7 @@
       "outcome": null
     },
     {
-      "id": "056cceab",
+      "id": "79de72de",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89219,7 +89255,7 @@
       "outcome": null
     },
     {
-      "id": "723110b8",
+      "id": "4db9081a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89246,7 +89282,7 @@
       "outcome": null
     },
     {
-      "id": "2ac44fc4",
+      "id": "6932d5cb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89273,7 +89309,7 @@
       "outcome": null
     },
     {
-      "id": "af5c3669",
+      "id": "b68f0a52",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89283,10 +89319,10 @@
       "market": "spreads",
       "side": "away",
       "line": 7.0,
-      "book": "hardrockbet_fl",
+      "book": "matchbook",
       "p_true": 0.7074,
       "p_mkt": 0.5034,
-      "edge": 0.3811,
+      "edge": 0.3748,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -89300,7 +89336,7 @@
       "outcome": null
     },
     {
-      "id": "8cb08e6d",
+      "id": "1ca5fefc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89327,7 +89363,7 @@
       "outcome": null
     },
     {
-      "id": "5fe13d6e",
+      "id": "0ecbcdd7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89354,7 +89390,7 @@
       "outcome": null
     },
     {
-      "id": "01b4e0b2",
+      "id": "58d4824f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89381,7 +89417,7 @@
       "outcome": null
     },
     {
-      "id": "20bcb7bd",
+      "id": "3ecb0e96",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89390,25 +89426,25 @@
       "home_team": "IND",
       "market": "spreads",
       "side": "home",
-      "line": 3.0,
-      "book": "matchbook",
-      "p_true": 0.6754,
-      "p_mkt": 0.5161,
-      "edge": 0.3913,
+      "line": 3.5,
+      "book": "betmgm",
+      "p_true": 0.718,
+      "p_mkt": 0.526,
+      "edge": 0.3707,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.159",
+        "|p_true-p_mkt|=0.192",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1593,
+      "magnitude": 0.192,
       "outcome": null
     },
     {
-      "id": "e42ae6f8",
+      "id": "ebe1f0f1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89435,7 +89471,7 @@
       "outcome": null
     },
     {
-      "id": "b18838d0",
+      "id": "a9f94c7c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89462,7 +89498,7 @@
       "outcome": null
     },
     {
-      "id": "e28b6fca",
+      "id": "62c7b19e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89489,7 +89525,7 @@
       "outcome": null
     },
     {
-      "id": "174cbd16",
+      "id": "7179710a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89516,7 +89552,7 @@
       "outcome": null
     },
     {
-      "id": "4f236b2b",
+      "id": "87f4f79c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89543,7 +89579,7 @@
       "outcome": null
     },
     {
-      "id": "f2f35626",
+      "id": "38508591",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89570,7 +89606,7 @@
       "outcome": null
     },
     {
-      "id": "dee82408",
+      "id": "06311c09",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89597,7 +89633,7 @@
       "outcome": null
     },
     {
-      "id": "2abb692b",
+      "id": "4d4efbd0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89624,7 +89660,7 @@
       "outcome": null
     },
     {
-      "id": "5d3ee16c",
+      "id": "78ac7256",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89651,7 +89687,7 @@
       "outcome": null
     },
     {
-      "id": "1253c811",
+      "id": "9b5c4f5a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89678,7 +89714,7 @@
       "outcome": null
     },
     {
-      "id": "6ddbed61",
+      "id": "dacdb835",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89705,7 +89741,7 @@
       "outcome": null
     },
     {
-      "id": "f891c38d",
+      "id": "345cfb16",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89732,7 +89768,7 @@
       "outcome": null
     },
     {
-      "id": "2a189adf",
+      "id": "904eacd9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89759,7 +89795,7 @@
       "outcome": null
     },
     {
-      "id": "dd6b00de",
+      "id": "702ed784",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89786,7 +89822,7 @@
       "outcome": null
     },
     {
-      "id": "11e5440e",
+      "id": "bce876da",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89813,7 +89849,7 @@
       "outcome": null
     },
     {
-      "id": "2fb2e150",
+      "id": "f3c8d61b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89840,7 +89876,7 @@
       "outcome": null
     },
     {
-      "id": "27348403",
+      "id": "4f2b7b30",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89867,7 +89903,7 @@
       "outcome": null
     },
     {
-      "id": "09df85d6",
+      "id": "14dc8b1f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89894,7 +89930,7 @@
       "outcome": null
     },
     {
-      "id": "a9915a2e",
+      "id": "41f3fd7e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89921,7 +89957,7 @@
       "outcome": null
     },
     {
-      "id": "8f08dc24",
+      "id": "9570fa68",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89948,7 +89984,7 @@
       "outcome": null
     },
     {
-      "id": "08e6e3ce",
+      "id": "e1363ec0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89975,7 +90011,7 @@
       "outcome": null
     },
     {
-      "id": "31b822e4",
+      "id": "03b5c31f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90002,7 +90038,7 @@
       "outcome": null
     },
     {
-      "id": "72ed30b0",
+      "id": "c2918e87",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90029,7 +90065,7 @@
       "outcome": null
     },
     {
-      "id": "0b83df0f",
+      "id": "c08801f5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90056,7 +90092,7 @@
       "outcome": null
     },
     {
-      "id": "5a92dc8e",
+      "id": "5ad546c6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90083,7 +90119,7 @@
       "outcome": null
     },
     {
-      "id": "5ad9f3de",
+      "id": "a271eabf",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90110,7 +90146,7 @@
       "outcome": null
     },
     {
-      "id": "176b9a0c",
+      "id": "616e8a14",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90137,7 +90173,7 @@
       "outcome": null
     },
     {
-      "id": "443afc88",
+      "id": "233991cc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90164,7 +90200,7 @@
       "outcome": null
     },
     {
-      "id": "8810f75d",
+      "id": "8dff18fd",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90191,7 +90227,7 @@
       "outcome": null
     },
     {
-      "id": "abeac5df",
+      "id": "6fc9cb3f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90218,7 +90254,7 @@
       "outcome": null
     },
     {
-      "id": "a502af58",
+      "id": "50b40c3c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90245,7 +90281,7 @@
       "outcome": null
     },
     {
-      "id": "18f572ff",
+      "id": "4ea6232d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90272,7 +90308,7 @@
       "outcome": null
     },
     {
-      "id": "aedc41ae",
+      "id": "44afd0d1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90299,7 +90335,7 @@
       "outcome": null
     },
     {
-      "id": "a7005b02",
+      "id": "5d622e8f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90326,7 +90362,7 @@
       "outcome": null
     },
     {
-      "id": "153e77a6",
+      "id": "f6ab5be1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90353,7 +90389,7 @@
       "outcome": null
     },
     {
-      "id": "47a76f52",
+      "id": "7d3ded87",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90380,7 +90416,7 @@
       "outcome": null
     },
     {
-      "id": "c6bfe2f0",
+      "id": "f8a1a642",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90407,7 +90443,7 @@
       "outcome": null
     },
     {
-      "id": "fa09abb3",
+      "id": "f9b9fb89",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90434,7 +90470,7 @@
       "outcome": null
     },
     {
-      "id": "3234afb1",
+      "id": "27377fde",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90461,7 +90497,7 @@
       "outcome": null
     },
     {
-      "id": "81971558",
+      "id": "23d904bc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90488,7 +90524,7 @@
       "outcome": null
     },
     {
-      "id": "46b28037",
+      "id": "0bd1940e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90515,7 +90551,7 @@
       "outcome": null
     },
     {
-      "id": "900b4a56",
+      "id": "424013d8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90542,7 +90578,7 @@
       "outcome": null
     },
     {
-      "id": "2bd61de3",
+      "id": "26894983",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90569,7 +90605,7 @@
       "outcome": null
     },
     {
-      "id": "75be8919",
+      "id": "77f56583",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90596,7 +90632,7 @@
       "outcome": null
     },
     {
-      "id": "d9d899f0",
+      "id": "2bac630d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90623,7 +90659,7 @@
       "outcome": null
     },
     {
-      "id": "d2794457",
+      "id": "2c6cee0f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90650,7 +90686,7 @@
       "outcome": null
     },
     {
-      "id": "7d589f86",
+      "id": "5ef8a67b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90677,7 +90713,7 @@
       "outcome": null
     },
     {
-      "id": "fbc6544d",
+      "id": "c53cddd4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90704,7 +90740,7 @@
       "outcome": null
     },
     {
-      "id": "87e7d25b",
+      "id": "90f8de1f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90731,7 +90767,7 @@
       "outcome": null
     },
     {
-      "id": "89f0fea1",
+      "id": "4195a3dc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90758,7 +90794,7 @@
       "outcome": null
     },
     {
-      "id": "8b474b53",
+      "id": "df27009d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90768,10 +90804,10 @@
       "market": "spreads",
       "side": "home",
       "line": 1.5,
-      "book": "fanduel",
+      "book": "hardrockbet_fl",
       "p_true": 0.705,
       "p_mkt": 0.5,
-      "edge": 0.3234,
+      "edge": 0.3459,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -90785,7 +90821,7 @@
       "outcome": null
     },
     {
-      "id": "7fdf7aff",
+      "id": "33f554b8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90812,7 +90848,7 @@
       "outcome": null
     },
     {
-      "id": "155dd33e",
+      "id": "b16e0506",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90839,7 +90875,7 @@
       "outcome": null
     },
     {
-      "id": "a0c6238e",
+      "id": "d27019df",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90866,7 +90902,7 @@
       "outcome": null
     },
     {
-      "id": "3f301258",
+      "id": "75c28e38",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90893,7 +90929,7 @@
       "outcome": null
     },
     {
-      "id": "bbdfae70",
+      "id": "f81857c5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90920,7 +90956,7 @@
       "outcome": null
     },
     {
-      "id": "8217e2b7",
+      "id": "4be9b738",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90947,7 +90983,7 @@
       "outcome": null
     },
     {
-      "id": "69c76ba7",
+      "id": "5e1a48f3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90974,7 +91010,7 @@
       "outcome": null
     },
     {
-      "id": "c55bc2bc",
+      "id": "68861b45",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91001,7 +91037,7 @@
       "outcome": null
     },
     {
-      "id": "7ef7e8d4",
+      "id": "dc7eea47",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91028,7 +91064,7 @@
       "outcome": null
     },
     {
-      "id": "1e983efd",
+      "id": "d20fa013",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91055,7 +91091,7 @@
       "outcome": null
     },
     {
-      "id": "b4126ca7",
+      "id": "1444adb0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91082,7 +91118,7 @@
       "outcome": null
     },
     {
-      "id": "6ad4e4a7",
+      "id": "0afc6ea1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91109,7 +91145,7 @@
       "outcome": null
     },
     {
-      "id": "d69607cb",
+      "id": "1494a64f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91136,7 +91172,7 @@
       "outcome": null
     },
     {
-      "id": "6418d6ec",
+      "id": "2ffa3caf",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91163,7 +91199,7 @@
       "outcome": null
     },
     {
-      "id": "507e173a",
+      "id": "f0c2dbca",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91189,7 +91225,7 @@
       "outcome": null
     },
     {
-      "id": "cafb6e96",
+      "id": "057809e4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91201,7 +91237,7 @@
       "line": 47.0,
       "book": "lowvig",
       "p_true": 0.6646,
-      "p_mkt": 0.4933,
+      "p_mkt": 0.4923,
       "edge": 0.3162,
       "tier": "rejected",
       "direction": "model_higher",
@@ -91209,14 +91245,14 @@
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.171",
+        "|p_true-p_mkt|=0.172",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1713,
+      "magnitude": 0.1723,
       "outcome": null
     },
     {
-      "id": "6ba6414c",
+      "id": "3c2fda39",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91243,7 +91279,7 @@
       "outcome": null
     },
     {
-      "id": "ed58d11c",
+      "id": "ae434e61",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91270,7 +91306,7 @@
       "outcome": null
     },
     {
-      "id": "46151521",
+      "id": "eeebe857",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91297,7 +91333,7 @@
       "outcome": null
     },
     {
-      "id": "feafb160",
+      "id": "f11193d5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91324,7 +91360,7 @@
       "outcome": null
     },
     {
-      "id": "55b425cc",
+      "id": "164849d2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91351,7 +91387,7 @@
       "outcome": null
     },
     {
-      "id": "afadc723",
+      "id": "e9900a35",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91378,7 +91414,7 @@
       "outcome": null
     },
     {
-      "id": "350f0ae9",
+      "id": "42eeb562",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91405,7 +91441,7 @@
       "outcome": null
     },
     {
-      "id": "f74c90db",
+      "id": "1bc7503f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91432,7 +91468,7 @@
       "outcome": null
     },
     {
-      "id": "1ea474ba",
+      "id": "077846b2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91459,7 +91495,7 @@
       "outcome": null
     },
     {
-      "id": "0fc019f2",
+      "id": "b4e93599",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91486,7 +91522,7 @@
       "outcome": null
     },
     {
-      "id": "6ea89116",
+      "id": "925cad28",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91513,7 +91549,7 @@
       "outcome": null
     },
     {
-      "id": "dc5a039b",
+      "id": "bebd8111",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91540,7 +91576,7 @@
       "outcome": null
     },
     {
-      "id": "673a048a",
+      "id": "0baaeb40",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91567,7 +91603,7 @@
       "outcome": null
     },
     {
-      "id": "9b5d725a",
+      "id": "83f6f338",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91594,7 +91630,7 @@
       "outcome": null
     },
     {
-      "id": "515182cd",
+      "id": "6b6d53c8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91621,7 +91657,7 @@
       "outcome": null
     },
     {
-      "id": "47edb248",
+      "id": "e34bd3ab",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91648,7 +91684,7 @@
       "outcome": null
     },
     {
-      "id": "3b2fdc4e",
+      "id": "798a3adb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91675,7 +91711,7 @@
       "outcome": null
     },
     {
-      "id": "e8c091a7",
+      "id": "18bb9d1c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91702,7 +91738,7 @@
       "outcome": null
     },
     {
-      "id": "9df69456",
+      "id": "f07dc841",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91729,7 +91765,7 @@
       "outcome": null
     },
     {
-      "id": "5096ea7f",
+      "id": "cd68d6ca",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91756,7 +91792,7 @@
       "outcome": null
     },
     {
-      "id": "be8e537f",
+      "id": "adc88749",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91783,7 +91819,7 @@
       "outcome": null
     },
     {
-      "id": "c4c68542",
+      "id": "2d504067",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91810,7 +91846,7 @@
       "outcome": null
     },
     {
-      "id": "d41e1c46",
+      "id": "f2a058fd",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91837,7 +91873,7 @@
       "outcome": null
     },
     {
-      "id": "e8db67e3",
+      "id": "786b341d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91864,7 +91900,7 @@
       "outcome": null
     },
     {
-      "id": "002dda93",
+      "id": "943e5261",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91891,7 +91927,7 @@
       "outcome": null
     },
     {
-      "id": "b07c3cc9",
+      "id": "eba88ec7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91918,7 +91954,7 @@
       "outcome": null
     },
     {
-      "id": "c78adc96",
+      "id": "db574b73",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91945,7 +91981,7 @@
       "outcome": null
     },
     {
-      "id": "bc8034f5",
+      "id": "03bf40af",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91972,7 +92008,7 @@
       "outcome": null
     },
     {
-      "id": "abbeaf06",
+      "id": "42a05534",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91999,7 +92035,7 @@
       "outcome": null
     },
     {
-      "id": "c7ea3076",
+      "id": "40affb15",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92026,7 +92062,7 @@
       "outcome": null
     },
     {
-      "id": "af5e3b54",
+      "id": "7ade8fec",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92053,7 +92089,7 @@
       "outcome": null
     },
     {
-      "id": "54fa54dc",
+      "id": "006ab830",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92080,7 +92116,7 @@
       "outcome": null
     },
     {
-      "id": "5b83bf22",
+      "id": "b088b2b8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92107,7 +92143,7 @@
       "outcome": null
     },
     {
-      "id": "f4e9979c",
+      "id": "f2281e09",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92161,7 +92197,7 @@
       "outcome": null
     },
     {
-      "id": "84d67f14",
+      "id": "42612455",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92188,7 +92224,7 @@
       "outcome": null
     },
     {
-      "id": "2d5a9d92",
+      "id": "11269bfd",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92215,7 +92251,7 @@
       "outcome": null
     },
     {
-      "id": "60291bf4",
+      "id": "867d1641",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92242,7 +92278,7 @@
       "outcome": null
     },
     {
-      "id": "dbcfe738",
+      "id": "b36f1e5b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92269,7 +92305,7 @@
       "outcome": null
     },
     {
-      "id": "56dd80fa",
+      "id": "a4186380",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92296,7 +92332,7 @@
       "outcome": null
     },
     {
-      "id": "023eae05",
+      "id": "f28a2e99",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92323,7 +92359,7 @@
       "outcome": null
     },
     {
-      "id": "f8ee0b01",
+      "id": "af64f5db",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92350,7 +92386,7 @@
       "outcome": null
     },
     {
-      "id": "f7a24b52",
+      "id": "105727e2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92377,7 +92413,7 @@
       "outcome": null
     },
     {
-      "id": "ae75da36",
+      "id": "ccd2e25c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92404,7 +92440,7 @@
       "outcome": null
     },
     {
-      "id": "9889f400",
+      "id": "9c1e2a2b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92431,7 +92467,7 @@
       "outcome": null
     },
     {
-      "id": "bed53213",
+      "id": "3616313f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92458,7 +92494,7 @@
       "outcome": null
     },
     {
-      "id": "f28b4e85",
+      "id": "b89c1837",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92485,7 +92521,7 @@
       "outcome": null
     },
     {
-      "id": "b5fba7cc",
+      "id": "9146117e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92512,7 +92548,7 @@
       "outcome": null
     },
     {
-      "id": "db058951",
+      "id": "24988b17",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92539,7 +92575,7 @@
       "outcome": null
     },
     {
-      "id": "cc5e2941",
+      "id": "63960260",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92566,7 +92602,7 @@
       "outcome": null
     },
     {
-      "id": "ee8d7459",
+      "id": "d3fe714a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92593,7 +92629,7 @@
       "outcome": null
     },
     {
-      "id": "fa07e08a",
+      "id": "82e240e8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92620,7 +92656,7 @@
       "outcome": null
     },
     {
-      "id": "27c84d1b",
+      "id": "f26e1a83",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92647,7 +92683,7 @@
       "outcome": null
     },
     {
-      "id": "eeab702d",
+      "id": "e96c618c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92657,24 +92693,24 @@
       "market": "totals",
       "side": "under",
       "line": 39.5,
-      "book": "rebet",
+      "book": "onexbet",
       "p_true": 0.6592,
-      "p_mkt": 0.4971,
-      "edge": 0.2275,
+      "p_mkt": 0.5,
+      "edge": 0.2585,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.162",
+        "|p_true-p_mkt|=0.159",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1621,
+      "magnitude": 0.1592,
       "outcome": null
     },
     {
-      "id": "2575d97f",
+      "id": "442f4b05",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92701,7 +92737,7 @@
       "outcome": null
     },
     {
-      "id": "2f9ac547",
+      "id": "6dbb1830",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92728,7 +92764,7 @@
       "outcome": null
     },
     {
-      "id": "3314cd63",
+      "id": "a65a38ff",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92755,7 +92791,7 @@
       "outcome": null
     },
     {
-      "id": "1b2d0065",
+      "id": "790fc0a8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92782,7 +92818,7 @@
       "outcome": null
     },
     {
-      "id": "1d65a43f",
+      "id": "c35893c5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92809,7 +92845,7 @@
       "outcome": null
     },
     {
-      "id": "20f40565",
+      "id": "7397c331",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92836,7 +92872,7 @@
       "outcome": null
     },
     {
-      "id": "4406e238",
+      "id": "ec57fc41",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92846,10 +92882,10 @@
       "market": "h2h",
       "side": "away",
       "line": null,
-      "book": "matchbook",
+      "book": "betfair_ex_eu",
       "p_true": 0.4482,
       "p_mkt": 0.3672,
-      "edge": 0.1922,
+      "edge": 0.2012,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
@@ -92862,7 +92898,7 @@
       "outcome": null
     },
     {
-      "id": "39dd1773",
+      "id": "6f442496",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92889,7 +92925,7 @@
       "outcome": null
     },
     {
-      "id": "6c8298b3",
+      "id": "45983fce",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92916,7 +92952,7 @@
       "outcome": null
     },
     {
-      "id": "c269079f",
+      "id": "d0f8dcda",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92943,7 +92979,7 @@
       "outcome": null
     },
     {
-      "id": "af9ee9ea",
+      "id": "47f3415c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92969,7 +93005,7 @@
       "outcome": null
     },
     {
-      "id": "480fab11",
+      "id": "7a63c9d6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92996,7 +93032,7 @@
       "outcome": null
     },
     {
-      "id": "a9221b41",
+      "id": "7ec5b639",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93023,7 +93059,7 @@
       "outcome": null
     },
     {
-      "id": "8a3ddc0c",
+      "id": "e640f52f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93050,7 +93086,7 @@
       "outcome": null
     },
     {
-      "id": "b97ec6a6",
+      "id": "c8641081",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93077,7 +93113,7 @@
       "outcome": null
     },
     {
-      "id": "26a32c49",
+      "id": "9c9cb075",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93104,7 +93140,7 @@
       "outcome": null
     },
     {
-      "id": "05fcf1f3",
+      "id": "3e578f65",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93131,7 +93167,7 @@
       "outcome": null
     },
     {
-      "id": "4251595d",
+      "id": "f4a8c56f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93158,7 +93194,7 @@
       "outcome": null
     },
     {
-      "id": "5932ae70",
+      "id": "c4eea11b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93185,7 +93221,7 @@
       "outcome": null
     },
     {
-      "id": "07a3e528",
+      "id": "da935e4c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93212,7 +93248,7 @@
       "outcome": null
     },
     {
-      "id": "0e54d6dc",
+      "id": "ba8cab7e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93239,7 +93275,7 @@
       "outcome": null
     },
     {
-      "id": "ec910629",
+      "id": "d6478f81",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93266,7 +93302,7 @@
       "outcome": null
     },
     {
-      "id": "d8516a6d",
+      "id": "7bd50aa3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93293,7 +93329,7 @@
       "outcome": null
     },
     {
-      "id": "f151dd84",
+      "id": "e31f597b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93320,7 +93356,7 @@
       "outcome": null
     },
     {
-      "id": "2cea41ac",
+      "id": "b9ce0c73",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93347,7 +93383,7 @@
       "outcome": null
     },
     {
-      "id": "08690d19",
+      "id": "5ecd153f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93374,7 +93410,7 @@
       "outcome": null
     },
     {
-      "id": "ec0b255a",
+      "id": "0e710974",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93401,7 +93437,7 @@
       "outcome": null
     },
     {
-      "id": "97d46268",
+      "id": "21e0c64a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93428,7 +93464,7 @@
       "outcome": null
     },
     {
-      "id": "9fc02d21",
+      "id": "c2a82bd3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93455,7 +93491,7 @@
       "outcome": null
     },
     {
-      "id": "773cdd7d",
+      "id": "bb8539a6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93482,7 +93518,7 @@
       "outcome": null
     },
     {
-      "id": "ffcf68d7",
+      "id": "72030045",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93509,7 +93545,7 @@
       "outcome": null
     },
     {
-      "id": "e3cb8554",
+      "id": "53c17f5a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93536,7 +93572,7 @@
       "outcome": null
     },
     {
-      "id": "56a7a449",
+      "id": "ad4c1f04",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93563,7 +93599,7 @@
       "outcome": null
     },
     {
-      "id": "a6f0186f",
+      "id": "4269b0ba",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93590,7 +93626,7 @@
       "outcome": null
     },
     {
-      "id": "742a2386",
+      "id": "53bb75b3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93617,7 +93653,7 @@
       "outcome": null
     },
     {
-      "id": "281e4050",
+      "id": "705be7ca",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93644,7 +93680,7 @@
       "outcome": null
     },
     {
-      "id": "dddc242f",
+      "id": "ed248033",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93671,7 +93707,7 @@
       "outcome": null
     },
     {
-      "id": "6b89ff70",
+      "id": "a5eeeecc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93698,7 +93734,7 @@
       "outcome": null
     },
     {
-      "id": "4c9bb966",
+      "id": "0e247f17",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93725,7 +93761,7 @@
       "outcome": null
     },
     {
-      "id": "264d880c",
+      "id": "d034b3a9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93735,10 +93771,10 @@
       "market": "spreads",
       "side": "away",
       "line": 3.5,
-      "book": "pinnacle",
+      "book": "matchbook",
       "p_true": 0.6298,
       "p_mkt": 0.5046,
-      "edge": 0.2129,
+      "edge": 0.224,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -93752,7 +93788,7 @@
       "outcome": null
     },
     {
-      "id": "2766d38d",
+      "id": "0a16e3c6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93779,7 +93815,7 @@
       "outcome": null
     },
     {
-      "id": "43a7b8ea",
+      "id": "5deeb426",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93806,7 +93842,7 @@
       "outcome": null
     },
     {
-      "id": "f51c86dd",
+      "id": "e6c75d53",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93833,7 +93869,7 @@
       "outcome": null
     },
     {
-      "id": "b936c4c0",
+      "id": "1ec6d21e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93860,7 +93896,7 @@
       "outcome": null
     },
     {
-      "id": "f22949a1",
+      "id": "39586bc7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93887,7 +93923,7 @@
       "outcome": null
     },
     {
-      "id": "a05acf64",
+      "id": "79a7cb0c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93914,7 +93950,7 @@
       "outcome": null
     },
     {
-      "id": "ddab04e9",
+      "id": "81ffa0e8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93941,7 +93977,7 @@
       "outcome": null
     },
     {
-      "id": "ecc9a348",
+      "id": "09753c3e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93968,7 +94004,7 @@
       "outcome": null
     },
     {
-      "id": "d80cecc6",
+      "id": "030a25e7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -93995,7 +94031,7 @@
       "outcome": null
     },
     {
-      "id": "01123548",
+      "id": "a203ec6f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94022,7 +94058,7 @@
       "outcome": null
     },
     {
-      "id": "a119d6b2",
+      "id": "f567ed49",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94049,7 +94085,7 @@
       "outcome": null
     },
     {
-      "id": "b829ad18",
+      "id": "e34f38d8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94076,7 +94112,7 @@
       "outcome": null
     },
     {
-      "id": "5dff5ad7",
+      "id": "3b63e011",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94085,25 +94121,25 @@
       "home_team": "NYG",
       "market": "totals",
       "side": "over",
-      "line": 47.5,
+      "line": 48.5,
       "book": "matchbook",
-      "p_true": 0.659,
+      "p_true": 0.6248,
       "p_mkt": 0.5179,
-      "edge": 0.2474,
+      "edge": 0.2434,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.141",
+        "|p_true-p_mkt|=0.107",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1411,
+      "magnitude": 0.1069,
       "outcome": null
     },
     {
-      "id": "9c29b2f4",
+      "id": "491501cc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94130,7 +94166,7 @@
       "outcome": null
     },
     {
-      "id": "344c2e2c",
+      "id": "ff70cc30",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94157,7 +94193,7 @@
       "outcome": null
     },
     {
-      "id": "254e9533",
+      "id": "fe284e6b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94183,7 +94219,7 @@
       "outcome": null
     },
     {
-      "id": "3a9af27e",
+      "id": "3f5728aa",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94210,7 +94246,7 @@
       "outcome": null
     },
     {
-      "id": "9a9bde43",
+      "id": "391772de",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94237,7 +94273,7 @@
       "outcome": null
     },
     {
-      "id": "77d4f7a2",
+      "id": "f0fcc424",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94264,7 +94300,7 @@
       "outcome": null
     },
     {
-      "id": "eeb28d32",
+      "id": "d98b9104",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94291,7 +94327,7 @@
       "outcome": null
     },
     {
-      "id": "5533729e",
+      "id": "960d9b8b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94317,7 +94353,7 @@
       "outcome": null
     },
     {
-      "id": "37fd2cf9",
+      "id": "27c39429",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94344,7 +94380,7 @@
       "outcome": null
     },
     {
-      "id": "c4bc41df",
+      "id": "f9532351",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94371,7 +94407,7 @@
       "outcome": null
     },
     {
-      "id": "daaaa07a",
+      "id": "e282023e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94398,7 +94434,7 @@
       "outcome": null
     },
     {
-      "id": "cc82d45c",
+      "id": "1a8e85b2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94425,7 +94461,7 @@
       "outcome": null
     },
     {
-      "id": "af28f671",
+      "id": "2c36cd12",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94452,7 +94488,7 @@
       "outcome": null
     },
     {
-      "id": "418d81a6",
+      "id": "d90544de",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94479,7 +94515,7 @@
       "outcome": null
     },
     {
-      "id": "4efb2932",
+      "id": "b5789a80",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94506,7 +94542,7 @@
       "outcome": null
     },
     {
-      "id": "57ba3377",
+      "id": "936dba1c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94533,7 +94569,7 @@
       "outcome": null
     },
     {
-      "id": "1ba21e6a",
+      "id": "68e2b6b5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94560,7 +94596,7 @@
       "outcome": null
     },
     {
-      "id": "04da89b8",
+      "id": "0c6ce690",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94587,7 +94623,7 @@
       "outcome": null
     },
     {
-      "id": "903171b5",
+      "id": "13c3868d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94614,7 +94650,7 @@
       "outcome": null
     },
     {
-      "id": "ae0be8a3",
+      "id": "a7dab3bc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94641,7 +94677,7 @@
       "outcome": null
     },
     {
-      "id": "a13ee6e2",
+      "id": "e59fb789",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94668,7 +94704,7 @@
       "outcome": null
     },
     {
-      "id": "847a3b51",
+      "id": "f09ba3f6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94695,7 +94731,7 @@
       "outcome": null
     },
     {
-      "id": "31349c05",
+      "id": "47b70bc9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94705,10 +94741,10 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "unibet_se",
+      "book": "fanduel",
       "p_true": 0.6276,
       "p_mkt": 0.5355,
-      "edge": 0.1733,
+      "edge": 0.1595,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
@@ -94721,7 +94757,7 @@
       "outcome": null
     },
     {
-      "id": "4c973099",
+      "id": "39c96115",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94748,7 +94784,7 @@
       "outcome": null
     },
     {
-      "id": "0fec1fb7",
+      "id": "4ebe40cf",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94775,7 +94811,7 @@
       "outcome": null
     },
     {
-      "id": "68cdbcd7",
+      "id": "edc77737",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94802,7 +94838,7 @@
       "outcome": null
     },
     {
-      "id": "3d8edc72",
+      "id": "f4ad0328",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94829,7 +94865,7 @@
       "outcome": null
     },
     {
-      "id": "9c65ddfc",
+      "id": "53e8ce6b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94856,7 +94892,7 @@
       "outcome": null
     },
     {
-      "id": "12757a3e",
+      "id": "7e6b8e3f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94883,7 +94919,7 @@
       "outcome": null
     },
     {
-      "id": "798bfd3f",
+      "id": "76668cb4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94910,7 +94946,7 @@
       "outcome": null
     },
     {
-      "id": "b643fc74",
+      "id": "6d75eab7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94937,7 +94973,7 @@
       "outcome": null
     },
     {
-      "id": "7f3a56be",
+      "id": "e9ec35e4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94964,7 +95000,7 @@
       "outcome": null
     },
     {
-      "id": "92e82d15",
+      "id": "ac407d5c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94991,7 +95027,7 @@
       "outcome": null
     },
     {
-      "id": "0b2ec217",
+      "id": "56b1fa76",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95017,7 +95053,7 @@
       "outcome": null
     },
     {
-      "id": "93937d21",
+      "id": "00f02b63",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95044,7 +95080,7 @@
       "outcome": null
     },
     {
-      "id": "48c3044b",
+      "id": "00fd495a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95071,7 +95107,7 @@
       "outcome": null
     },
     {
-      "id": "207a88ef",
+      "id": "b6c93409",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95098,7 +95134,7 @@
       "outcome": null
     },
     {
-      "id": "ca5362dd",
+      "id": "524aa684",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95125,7 +95161,7 @@
       "outcome": null
     },
     {
-      "id": "f2654765",
+      "id": "9cdb8309",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95152,7 +95188,7 @@
       "outcome": null
     },
     {
-      "id": "1bdda388",
+      "id": "8b2fb820",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95162,7 +95198,7 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "everygame",
+      "book": "betanysports",
       "p_true": 0.496,
       "p_mkt": 0.396,
       "edge": 0.2648,
@@ -95178,7 +95214,7 @@
       "outcome": null
     },
     {
-      "id": "912cf681",
+      "id": "be204cf9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95205,7 +95241,7 @@
       "outcome": null
     },
     {
-      "id": "9120b200",
+      "id": "ae50d7e5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95232,7 +95268,7 @@
       "outcome": null
     },
     {
-      "id": "27e1d302",
+      "id": "f8e0935f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95259,7 +95295,7 @@
       "outcome": null
     },
     {
-      "id": "6bcf6cb0",
+      "id": "211ffb6a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95286,7 +95322,7 @@
       "outcome": null
     },
     {
-      "id": "84747a5b",
+      "id": "3f5923e6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95312,7 +95348,7 @@
       "outcome": null
     },
     {
-      "id": "26df5918",
+      "id": "1ad0881c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95339,7 +95375,7 @@
       "outcome": null
     },
     {
-      "id": "34636f45",
+      "id": "ce3e2956",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95366,7 +95402,7 @@
       "outcome": null
     },
     {
-      "id": "f4019771",
+      "id": "9527f18f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95393,7 +95429,7 @@
       "outcome": null
     },
     {
-      "id": "d9c5a2f6",
+      "id": "63fea766",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95420,7 +95456,7 @@
       "outcome": null
     },
     {
-      "id": "9d328f05",
+      "id": "4fb16169",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95447,7 +95483,7 @@
       "outcome": null
     },
     {
-      "id": "632a4bb2",
+      "id": "4e310fe6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95474,7 +95510,7 @@
       "outcome": null
     },
     {
-      "id": "141a0e33",
+      "id": "f5041cfb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95487,7 +95523,7 @@
       "book": "betfair_ex_eu",
       "p_true": 0.7436,
       "p_mkt": 0.6106,
-      "edge": 0.197,
+      "edge": 0.2055,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -95501,7 +95537,7 @@
       "outcome": null
     },
     {
-      "id": "0e350eea",
+      "id": "558ec63e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95528,7 +95564,7 @@
       "outcome": null
     },
     {
-      "id": "d127be55",
+      "id": "f3609786",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95555,7 +95591,7 @@
       "outcome": null
     },
     {
-      "id": "3723e2e6",
+      "id": "3dd7fb25",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95582,7 +95618,7 @@
       "outcome": null
     },
     {
-      "id": "77e5e0d9",
+      "id": "f96a5388",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95592,24 +95628,24 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "draftkings",
+      "book": "betfair_ex_eu",
       "p_true": 0.7947,
-      "p_mkt": 0.675,
-      "edge": 0.1592,
+      "p_mkt": 0.6695,
+      "edge": 0.1609,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.120",
+        "|p_true-p_mkt|=0.125",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1197,
+      "magnitude": 0.1252,
       "outcome": null
     },
     {
-      "id": "f08c4fa0",
+      "id": "b3c1ce0e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95635,7 +95671,7 @@
       "outcome": null
     },
     {
-      "id": "bad30a2f",
+      "id": "26a85a54",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95662,7 +95698,7 @@
       "outcome": null
     },
     {
-      "id": "c6464be0",
+      "id": "36f4ef68",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95689,7 +95725,7 @@
       "outcome": null
     },
     {
-      "id": "236081a2",
+      "id": "4d04191b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95716,7 +95752,7 @@
       "outcome": null
     },
     {
-      "id": "37416884",
+      "id": "cd7c43ed",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95743,7 +95779,7 @@
       "outcome": null
     },
     {
-      "id": "a6003b23",
+      "id": "11eafad6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95770,7 +95806,7 @@
       "outcome": null
     },
     {
-      "id": "5817e8b4",
+      "id": "4b8ffe47",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95797,7 +95833,7 @@
       "outcome": null
     },
     {
-      "id": "1b880a44",
+      "id": "4832b0ee",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95824,7 +95860,7 @@
       "outcome": null
     },
     {
-      "id": "922c0c15",
+      "id": "af376bb7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95851,7 +95887,7 @@
       "outcome": null
     },
     {
-      "id": "a299cf7b",
+      "id": "14367697",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95878,7 +95914,7 @@
       "outcome": null
     },
     {
-      "id": "cdcc3a3e",
+      "id": "1f0c2f4c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95905,7 +95941,7 @@
       "outcome": null
     },
     {
-      "id": "58ef6638",
+      "id": "76fd19f0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95931,7 +95967,7 @@
       "outcome": null
     },
     {
-      "id": "3fa2b51e",
+      "id": "1fa4bf23",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95958,7 +95994,7 @@
       "outcome": null
     },
     {
-      "id": "19b37b1a",
+      "id": "14f715ff",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95985,7 +96021,7 @@
       "outcome": null
     },
     {
-      "id": "f5c7f83e",
+      "id": "df073b6a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96012,7 +96048,7 @@
       "outcome": null
     },
     {
-      "id": "bfb838f4",
+      "id": "3db359c5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96039,7 +96075,7 @@
       "outcome": null
     },
     {
-      "id": "ee740e8e",
+      "id": "821a3bf3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96066,7 +96102,7 @@
       "outcome": null
     },
     {
-      "id": "ed843725",
+      "id": "d0dd9b39",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96093,7 +96129,7 @@
       "outcome": null
     },
     {
-      "id": "ed4c0adf",
+      "id": "5b73290f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96120,7 +96156,7 @@
       "outcome": null
     },
     {
-      "id": "1487de97",
+      "id": "3523a875",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96146,7 +96182,7 @@
       "outcome": null
     },
     {
-      "id": "10123cb5",
+      "id": "d6db6983",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96173,7 +96209,7 @@
       "outcome": null
     },
     {
-      "id": "4d406fa0",
+      "id": "394707cc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96199,7 +96235,7 @@
       "outcome": null
     },
     {
-      "id": "a923029c",
+      "id": "05071782",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96225,7 +96261,7 @@
       "outcome": null
     },
     {
-      "id": "cc05382f",
+      "id": "44af8bb0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96252,7 +96288,7 @@
       "outcome": null
     },
     {
-      "id": "1fbea455",
+      "id": "2c90cd19",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96279,7 +96315,7 @@
       "outcome": null
     },
     {
-      "id": "87539276",
+      "id": "556b80fa",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96305,7 +96341,7 @@
       "outcome": null
     },
     {
-      "id": "f1887188",
+      "id": "f10e3936",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96332,7 +96368,7 @@
       "outcome": null
     },
     {
-      "id": "06dedf8d",
+      "id": "b92db481",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96386,7 +96422,7 @@
       "outcome": null
     },
     {
-      "id": "54041277",
+      "id": "1748161b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96413,7 +96449,7 @@
       "outcome": null
     },
     {
-      "id": "98057bdc",
+      "id": "cce8b37f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96440,7 +96476,7 @@
       "outcome": null
     },
     {
-      "id": "b3a97b46",
+      "id": "21320c00",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96467,7 +96503,7 @@
       "outcome": null
     },
     {
-      "id": "6f786498",
+      "id": "0bdab24a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96494,7 +96530,7 @@
       "outcome": null
     },
     {
-      "id": "9dd14dd9",
+      "id": "0ef37a50",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96521,7 +96557,7 @@
       "outcome": null
     },
     {
-      "id": "ad483e7c",
+      "id": "e127824d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96548,7 +96584,7 @@
       "outcome": null
     },
     {
-      "id": "aa7d40c4",
+      "id": "ae19b84e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96575,7 +96611,7 @@
       "outcome": null
     },
     {
-      "id": "939ce8da",
+      "id": "b5c8ddf2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96601,7 +96637,7 @@
       "outcome": null
     },
     {
-      "id": "84487ef4",
+      "id": "edcecea1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96628,7 +96664,7 @@
       "outcome": null
     },
     {
-      "id": "d153c4dd",
+      "id": "c19fc185",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96655,7 +96691,7 @@
       "outcome": null
     },
     {
-      "id": "825dd4e8",
+      "id": "56a68112",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96682,7 +96718,7 @@
       "outcome": null
     },
     {
-      "id": "193a8d80",
+      "id": "c66546e9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96694,7 +96730,7 @@
       "line": 44.0,
       "book": "everygame",
       "p_true": 0.6272,
-      "p_mkt": 0.4866,
+      "p_mkt": 0.5067,
       "edge": 0.1974,
       "tier": "rejected",
       "direction": "model_higher",
@@ -96702,14 +96738,14 @@
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.141",
+        "|p_true-p_mkt|=0.120",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1406,
+      "magnitude": 0.1205,
       "outcome": null
     },
     {
-      "id": "b860e907",
+      "id": "c0c3b557",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96736,7 +96772,7 @@
       "outcome": null
     },
     {
-      "id": "d717eb1f",
+      "id": "ea2c2164",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96763,7 +96799,7 @@
       "outcome": null
     },
     {
-      "id": "71f5795a",
+      "id": "8a7e4bad",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96790,7 +96826,7 @@
       "outcome": null
     },
     {
-      "id": "4474b30e",
+      "id": "18b688b6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96817,7 +96853,7 @@
       "outcome": null
     },
     {
-      "id": "6c3def97",
+      "id": "838d3c57",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96844,7 +96880,7 @@
       "outcome": null
     },
     {
-      "id": "59526773",
+      "id": "e7e3ab24",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96871,7 +96907,7 @@
       "outcome": null
     },
     {
-      "id": "999849a8",
+      "id": "c8518690",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96898,7 +96934,7 @@
       "outcome": null
     },
     {
-      "id": "f2b1b453",
+      "id": "9cde9cca",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96925,7 +96961,7 @@
       "outcome": null
     },
     {
-      "id": "07fc219c",
+      "id": "0ca2b5ff",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96951,7 +96987,7 @@
       "outcome": null
     },
     {
-      "id": "e4a18b31",
+      "id": "299e58e9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96977,7 +97013,7 @@
       "outcome": null
     },
     {
-      "id": "7be549f2",
+      "id": "48b9c4d7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97004,7 +97040,7 @@
       "outcome": null
     },
     {
-      "id": "57cab8c1",
+      "id": "9ef04001",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97014,9 +97050,9 @@
       "market": "spreads",
       "side": "home",
       "line": -4.5,
-      "book": "coolbet",
+      "book": "pinnacle",
       "p_true": 0.5998,
-      "p_mkt": 0.5069,
+      "p_mkt": 0.4977,
       "edge": 0.171,
       "tier": "play",
       "direction": "model_higher",
@@ -97024,14 +97060,14 @@
       "category_manual": null,
       "confidence": 0.5,
       "evidence": [
-        "|p_true-p_mkt|=0.093",
+        "|p_true-p_mkt|=0.102",
         "sharp money on our side vs public tickets"
       ],
-      "magnitude": 0.0929,
+      "magnitude": 0.1021,
       "outcome": null
     },
     {
-      "id": "7132392c",
+      "id": "f0513e1c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97058,7 +97094,7 @@
       "outcome": null
     },
     {
-      "id": "111e975d",
+      "id": "e1ae57d1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97085,7 +97121,7 @@
       "outcome": null
     },
     {
-      "id": "b034a2dc",
+      "id": "0fb44be8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97112,7 +97148,7 @@
       "outcome": null
     },
     {
-      "id": "512ac628",
+      "id": "f8530cf1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97139,7 +97175,7 @@
       "outcome": null
     },
     {
-      "id": "5c40f2fa",
+      "id": "d0ea818a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97166,7 +97202,7 @@
       "outcome": null
     },
     {
-      "id": "4ed70205",
+      "id": "7aa90779",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97193,7 +97229,7 @@
       "outcome": null
     },
     {
-      "id": "c7e55770",
+      "id": "7f7a94ee",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97219,7 +97255,7 @@
       "outcome": null
     },
     {
-      "id": "d0f989db",
+      "id": "07bf314b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97246,7 +97282,7 @@
       "outcome": null
     },
     {
-      "id": "645c2135",
+      "id": "e8c8fbd1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97273,7 +97309,7 @@
       "outcome": null
     },
     {
-      "id": "7e5f29e0",
+      "id": "094d4261",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97300,7 +97336,7 @@
       "outcome": null
     },
     {
-      "id": "e83dda07",
+      "id": "fb8caa92",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97327,7 +97363,7 @@
       "outcome": null
     },
     {
-      "id": "eb08c7c5",
+      "id": "d7acb963",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97354,7 +97390,7 @@
       "outcome": null
     },
     {
-      "id": "914f9367",
+      "id": "b9df03bd",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97381,7 +97417,7 @@
       "outcome": null
     },
     {
-      "id": "27e4fe67",
+      "id": "76a44077",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97408,7 +97444,7 @@
       "outcome": null
     },
     {
-      "id": "bef20c5b",
+      "id": "b4585935",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97435,7 +97471,7 @@
       "outcome": null
     },
     {
-      "id": "e97c2744",
+      "id": "f8c8c319",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97461,7 +97497,7 @@
       "outcome": null
     },
     {
-      "id": "4c94a630",
+      "id": "2688cebe",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97487,7 +97523,7 @@
       "outcome": null
     },
     {
-      "id": "d5886c05",
+      "id": "8c3d03ca",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97514,7 +97550,7 @@
       "outcome": null
     },
     {
-      "id": "7cf833c7",
+      "id": "4b04fd9f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97541,7 +97577,7 @@
       "outcome": null
     },
     {
-      "id": "20c72226",
+      "id": "52ad60bb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97567,7 +97603,7 @@
       "outcome": null
     },
     {
-      "id": "69d0094a",
+      "id": "dc888ee3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97594,7 +97630,7 @@
       "outcome": null
     },
     {
-      "id": "233d081d",
+      "id": "9a385042",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97620,7 +97656,7 @@
       "outcome": null
     },
     {
-      "id": "a6e296a6",
+      "id": "2f306def",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97646,7 +97682,7 @@
       "outcome": null
     },
     {
-      "id": "65bc3d77",
+      "id": "488199c0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97656,10 +97692,10 @@
       "market": "totals",
       "side": "over",
       "line": 47.5,
-      "book": "gtbets",
+      "book": "onexbet",
       "p_true": 0.598,
       "p_mkt": 0.5,
-      "edge": 0.1466,
+      "edge": 0.1416,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
@@ -97672,7 +97708,7 @@
       "outcome": null
     },
     {
-      "id": "e5089215",
+      "id": "72bee33d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97698,7 +97734,7 @@
       "outcome": null
     },
     {
-      "id": "9358f8d8",
+      "id": "4469fd3a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97724,7 +97760,7 @@
       "outcome": null
     },
     {
-      "id": "00920019",
+      "id": "f9087678",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97750,7 +97786,7 @@
       "outcome": null
     },
     {
-      "id": "b3f48608",
+      "id": "2d3ba346",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97776,7 +97812,7 @@
       "outcome": null
     },
     {
-      "id": "ed915517",
+      "id": "f720f0ec",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97828,7 +97864,7 @@
       "outcome": null
     },
     {
-      "id": "a750bfab",
+      "id": "93639b1d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97855,7 +97891,7 @@
       "outcome": null
     },
     {
-      "id": "588bb3f4",
+      "id": "9c91b344",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97882,7 +97918,7 @@
       "outcome": null
     },
     {
-      "id": "5232e1a3",
+      "id": "5dcb151e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97908,7 +97944,7 @@
       "outcome": null
     },
     {
-      "id": "5b805280",
+      "id": "d5b6a738",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97934,7 +97970,7 @@
       "outcome": null
     },
     {
-      "id": "514f7109",
+      "id": "cfe5d6ef",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97960,7 +97996,7 @@
       "outcome": null
     },
     {
-      "id": "10660045",
+      "id": "d5d68f50",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97987,7 +98023,7 @@
       "outcome": null
     },
     {
-      "id": "4a3a178d",
+      "id": "32a45d55",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98013,7 +98049,7 @@
       "outcome": null
     },
     {
-      "id": "f8dd09a2",
+      "id": "661b3521",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98039,7 +98075,7 @@
       "outcome": null
     },
     {
-      "id": "61eaeaf4",
+      "id": "54f83e54",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98066,7 +98102,7 @@
       "outcome": null
     },
     {
-      "id": "5f7123df",
+      "id": "0d01e47f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98093,7 +98129,7 @@
       "outcome": null
     },
     {
-      "id": "46f7603e",
+      "id": "9c6941ba",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98119,7 +98155,7 @@
       "outcome": null
     },
     {
-      "id": "9e08349d",
+      "id": "37b4864b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98145,7 +98181,7 @@
       "outcome": null
     },
     {
-      "id": "9a8390ce",
+      "id": "01797554",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98171,7 +98207,7 @@
       "outcome": null
     },
     {
-      "id": "d4f29ce0",
+      "id": "99e676a5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98197,7 +98233,7 @@
       "outcome": null
     },
     {
-      "id": "d028c5c0",
+      "id": "53643424",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98223,7 +98259,7 @@
       "outcome": null
     },
     {
-      "id": "1db47246",
+      "id": "7153225b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98249,7 +98285,7 @@
       "outcome": null
     },
     {
-      "id": "2336d621",
+      "id": "9bb83d75",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98276,7 +98312,7 @@
       "outcome": null
     },
     {
-      "id": "357d633e",
+      "id": "7b8faf3b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98303,7 +98339,7 @@
       "outcome": null
     },
     {
-      "id": "52cfd7ef",
+      "id": "8d3bc295",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98330,7 +98366,7 @@
       "outcome": null
     },
     {
-      "id": "d88ae1a3",
+      "id": "510ebabf",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98356,7 +98392,7 @@
       "outcome": null
     },
     {
-      "id": "473686be",
+      "id": "3510efca",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98382,7 +98418,7 @@
       "outcome": null
     },
     {
-      "id": "bd5ef108",
+      "id": "3c769ef1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98392,10 +98428,10 @@
       "market": "spreads",
       "side": "home",
       "line": 5.5,
-      "book": "draftkings",
+      "book": "gtbets",
       "p_true": 0.6378,
       "p_mkt": 0.5,
-      "edge": 0.2176,
+      "edge": 0.2229,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -98409,7 +98445,7 @@
       "outcome": null
     },
     {
-      "id": "68ee24aa",
+      "id": "83c0b959",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98435,7 +98471,7 @@
       "outcome": null
     },
     {
-      "id": "d1b60b24",
+      "id": "85e929b9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98461,7 +98497,7 @@
       "outcome": null
     },
     {
-      "id": "a23fed1c",
+      "id": "53892599",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98487,7 +98523,7 @@
       "outcome": null
     },
     {
-      "id": "c8202970",
+      "id": "a00bbca6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98513,7 +98549,7 @@
       "outcome": null
     },
     {
-      "id": "bc90e232",
+      "id": "6f01c4f1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98539,7 +98575,7 @@
       "outcome": null
     },
     {
-      "id": "3b8ab3d4",
+      "id": "1f83d8fc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98566,7 +98602,7 @@
       "outcome": null
     },
     {
-      "id": "56914a85",
+      "id": "f73f8c05",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98592,7 +98628,7 @@
       "outcome": null
     },
     {
-      "id": "89a10df3",
+      "id": "44f5ecb1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98618,7 +98654,7 @@
       "outcome": null
     },
     {
-      "id": "bfd0b4b8",
+      "id": "e023794e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98645,7 +98681,7 @@
       "outcome": null
     },
     {
-      "id": "3cdcc2c2",
+      "id": "e6f5faed",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98671,7 +98707,7 @@
       "outcome": null
     },
     {
-      "id": "595e832d",
+      "id": "c7810ddb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98698,7 +98734,7 @@
       "outcome": null
     },
     {
-      "id": "7be70dfb",
+      "id": "0d984980",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98724,7 +98760,7 @@
       "outcome": null
     },
     {
-      "id": "54426d03",
+      "id": "1c09f3be",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98750,7 +98786,7 @@
       "outcome": null
     },
     {
-      "id": "60a0018c",
+      "id": "57ccea2d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98776,7 +98812,7 @@
       "outcome": null
     },
     {
-      "id": "567daa24",
+      "id": "0805121b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98802,7 +98838,7 @@
       "outcome": null
     },
     {
-      "id": "758efe06",
+      "id": "2e248e7e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98828,7 +98864,7 @@
       "outcome": null
     },
     {
-      "id": "225e76e2",
+      "id": "1855adfa",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98855,7 +98891,7 @@
       "outcome": null
     },
     {
-      "id": "4db768b1",
+      "id": "5940a758",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98882,7 +98918,7 @@
       "outcome": null
     },
     {
-      "id": "554041f3",
+      "id": "1ca8b1af",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98908,7 +98944,7 @@
       "outcome": null
     },
     {
-      "id": "f0ba85db",
+      "id": "53360ca0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98935,7 +98971,7 @@
       "outcome": null
     },
     {
-      "id": "13c0374d",
+      "id": "c03ff343",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98962,7 +98998,7 @@
       "outcome": null
     },
     {
-      "id": "52da80cd",
+      "id": "5b3148b3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -98988,7 +99024,7 @@
       "outcome": null
     },
     {
-      "id": "d2815720",
+      "id": "4459e5cc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99015,7 +99051,7 @@
       "outcome": null
     },
     {
-      "id": "a3da2e6a",
+      "id": "00695623",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99041,7 +99077,7 @@
       "outcome": null
     },
     {
-      "id": "5d218c12",
+      "id": "dd2be599",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99067,7 +99103,7 @@
       "outcome": null
     },
     {
-      "id": "c8ca3f39",
+      "id": "de9fa622",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99119,7 +99155,7 @@
       "outcome": null
     },
     {
-      "id": "7c284cf6",
+      "id": "0432d9b7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99145,7 +99181,7 @@
       "outcome": null
     },
     {
-      "id": "f0211b7a",
+      "id": "12b0156e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99171,7 +99207,7 @@
       "outcome": null
     },
     {
-      "id": "6d893091",
+      "id": "e6c58ffe",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99198,7 +99234,7 @@
       "outcome": null
     },
     {
-      "id": "11bc98f8",
+      "id": "b09c49d4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99224,7 +99260,7 @@
       "outcome": null
     },
     {
-      "id": "eb520046",
+      "id": "3593108b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99250,7 +99286,7 @@
       "outcome": null
     },
     {
-      "id": "a05efaac",
+      "id": "2cdb5cbf",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99276,7 +99312,7 @@
       "outcome": null
     },
     {
-      "id": "a9cf8698",
+      "id": "784d774b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99303,7 +99339,7 @@
       "outcome": null
     },
     {
-      "id": "3f4dc2aa",
+      "id": "c71b2a4d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99329,7 +99365,7 @@
       "outcome": null
     },
     {
-      "id": "165a3095",
+      "id": "67e242a7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99355,7 +99391,7 @@
       "outcome": null
     },
     {
-      "id": "dae94c4b",
+      "id": "5ebc8cf1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99381,7 +99417,7 @@
       "outcome": null
     },
     {
-      "id": "9ab6ed0a",
+      "id": "42c7b1c6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99407,7 +99443,7 @@
       "outcome": null
     },
     {
-      "id": "0c994908",
+      "id": "5ea41f3c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99434,7 +99470,7 @@
       "outcome": null
     },
     {
-      "id": "5c01ab43",
+      "id": "1af4db50",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99461,7 +99497,7 @@
       "outcome": null
     },
     {
-      "id": "71aeda7b",
+      "id": "dec403d6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99487,7 +99523,7 @@
       "outcome": null
     },
     {
-      "id": "3f012c55",
+      "id": "91d115ef",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99513,7 +99549,7 @@
       "outcome": null
     },
     {
-      "id": "7c27b518",
+      "id": "519ab66f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99540,7 +99576,7 @@
       "outcome": null
     },
     {
-      "id": "11154e35",
+      "id": "dd2a363f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99567,7 +99603,7 @@
       "outcome": null
     },
     {
-      "id": "952bbe77",
+      "id": "43cb59e4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99577,24 +99613,23 @@
       "market": "spreads",
       "side": "away",
       "line": 9.5,
-      "book": "onexbet",
+      "book": "fanduel",
       "p_true": 0.5772,
-      "p_mkt": 0.4737,
-      "edge": 0.1544,
+      "p_mkt": 0.485,
+      "edge": 0.1322,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "model_deficiency",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.35,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.104",
-        "large edge, no market confirmation"
+        "|p_true-p_mkt|=0.092"
       ],
-      "magnitude": 0.1035,
+      "magnitude": 0.0922,
       "outcome": null
     },
     {
-      "id": "61f5436f",
+      "id": "09c1eb67",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99620,7 +99655,7 @@
       "outcome": null
     },
     {
-      "id": "79817cea",
+      "id": "53958733",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99646,7 +99681,7 @@
       "outcome": null
     },
     {
-      "id": "78b4d193",
+      "id": "4d31cf9c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99673,7 +99708,7 @@
       "outcome": null
     },
     {
-      "id": "32ef49cd",
+      "id": "50f27d1a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99699,7 +99734,7 @@
       "outcome": null
     },
     {
-      "id": "c8f04a0b",
+      "id": "95008a74",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99726,7 +99761,7 @@
       "outcome": null
     },
     {
-      "id": "d7ba27f5",
+      "id": "e6b008a3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99753,7 +99788,7 @@
       "outcome": null
     },
     {
-      "id": "3a3a4c1f",
+      "id": "a90ec8d1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99779,7 +99814,7 @@
       "outcome": null
     },
     {
-      "id": "46a4ea4a",
+      "id": "7cc8b8bd",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99805,7 +99840,7 @@
       "outcome": null
     },
     {
-      "id": "e63fe4db",
+      "id": "3f23cab2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99832,7 +99867,7 @@
       "outcome": null
     },
     {
-      "id": "a29644c6",
+      "id": "1447bae4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99858,7 +99893,7 @@
       "outcome": null
     },
     {
-      "id": "99fa1060",
+      "id": "65fccbda",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99884,7 +99919,7 @@
       "outcome": null
     },
     {
-      "id": "432e39ea",
+      "id": "e1e1f53b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99911,7 +99946,7 @@
       "outcome": null
     },
     {
-      "id": "d52206ba",
+      "id": "4af3676e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99938,7 +99973,7 @@
       "outcome": null
     },
     {
-      "id": "892856d1",
+      "id": "bfeae83d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99964,7 +99999,7 @@
       "outcome": null
     },
     {
-      "id": "40e53880",
+      "id": "d4f8272d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99977,7 +100012,7 @@
       "book": "matchbook",
       "p_true": 0.6082,
       "p_mkt": 0.5171,
-      "edge": 0.182,
+      "edge": 0.1713,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
@@ -99990,7 +100025,7 @@
       "outcome": null
     },
     {
-      "id": "065921ee",
+      "id": "0a2e30b2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100016,7 +100051,7 @@
       "outcome": null
     },
     {
-      "id": "cbe702bc",
+      "id": "32c84398",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100043,7 +100078,7 @@
       "outcome": null
     },
     {
-      "id": "ea50f97b",
+      "id": "98ef558a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100069,7 +100104,7 @@
       "outcome": null
     },
     {
-      "id": "d70bfa37",
+      "id": "a8cfffb0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100095,7 +100130,7 @@
       "outcome": null
     },
     {
-      "id": "779bec7e",
+      "id": "3b64443f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100121,7 +100156,7 @@
       "outcome": null
     },
     {
-      "id": "0a2343e4",
+      "id": "17c03bd4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100147,7 +100182,7 @@
       "outcome": null
     },
     {
-      "id": "56822bde",
+      "id": "6dd14452",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100174,7 +100209,7 @@
       "outcome": null
     },
     {
-      "id": "3d004f90",
+      "id": "0d1fc7ea",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100200,7 +100235,7 @@
       "outcome": null
     },
     {
-      "id": "4fe7c858",
+      "id": "1341b9c3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100226,7 +100261,7 @@
       "outcome": null
     },
     {
-      "id": "a2393841",
+      "id": "5a7b27b4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100252,7 +100287,7 @@
       "outcome": null
     },
     {
-      "id": "0015a316",
+      "id": "ef271b24",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100278,7 +100313,7 @@
       "outcome": null
     },
     {
-      "id": "b594800e",
+      "id": "39b119bf",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100304,7 +100339,7 @@
       "outcome": null
     },
     {
-      "id": "b0e5b94e",
+      "id": "0c3050bc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100330,7 +100365,7 @@
       "outcome": null
     },
     {
-      "id": "50ff2250",
+      "id": "10e6c192",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100357,7 +100392,7 @@
       "outcome": null
     },
     {
-      "id": "7e68e348",
+      "id": "5c448760",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100383,7 +100418,7 @@
       "outcome": null
     },
     {
-      "id": "1f293c7e",
+      "id": "19400af2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100410,7 +100445,7 @@
       "outcome": null
     },
     {
-      "id": "c615ebc8",
+      "id": "c5195893",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100436,7 +100471,7 @@
       "outcome": null
     },
     {
-      "id": "42f5a631",
+      "id": "ddced644",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100462,7 +100497,7 @@
       "outcome": null
     },
     {
-      "id": "fc10cd43",
+      "id": "2ae77a61",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100488,7 +100523,7 @@
       "outcome": null
     },
     {
-      "id": "9fbc325b",
+      "id": "c2ba1b82",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100514,7 +100549,7 @@
       "outcome": null
     },
     {
-      "id": "2dd78d03",
+      "id": "387efe47",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100541,7 +100576,7 @@
       "outcome": null
     },
     {
-      "id": "5d5df34e",
+      "id": "06347bcb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100567,7 +100602,7 @@
       "outcome": null
     },
     {
-      "id": "36ba72a9",
+      "id": "83f549f1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100593,7 +100628,7 @@
       "outcome": null
     },
     {
-      "id": "0e5fd6ff",
+      "id": "df34151d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100619,7 +100654,7 @@
       "outcome": null
     },
     {
-      "id": "9b2e2795",
+      "id": "6bd1e586",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100645,7 +100680,7 @@
       "outcome": null
     },
     {
-      "id": "af7a9744",
+      "id": "c08c1266",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100671,7 +100706,7 @@
       "outcome": null
     },
     {
-      "id": "b39131ee",
+      "id": "34031c4a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100724,7 +100759,7 @@
       "outcome": null
     },
     {
-      "id": "39155dbe",
+      "id": "136a9ec6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100750,7 +100785,7 @@
       "outcome": null
     },
     {
-      "id": "20b85132",
+      "id": "4692f917",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100802,7 +100837,7 @@
       "outcome": null
     },
     {
-      "id": "f1eb6dd3",
+      "id": "b176b8bd",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100829,7 +100864,7 @@
       "outcome": null
     },
     {
-      "id": "b8178e97",
+      "id": "b24e0cf4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100855,7 +100890,7 @@
       "outcome": null
     },
     {
-      "id": "35fc32a1",
+      "id": "6abe3f19",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100881,7 +100916,7 @@
       "outcome": null
     },
     {
-      "id": "d6f5d5e1",
+      "id": "7cc60268",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100907,7 +100942,7 @@
       "outcome": null
     },
     {
-      "id": "10532383",
+      "id": "cb915a54",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100933,7 +100968,7 @@
       "outcome": null
     },
     {
-      "id": "778c6d7f",
+      "id": "ffa97282",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100959,7 +100994,7 @@
       "outcome": null
     },
     {
-      "id": "e631e27e",
+      "id": "8bddbe54",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100985,7 +101020,7 @@
       "outcome": null
     },
     {
-      "id": "80743855",
+      "id": "ef098009",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101011,7 +101046,7 @@
       "outcome": null
     },
     {
-      "id": "be850638",
+      "id": "e5f8f773",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101037,7 +101072,7 @@
       "outcome": null
     },
     {
-      "id": "61b80323",
+      "id": "751145d8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101063,7 +101098,7 @@
       "outcome": null
     },
     {
-      "id": "e7ce3890",
+      "id": "0cec644b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101089,7 +101124,7 @@
       "outcome": null
     },
     {
-      "id": "7b089669",
+      "id": "d0a9098a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101115,7 +101150,7 @@
       "outcome": null
     },
     {
-      "id": "718c17af",
+      "id": "34308680",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101141,7 +101176,7 @@
       "outcome": null
     },
     {
-      "id": "0178e627",
+      "id": "db6b2ace",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101167,7 +101202,7 @@
       "outcome": null
     },
     {
-      "id": "04515946",
+      "id": "f4ae3994",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101193,7 +101228,7 @@
       "outcome": null
     },
     {
-      "id": "b16542da",
+      "id": "e6da922a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101219,7 +101254,7 @@
       "outcome": null
     },
     {
-      "id": "53929670",
+      "id": "9fccd999",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101271,7 +101306,7 @@
       "outcome": null
     },
     {
-      "id": "3b5428b4",
+      "id": "8d5a1bb4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101297,7 +101332,7 @@
       "outcome": null
     },
     {
-      "id": "445422d0",
+      "id": "df2853a1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101323,7 +101358,7 @@
       "outcome": null
     },
     {
-      "id": "f8341bf8",
+      "id": "bf728890",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101349,7 +101384,7 @@
       "outcome": null
     },
     {
-      "id": "9251faa8",
+      "id": "18f42255",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101401,7 +101436,7 @@
       "outcome": null
     },
     {
-      "id": "a976b6d5",
+      "id": "5b2ce7fd",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101428,7 +101463,7 @@
       "outcome": null
     },
     {
-      "id": "4e383017",
+      "id": "7a1b2468",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101454,7 +101489,7 @@
       "outcome": null
     },
     {
-      "id": "e66220d8",
+      "id": "0cef44c6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101480,7 +101515,7 @@
       "outcome": null
     },
     {
-      "id": "5fcd04e6",
+      "id": "31e609ee",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101506,7 +101541,7 @@
       "outcome": null
     },
     {
-      "id": "5c220331",
+      "id": "b3461392",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101533,7 +101568,7 @@
       "outcome": null
     },
     {
-      "id": "f01ec10b",
+      "id": "0e833f69",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101559,7 +101594,7 @@
       "outcome": null
     },
     {
-      "id": "04072819",
+      "id": "cbbbc73c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101586,7 +101621,7 @@
       "outcome": null
     },
     {
-      "id": "4eba4ed7",
+      "id": "39da37a5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101612,7 +101647,7 @@
       "outcome": null
     },
     {
-      "id": "ac0fb207",
+      "id": "66a0a6a6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101665,7 +101700,7 @@
       "outcome": null
     },
     {
-      "id": "dad633fe",
+      "id": "ad77f4b4",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101691,7 +101726,7 @@
       "outcome": null
     },
     {
-      "id": "195b7288",
+      "id": "8f15b4f0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101717,7 +101752,7 @@
       "outcome": null
     },
     {
-      "id": "b4590c81",
+      "id": "3d08ccde",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101744,7 +101779,7 @@
       "outcome": null
     },
     {
-      "id": "3562d57e",
+      "id": "fdf3efad",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101771,7 +101806,7 @@
       "outcome": null
     },
     {
-      "id": "205d1b38",
+      "id": "2f2b26a6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101797,7 +101832,7 @@
       "outcome": null
     },
     {
-      "id": "939c3543",
+      "id": "958a0126",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101823,7 +101858,7 @@
       "outcome": null
     },
     {
-      "id": "e024c8c4",
+      "id": "dd85ee56",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101849,7 +101884,7 @@
       "outcome": null
     },
     {
-      "id": "265cedab",
+      "id": "8baf53a8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101875,7 +101910,7 @@
       "outcome": null
     },
     {
-      "id": "132b45e2",
+      "id": "0dfd57b7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101901,7 +101936,7 @@
       "outcome": null
     },
     {
-      "id": "0fb8ac0a",
+      "id": "ae5acb22",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101927,7 +101962,7 @@
       "outcome": null
     },
     {
-      "id": "f34ed97c",
+      "id": "4efa3f5f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101954,7 +101989,7 @@
       "outcome": null
     },
     {
-      "id": "379d6639",
+      "id": "f97ee037",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101980,7 +102015,7 @@
       "outcome": null
     },
     {
-      "id": "5c49be58",
+      "id": "b69b42d0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102006,7 +102041,7 @@
       "outcome": null
     },
     {
-      "id": "94282cc0",
+      "id": "94fbed7a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102058,7 +102093,7 @@
       "outcome": null
     },
     {
-      "id": "d28b421a",
+      "id": "bfcf10c8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102084,7 +102119,7 @@
       "outcome": null
     },
     {
-      "id": "b5d55b75",
+      "id": "e88a4dbc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102110,7 +102145,7 @@
       "outcome": null
     },
     {
-      "id": "a8efdeba",
+      "id": "b967df40",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102136,7 +102171,7 @@
       "outcome": null
     },
     {
-      "id": "039b7667",
+      "id": "3b0fae36",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102162,7 +102197,7 @@
       "outcome": null
     },
     {
-      "id": "c65d618f",
+      "id": "f9ec46e2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102188,7 +102223,7 @@
       "outcome": null
     },
     {
-      "id": "555a699d",
+      "id": "acd6d0a1",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102214,7 +102249,7 @@
       "outcome": null
     },
     {
-      "id": "0b7bd90a",
+      "id": "2eb19d01",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102240,7 +102275,7 @@
       "outcome": null
     },
     {
-      "id": "eb07a6bb",
+      "id": "4a1caf6a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102266,7 +102301,7 @@
       "outcome": null
     },
     {
-      "id": "60e734aa",
+      "id": "0266def9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102292,7 +102327,7 @@
       "outcome": null
     },
     {
-      "id": "7791b04a",
+      "id": "a6445bad",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102318,7 +102353,7 @@
       "outcome": null
     },
     {
-      "id": "9b361e77",
+      "id": "b7b19016",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102345,7 +102380,7 @@
       "outcome": null
     },
     {
-      "id": "5868ac1d",
+      "id": "e0e792c8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102371,7 +102406,7 @@
       "outcome": null
     },
     {
-      "id": "0ec2876c",
+      "id": "3f8d6ecc",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102397,7 +102432,7 @@
       "outcome": null
     },
     {
-      "id": "a7e429f8",
+      "id": "9ba030bb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102423,7 +102458,7 @@
       "outcome": null
     },
     {
-      "id": "ff17d0dd",
+      "id": "6828a221",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102449,7 +102484,7 @@
       "outcome": null
     },
     {
-      "id": "c75a1613",
+      "id": "0b2cbc3d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102501,7 +102536,7 @@
       "outcome": null
     },
     {
-      "id": "78e1391b",
+      "id": "d83ad4a3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102527,7 +102562,7 @@
       "outcome": null
     },
     {
-      "id": "8d634b30",
+      "id": "1b1c19c0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102553,7 +102588,7 @@
       "outcome": null
     },
     {
-      "id": "7f769daf",
+      "id": "f8d64782",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102579,7 +102614,7 @@
       "outcome": null
     },
     {
-      "id": "3c47a3a7",
+      "id": "a8bb2fab",
       "created_at": "2026-09-03T18:21:05.702079+00:00",
       "season": null,
       "week": null,
@@ -102605,7 +102640,7 @@
       "outcome": null
     },
     {
-      "id": "cd640b67",
+      "id": "e4720a0d",
       "created_at": "2026-09-03T23:44:50.709225+00:00",
       "season": null,
       "week": null,
@@ -102631,7 +102666,7 @@
       "outcome": null
     },
     {
-      "id": "8e917e5a",
+      "id": "2ca7fcac",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102658,7 +102693,7 @@
       "outcome": null
     },
     {
-      "id": "1bd3c7b2",
+      "id": "6999a609",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102685,7 +102720,7 @@
       "outcome": null
     },
     {
-      "id": "6ca09153",
+      "id": "e61439d8",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102711,7 +102746,7 @@
       "outcome": null
     },
     {
-      "id": "1c27be40",
+      "id": "80aeccc4",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102737,7 +102772,7 @@
       "outcome": null
     },
     {
-      "id": "f32e8495",
+      "id": "2caddb85",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102763,7 +102798,7 @@
       "outcome": null
     },
     {
-      "id": "aa968153",
+      "id": "67eb314a",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102789,7 +102824,7 @@
       "outcome": null
     },
     {
-      "id": "e7273730",
+      "id": "953b86a0",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102815,7 +102850,7 @@
       "outcome": null
     },
     {
-      "id": "4226c2dc",
+      "id": "bc89cf69",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102841,7 +102876,7 @@
       "outcome": null
     },
     {
-      "id": "a18d2c1f",
+      "id": "f59eb1fe",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102867,7 +102902,7 @@
       "outcome": null
     },
     {
-      "id": "d8585711",
+      "id": "df731a0d",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102893,7 +102928,7 @@
       "outcome": null
     },
     {
-      "id": "01c9bb4f",
+      "id": "c3bb7c06",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102919,7 +102954,7 @@
       "outcome": null
     },
     {
-      "id": "8c4637cb",
+      "id": "4e53d921",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102945,7 +102980,7 @@
       "outcome": null
     },
     {
-      "id": "a964e710",
+      "id": "39821cd1",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102971,7 +103006,7 @@
       "outcome": null
     },
     {
-      "id": "722a4e02",
+      "id": "f5fc5950",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -102997,7 +103032,7 @@
       "outcome": null
     },
     {
-      "id": "448011e1",
+      "id": "26c50b9f",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103023,7 +103058,7 @@
       "outcome": null
     },
     {
-      "id": "c8d89d6d",
+      "id": "6209baee",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103049,7 +103084,7 @@
       "outcome": null
     },
     {
-      "id": "b41d42de",
+      "id": "8ebac899",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103075,7 +103110,7 @@
       "outcome": null
     },
     {
-      "id": "5bc28e91",
+      "id": "0cfacb81",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103101,7 +103136,7 @@
       "outcome": null
     },
     {
-      "id": "b96a45e6",
+      "id": "614e5f63",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103153,7 +103188,7 @@
       "outcome": null
     },
     {
-      "id": "cd7011a6",
+      "id": "7e884426",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103179,7 +103214,7 @@
       "outcome": null
     },
     {
-      "id": "9c7c38f3",
+      "id": "bd828a4d",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103205,7 +103240,7 @@
       "outcome": null
     },
     {
-      "id": "2cc38d6a",
+      "id": "ff3819cc",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103231,7 +103266,7 @@
       "outcome": null
     },
     {
-      "id": "1eea8a5d",
+      "id": "ae3697fe",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103257,7 +103292,7 @@
       "outcome": null
     },
     {
-      "id": "ac1db597",
+      "id": "70f60c14",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103283,7 +103318,7 @@
       "outcome": null
     },
     {
-      "id": "a2ff89b2",
+      "id": "e03973b7",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103309,7 +103344,7 @@
       "outcome": null
     },
     {
-      "id": "5f124287",
+      "id": "50b95411",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103335,7 +103370,7 @@
       "outcome": null
     },
     {
-      "id": "72251776",
+      "id": "54a70cc8",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103361,7 +103396,7 @@
       "outcome": null
     },
     {
-      "id": "880f24fd",
+      "id": "7ba328bc",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103387,7 +103422,7 @@
       "outcome": null
     },
     {
-      "id": "625b7161",
+      "id": "751918e0",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103413,7 +103448,7 @@
       "outcome": null
     },
     {
-      "id": "0f75e610",
+      "id": "dd6450b1",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103439,7 +103474,7 @@
       "outcome": null
     },
     {
-      "id": "8b4fd7ce",
+      "id": "ebe4eeed",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103465,7 +103500,7 @@
       "outcome": null
     },
     {
-      "id": "7c7e2f98",
+      "id": "30bbbea6",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103491,7 +103526,7 @@
       "outcome": null
     },
     {
-      "id": "586e577c",
+      "id": "a4db2b45",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103517,7 +103552,7 @@
       "outcome": null
     },
     {
-      "id": "6ace90ff",
+      "id": "07290c72",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103543,7 +103578,7 @@
       "outcome": null
     },
     {
-      "id": "2060fc5d",
+      "id": "f7b1f6f2",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103569,7 +103604,7 @@
       "outcome": null
     },
     {
-      "id": "2f6136c7",
+      "id": "59635af4",
       "created_at": "2026-09-06T17:35:46.482458+00:00",
       "season": null,
       "week": null,
@@ -103595,7 +103630,7 @@
       "outcome": null
     },
     {
-      "id": "cef6e475",
+      "id": "ac8b062b",
       "created_at": "2026-09-06T23:24:01.548063+00:00",
       "season": null,
       "week": null,
@@ -103803,7 +103838,7 @@
       "outcome": null
     },
     {
-      "id": "b32421b0",
+      "id": "e4b08f4d",
       "created_at": "2026-09-07T18:59:55.730298+00:00",
       "season": null,
       "week": null,
@@ -103829,7 +103864,7 @@
       "outcome": null
     },
     {
-      "id": "f89b2bb5",
+      "id": "d0d2ac45",
       "created_at": "2026-09-07T18:59:55.730298+00:00",
       "season": null,
       "week": null,

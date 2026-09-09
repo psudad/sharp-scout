@@ -1,64 +1,39 @@
 {
   "sport": "nfl",
-  "generated_at": "2026-09-09T02:10:46.995252+00:00",
-  "layer1_passed": false,
-  "block_deploy": true,
-  "layer1_issues": [
-    {
-      "code": "demo_mode",
-      "severity": "block",
-      "message": "Pipeline ran in demo mode \u2014 not safe to deploy"
-    },
-    {
-      "code": "low_game_count",
-      "severity": "block",
-      "message": "Only 1 games in slate (need \u22654 for NFL)"
-    }
-  ],
+  "generated_at": "2026-09-09T22:40:02.101376+00:00",
+  "layer1_passed": true,
+  "block_deploy": false,
+  "layer1_issues": [],
   "approved": 0,
   "quarantined": 0,
-  "voided": 2,
+  "voided": 1,
   "play_reviews": [
     {
-      "play_id": "8c6d44b8",
-      "matchup": "WAS@PHI",
+      "play_id": "stale",
+      "matchup": "NYG@DAL",
       "market": "spreads",
-      "side": "home",
-      "action": "void",
-      "issues": [
-        {
-          "code": "stale_kickoff",
-          "severity": "void",
-          "message": "Kickoff 2026-09-13 outside current display week \u2014 stale/orphan play"
-        },
-        {
-          "code": "orphan_event",
-          "severity": "void",
-          "message": "Game not found in latest pipeline output"
-        },
-        {
-          "code": "single_book",
-          "severity": "quarantine",
-          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
-        }
-      ]
-    },
-    {
-      "play_id": "8fc42ae9",
-      "matchup": "ATL@PIT",
-      "market": "h2h",
       "side": "away",
       "action": "void",
       "issues": [
         {
           "code": "stale_kickoff",
           "severity": "void",
-          "message": "Kickoff 2026-09-13 outside current display week \u2014 stale/orphan play"
+          "message": "Kickoff 2027-01-03 outside current display week \u2014 stale/orphan play"
         },
         {
           "code": "orphan_event",
           "severity": "void",
           "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team DAL missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team NYG missing from power ratings"
         },
         {
           "code": "single_book",

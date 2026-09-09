@@ -1,0 +1,535 @@
+{
+  "sport": "ncaaf",
+  "generated_at": "2026-09-09T22:40:01.555848+00:00",
+  "layer1_passed": false,
+  "block_deploy": true,
+  "layer1_issues": [
+    {
+      "code": "demo_mode",
+      "severity": "block",
+      "message": "Pipeline ran in demo mode \u2014 not safe to deploy"
+    },
+    {
+      "code": "low_game_count",
+      "severity": "block",
+      "message": "Only 1 games in slate (need \u226520 for NCAA Football)"
+    },
+    {
+      "code": "flat_ratings_count",
+      "severity": "block",
+      "message": "Only 20 rated teams (need \u226580) \u2014 likely skip-pbp or demo ratings"
+    }
+  ],
+  "approved": 0,
+  "quarantined": 0,
+  "voided": 18,
+  "play_reviews": [
+    {
+      "play_id": "b6d9d22f",
+      "matchup": "OU@MICH",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "749b13a9",
+      "matchup": "WAKE@PUR",
+      "market": "h2h",
+      "side": "home",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team PUR missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team WAKE missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "22a61e0e",
+      "matchup": "MIZZ@KU",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team KU missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team MIZZ missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "7faf590a",
+      "matchup": "ALA@UK",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team UK missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "b12f4447",
+      "matchup": "HOWARD@IND",
+      "market": "totals",
+      "side": "under",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team IND missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team HOWARD missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "8e909370",
+      "matchup": "MONTANA STATE@NEVADA",
+      "market": "h2h",
+      "side": "home",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team NEVADA missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team MONTANA STATE missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "8e163da1",
+      "matchup": "NAVY@FLORIDA ATLANTIC",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team FLORIDA ATLANTIC missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team NAVY missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "4144abb4",
+      "matchup": "EASTERN MICHIGAN@MSU",
+      "market": "totals",
+      "side": "under",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team MSU missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team EASTERN MICHIGAN missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "3362859a",
+      "matchup": "BOWLING GREEN@NEB",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team NEB missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team BOWLING GREEN missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "84007e2c",
+      "matchup": "MEM@BSU",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team BSU missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team MEM missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "f2462993",
+      "matchup": "UCF@PITT",
+      "market": "spreads",
+      "side": "away",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team PITT missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team UCF missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "b9d62e61",
+      "matchup": "MSST@MINN",
+      "market": "spreads",
+      "side": "home",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team MINN missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team MSST missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "64e17c84",
+      "matchup": "TTU@ORST",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team ORST missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team TTU missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "5d7f44de",
+      "matchup": "DUKE@ILL",
+      "market": "spreads",
+      "side": "away",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team ILL missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team DUKE missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "bdc6a3e2",
+      "matchup": "UNLV@NORTH TEXAS",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team NORTH TEXAS missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team UNLV missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "5080536c",
+      "matchup": "TULSA@SAM HOUSTON",
+      "market": "totals",
+      "side": "under",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team SAM HOUSTON missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team TULSA missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "8fa7ec89",
+      "matchup": "WEBER STATE@COLO",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team COLO missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team WEBER STATE missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "de72cb20",
+      "matchup": "TOWSON@SCAR",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team SCAR missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team TOWSON missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    }
+  ]
+}

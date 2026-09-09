@@ -122,6 +122,11 @@ def run_props_pipeline(
     except Exception:  # noqa: BLE001
         ratings = None
 
+    # Load the per-market prop calibrator once rather than per event.
+    from sharp_scout.analysis.calibration import load_prop_calibrator
+
+    calibrate = load_prop_calibrator()
+
     all_props: list[dict[str, Any]] = []
     event_summaries: list[dict[str, Any]] = []
 
@@ -167,7 +172,9 @@ def run_props_pipeline(
 
         markets = settings.prop_market_list or CORE_PROP_MARKETS
         sims = build_sims_for_event(ev, profiles, scripted, markets)
-        edges = discover_prop_edges(ev, sims, ev_threshold=settings.prop_ev_threshold)
+        edges = discover_prop_edges(
+            ev, sims, ev_threshold=settings.prop_ev_threshold, calibrate=calibrate
+        )
         filtered = attach_prop_filters(
             edges,
             inactive=inactive,

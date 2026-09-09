@@ -117,10 +117,12 @@ def render(payload: dict[str, Any], game: str | None, top_players: int) -> str:
 </div>
 
 <div class="warn">
-  <b>Model is not yet calibrated.</b> These are model-vs-market disagreements, not proven
-  edges. The projection is a recency-weighted multi-season per-game baseline, so it does
-  not know this week's role, injury, or snap-share news. Treat as a research shortlist and
-  sanity-check each line before risking money.
+  <b>Calibrated, but not yet proven.</b> Probabilities pass through a per-market calibrator
+  fit on historical play-by-play and validated out of sample; the <b>Raw</b> column is the
+  uncalibrated simulation, so a large Raw&nbsp;&rarr;&nbsp;Model move means the correction is
+  doing heavy lifting there. Residual mean bias remains &mdash;
+  the projection still does not know this week's role, injury, or snap-share news, and no
+  prop has settled for real money yet. Treat as a research shortlist.
 </div>
 
 <div class="stats">
@@ -141,7 +143,8 @@ def render(payload: dict[str, Any], game: str | None, top_players: int) -> str:
             "<table><thead><tr>"
             "<th>Market</th><th>Side</th><th class='num'>Line</th><th>Book</th>"
             "<th class='num'>Price</th><th class='num'>EV</th>"
-            "<th class='num'>Model</th><th class='num'>Model %</th><th class='num'>Market %</th>"
+            "<th class='num'>Model</th><th class='num'>Raw</th>"
+            "<th class='num'>Model %</th><th class='num'>Market %</th>"
             "</tr></thead><tbody>"
         )
         for r in prows:
@@ -158,6 +161,7 @@ def render(payload: dict[str, Any], game: str | None, top_players: int) -> str:
                 f"<td class='num'>{price_cell}</td>"
                 f"<td class='num'>{_pct(r.get('edge'))}</td>"
                 f"<td class='num'>{r.get('model_mean')}</td>"
+                f"<td class='num'>{_pct(r.get('p_raw'))}</td>"
                 f"<td class='num'>{_pct(r.get('p_true'))}</td>"
                 f"<td class='num'>{_pct(r.get('p_mkt'))}</td>"
                 "</tr>"
@@ -167,10 +171,11 @@ def render(payload: dict[str, Any], game: str | None, top_players: int) -> str:
     parts.append(
         f"""<div class="foot">
   Usage baselines from nflverse play-by-play (season decay {settings.prop_season_decay}),
-  non-normal Monte Carlo (negative binomial for counts, gamma for yardage), priced against
-  each book's no-vig two-way market. Rejected automatically: EV above
-  {_pct(settings.max_prop_edge)}, model certainty above {_pct(settings.max_prop_p_true)}, or a
-  model-vs-market gap above {_pct(settings.prop_model_market_gap)}.<br>
+  non-normal Monte Carlo (negative binomial for counts, gamma for yardage), calibrated per
+  market, then priced against each book's no-vig two-way market. Rejected automatically: EV
+  above {_pct(settings.max_prop_edge)}, model certainty above {_pct(settings.max_prop_p_true)},
+  a model-vs-market gap above {_pct(settings.prop_model_market_gap)}, or no two-way market to
+  price against.<br>
   Research only — Sharp Scout does not place bets.
 </div></body></html>"""
     )

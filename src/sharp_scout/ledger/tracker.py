@@ -472,7 +472,24 @@ def settle_from_scores(
                 return None
         return hit
 
+    # Player props settle from a stat line rather than the final score, so load actuals
+    # lazily and only when there is something pending to grade.
+    from sharp_scout.props.actuals import PropActuals, is_prop_play
+
+    pending_props = [
+        p
+        for p in ledger["plays"]
+        if p.get("status") in (None, "pending") and is_prop_play(p) and _kickoff_eligible(p)
+    ]
+    prop_actuals: PropActuals | None = None
+    if pending_props and sport == "nfl":
+        try:
+            prop_actuals = PropActuals()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Prop settlement unavailable (%s) — leaving props pending", exc)
+
     settled = 0
+    voided = 0
     for play in ledger["plays"]:
         if play.get("status") not in (None, "pending"):
             continue
@@ -483,8 +500,36 @@ def settle_from_scores(
             continue
         if g.get("home_score") is None or g.get("away_score") is None:
             continue
+
+        if is_prop_play(play):
+            if prop_actuals is None:
+                continue
+            status, value = prop_actuals.value_for(play)
+            if status == "unknown":
+                # Play-by-play has not published this game yet; try again next run.
+                continue
+            if status == "void":
+                play["status"] = "void"
+                play["pnl_units"] = 0.0
+                play["settled_at"] = _now()
+                play["home_score"] = int(g["home_score"])
+                play["away_score"] = int(g["away_score"])
+                voided += 1
+                continue
+            settle_play(
+                play,
+                int(g["home_score"]),
+                int(g["away_score"]),
+                prop_value=value,
+            )
+            settled += 1
+            continue
+
         settle_play(play, int(g["home_score"]), int(g["away_score"]))
         settled += 1
+
+    if voided:
+        logger.info("Voided %d props (player recorded no snaps or ambiguous name)", voided)
 
     # Grade stage cards (ATS / ML / total by stage side)
     stage_settled = 0

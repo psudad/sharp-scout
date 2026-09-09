@@ -231,6 +231,15 @@ def test_model_market_disagreement_rejected():
     assert fr.flags["plausible"] is False
 
 
+def test_one_sided_market_rejected():
+    """With only one side quoted there is no no-vig anchor, so nothing validates it."""
+    edge = _edge(p_true=0.72, p_mkt=0.55, ev=0.20)
+    edge.p_mkt = None
+    fr = validate_prop_edge(edge)
+    assert fr.passed is False
+    assert fr.flags["plausible"] is False
+
+
 def test_small_disagreement_still_passes():
     edge = _edge(p_true=0.58, p_mkt=0.52, ev=0.05)
     fr = validate_prop_edge(edge)
@@ -271,6 +280,49 @@ def test_sims_exclude_players_not_in_the_game():
     )
     sims = build_sims_for_event(ev, profiles, profiles, CORE_PROP_MARKETS, n_sims=400)
     assert not any(key[0] == "josh allen" for key in sims)
+
+
+def test_discover_prop_edges_applies_calibrator():
+    """Raw simulated probability must be calibrated before EV, and kept for audit."""
+    from sharp_scout.props.markets import build_sims_for_event
+    from sharp_scout.props.simulate import CORE_PROP_MARKETS
+
+    ev = mock_prop_event(mock_odds_events()[0])
+    profiles = _demo_usage()
+    sims = build_sims_for_event(ev, profiles, profiles, CORE_PROP_MARKETS, n_sims=2000)
+
+    # Shrink every probability hard toward a coin flip.
+    edges = discover_prop_edges(
+        ev, sims, ev_threshold=-1.0, calibrate=lambda p, _market: 0.5 + (p - 0.5) * 0.1
+    )
+    assert edges, "expected candidate edges from the demo event"
+    for e in edges:
+        assert e.p_raw is not None
+        assert e.p_true == pytest.approx(0.5 + (e.p_raw - 0.5) * 0.1, abs=1e-9)
+        assert 0.45 <= e.p_true <= 0.55
+
+
+def test_calibrated_over_under_stay_complementary():
+    """Calibrating each side independently let both sides of one line read +EV."""
+    from sharp_scout.props.markets import build_sims_for_event
+    from sharp_scout.props.simulate import CORE_PROP_MARKETS
+
+    ev = mock_prop_event(mock_odds_events()[0])
+    profiles = _demo_usage()
+    sims = build_sims_for_event(ev, profiles, profiles, CORE_PROP_MARKETS, n_sims=2000)
+
+    # A deliberately lopsided calibrator, the kind that broke the invariant.
+    edges = discover_prop_edges(
+        ev, sims, ev_threshold=-1.0, calibrate=lambda p, _m: min(1.0, p * 1.3 + 0.05)
+    )
+    by_line: dict[tuple, dict[str, float]] = {}
+    for e in edges:
+        by_line.setdefault((e.player_name, e.market, e.line), {})[e.side] = e.p_true
+
+    paired = [v for v in by_line.values() if {"over", "under"} <= set(v)]
+    assert paired, "expected at least one two-way line in the demo event"
+    for probs in paired:
+        assert probs["over"] + probs["under"] == pytest.approx(1.0, abs=1e-9)
 
 
 def _edge(*, p_true: float, p_mkt: float, ev: float) -> PropEdge:

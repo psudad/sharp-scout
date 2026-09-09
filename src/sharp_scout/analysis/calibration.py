@@ -26,16 +26,25 @@ from sharp_scout.config import DATA_DIR
 logger = logging.getLogger(__name__)
 
 CALIBRATION_PATH = DATA_DIR / "calibration.json"
+# Props are calibrated separately, and per market: a pass-yards projection and an
+# anytime-TD projection are wrong in different directions, so one pooled curve would
+# average away both biases.
+PROP_CALIBRATION_PATH = DATA_DIR / "calibration_props.json"
+POOLED_KEY = "__pooled__"
 
 MIN_ISOTONIC = 50
 MIN_PLATT = 20
+
+
+def _is_prop(play: dict[str, Any]) -> bool:
+    return play.get("play_type") == "prop" or str(play.get("market") or "").startswith("player_")
 
 
 def collect_prediction_outcomes(ledger: dict[str, Any]) -> list[tuple[float, int]]:
     """(p_true, win) pairs from settled side plays with a decided outcome."""
     pairs: list[tuple[float, int]] = []
     for p in ledger.get("plays") or []:
-        if p.get("play_type") == "prop" or str(p.get("market") or "").startswith("player_"):
+        if _is_prop(p):
             continue
         status = p.get("status")
         p_true = p.get("p_true")
@@ -43,6 +52,101 @@ def collect_prediction_outcomes(ledger: dict[str, Any]) -> list[tuple[float, int
             continue
         pairs.append((float(p_true), 1 if status == "win" else 0))
     return pairs
+
+
+def collect_prop_outcomes(records: Any) -> dict[str, list[tuple[float, int]]]:
+    """(p_true, win) pairs from decided prop plays, grouped by market.
+
+    Accepts either a ledger dict or a bare list of graded records, so the same fitting
+    path serves live settled plays and the historical backfit.
+    """
+    plays = records.get("plays") or [] if isinstance(records, dict) else list(records or [])
+    by_market: dict[str, list[tuple[float, int]]] = {}
+    for p in plays:
+        if not _is_prop(p):
+            continue
+        status = p.get("status") or p.get("outcome")
+        p_true = p.get("p_true")
+        if p_true is None or status not in ("win", "loss"):
+            continue
+        market = str(p.get("market") or "unknown")
+        by_market.setdefault(market, []).append((float(p_true), 1 if status == "win" else 0))
+    return by_market
+
+
+def fit_prop_calibrators(
+    by_market: dict[str, list[tuple[float, int]]],
+    *,
+    min_samples: int = MIN_ISOTONIC,
+) -> dict[str, dict[str, Any]]:
+    """Fit one calibrator per market, plus a pooled fallback for thin markets."""
+    pooled_pairs = [pair for pairs in by_market.values() for pair in pairs]
+    specs: dict[str, dict[str, Any]] = {POOLED_KEY: fit_calibrator(pooled_pairs)}
+    for market, pairs in by_market.items():
+        if len(pairs) < min_samples:
+            logger.info(
+                "Calibration: %s has %d samples (< %d) — using pooled curve",
+                market,
+                len(pairs),
+                min_samples,
+            )
+            continue
+        specs[market] = fit_calibrator(pairs)
+    return specs
+
+
+def save_prop_calibrators(specs: dict[str, dict[str, Any]], path: Path | None = None) -> Path:
+    p = path or PROP_CALIBRATION_PATH
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(specs, indent=2) + "\n")
+    return p
+
+
+def load_prop_calibrator(path: Path | None = None) -> Callable[[float, str], float]:
+    """Returns calibrate(p_true, market) → calibrated probability.
+
+    Falls back to the pooled curve for a market without its own fit, and to identity when
+    nothing has been fit yet.
+    """
+    p = path or PROP_CALIBRATION_PATH
+    specs: dict[str, dict[str, Any]] = {}
+    if p.exists():
+        try:
+            specs = json.loads(p.read_text())
+        except (json.JSONDecodeError, OSError):
+            specs = {}
+    cache: dict[str, Callable[[float], float]] = {}
+
+    def _calibrate(p_true: float, market: str) -> float:
+        key = market if market in specs else POOLED_KEY
+        if key not in cache:
+            cache[key] = calibrator_from_spec(specs.get(key) or {"method": "identity"})
+        return cache[key](float(p_true))
+
+    return _calibrate
+
+
+def prop_calibration_report(by_market: dict[str, list[tuple[float, int]]]) -> dict[str, Any]:
+    """Reliability curve and Brier score per market, plus pooled."""
+    pooled = [pair for pairs in by_market.values() for pair in pairs]
+    return {
+        "pooled": {
+            "n": len(pooled),
+            "brier": brier_score(pooled),
+            "bins": reliability_bins(pooled),
+        },
+        "markets": {
+            market: {
+                "n": len(pairs),
+                "brier": brier_score(pairs),
+                # Mean model probability vs realized hit rate is the headline bias number.
+                "pred_mean": round(sum(p for p, _ in pairs) / len(pairs), 4) if pairs else None,
+                "obs_freq": round(sum(y for _, y in pairs) / len(pairs), 4) if pairs else None,
+                "bins": reliability_bins(pairs),
+            }
+            for market, pairs in sorted(by_market.items())
+        },
+    }
 
 
 def brier_score(pairs: list[tuple[float, int]]) -> float | None:

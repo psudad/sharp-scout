@@ -114,6 +114,7 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
         "pass",
         "rush",
         "qb_dropback",
+        "qb_scramble",
         "down",
         "play_type",
         "fixed_drive",
@@ -157,6 +158,15 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
         df["is_rush"] = df["rush"].fillna(0).astype(bool)
     else:
         df["is_rush"] = ~df["is_dropback"]
+
+    # A QB scramble counts as a rushing attempt in official stats, but nflverse flags it as
+    # a pass play (rush=0, pass=1, qb_scramble=1). Player-prop rushing volume has to include
+    # it — without this, Trevor Lawrence's 2025 rushing reads 62 yards instead of 390. Kept
+    # separate from is_rush so team-level pass/rush rate features are unchanged.
+    if "qb_scramble" in df.columns:
+        df["is_rush_attempt"] = df["is_rush"] | df["qb_scramble"].fillna(0).astype(bool)
+    else:
+        df["is_rush_attempt"] = df["is_rush"]
 
     return df.reset_index(drop=True)
 

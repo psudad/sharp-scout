@@ -153,7 +153,7 @@ def build_usage_profiles(
 
     is_pass = _flag("pass") > 0
     is_sack = _flag("sack") > 0
-    is_rush = df["is_rush"] if "is_rush" in df.columns else (_flag("rush") > 0)
+    is_rush = df["is_rush_attempt"] if "is_rush_attempt" in df.columns else (_flag("rush") > 0)
 
     profiles: dict[str, PlayerUsage] = {}
 

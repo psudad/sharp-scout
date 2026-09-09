@@ -79,10 +79,13 @@ def validate_prop_edge(
             f"model certainty {edge.p_true:.1%} above max_prop_p_true "
             f"{settings.max_prop_p_true:.0%} — degenerate projection, reject"
         )
-    elif (
-        edge.p_mkt is not None
-        and abs(edge.p_true - edge.p_mkt) > settings.prop_model_market_gap
-    ):
+    elif edge.p_mkt is None:
+        # Without both sides quoted there is no no-vig anchor, so the model-vs-market
+        # check cannot run and the projection is unvalidated. These one-sided quotes were
+        # the only remaining source of 30%+ edges.
+        flags["plausible"] = False
+        notes.append("no two-way market to price against — cannot validate, reject")
+    elif abs(edge.p_true - edge.p_mkt) > settings.prop_model_market_gap:
         flags["plausible"] = False
         notes.append(
             f"model {edge.p_true:.1%} vs no-vig market {edge.p_mkt:.1%} "
@@ -153,6 +156,7 @@ def attach_prop_filters(
                 "book": e.book,
                 "price": e.price,
                 "p_true": round(e.p_true, 4),
+                "p_raw": round(e.p_raw, 4) if e.p_raw is not None else None,
                 "p_mkt": round(e.p_mkt, 4) if e.p_mkt is not None else None,
                 "edge": round(e.edge, 4),
                 "model_mean": round(e.model_mean, 2),

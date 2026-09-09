@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 from sharp_scout.config import get_settings
 from sharp_scout.phase3.market import fair_probs_from_two_way
@@ -33,6 +33,9 @@ class PropEdge:
     model_mean: float
     model_median: float
     is_alternate: bool = False
+    # Pre-calibration probability, kept so the reliability of the raw simulation stays
+    # auditable after a calibrator is applied.
+    p_raw: float | None = None
 
 
 def discover_prop_edges(
@@ -41,13 +44,20 @@ def discover_prop_edges(
     *,
     ev_threshold: float | None = None,
     include_alternates: bool = True,
+    calibrate: Callable[[float, str], float] | None = None,
 ) -> list[PropEdge]:
     """Score offered prop lines against simulated distributions.
 
-    `sims` keyed by (player_key_lower, market).
+    `sims` keyed by (player_key_lower, market). Simulated probabilities are passed through
+    the per-market calibrator before EV, because the raw Monte Carlo is over-confident at
+    the extremes — see scripts/backfit_props.py for the fitted reliability curve.
     """
     settings = get_settings()
     thr = settings.ev_threshold if ev_threshold is None else ev_threshold
+    if calibrate is None:
+        from sharp_scout.analysis.calibration import load_prop_calibrator
+
+        calibrate = load_prop_calibrator()
     edges: list[PropEdge] = []
     books = event.get("bookmakers") or {}
 
@@ -108,10 +118,20 @@ def discover_prop_edges(
                 if not include_alternates and is_alt:
                     continue
 
+                # Calibrate the over and derive the under from it. The calibrator was fit
+                # on over-side probabilities, and calibrating each side independently
+                # breaks p_over + p_under = 1 — which showed up as both sides of the same
+                # line reading +EV at once.
+                p_over_raw = p_true_over_under(sim, "over", line)
+                p_over_cal = float(min(max(calibrate(p_over_raw, market), 0.0), 1.0))
+
                 for side, meta in sides.items():
                     if side not in ("over", "under"):
                         continue
-                    p_true = p_true_over_under(sim, side, line)
+                    if side == "over":
+                        p_raw, p_true = p_over_raw, p_over_cal
+                    else:
+                        p_raw, p_true = 1.0 - p_over_raw, 1.0 - p_over_cal
                     p_mkt = fair.get(side)
                     edge = expected_value(p_true, meta["price"])
                     # Tail alts: require slightly higher edge
@@ -136,6 +156,7 @@ def discover_prop_edges(
                                 model_mean=sim.mean,
                                 model_median=sim.median,
                                 is_alternate=is_alt,
+                                p_raw=p_raw,
                             )
                         )
     edges.sort(key=lambda e: e.edge, reverse=True)

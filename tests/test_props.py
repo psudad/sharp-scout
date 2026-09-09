@@ -20,6 +20,18 @@ from sharp_scout.scheduler.pregame import find_due_windows, mark_fired, run_due_
 from sharp_scout.props.pipeline import run_props_pipeline
 
 
+def test_apply_matchup_boosts_pass_and_rush():
+    from sharp_scout.props.usage import PlayerUsage, apply_matchup
+
+    wr = PlayerUsage("x", "Test WR", "BUF", "WR", exp_targets=8, exp_receptions=5, exp_rec_yards=70)
+    boosted = apply_matchup(wr, opp_pass_epa_allowed=0.12, opp_rush_epa_allowed=0.0)
+    assert boosted.exp_targets > wr.exp_targets
+
+    rb = PlayerUsage("y", "Test RB", "BUF", "RB", exp_rush_att=15, exp_rush_yards=65)
+    rush_boost = apply_matchup(rb, opp_pass_epa_allowed=0.0, opp_rush_epa_allowed=0.10)
+    assert rush_boost.exp_rush_yards > rb.exp_rush_yards
+
+
 def test_usage_script_underdog_pass_boost():
     u = _demo_usage()["stephon diggs"]
     boosted = apply_game_script(u, team_spread=7.0, team_total=48.0, is_home=False)

@@ -88,6 +88,28 @@ def _weighted_per_game(
     return out
 
 
+def _current_season_per_game(
+    frame: pd.DataFrame,
+    id_col: str,
+    sums: dict[str, str],
+    season: int,
+) -> pd.DataFrame:
+    """Unweighted per-game rates for one season only (this year's role)."""
+    sub = frame[frame["season"] == season]
+    if sub.empty:
+        return pd.DataFrame()
+    agg: dict[str, tuple[str, str]] = {out: (src, "sum") for out, src in sums.items()}
+    agg["games"] = ("game_id", "nunique")
+    grouped = sub.groupby(id_col, dropna=True).agg(**agg).reset_index()
+    for col in sums:
+        grouped[col] = grouped[col].astype(float) / grouped["games"].replace(0, np.nan)
+    return grouped.set_index(id_col)
+
+
+def _blend(a: float, b: float, weight_b: float) -> float:
+    return (1.0 - weight_b) * a + weight_b * b
+
+
 def _player_directory() -> dict[str, dict[str, Any]]:
     """gsis_id → display name / position / current team from the nflverse directory."""
     from sharp_scout.data.nflfastr import load_players
@@ -145,6 +167,8 @@ def build_usage_profiles(
 
     max_season = int(df["season"].max())
     decay = float(settings.prop_season_decay)
+    season_blend = float(settings.prop_current_season_blend)
+    season_blend_min = int(settings.prop_current_season_min_games)
 
     def _flag(col: str) -> pd.Series:
         if col in df.columns:
@@ -196,34 +220,47 @@ def build_usage_profiles(
                 if "yardline_100" in recv.columns
                 else 0.0
             )
+            recv_sums = {
+                "targets": "targets",
+                "receptions": "receptions",
+                "rec_yards": "rec_yards",
+                "rec_tds": "rec_tds",
+                "air": "air",
+                "rz_targets": "rz_targets",
+            }
             rates = _weighted_per_game(
                 recv,
                 "receiver_player_id",
-                {
-                    "targets": "targets",
-                    "receptions": "receptions",
-                    "rec_yards": "rec_yards",
-                    "rec_tds": "rec_tds",
-                    "air": "air",
-                    "rz_targets": "rz_targets",
-                },
+                recv_sums,
                 max_season=max_season,
                 decay=decay,
             )
+            current = _current_season_per_game(recv, "receiver_player_id", recv_sums, max_season)
             for pid, row in rates.iterrows():
                 if row["games"] < min_games or row["recent_games"] < 1:
                     continue
                 u = _profile_for(str(pid))
                 if u is None:
                     continue
-                u.exp_targets = float(row["targets"])
-                u.exp_receptions = float(row["receptions"])
-                u.exp_rec_yards = float(row["rec_yards"])
-                u.exp_rec_tds = float(row["rec_tds"])
-                u.catch_rate = (
-                    float(row["receptions"] / row["targets"]) if row["targets"] else 0.65
-                )
-                u.ypt = float(row["rec_yards"] / row["targets"]) if row["targets"] else 7.0
+                blend = 0.0
+                if pid in current.index and float(current.loc[pid, "games"]) >= season_blend_min:
+                    blend = season_blend
+                    cur = current.loc[pid]
+                    targets = _blend(float(row["targets"]), float(cur["targets"]), blend)
+                    receptions = _blend(float(row["receptions"]), float(cur["receptions"]), blend)
+                    rec_yards = _blend(float(row["rec_yards"]), float(cur["rec_yards"]), blend)
+                    rec_tds = _blend(float(row["rec_tds"]), float(cur["rec_tds"]), blend)
+                else:
+                    targets = float(row["targets"])
+                    receptions = float(row["receptions"])
+                    rec_yards = float(row["rec_yards"])
+                    rec_tds = float(row["rec_tds"])
+                u.exp_targets = targets
+                u.exp_receptions = receptions
+                u.exp_rec_yards = rec_yards
+                u.exp_rec_tds = rec_tds
+                u.catch_rate = receptions / targets if targets else 0.65
+                u.ypt = rec_yards / targets if targets else 7.0
                 u.games = int(row["games"])
                 # Routes are not in the free feed; back them out of a league-average TPRR.
                 routes = max(u.exp_targets / 0.22, u.exp_targets)
@@ -242,29 +279,40 @@ def build_usage_profiles(
                 else rush.get("yards_gained", pd.Series(0.0, index=rush.index)).fillna(0.0)
             )
             rush["rush_tds"] = _flag("rush_touchdown").reindex(rush.index).fillna(0.0)
+            rush_sums = {
+                "attempts": "attempts",
+                "rush_yards": "rush_yards",
+                "rush_tds": "rush_tds",
+            }
             rates = _weighted_per_game(
                 rush,
                 "rusher_player_id",
-                {
-                    "attempts": "attempts",
-                    "rush_yards": "rush_yards",
-                    "rush_tds": "rush_tds",
-                },
+                rush_sums,
                 max_season=max_season,
                 decay=decay,
             )
+            current = _current_season_per_game(rush, "rusher_player_id", rush_sums, max_season)
             for pid, row in rates.iterrows():
                 if row["games"] < min_games or row["recent_games"] < 1:
                     continue
                 u = _profile_for(str(pid))
                 if u is None:
                     continue
-                u.exp_rush_att = float(row["attempts"])
-                u.exp_rush_yards = float(row["rush_yards"])
-                u.exp_rush_tds = float(row["rush_tds"])
-                u.ypc_rush = (
-                    float(row["rush_yards"] / row["attempts"]) if row["attempts"] else 4.0
-                )
+                blend = 0.0
+                if pid in current.index and float(current.loc[pid, "games"]) >= season_blend_min:
+                    blend = season_blend
+                    cur = current.loc[pid]
+                    attempts = _blend(float(row["attempts"]), float(cur["attempts"]), blend)
+                    rush_yards = _blend(float(row["rush_yards"]), float(cur["rush_yards"]), blend)
+                    rush_tds = _blend(float(row["rush_tds"]), float(cur["rush_tds"]), blend)
+                else:
+                    attempts = float(row["attempts"])
+                    rush_yards = float(row["rush_yards"])
+                    rush_tds = float(row["rush_tds"])
+                u.exp_rush_att = attempts
+                u.exp_rush_yards = rush_yards
+                u.exp_rush_tds = rush_tds
+                u.ypc_rush = rush_yards / attempts if attempts else 4.0
                 u.games = max(u.games, int(row["games"]))
 
     # ---- Passing ---------------------------------------------------------------
@@ -278,17 +326,19 @@ def build_usage_profiles(
                 else pas.get("yards_gained", pd.Series(0.0, index=pas.index)).fillna(0.0)
             )
             pas["pass_tds"] = _flag("pass_touchdown").reindex(pas.index).fillna(0.0)
+            pass_sums = {
+                "attempts": "attempts",
+                "pass_yards": "pass_yards",
+                "pass_tds": "pass_tds",
+            }
             rates = _weighted_per_game(
                 pas,
                 "passer_player_id",
-                {
-                    "attempts": "attempts",
-                    "pass_yards": "pass_yards",
-                    "pass_tds": "pass_tds",
-                },
+                pass_sums,
                 max_season=max_season,
                 decay=decay,
             )
+            current = _current_season_per_game(pas, "passer_player_id", pass_sums, max_season)
             cpoe = (
                 pas.groupby("passer_player_id")["cpoe"].mean()
                 if "cpoe" in pas.columns
@@ -300,9 +350,20 @@ def build_usage_profiles(
                 u = _profile_for(str(pid))
                 if u is None:
                     continue
-                u.exp_pass_att = float(row["attempts"])
-                u.exp_pass_yards = float(row["pass_yards"])
-                u.exp_pass_tds = float(row["pass_tds"])
+                blend = 0.0
+                if pid in current.index and float(current.loc[pid, "games"]) >= season_blend_min:
+                    blend = season_blend
+                    cur = current.loc[pid]
+                    attempts = _blend(float(row["attempts"]), float(cur["attempts"]), blend)
+                    pass_yards = _blend(float(row["pass_yards"]), float(cur["pass_yards"]), blend)
+                    pass_tds = _blend(float(row["pass_tds"]), float(cur["pass_tds"]), blend)
+                else:
+                    attempts = float(row["attempts"])
+                    pass_yards = float(row["pass_yards"])
+                    pass_tds = float(row["pass_tds"])
+                u.exp_pass_att = attempts
+                u.exp_pass_yards = pass_yards
+                u.exp_pass_tds = pass_tds
                 u.cpoe = float(cpoe.get(pid, 0.0) or 0.0)
                 u.games = max(u.games, int(row["games"]))
 
@@ -382,20 +443,32 @@ def apply_matchup(
     usage: PlayerUsage,
     *,
     opp_pass_epa_allowed: float = 0.0,
+    opp_rush_epa_allowed: float = 0.0,
     slot_vs_perimeter: str = "perimeter",
 ) -> PlayerUsage:
-    """Light defensive matchup tilt using opponent EPA allowed to pass."""
-    # Positive opp EPA allowed → softer pass D → boost receiving/pass
-    tilt = 1.0 + float(np.clip(opp_pass_epa_allowed * 0.8, -0.12, 0.12))
+    """Light defensive matchup tilt from opponent pass/rush funnel strength."""
+    # Positive allowed → softer defense → boost that phase of the offense.
+    pass_tilt = 1.0 + float(np.clip(opp_pass_epa_allowed * 0.8, -0.12, 0.12))
+    rush_tilt = 1.0 + float(np.clip(opp_rush_epa_allowed * 0.6, -0.10, 0.10))
     u = PlayerUsage(**{**usage.__dict__})
     if usage.position in ("WR", "TE", "RB"):
-        u.exp_targets *= tilt
-        u.exp_receptions *= tilt
-        u.exp_rec_yards *= tilt * (1.02 if slot_vs_perimeter == "slot" else 1.0)
+        u.exp_targets *= pass_tilt
+        u.exp_receptions *= pass_tilt
+        u.exp_rec_yards *= pass_tilt * (1.02 if slot_vs_perimeter == "slot" else 1.0)
+        u.exp_rec_tds *= pass_tilt
     if usage.position == "QB":
-        u.exp_pass_yards *= tilt
-        u.exp_pass_tds *= tilt
-    u.meta = {**(u.meta or {}), "matchup_tilt": tilt}
+        u.exp_pass_att *= pass_tilt
+        u.exp_pass_yards *= pass_tilt
+        u.exp_pass_tds *= pass_tilt
+    if usage.position in ("RB", "QB") or u.exp_rush_att > 2:
+        u.exp_rush_att *= rush_tilt
+        u.exp_rush_yards *= rush_tilt
+        u.exp_rush_tds *= rush_tilt
+    u.meta = {
+        **(u.meta or {}),
+        "pass_matchup_tilt": pass_tilt,
+        "rush_matchup_tilt": rush_tilt,
+    }
     return u
 
 

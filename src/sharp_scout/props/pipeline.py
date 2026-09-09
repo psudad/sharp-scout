@@ -12,6 +12,7 @@ from sharp_scout.data.odds_api import OddsClient, mock_odds_events
 from sharp_scout.phase1.ratings import build_power_ratings, matchup_means
 from sharp_scout.props.filters import apply_weather_to_usage_mult, attach_prop_filters
 from sharp_scout.props.markets import build_sims_for_event, discover_prop_edges, mock_prop_event
+from sharp_scout.props.matchup import opponent_matchup_tilts
 from sharp_scout.props.simulate import CORE_PROP_MARKETS
 from sharp_scout.props.usage import (
     PlayerUsage,
@@ -155,7 +156,9 @@ def run_props_pipeline(
             team_spread = home_spread if u.team == home else -home_spread
             team_total = total  # shared
             s = apply_game_script(u, team_spread=team_spread, team_total=team_total, is_home=u.team == home)
-            s = apply_matchup(s, opp_pass_epa_allowed=0.0)
+            opponent = away if u.team == home else home
+            pass_epa, rush_epa = opponent_matchup_tilts(ratings, opponent)
+            s = apply_matchup(s, opp_pass_epa_allowed=pass_epa, opp_rush_epa_allowed=rush_epa)
             # Weather
             wind = wind_by_event.get(eid)
             wx = apply_weather_to_usage_mult(wind_mph=wind, precip=False)

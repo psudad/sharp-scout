@@ -157,7 +157,7 @@ def append_signals(
                 if (p.get("status") or "pending") == "pending" and _play_key(p) == key:
                     for field in (
                         "edge", "p_true", "p_mkt", "model_spread",
-                        "model_total", "model_mean", "price", "rationale",
+                        "model_total", "model_mean", "price", "rationale", "sport",
                     ):
                         if row.get(field) is not None:
                             p[field] = row[field]

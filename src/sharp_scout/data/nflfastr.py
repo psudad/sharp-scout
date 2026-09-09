@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 
 import httpx
@@ -21,6 +22,11 @@ PBP_URL = (
 SCHEDULE_URL = (
     "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.parquet"
 )
+PLAYERS_URL = (
+    "https://github.com/nflverse/nflverse-data/releases/download/players/players.parquet"
+)
+# Roster moves make a stale players.parquet actively wrong, so re-download daily.
+PLAYERS_MAX_AGE_HOURS = 24.0
 
 
 def _ensure_cache() -> Path:
@@ -84,10 +90,27 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
         "home_team",
         "away_team",
         "passer_player_name",
+        "passer_player_id",
         "rusher_player_name",
+        "rusher_player_id",
+        # Receiving columns are required by the player-props usage engine.
+        "receiver_player_name",
+        "receiver_player_id",
+        "complete_pass",
+        "air_yards",
         "epa",
         "success",
         "yards_gained",
+        # Per-discipline yardage is cleaner than yards_gained (which mixes sacks/YAC).
+        "passing_yards",
+        "receiving_yards",
+        "rushing_yards",
+        "touchdown",
+        "pass_touchdown",
+        "rush_touchdown",
+        "yardline_100",
+        "cpoe",
+        "sack",
         "pass",
         "rush",
         "qb_dropback",
@@ -136,6 +159,46 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
         df["is_rush"] = ~df["is_dropback"]
 
     return df.reset_index(drop=True)
+
+
+def load_players() -> pd.DataFrame:
+    """nflverse player directory — gsis_id → display name, position, current team.
+
+    PBP only carries abbreviated names ("J.Smith-Njigba") and no position, so this is
+    what lets props match sportsbook player names and resolve the team a player is on
+    *now* rather than the team he happened to play for in an older season.
+    """
+    cache = _ensure_cache()
+    path = cache / "players.parquet"
+    stale = True
+    if path.exists():
+        age_h = (time.time() - path.stat().st_mtime) / 3600.0
+        stale = age_h > PLAYERS_MAX_AGE_HOURS
+    if stale:
+        logger.info("Downloading players.parquet from nflverse")
+        if not _download(PLAYERS_URL, path) and not path.exists():
+            return pd.DataFrame()
+    try:
+        players = pd.read_parquet(path)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Players load failed: %s", exc)
+        return pd.DataFrame()
+
+    keep = [
+        c
+        for c in ("gsis_id", "display_name", "football_name", "position", "position_group", "latest_team", "status", "last_season")
+        if c in players.columns
+    ]
+    if "gsis_id" not in keep or "display_name" not in keep:
+        logger.warning("players.parquet missing gsis_id/display_name — ignoring")
+        return pd.DataFrame()
+    out = players[keep].copy()
+    out = out[out["gsis_id"].notna()]
+    if "latest_team" in out.columns:
+        out["latest_team"] = out["latest_team"].map(
+            lambda x: normalize_team(x) if isinstance(x, str) and x.strip() else None
+        )
+    return out.reset_index(drop=True)
 
 
 def load_schedules(seasons: list[int] | None = None) -> pd.DataFrame:

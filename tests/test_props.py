@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from sharp_scout.props.filters import validate_prop_edge
 from sharp_scout.props.markets import PropEdge, discover_prop_edges, mock_prop_event
 from sharp_scout.props.simulate import p_true_over_under, simulate_prop
@@ -113,7 +115,26 @@ def test_pregame_windows(tmp_path):
     assert hits2 == []
 
 
-def test_demo_pregame_does_not_refire_same_window(tmp_path):
+@pytest.fixture
+def isolated_artifacts(tmp_path, monkeypatch):
+    """Keep demo pipeline runs out of the real artifacts dir.
+
+    Without this, running the test suite overwrites artifacts/latest_props.json and
+    latest_signals.json with demo output, so a later report or site build silently shows
+    KC @ BUF mock data instead of the live slate.
+    """
+    from sharp_scout.ncaaf import pipeline as ncaaf_pipeline
+    from sharp_scout.pipeline import run as side_run
+    from sharp_scout.props import pipeline as props_pipeline
+
+    art = tmp_path / "artifacts"
+    art.mkdir()
+    for module in (props_pipeline, side_run, ncaaf_pipeline):
+        monkeypatch.setattr(module, "ARTIFACTS_DIR", art, raising=False)
+    return art
+
+
+def test_demo_pregame_does_not_refire_same_window(tmp_path, isolated_artifacts):
     """Demo mode must respect schedule_state (cron was re-firing every 30 min)."""
     from sharp_scout.scheduler import pregame as pg
 
@@ -125,8 +146,149 @@ def test_demo_pregame_does_not_refire_same_window(tmp_path):
     assert second["hits"] == []
 
 
-def test_props_pipeline_demo():
+def test_props_pipeline_demo(isolated_artifacts):
     result = run_props_pipeline(demo=True, skip_pbp=True, update_ledger=False, build_pages=False)
+    assert (isolated_artifacts / "latest_props.json").exists()
     assert result["n_events"] >= 1
     assert "plays" in result
     assert find_player(_demo_usage(), "Josh Allen") is not None
+
+
+def test_normalize_pbp_keeps_receiving_columns():
+    """The column allowlist silently dropped every receiving field, which zeroed out
+    target/reception/yardage baselines for all pass-catchers."""
+    import pandas as pd
+
+    from sharp_scout.data.nflfastr import _normalize_pbp
+
+    raw = pd.DataFrame(
+        {
+            "season": [2025],
+            "week": [1],
+            "game_id": ["2025_01_NE_SEA"],
+            "posteam": ["SEA"],
+            "play_type": ["pass"],
+            "epa": [0.4],
+            "pass": [1],
+            "rush": [0],
+            "yards_gained": [12],
+            "receiver_player_name": ["J.Smith-Njigba"],
+            "receiver_player_id": ["00-0038543"],
+            "passer_player_id": ["00-0035710"],
+            "rusher_player_id": [None],
+            "complete_pass": [1],
+            "air_yards": [8],
+            "receiving_yards": [12],
+            "passing_yards": [12],
+            "rushing_yards": [0],
+            "touchdown": [0],
+            "pass_touchdown": [0],
+            "rush_touchdown": [0],
+            "yardline_100": [45],
+            "cpoe": [3.2],
+            "sack": [0],
+        }
+    )
+    out = _normalize_pbp(raw)
+    for col in (
+        "receiver_player_name",
+        "receiver_player_id",
+        "complete_pass",
+        "air_yards",
+        "receiving_yards",
+        "passing_yards",
+        "rushing_yards",
+        "pass_touchdown",
+        "yardline_100",
+        "cpoe",
+    ):
+        assert col in out.columns, f"{col} dropped by _normalize_pbp"
+
+
+def test_market_without_usage_is_skipped_not_defaulted():
+    """A player with no receiving baseline used to simulate at ~1 yard, making every
+    'under' a ~100% certainty and producing 100%+ EV."""
+    from sharp_scout.props.usage import PlayerUsage
+
+    empty = PlayerUsage("x", "No Data Guy", "SEA", "WR")
+    for market in ("player_reception_yds", "player_receptions", "player_rush_yds", "player_pass_yds"):
+        with pytest.raises(ValueError):
+            simulate_prop(empty, market, n_sims=200)
+
+
+def test_implausible_edge_rejected():
+    edge = _edge(p_true=0.999, p_mkt=0.55, ev=1.8)
+    fr = validate_prop_edge(edge)
+    assert fr.passed is False
+    assert fr.flags["plausible"] is False
+
+
+def test_model_market_disagreement_rejected():
+    """A 25-point gap against the whole market is model error, not edge."""
+    edge = _edge(p_true=0.80, p_mkt=0.55, ev=0.20)
+    fr = validate_prop_edge(edge)
+    assert fr.passed is False
+    assert fr.flags["plausible"] is False
+
+
+def test_small_disagreement_still_passes():
+    edge = _edge(p_true=0.58, p_mkt=0.52, ev=0.05)
+    fr = validate_prop_edge(edge)
+    assert fr.flags["plausible"] is True
+    assert fr.passed is True
+
+
+def test_find_player_refuses_ambiguous_surname():
+    """Bare-surname matching returned whichever player came first in the dict, which
+    attributed one player's projection to another."""
+    from sharp_scout.props.usage import PlayerUsage
+
+    profiles = {
+        "mike williams": PlayerUsage("a", "Mike Williams", "NYJ", "WR", exp_targets=5),
+        "mark williams": PlayerUsage("b", "Mark Williams", "SEA", "TE", exp_targets=3),
+    }
+    # Exact name always wins.
+    assert find_player(profiles, "Mike Williams").team == "NYJ"
+    # No first-initial match at all → do not guess.
+    assert find_player(profiles, "Jameson Williams") is None
+    # Two players share initial + surname → ambiguous, so skip rather than pick one.
+    assert find_player(profiles, "Malik Williams") is None
+    # Unambiguous initial + surname still resolves.
+    assert find_player(profiles, "Marcus Kelce") is None
+    assert find_player(_demo_usage(), "Stefon Diggs").team == "BUF"
+
+
+def test_sims_exclude_players_not_in_the_game():
+    from sharp_scout.props.markets import build_sims_for_event
+    from sharp_scout.props.simulate import CORE_PROP_MARKETS
+    from sharp_scout.props.usage import PlayerUsage
+
+    ev = mock_prop_event(mock_odds_events()[0])
+    # Josh Allen re-rostered onto a team that is not playing in this event.
+    profiles = dict(_demo_usage())
+    profiles["josh allen"] = PlayerUsage(
+        "josh allen", "Josh Allen", "DEN", "QB", exp_pass_att=34, exp_pass_yards=265, games=10
+    )
+    sims = build_sims_for_event(ev, profiles, profiles, CORE_PROP_MARKETS, n_sims=400)
+    assert not any(key[0] == "josh allen" for key in sims)
+
+
+def _edge(*, p_true: float, p_mkt: float, ev: float) -> PropEdge:
+    return PropEdge(
+        event_id="x",
+        home_team="SEA",
+        away_team="NE",
+        player_name="Test Player",
+        team="SEA",
+        market="player_reception_yds",
+        side="under",
+        line=60.5,
+        book="draftkings",
+        price=-110,
+        p_true=p_true,
+        p_mkt=p_mkt,
+        edge=ev,
+        model_mean=55.0,
+        model_median=52.0,
+        is_alternate=False,
+    )

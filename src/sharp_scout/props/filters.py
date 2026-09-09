@@ -61,8 +61,37 @@ def validate_prop_edge(
         "active": True,
         "news_ok": news_ok,
         "alternate": edge.is_alternate,
+        "plausible": True,
     }
     notes.append(f"EV={edge.edge:.2%} mean={edge.model_mean:.1f} vs line={edge.line}")
+
+    # An edge this size against a real sportsbook means our projection is broken, not
+    # that the market is. Same reasoning as max_h2h_edge on the sides pipeline.
+    if edge.edge > settings.max_prop_edge:
+        flags["plausible"] = False
+        notes.append(
+            f"EV {edge.edge:.1%} exceeds max_prop_edge {settings.max_prop_edge:.0%} — "
+            "implausible projection, reject"
+        )
+    elif edge.p_true > settings.max_prop_p_true:
+        flags["plausible"] = False
+        notes.append(
+            f"model certainty {edge.p_true:.1%} above max_prop_p_true "
+            f"{settings.max_prop_p_true:.0%} — degenerate projection, reject"
+        )
+    elif (
+        edge.p_mkt is not None
+        and abs(edge.p_true - edge.p_mkt) > settings.prop_model_market_gap
+    ):
+        flags["plausible"] = False
+        notes.append(
+            f"model {edge.p_true:.1%} vs no-vig market {edge.p_mkt:.1%} "
+            f"({abs(edge.p_true - edge.p_mkt):.1%} gap > "
+            f"{settings.prop_model_market_gap:.0%}) — projection disagrees with the "
+            "market, reject"
+        )
+    if not flags["plausible"]:
+        return PropFilterResult(False, notes, flags, "rejected")
 
     inactive = inactive or []
     inact_l = {n.lower() for n in inactive}

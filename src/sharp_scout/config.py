@@ -54,6 +54,23 @@ class Settings(BaseSettings):
         "player_receptions,player_reception_yds,player_reception_tds,player_anytime_td"
     )
     prop_ev_threshold: float = 0.02
+    # Per-season weight decay for prop usage baselines (0.5 → last season counts double
+    # the one before it), so a stale rookie year cannot anchor a current projection.
+    prop_season_decay: float = 0.5
+    # Props guardrails — a prop edge this large means the projection, not the market, is
+    # broken; publish nothing above it (mirrors max_h2h_edge on the sides pipeline).
+    max_prop_edge: float = 0.35
+    # Simulated certainty above this is degenerate, not a real edge.
+    max_prop_p_true: float = 0.97
+    # |p_true - p_mkt| beyond this means the projection disagrees with the whole market,
+    # which on an uncalibrated prop model is model error rather than edge.
+    prop_model_market_gap: float = 0.10
+    # Only pull player props for games kicking off inside this horizon (API credits).
+    prop_horizon_days: float = 8.0
+    # Props run in shadow mode until the projection is calibrated against settled prop
+    # history: artifacts are still written for review, but nothing reaches the ledger or
+    # the public board. Set PROPS_PUBLISH_ENABLED=true to publish.
+    props_publish_enabled: bool = False
     # Pregame run windows (hours before kickoff)
     pregame_windows_hours: str = "12,3,1"
     pregame_window_tolerance_minutes: int = 25

@@ -45,10 +45,25 @@ class PropSimResult:
         return float(np.mean(np.isclose(self.samples, line, atol=1e-9)))
 
 
+# A player needs at least this much projected opportunity before his distribution means
+# anything. Below it we have no usable baseline, and simulating anyway produced a
+# near-zero projection that scored every "under" as a ~100% certainty.
+MIN_OPPORTUNITY = 0.5
+
+
+def _require_opportunity(usage: PlayerUsage, opportunity: float, market: str) -> None:
+    if not np.isfinite(opportunity) or opportunity < MIN_OPPORTUNITY:
+        raise ValueError(
+            f"No usable {market} baseline for {usage.player_name} "
+            f"(projected opportunity {opportunity:.2f} < {MIN_OPPORTUNITY})"
+        )
+
+
 def _negbin_samples(mu: float, n: int, dispersion: float = 1.4, rng: np.random.Generator | None = None) -> np.ndarray:
     """Negative binomial with mean mu; dispersion>1 → over-dispersed vs Poisson."""
     rng = rng or np.random.default_rng()
-    mu = max(mu, 1e-6)
+    if not np.isfinite(mu) or mu <= 0:
+        raise ValueError(f"Cannot simulate counts from a non-positive projection ({mu})")
     # scipy nbinom: mean = n * (1-p) / p  → set n = mu / (d-1), p = 1/d
     d = max(dispersion, 1.05)
     n_param = mu / (d - 1)
@@ -58,7 +73,8 @@ def _negbin_samples(mu: float, n: int, dispersion: float = 1.4, rng: np.random.G
 
 def _gamma_samples(mu: float, n: int, cv: float = 0.55, rng: np.random.Generator | None = None) -> np.ndarray:
     rng = rng or np.random.default_rng()
-    mu = max(mu, 1e-6)
+    if not np.isfinite(mu) or mu <= 0:
+        raise ValueError(f"Cannot simulate yardage from a non-positive projection ({mu})")
     shape = 1.0 / (cv**2)
     scale = mu / shape
     return np.maximum(stats.gamma.rvs(a=shape, scale=scale, size=n, random_state=rng), 0.0)
@@ -76,25 +92,34 @@ def simulate_prop(
     market = market.strip()
 
     if market == "player_receptions":
-        lam = max(usage.exp_receptions, 0.1)
-        samples = _negbin_samples(lam, n, dispersion=1.35, rng=rng).astype(float)
+        _require_opportunity(usage, usage.exp_targets, market)
+        samples = _negbin_samples(usage.exp_receptions, n, dispersion=1.35, rng=rng).astype(float)
     elif market == "player_reception_yds":
-        samples = _gamma_samples(max(usage.exp_rec_yards, 1.0), n, cv=0.60, rng=rng)
+        _require_opportunity(usage, usage.exp_targets, market)
+        samples = _gamma_samples(usage.exp_rec_yards, n, cv=0.60, rng=rng)
     elif market == "player_reception_tds":
-        samples = _negbin_samples(max(usage.exp_rec_tds, 0.05), n, dispersion=1.6, rng=rng).astype(float)
+        _require_opportunity(usage, usage.exp_targets, market)
+        samples = _negbin_samples(max(usage.exp_rec_tds, 0.01), n, dispersion=1.6, rng=rng).astype(float)
     elif market == "player_rush_yds":
-        samples = _gamma_samples(max(usage.exp_rush_yards, 1.0), n, cv=0.58, rng=rng)
+        _require_opportunity(usage, usage.exp_rush_att, market)
+        samples = _gamma_samples(usage.exp_rush_yards, n, cv=0.58, rng=rng)
     elif market == "player_rush_attempts":
-        samples = _negbin_samples(max(usage.exp_rush_att, 0.5), n, dispersion=1.3, rng=rng).astype(float)
+        _require_opportunity(usage, usage.exp_rush_att, market)
+        samples = _negbin_samples(usage.exp_rush_att, n, dispersion=1.3, rng=rng).astype(float)
     elif market == "player_rush_tds":
-        samples = _negbin_samples(max(usage.exp_rush_tds, 0.05), n, dispersion=1.6, rng=rng).astype(float)
+        _require_opportunity(usage, usage.exp_rush_att, market)
+        samples = _negbin_samples(max(usage.exp_rush_tds, 0.01), n, dispersion=1.6, rng=rng).astype(float)
     elif market == "player_pass_yds":
-        samples = _gamma_samples(max(usage.exp_pass_yards, 1.0), n, cv=0.42, rng=rng)
+        _require_opportunity(usage, usage.exp_pass_att, market)
+        samples = _gamma_samples(usage.exp_pass_yards, n, cv=0.42, rng=rng)
     elif market == "player_pass_tds":
-        samples = _negbin_samples(max(usage.exp_pass_tds, 0.1), n, dispersion=1.45, rng=rng).astype(float)
+        _require_opportunity(usage, usage.exp_pass_att, market)
+        samples = _negbin_samples(max(usage.exp_pass_tds, 0.01), n, dispersion=1.45, rng=rng).astype(float)
     elif market == "player_pass_attempts":
-        samples = _negbin_samples(max(usage.exp_pass_att, 1.0), n, dispersion=1.25, rng=rng).astype(float)
+        _require_opportunity(usage, usage.exp_pass_att, market)
+        samples = _negbin_samples(usage.exp_pass_att, n, dispersion=1.25, rng=rng).astype(float)
     elif market == "player_anytime_td":
+        _require_opportunity(usage, usage.exp_targets + usage.exp_rush_att, market)
         # Bernoulli from combined TD rate
         p = 1.0 - np.exp(-(usage.exp_rec_tds + usage.exp_rush_tds + 0.15 * usage.exp_pass_tds))
         p = float(np.clip(p, 0.02, 0.85))

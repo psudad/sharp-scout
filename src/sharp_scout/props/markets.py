@@ -162,10 +162,18 @@ def build_sims_for_event(
                 if desc:
                     players.add(str(desc))
 
+    game_teams = {event.get("home_team"), event.get("away_team")}
     sims: dict[tuple[str, str], PropSimResult] = {}
     for name in players:
-        usage = find_player(scripted, name) or find_player(profiles, name)
+        # Only the two rosters in this game. Falling back to the league-wide profile set
+        # let players from other games be projected into this one.
+        usage = find_player(scripted, name)
         if usage is None or usage.inactive:
+            continue
+        if usage.team and game_teams and usage.team not in game_teams:
+            logger.debug(
+                "Skipping %s (%s) — not on %s", name, usage.team, "/".join(sorted(map(str, game_teams)))
+            )
             continue
         for market in markets:
             if not _market_fits(usage, market):

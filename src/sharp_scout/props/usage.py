@@ -9,20 +9,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from sharp_scout.config import DATA_DIR, get_settings
-from sharp_scout.data.nflfastr import CACHE_DIR, _download, load_pbp
+from sharp_scout.config import get_settings
+from sharp_scout.data.nflfastr import load_pbp
 from sharp_scout.utils.odds import normalize_team
 
 logger = logging.getLogger(__name__)
-
-PLAYER_STATS_URL = (
-    "https://github.com/nflverse/nflverse-data/releases/download/player_stats/"
-    "player_stats.parquet"
-)
-SNAP_URL = (
-    "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/"
-    "snap_counts.parquet"
-)
 
 
 @dataclass
@@ -61,18 +52,62 @@ class PlayerUsage:
     meta: dict[str, Any] = field(default_factory=dict)
 
 
-def _load_parquet_cached(name: str, url: str) -> pd.DataFrame:
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = CACHE_DIR / name
-    if not path.exists():
-        logger.info("Downloading %s", name)
-        if not _download(url, path):
-            return pd.DataFrame()
-    try:
-        return pd.read_parquet(path)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed reading %s: %s", name, exc)
-        return pd.DataFrame()
+def _weighted_per_game(
+    frame: pd.DataFrame,
+    id_col: str,
+    sums: dict[str, str],
+    *,
+    max_season: int,
+    decay: float,
+) -> pd.DataFrame:
+    """Recency-weighted per-game rates, indexed by player id.
+
+    `sums` maps an output column to the source column summed per player-season. Each
+    season is weighted `decay ** (max_season - season)` so an older season cannot carry
+    the same weight as the most recent one, then totals are divided by weighted games.
+    Also returns raw (unweighted) `games` and `recent_games` for eligibility checks.
+    """
+    agg: dict[str, tuple[str, str]] = {out: (src, "sum") for out, src in sums.items()}
+    agg["games"] = ("game_id", "nunique")
+    grouped = frame.groupby([id_col, "season"], dropna=True).agg(**agg).reset_index()
+    grouped["season"] = grouped["season"].astype(int)
+    grouped["weight"] = decay ** (max_season - grouped["season"])
+
+    weighted = grouped.copy()
+    for col in [*sums, "games"]:
+        weighted[col] = weighted[col].astype(float) * weighted["weight"]
+    totals = weighted.groupby(id_col)[[*sums, "games"]].sum()
+
+    weighted_games = totals["games"].replace(0.0, np.nan)
+    out = totals[[*sums]].div(weighted_games, axis=0).fillna(0.0)
+    out["games"] = grouped.groupby(id_col)["games"].sum()
+    out["recent_games"] = (
+        grouped[grouped["season"] >= max_season - 1].groupby(id_col)["games"].sum()
+    )
+    out["recent_games"] = out["recent_games"].fillna(0)
+    return out
+
+
+def _player_directory() -> dict[str, dict[str, Any]]:
+    """gsis_id → display name / position / current team from the nflverse directory."""
+    from sharp_scout.data.nflfastr import load_players
+
+    players = load_players()
+    if players.empty:
+        return {}
+    directory: dict[str, dict[str, Any]] = {}
+    for row in players.itertuples(index=False):
+        pid = str(getattr(row, "gsis_id", "") or "")
+        name = str(getattr(row, "display_name", "") or "").strip()
+        if not pid or not name:
+            continue
+        team = getattr(row, "latest_team", None)
+        directory[pid] = {
+            "name": name,
+            "position": str(getattr(row, "position", "") or "").upper(),
+            "team": str(team) if isinstance(team, str) and team.strip() else "",
+        }
+    return directory
 
 
 def build_usage_profiles(
@@ -80,185 +115,226 @@ def build_usage_profiles(
     seasons: list[int] | None = None,
     min_games: int = 2,
 ) -> dict[str, PlayerUsage]:
-    """Build opponent-agnostic usage baselines keyed by normalized player name."""
+    """Build opponent-agnostic usage baselines keyed by normalized full player name.
+
+    Play-by-play only carries abbreviated names ("J.Smith-Njigba") and no positions, so
+    the nflverse player directory supplies the display name that sportsbooks use, the
+    real position, and the team the player is on *now* — otherwise a player who changed
+    teams gets stranded on an old roster and never matches his current game.
+    """
     settings = get_settings()
     seasons = seasons or settings.seasons
     if pbp is None:
         pbp = load_pbp(seasons)
 
-    snaps = _load_parquet_cached("snap_counts.parquet", SNAP_URL)
-    if not snaps.empty and "season" in snaps.columns:
-        snaps = snaps[snaps["season"].isin(seasons)]
-
     if pbp.empty:
-        logger.warning("No PBP for usage profiles — returning demo stubs")
-        return _demo_usage()
+        logger.warning("No play-by-play available — cannot build prop usage profiles")
+        return {}
 
-    # Recency weight by week within latest seasons
-    df = pbp.copy()
+    df = pbp
     if "season" in df.columns:
         df = df[df["season"].isin(seasons)]
+    if df.empty or "game_id" not in df.columns:
+        logger.warning("No usable play-by-play rows for seasons %s", seasons)
+        return {}
 
-    dropbacks = df[df.get("is_dropback", False) == True] if "is_dropback" in df.columns else df
-    team_dropbacks = (
-        dropbacks.groupby(["season", "week", "posteam"]).size().rename("team_db").reset_index()
-        if not dropbacks.empty
-        else pd.DataFrame()
-    )
+    directory = _player_directory()
+    if not directory:
+        logger.warning("nflverse player directory unavailable — cannot build prop usage")
+        return {}
 
-    # Receiving opportunities
-    recv = df[df["receiver_player_name"].notna()].copy() if "receiver_player_name" in df.columns else pd.DataFrame()
-    # Fallback column names in nflverse
-    if recv.empty and "receiver_player_id" in df.columns:
-        recv = df[df["receiver_player_id"].notna()].copy()
+    max_season = int(df["season"].max())
+    decay = float(settings.prop_season_decay)
+
+    def _flag(col: str) -> pd.Series:
+        if col in df.columns:
+            return df[col].fillna(0).astype(float)
+        return pd.Series(0.0, index=df.index)
+
+    is_pass = _flag("pass") > 0
+    is_sack = _flag("sack") > 0
+    is_rush = df["is_rush"] if "is_rush" in df.columns else (_flag("rush") > 0)
 
     profiles: dict[str, PlayerUsage] = {}
 
-    if not recv.empty:
-        name_col = "receiver_player_name" if "receiver_player_name" in recv.columns else None
-        if name_col:
-            recv["player_name"] = recv[name_col].astype(str)
-            recv["team"] = recv["posteam"].map(lambda x: normalize_team(str(x)))
-            # Routes approx: each target counts; also count as route if complete/incomplete pass to them
-            # Better: use player on pass plays — approximate routes ~= targets / typical TPRR later
-            g = recv.groupby(["player_name", "team"], dropna=False)
-            for (pname, team), sub in g:
-                games = sub.groupby(["season", "week"]).ngroups if {"season", "week"}.issubset(sub.columns) else max(len(sub) // 8, 1)
-                if games < min_games:
-                    continue
-                targets = len(sub)
-                air = float(sub["air_yards"].sum()) if "air_yards" in sub.columns else 0.0
-                catches = float(sub["complete_pass"].sum()) if "complete_pass" in sub.columns else float(
-                    (sub["yards_gained"] > 0).sum()
-                ) if "yards_gained" in sub.columns else targets * 0.65
-                rec_yards = float(sub["yards_gained"].sum()) if "yards_gained" in sub.columns else 0.0
-                # Red zone targets
-                rz = sub
-                if "yardline_100" in sub.columns:
-                    rz = sub[sub["yardline_100"] <= 20]
-                rz_tgts = len(rz)
-                tds = float(sub["touchdown"].sum()) if "touchdown" in sub.columns else 0.0
+    def _profile_for(pid: str) -> PlayerUsage | None:
+        info = directory.get(pid)
+        if info is None:
+            return None
+        key = _player_key(info["name"])
+        existing = profiles.get(key)
+        if existing is not None:
+            return existing
+        created = PlayerUsage(
+            player_id=pid,
+            player_name=info["name"],
+            team=info["team"],
+            position=info["position"],
+        )
+        profiles[key] = created
+        return created
 
-                # Team totals for shares
-                team_tgts = len(recv[recv["team"] == team]) if "team" in recv.columns else targets
-                team_air = float(recv.loc[recv["team"] == team, "air_yards"].sum()) if "air_yards" in recv.columns else air
-                team_rz = len(recv[(recv["team"] == team) & (recv.get("yardline_100", pd.Series(99)) <= 20)]) if "yardline_100" in recv.columns else rz_tgts
-
-                # Team dropbacks for route participation proxy
-                team_db = 0
-                if not team_dropbacks.empty:
-                    team_db = int(
-                        team_dropbacks.loc[team_dropbacks["posteam"].map(lambda x: normalize_team(str(x))) == team, "team_db"].sum()
-                    )
-                # Approximate routes as targets / 0.22 TPRR league avg when snap data missing
-                routes = max(targets / 0.22, targets)
-                route_part = (routes / team_db) if team_db else min(targets / max(games * 35, 1), 1.0)
-
-                catch_rate = catches / targets if targets else 0.65
-                ypt = rec_yards / targets if targets else 7.0
-                key = _player_key(pname)
-                profiles[key] = PlayerUsage(
-                    player_id=key,
-                    player_name=pname,
-                    team=team,
-                    position="WR",
-                    route_participation=float(np.clip(route_part, 0, 1)),
-                    target_share=targets / team_tgts if team_tgts else 0.0,
-                    air_yards_share=air / team_air if team_air else 0.0,
-                    rz_touch_share=rz_tgts / team_rz if team_rz else 0.0,
-                    tprr=targets / routes if routes else 0.22,
-                    yprr=rec_yards / routes if routes else 1.5,
-                    exp_targets=targets / games,
-                    exp_receptions=catches / games,
-                    exp_rec_yards=rec_yards / games,
-                    exp_rec_tds=tds / games,
-                    catch_rate=catch_rate,
-                    ypt=ypt,
-                    games=games,
-                )
-
-    # Rushing
-    rush = df[df.get("is_rush", False) == True].copy() if "is_rush" in df.columns else pd.DataFrame()
-    if rush.empty and "rusher_player_name" in df.columns:
-        rush = df[df["rusher_player_name"].notna()].copy()
-    if not rush.empty and "rusher_player_name" in rush.columns:
-        rush["player_name"] = rush["rusher_player_name"].astype(str)
-        rush["team"] = rush["posteam"].map(lambda x: normalize_team(str(x)))
-        for (pname, team), sub in rush.groupby(["player_name", "team"]):
-            games = sub.groupby(["season", "week"]).ngroups if {"season", "week"}.issubset(sub.columns) else max(len(sub) // 10, 1)
-            if games < min_games:
-                continue
-            att = len(sub)
-            yds = float(sub["yards_gained"].sum()) if "yards_gained" in sub.columns else 0.0
-            tds = float(sub["touchdown"].sum()) if "touchdown" in sub.columns else 0.0
-            team_att = len(rush[rush["team"] == team])
-            key = _player_key(pname)
-            if key in profiles:
-                profiles[key].rush_share = att / team_att if team_att else 0.0
-                profiles[key].exp_rush_att = att / games
-                profiles[key].exp_rush_yards = yds / games
-                profiles[key].exp_rush_tds = tds / games
-                profiles[key].ypc_rush = yds / att if att else 4.0
-                if profiles[key].position == "WR" and att / games > 3:
-                    profiles[key].position = "RB"
-            else:
-                profiles[key] = PlayerUsage(
-                    player_id=key,
-                    player_name=pname,
-                    team=team,
-                    position="RB",
-                    rush_share=att / team_att if team_att else 0.0,
-                    exp_rush_att=att / games,
-                    exp_rush_yards=yds / games,
-                    exp_rush_tds=tds / games,
-                    ypc_rush=yds / att if att else 4.0,
-                    games=games,
-                )
-
-    # Passing (QB)
-    if "passer_player_name" in df.columns:
-        pas = df[df["passer_player_name"].notna() & df.get("is_dropback", True)].copy()
-        pas["player_name"] = pas["passer_player_name"].astype(str)
-        pas["team"] = pas["posteam"].map(lambda x: normalize_team(str(x)))
-        for (pname, team), sub in pas.groupby(["player_name", "team"]):
-            games = sub.groupby(["season", "week"]).ngroups if {"season", "week"}.issubset(sub.columns) else max(len(sub) // 30, 1)
-            if games < min_games:
-                continue
-            att = len(sub)
-            yds = float(sub["yards_gained"].sum()) if "yards_gained" in sub.columns else 0.0
-            tds = float(sub["touchdown"].sum()) if "touchdown" in sub.columns else 0.0
-            cpoe = float(sub["cpoe"].mean()) if "cpoe" in sub.columns else 0.0
-            key = _player_key(pname)
-            if key in profiles and profiles[key].exp_targets > 2:
-                continue  # skill player who also has passer rows
-            profiles[key] = PlayerUsage(
-                player_id=key,
-                player_name=pname,
-                team=team,
-                position="QB",
-                exp_pass_att=att / games,
-                exp_pass_yards=yds / games,
-                exp_pass_tds=tds / games,
-                cpoe=cpoe,
-                games=games,
+    # ---- Receiving -------------------------------------------------------------
+    if "receiver_player_id" in df.columns:
+        recv = df[df["receiver_player_id"].notna() & is_pass].copy()
+        if not recv.empty:
+            recv["targets"] = 1.0
+            recv["receptions"] = _flag("complete_pass").reindex(recv.index).fillna(0.0)
+            recv["rec_yards"] = (
+                recv["receiving_yards"].fillna(0.0)
+                if "receiving_yards" in recv.columns
+                else recv.get("yards_gained", pd.Series(0.0, index=recv.index)).fillna(0.0)
             )
+            recv["rec_tds"] = _flag("pass_touchdown").reindex(recv.index).fillna(0.0)
+            recv["air"] = (
+                recv["air_yards"].fillna(0.0)
+                if "air_yards" in recv.columns
+                else pd.Series(0.0, index=recv.index)
+            )
+            recv["rz_targets"] = (
+                (recv["yardline_100"] <= 20).astype(float)
+                if "yardline_100" in recv.columns
+                else 0.0
+            )
+            rates = _weighted_per_game(
+                recv,
+                "receiver_player_id",
+                {
+                    "targets": "targets",
+                    "receptions": "receptions",
+                    "rec_yards": "rec_yards",
+                    "rec_tds": "rec_tds",
+                    "air": "air",
+                    "rz_targets": "rz_targets",
+                },
+                max_season=max_season,
+                decay=decay,
+            )
+            for pid, row in rates.iterrows():
+                if row["games"] < min_games or row["recent_games"] < 1:
+                    continue
+                u = _profile_for(str(pid))
+                if u is None:
+                    continue
+                u.exp_targets = float(row["targets"])
+                u.exp_receptions = float(row["receptions"])
+                u.exp_rec_yards = float(row["rec_yards"])
+                u.exp_rec_tds = float(row["rec_tds"])
+                u.catch_rate = (
+                    float(row["receptions"] / row["targets"]) if row["targets"] else 0.65
+                )
+                u.ypt = float(row["rec_yards"] / row["targets"]) if row["targets"] else 7.0
+                u.games = int(row["games"])
+                # Routes are not in the free feed; back them out of a league-average TPRR.
+                routes = max(u.exp_targets / 0.22, u.exp_targets)
+                u.tprr = u.exp_targets / routes if routes else 0.22
+                u.yprr = u.exp_rec_yards / routes if routes else 1.5
+                u.meta = {**(u.meta or {}), "air_yards_per_game": float(row["air"])}
 
-    # Snap % overlay
-    if not snaps.empty:
-        name_col = "player" if "player" in snaps.columns else ("player_name" if "player_name" in snaps.columns else None)
-        pct_col = "offense_pct" if "offense_pct" in snaps.columns else None
-        if name_col and pct_col:
-            for _, row in snaps.groupby(name_col)[pct_col].mean().items():
-                pass
-            avg = snaps.groupby(name_col)[pct_col].mean()
-            for pname, pct in avg.items():
-                key = _player_key(str(pname))
-                if key in profiles:
-                    # offense_pct often 0-100
-                    profiles[key].snap_pct = float(pct) / 100.0 if pct > 1.5 else float(pct)
+    # ---- Rushing ---------------------------------------------------------------
+    if "rusher_player_id" in df.columns:
+        rush = df[df["rusher_player_id"].notna() & is_rush].copy()
+        if not rush.empty:
+            rush["attempts"] = 1.0
+            rush["rush_yards"] = (
+                rush["rushing_yards"].fillna(0.0)
+                if "rushing_yards" in rush.columns
+                else rush.get("yards_gained", pd.Series(0.0, index=rush.index)).fillna(0.0)
+            )
+            rush["rush_tds"] = _flag("rush_touchdown").reindex(rush.index).fillna(0.0)
+            rates = _weighted_per_game(
+                rush,
+                "rusher_player_id",
+                {
+                    "attempts": "attempts",
+                    "rush_yards": "rush_yards",
+                    "rush_tds": "rush_tds",
+                },
+                max_season=max_season,
+                decay=decay,
+            )
+            for pid, row in rates.iterrows():
+                if row["games"] < min_games or row["recent_games"] < 1:
+                    continue
+                u = _profile_for(str(pid))
+                if u is None:
+                    continue
+                u.exp_rush_att = float(row["attempts"])
+                u.exp_rush_yards = float(row["rush_yards"])
+                u.exp_rush_tds = float(row["rush_tds"])
+                u.ypc_rush = (
+                    float(row["rush_yards"] / row["attempts"]) if row["attempts"] else 4.0
+                )
+                u.games = max(u.games, int(row["games"]))
+
+    # ---- Passing ---------------------------------------------------------------
+    if "passer_player_id" in df.columns:
+        pas = df[df["passer_player_id"].notna() & is_pass & ~is_sack].copy()
+        if not pas.empty:
+            pas["attempts"] = 1.0
+            pas["pass_yards"] = (
+                pas["passing_yards"].fillna(0.0)
+                if "passing_yards" in pas.columns
+                else pas.get("yards_gained", pd.Series(0.0, index=pas.index)).fillna(0.0)
+            )
+            pas["pass_tds"] = _flag("pass_touchdown").reindex(pas.index).fillna(0.0)
+            rates = _weighted_per_game(
+                pas,
+                "passer_player_id",
+                {
+                    "attempts": "attempts",
+                    "pass_yards": "pass_yards",
+                    "pass_tds": "pass_tds",
+                },
+                max_season=max_season,
+                decay=decay,
+            )
+            cpoe = (
+                pas.groupby("passer_player_id")["cpoe"].mean()
+                if "cpoe" in pas.columns
+                else pd.Series(dtype=float)
+            )
+            for pid, row in rates.iterrows():
+                if row["games"] < min_games or row["recent_games"] < 1:
+                    continue
+                u = _profile_for(str(pid))
+                if u is None:
+                    continue
+                u.exp_pass_att = float(row["attempts"])
+                u.exp_pass_yards = float(row["pass_yards"])
+                u.exp_pass_tds = float(row["pass_tds"])
+                u.cpoe = float(cpoe.get(pid, 0.0) or 0.0)
+                u.games = max(u.games, int(row["games"]))
+
+    # ---- Team shares -----------------------------------------------------------
+    team_targets: dict[str, float] = {}
+    team_rush_att: dict[str, float] = {}
+    for u in profiles.values():
+        if not u.team:
+            continue
+        team_targets[u.team] = team_targets.get(u.team, 0.0) + u.exp_targets
+        team_rush_att[u.team] = team_rush_att.get(u.team, 0.0) + u.exp_rush_att
+    for u in profiles.values():
+        tt = team_targets.get(u.team, 0.0)
+        ra = team_rush_att.get(u.team, 0.0)
+        u.target_share = u.exp_targets / tt if tt else 0.0
+        u.rush_share = u.exp_rush_att / ra if ra else 0.0
+        u.route_participation = float(np.clip(u.exp_targets / 6.0, 0.0, 1.0))
+
+    # Drop players with no usable volume in any market — a profile of all zeros would
+    # otherwise simulate as "near-certain under" on every line.
+    profiles = {k: u for k, u in profiles.items() if _has_usable_volume(u)}
 
     logger.info("Built usage profiles for %d players", len(profiles))
-    return profiles if profiles else _demo_usage()
+    return profiles
+
+
+def _has_usable_volume(u: PlayerUsage) -> bool:
+    return (
+        u.exp_targets > 0
+        or u.exp_rush_att > 0
+        or u.exp_pass_att > 0
+    )
 
 
 def apply_game_script(
@@ -405,12 +481,28 @@ def _demo_usage() -> dict[str, PlayerUsage]:
 
 
 def find_player(profiles: dict[str, PlayerUsage], name: str) -> PlayerUsage | None:
+    """Match a sportsbook player name to a usage profile.
+
+    Only exact and unambiguous first-initial+surname matches count. A bare surname
+    substring match used to silently return whichever player happened to be first in the
+    dict, attributing one player's projection to another.
+    """
     key = _player_key(name)
     if key in profiles:
         return profiles[key]
-    # Fuzzy: last name match
-    last = key.split()[-1] if key else ""
-    for k, p in profiles.items():
-        if last and last in k:
-            return p
+
+    parts = key.split()
+    if len(parts) < 2:
+        return None
+    surname = parts[-1]
+    initial = parts[0][0]
+
+    candidates = [
+        p
+        for k, p in profiles.items()
+        if k.split()[-1:] == [surname] and k.startswith(initial)
+    ]
+    if len(candidates) == 1:
+        return candidates[0]
+    # Ambiguous (or no) surname match — better to skip than to guess wrong.
     return None

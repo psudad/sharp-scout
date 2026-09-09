@@ -25,6 +25,33 @@ from sharp_scout.utils.odds import setup_logging
 logger = logging.getLogger(__name__)
 
 
+def _within_horizon(events: list[dict[str, Any]], horizon_days: float) -> list[dict[str, Any]]:
+    """Keep only games kicking off inside the horizon.
+
+    Player props need one API call *per event*, and the odds feed returns the whole
+    season (~270 games), so an unfiltered run burns hundreds of credits fetching prop
+    markets that books have not even posted yet.
+    """
+    from sharp_scout.utils.slate import parse_commence
+
+    now = datetime.now(timezone.utc)
+    kept: list[dict[str, Any]] = []
+    for ev in events:
+        kick = parse_commence(ev.get("commence_time"))
+        if kick is None:
+            continue
+        hours = (kick - now).total_seconds() / 3600.0
+        if -3.0 <= hours <= horizon_days * 24.0:
+            kept.append(ev)
+    logger.info(
+        "Props slate: %d of %d events kick off within %.0f days",
+        len(kept),
+        len(events),
+        horizon_days,
+    )
+    return kept
+
+
 def run_props_pipeline(
     *,
     demo: bool = False,
@@ -67,7 +94,7 @@ def run_props_pipeline(
             events = [mock_prop_event(e) for e in mock_odds_events()]
         else:
             client = OddsClient()
-            base = client.fetch_odds()
+            base = _within_horizon(client.fetch_odds(), settings.prop_horizon_days)
             events = []
             for ev in base:
                 try:
@@ -195,17 +222,24 @@ def run_props_pipeline(
             side = {}
     else:
         side = {}
+    payload["publish_enabled"] = settings.props_publish_enabled
     side["props"] = payload
-    # Combined plays board: sides + props
-    combined = list(side.get("plays") or [])
-    # Drop prior props from combined if re-run
-    combined = [p for p in combined if p.get("play_type") != "prop"]
-    combined.extend(validated)
+    # Combined plays board: sides + props. In shadow mode props stay out of the board
+    # entirely so an uncalibrated projection cannot swamp the posted side plays.
+    combined = [p for p in (side.get("plays") or []) if p.get("play_type") != "prop"]
+    if settings.props_publish_enabled:
+        combined.extend(validated)
     side["plays"] = combined
     side["n_prop_validated"] = len(validated)
     side_path.write_text(json.dumps(side, indent=2, default=str))
 
-    if update_ledger and validated:
+    if update_ledger and validated and not settings.props_publish_enabled:
+        logger.warning(
+            "Props shadow mode: %d validated plays written to artifacts only "
+            "(set PROPS_PUBLISH_ENABLED=true to record them)",
+            len(validated),
+        )
+    if update_ledger and validated and settings.props_publish_enabled:
         from sharp_scout.ledger.tracker import append_signals, compute_record
 
         ledger = append_signals(validated, season=season, week=week)

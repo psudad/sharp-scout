@@ -80,6 +80,84 @@ def test_normalize_markets_from_fixture():
     assert g["markets"]["total"]["over_bet_pct"] == 0.61
 
 
+def test_nfl_team_name_prefers_full_name_over_city():
+    """AN uses location='Los Angeles' for both LAR and LAC; must not become LOS."""
+    client = ActionNetworkClient(cookie="")
+    rams = {
+        "id": 1,
+        "location": "Los Angeles",
+        "abbr": "LA",
+        "full_name": "Los Angeles Rams",
+        "display_name": "Rams",
+    }
+    chargers = {
+        "id": 2,
+        "location": "Los Angeles",
+        "abbr": "LAC",
+        "full_name": "Los Angeles Chargers",
+        "display_name": "Chargers",
+    }
+    jets = {
+        "id": 3,
+        "location": "New York",
+        "abbr": "NYJ",
+        "full_name": "New York Jets",
+        "display_name": "Jets",
+    }
+    giants = {
+        "id": 4,
+        "location": "New York",
+        "abbr": "NYG",
+        "full_name": "New York Giants",
+        "display_name": "Giants",
+    }
+    assert client._normalize_game(
+        {
+            "id": 10,
+            "home_team_id": 1,
+            "away_team_id": 2,
+            "teams": [chargers, rams],
+            "markets": {},
+        }
+    )["home_team"] == "LAR"
+    g_nyj_lar = client._normalize_game(
+        {
+            "id": 11,
+            "home_team_id": 1,
+            "away_team_id": 3,
+            "teams": [jets, rams],
+            "markets": {},
+        }
+    )
+    assert g_nyj_lar["home_team"] == "LAR" and g_nyj_lar["away_team"] == "NYJ"
+    g_sf_lar = client._normalize_game(
+        {
+            "id": 12,
+            "home_team_id": 1,
+            "away_team_id": 5,
+            "teams": [
+                {"id": 5, "location": "San Francisco", "abbr": "SF", "full_name": "San Francisco 49ers"},
+                rams,
+            ],
+            "markets": {},
+        }
+    )
+    assert g_sf_lar["away_team"] == "SF" and g_sf_lar["home_team"] == "LAR"
+    g_dal_nyg = client._normalize_game(
+        {
+            "id": 13,
+            "home_team_id": 4,
+            "away_team_id": 6,
+            "teams": [
+                {"id": 6, "location": "Dallas", "abbr": "DAL", "full_name": "Dallas Cowboys"},
+                giants,
+            ],
+            "markets": {},
+        }
+    )
+    assert g_dal_nyg["away_team"] == "DAL" and g_dal_nyg["home_team"] == "NYG"
+
+
 def test_live_scoreboard_or_skip():
     """Live call — skip assertion hard-fail if AN is down / offseason empty."""
     client = ActionNetworkClient(cookie="")

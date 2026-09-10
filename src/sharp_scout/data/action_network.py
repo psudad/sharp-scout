@@ -222,15 +222,18 @@ class ActionNetworkClient:
             ),
         }
 
-    @staticmethod
-    def _team_name(team: dict[str, Any]) -> str:
-        """Best school identifier for matching.
+    def _team_name(self, team: dict[str, Any]) -> str:
+        """Identifier for matching against Odds API / nflverse codes.
 
-        ``location`` is the mascot-free school name ("North Carolina"), which lines up
-        with the Odds API far more often than the abbreviation does. Fall back to the
-        abbreviation, then the full name.
+        NCAAF: prefer ``location`` (mascot-free school name) — aligns with Odds API.
+        NFL: prefer ``full_name`` / ``abbr`` — AN ``location`` is city-only ("Los Angeles",
+        "New York") and normalizes to ambiguous 3-letter codes (LOS, NEW).
         """
-        for key in ("location", "abbr", "abbreviation", "full_name", "display_name", "name"):
+        if (self.norm_sport or "nfl").lower() == "nfl":
+            keys = ("full_name", "abbr", "abbreviation", "display_name", "name", "location")
+        else:
+            keys = ("location", "abbr", "abbreviation", "full_name", "display_name", "name")
+        for key in keys:
             value = team.get(key)
             if value:
                 return str(value)

@@ -91,33 +91,34 @@ def simulate_prop(
     rng = np.random.default_rng(seed)
     market = market.strip()
 
+    disp = float(settings.prop_count_dispersion)
     if market == "player_receptions":
         _require_opportunity(usage, usage.exp_targets, market)
-        samples = _negbin_samples(usage.exp_receptions, n, dispersion=1.35, rng=rng).astype(float)
+        samples = _negbin_samples(usage.exp_receptions, n, dispersion=disp, rng=rng).astype(float)
     elif market == "player_reception_yds":
         _require_opportunity(usage, usage.exp_targets, market)
-        samples = _gamma_samples(usage.exp_rec_yards, n, cv=0.60, rng=rng)
+        samples = _gamma_samples(usage.exp_rec_yards, n, cv=settings.prop_rec_yards_cv, rng=rng)
     elif market == "player_reception_tds":
         _require_opportunity(usage, usage.exp_targets, market)
-        samples = _negbin_samples(max(usage.exp_rec_tds, 0.01), n, dispersion=1.6, rng=rng).astype(float)
+        samples = _negbin_samples(max(usage.exp_rec_tds, 0.01), n, dispersion=disp + 0.15, rng=rng).astype(float)
     elif market == "player_rush_yds":
         _require_opportunity(usage, usage.exp_rush_att, market)
-        samples = _gamma_samples(usage.exp_rush_yards, n, cv=0.58, rng=rng)
+        samples = _gamma_samples(usage.exp_rush_yards, n, cv=settings.prop_rush_yards_cv, rng=rng)
     elif market == "player_rush_attempts":
         _require_opportunity(usage, usage.exp_rush_att, market)
-        samples = _negbin_samples(usage.exp_rush_att, n, dispersion=1.3, rng=rng).astype(float)
+        samples = _negbin_samples(usage.exp_rush_att, n, dispersion=disp - 0.15, rng=rng).astype(float)
     elif market == "player_rush_tds":
         _require_opportunity(usage, usage.exp_rush_att, market)
-        samples = _negbin_samples(max(usage.exp_rush_tds, 0.01), n, dispersion=1.6, rng=rng).astype(float)
+        samples = _negbin_samples(max(usage.exp_rush_tds, 0.01), n, dispersion=disp + 0.15, rng=rng).astype(float)
     elif market == "player_pass_yds":
         _require_opportunity(usage, usage.exp_pass_att, market)
-        samples = _gamma_samples(usage.exp_pass_yards, n, cv=0.42, rng=rng)
+        samples = _gamma_samples(usage.exp_pass_yards, n, cv=settings.prop_pass_yards_cv, rng=rng)
     elif market == "player_pass_tds":
         _require_opportunity(usage, usage.exp_pass_att, market)
-        samples = _negbin_samples(max(usage.exp_pass_tds, 0.01), n, dispersion=1.45, rng=rng).astype(float)
+        samples = _negbin_samples(max(usage.exp_pass_tds, 0.01), n, dispersion=disp, rng=rng).astype(float)
     elif market == "player_pass_attempts":
         _require_opportunity(usage, usage.exp_pass_att, market)
-        samples = _negbin_samples(usage.exp_pass_att, n, dispersion=1.25, rng=rng).astype(float)
+        samples = _negbin_samples(usage.exp_pass_att, n, dispersion=disp - 0.2, rng=rng).astype(float)
     elif market == "player_anytime_td":
         _require_opportunity(usage, usage.exp_targets + usage.exp_rush_att, market)
         # Bernoulli from combined TD rate

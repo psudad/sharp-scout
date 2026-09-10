@@ -23,10 +23,12 @@ import pandas as pd
 
 from sharp_scout.config import get_settings
 from sharp_scout.data.nflfastr import load_pbp
+from sharp_scout.phase1.ratings import build_power_ratings
 from sharp_scout.props.actuals import ANYTIME_TD_MARKET, actual_for_market, player_game_stats
 from sharp_scout.props.markets import _market_fits
 from sharp_scout.props.simulate import CORE_PROP_MARKETS, simulate_prop
-from sharp_scout.props.usage import PlayerUsage, apply_game_script, build_usage_profiles
+from sharp_scout.props.matchup import opponent_matchup_tilts
+from sharp_scout.props.usage import PlayerUsage, apply_game_script, apply_matchup, build_usage_profiles
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +103,7 @@ def run_backfit(
         profiles = build_usage_profiles(prior)
         if not profiles:
             continue
+        ratings = build_power_ratings(prior)
         by_pid = {u.player_id: u for u in profiles.values()}
 
         week_games = games[(games["season"] == season) & (games["week"] == week)]
@@ -129,6 +132,13 @@ def run_backfit(
                 team_spread = home_spread if is_home else -home_spread
                 scripted = apply_game_script(
                     usage, team_spread=team_spread, team_total=total, is_home=is_home
+                )
+                opponent = str(g.away_team) if is_home else str(g.home_team)
+                pass_epa, rush_epa = opponent_matchup_tilts(ratings, opponent)
+                scripted = apply_matchup(
+                    scripted,
+                    opp_pass_epa_allowed=pass_epa,
+                    opp_rush_epa_allowed=rush_epa,
                 )
                 records.extend(
                     _grade_player(

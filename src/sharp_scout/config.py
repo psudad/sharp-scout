@@ -57,6 +57,15 @@ class Settings(BaseSettings):
     # Per-season weight decay for prop usage baselines (0.5 → last season counts double
     # the one before it), so a stale rookie year cannot anchor a current projection.
     prop_season_decay: float = 0.5
+    # Blend weight on current-season-only per-game rates (rest = multi-season recency blend).
+    prop_current_season_blend: float = 0.65
+    # Minimum games in the current season before the blend kicks in.
+    prop_current_season_min_games: int = 2
+    # Wider tails on yardage/count sims — the backfit showed the raw MC was over-narrow.
+    prop_rec_yards_cv: float = 0.68
+    prop_rush_yards_cv: float = 0.66
+    prop_pass_yards_cv: float = 0.48
+    prop_count_dispersion: float = 1.45
     # Props guardrails — a prop edge this large means the projection, not the market, is
     # broken; publish nothing above it (mirrors max_h2h_edge on the sides pipeline).
     max_prop_edge: float = 0.35

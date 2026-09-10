@@ -30,6 +30,11 @@ def test_find_split_game_ncaaf_alias():
     assert hit is not None
 
 
+def test_florida_am_odds_api_name_maps_to_famu():
+    assert normalize_ncaaf("FLORIDA A AND M RATTLERS") == "FAMU"
+    assert normalize_ncaaf("FAAMR") == "FAMU"
+
+
 def test_group_of_five_mascots_and_abbrs_converge():
     """G5 rows were silently unmatched, so Public / Sharp Money never showed for them."""
     pairs = [

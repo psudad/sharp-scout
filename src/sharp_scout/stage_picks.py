@@ -31,6 +31,8 @@ STAGE_MARKETS: tuple[MarketFocus, ...] = ("spread", "h2h", "total")
 
 _MARKET_ODDS_KEY = {"spread": "spreads", "h2h": "h2h", "total": "totals"}
 _MARKET_SPLIT_KEY = {"spread": "spread", "h2h": "moneyline", "total": "total"}
+# When the market spread is this large, ML leans must follow the spread favorite — not raw sim W%.
+_ML_SPREAD_FAVORITE_LINE = 14.0
 
 
 @dataclass
@@ -187,6 +189,17 @@ def pick_model(
     if market == "h2h":
         side: Side = "home" if sim.p_home_win >= sim.p_away_win else "away"
         conf = max(sim.p_home_win, sim.p_away_win)
+        reason = f"P_true win home={sim.p_home_win:.1%} away={sim.p_away_win:.1%}"
+        mkt = _consensus_spread_line(event or {}, split_game) if event else None
+        if mkt is not None and abs(float(mkt)) >= _ML_SPREAD_FAVORITE_LINE:
+            fav: Side = "home" if float(mkt) < 0 else "away"
+            if side != fav:
+                side = fav
+                conf = sim.p_home_win if fav == "home" else sim.p_away_win
+                reason = (
+                    f"ML aligned to spread favorite ({abs(float(mkt)):.1f}-pt line); "
+                    f"raw sim win home={sim.p_home_win:.1%} away={sim.p_away_win:.1%}"
+                )
         return StagePick(
             "model",
             "h2h",
@@ -194,7 +207,7 @@ def pick_model(
             _team(side, home, away),
             None,
             conf,
-            f"P_true win home={sim.p_home_win:.1%} away={sim.p_away_win:.1%}",
+            reason,
         )
     if market == "total":
         line = _consensus_total_line(event or {})

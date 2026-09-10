@@ -129,6 +129,16 @@ def test_summarize():
     assert summary["n_rows"] == 1
 
 
+def test_model_h2h_aligns_to_heavy_spread_favorite():
+    # Sim nonsense (dog favored outright) must not surface when market is -56.
+    sim = SimpleNamespace(model_spread=3.5, p_home_win=0.33, p_away_win=0.63, cover_probs={})
+    ev = _event_with_spread(home_point=-56.5, away_point=56.5)
+    pick = pick_model(sim, "MIA", "FAMU", market="h2h", event=ev)
+    assert pick.side == "home"
+    assert pick.team == "MIA"
+    assert "spread favorite" in pick.reason
+
+
 def test_total_market_stage_card():
     ev = mock_odds_events()[0]
     sim = simulate_game("BUF", "KC", 24, 27, n_sims=1000, seed=3)

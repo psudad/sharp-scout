@@ -798,3 +798,46 @@ def ncaaf_display_code(name: str) -> str:
             return parts[0][:4] + "ST"
         return parts[0][:8]
     return "".join(p[0] for p in parts)[:6]
+
+
+def team_search_tokens(name: str, *, sport: str = "nfl") -> set[str]:
+    """Lowercase tokens used to match user search queries on the board."""
+    if not name:
+        return set()
+    sport_key = (sport or "nfl").lower()
+    tokens: set[str] = set()
+    raw = str(name).strip().lower()
+    if raw:
+        tokens.add(raw)
+    if sport_key == "ncaaf":
+        canon = normalize_ncaaf(name)
+        if canon:
+            tokens.add(canon.lower())
+            tokens.add(ncaaf_display_code(canon).lower())
+            tokens.add(ncaaf_display_code(name).lower())
+        for alias, target in NCAAF_ALIASES.items():
+            alias_l = alias.lower()
+            if target == canon or alias_l == raw:
+                tokens.add(alias_l)
+                if " " in alias:
+                    tokens.update(part.lower() for part in alias.split() if len(part) > 2)
+    else:
+        from sharp_scout.utils.odds import TEAM_ALIASES, normalize_team
+
+        code = normalize_team(name, "nfl").lower()
+        tokens.add(code)
+        for alias, target in TEAM_ALIASES.items():
+            if target.lower() == code:
+                alias_l = alias.lower()
+                tokens.add(alias_l)
+                if " " in alias:
+                    tokens.update(part.lower() for part in alias.split() if len(part) > 2)
+    return {t for t in tokens if t}
+
+
+def matchup_search_blob(*teams: str, sport: str = "nfl") -> str:
+    """Space-separated search blob for a game row or card."""
+    tokens: set[str] = set()
+    for team in teams:
+        tokens |= team_search_tokens(team, sport=sport)
+    return " ".join(sorted(tokens))

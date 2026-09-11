@@ -60,7 +60,7 @@ _WEEK1_BANNER = (
     "this board, treat it as informational and bet at your own risk."
     "</div>"
 )
-from sharp_scout.utils.teams import ncaaf_display_code
+from sharp_scout.utils.teams import matchup_search_blob, ncaaf_display_code
 
 DOCS_DIR = ROOT / "docs"
 
@@ -73,6 +73,20 @@ def _esc(s: Any) -> str:
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
+
+
+def _search_attrs(
+    away: str,
+    home: str,
+    *,
+    sport: str,
+    event_id: str | None = None,
+) -> str:
+    blob = matchup_search_blob(away, home, sport=sport)
+    attrs = f'data-team-search="{_esc(blob)}"'
+    if event_id:
+        attrs += f' data-event-id="{_esc(str(event_id))}"'
+    return attrs
 
 
 def _price(p: Any) -> str:
@@ -1444,9 +1458,10 @@ def _render_play_table(
             status_html += _live_score_html(p, sport=sport)
         rationale = format_play_rationale(p).replace("\n", " · ")
         tr_cls = " class='settled-row'" if final else ""
+        search_attrs = _search_attrs(away, home, sport=sport, event_id=p.get("event_id"))
         # data-label drives the stacked card layout on phones (see .plays-table rules).
         return (
-            f"<tr{tr_cls}>"
+            f"<tr{tr_cls} {search_attrs}>"
             f"<td data-label='Kickoff'>{_esc(kick)}</td>"
             f"<td data-label='Game'>{game}</td>"
             f"<td class='play-pick-cell' data-label='Play'>{_esc(_side_label(p))}</td>"
@@ -1823,7 +1838,7 @@ def _render_games_pipeline(
 
         cards.append(
             f"""
-      <div class="game-card">
+      <div class="game-card" {_search_attrs(away, home, sport=sport, event_id=eid)}>
         <div class="game-head">
           <div class="game-title">{_esc(away)} @ {_esc(home)}</div>
           <div class="game-kick">{_esc(kick)}</div>
@@ -2492,7 +2507,7 @@ def _render_stage_rows(cards: list[dict], *, sport: str = "nfl") -> str:
         else:
             matchup = f"{_esc(away)} @ {_esc(home)}"
         rows.append(
-            "<tr>"
+            f"<tr {_search_attrs(away, home, sport=sport, event_id=c.get('event_id'))}>"
             f"<td>{_esc(kick_s)}</td>"
             f"<td>{matchup}</td>"
             f"<td>{_esc(_stage_market_label(c.get('market')))}</td>"
@@ -2664,7 +2679,7 @@ def _render_hybrid_leans_section(
             )
         row_cls = ' class="lean-row-sharp-play"' if row.get("is_sharp_play") else ""
         rows.append(
-            f"<tr{row_cls}>"
+            f"<tr{row_cls} {_search_attrs(away, home, sport=sport, event_id=row.get('event_id'))}>"
             f"<td>{_esc(kick_s)}</td>"
             f"<td>{matchup}</td>"
             f"<td>{_esc(_stage_market_label(row.get('market')))}</td>"
@@ -3110,6 +3125,9 @@ _SITE_CSS = """\
     background: var(--color-bg); color: var(--color-text); }
   .team-search-input:focus { outline: none; border-color: var(--color-navy); }
   .team-search-input::placeholder { color: var(--color-text-muted); }
+  .team-search-hint { margin: -8px 0 16px; font-size: 13px; color: var(--color-text-muted); }
+  .team-search-hint.match { color: var(--color-navy); font-weight: 500; }
+  .team-search-hint.none { color: #b45309; }
   .stat-card {
     background: var(--color-slate);
     border: 2px solid var(--color-border);
@@ -3574,6 +3592,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="team-search-wrap">
     <input type="text" id="nfl-team-search" class="team-search-input" placeholder="Search for a team (e.g. Chiefs, KC)..." />
   </div>
+  <p id="nfl-team-search-hint" class="team-search-hint" style="display:none" aria-live="polite"></p>
   <div class="summary-grid">{nfl_top_stats_html}</div>
   <div class="section-label">Season Overview</div>
   {nfl_overall_banner_html}
@@ -3623,6 +3642,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="team-search-wrap">
     <input type="text" id="cfb-team-search" class="team-search-input" placeholder="Search for a team (e.g. Alabama, Crimson Tide)..." />
   </div>
+  <p id="cfb-team-search-hint" class="team-search-hint" style="display:none" aria-live="polite"></p>
   <div class="summary-grid">{ncaaf_top_stats_html}</div>
   <div class="section-label">Season Overview</div>
   {ncaaf_overall_banner_html}
@@ -3724,33 +3744,86 @@ function showTab(name, el) {{
   route();
 }})();
 
-// Team search: filter all tables in a tab to show only rows matching the search query.
+// Team search: alias-aware filter for plays, stage leans, and per-game breakdown cards.
 (function () {{
-  function setupSearch(inputId, tabId) {{
+  function rowMatches(row, query) {{
+    var blob = row.getAttribute('data-team-search');
+    if (blob) return blob.indexOf(query) !== -1;
+    return row.textContent.toLowerCase().indexOf(query) !== -1;
+  }}
+
+  function setupSearch(inputId, tabId, hintId) {{
     var input = document.getElementById(inputId);
     if (!input) return;
+    var hint = hintId ? document.getElementById(hintId) : null;
     input.addEventListener('input', function () {{
       var query = input.value.toLowerCase().trim();
       var tab = document.getElementById(tabId);
       if (!tab) return;
-      var tables = tab.querySelectorAll('table tbody');
-      tables.forEach(function (tbody) {{
-        var rows = tbody.querySelectorAll('tr');
-        rows.forEach(function (row) {{
-          // Don't filter divider rows, heading rows, or stage summary rows
+
+      var matchedEventIds = {{}};
+      tab.querySelectorAll('[data-event-id]').forEach(function (el) {{
+        if (query && rowMatches(el, query)) {{
+          matchedEventIds[el.getAttribute('data-event-id')] = true;
+        }}
+      }});
+
+      tab.querySelectorAll('.game-card').forEach(function (card) {{
+        if (!query) {{
+          card.style.display = '';
+          card.removeAttribute('data-search-hidden');
+          return;
+        }}
+        var eid = card.getAttribute('data-event-id');
+        var show = rowMatches(card, query) || (eid && matchedEventIds[eid]);
+        card.style.display = show ? '' : 'none';
+        if (show) card.removeAttribute('data-search-hidden');
+        else card.setAttribute('data-search-hidden', '1');
+      }});
+
+      tab.querySelectorAll('table tbody').forEach(function (tbody) {{
+        tbody.querySelectorAll('tr').forEach(function (row) {{
           if (row.classList.contains('settled-divider') || row.classList.contains('week-heading') ||
               row.classList.contains('stage-summary')) {{
             row.style.display = '';
             return;
           }}
-          var text = row.textContent.toLowerCase();
-          row.style.display = (query === '' || text.indexOf(query) !== -1) ? '' : 'none';
+          if (!query) {{
+            row.style.display = '';
+            return;
+          }}
+          var eid = row.getAttribute('data-event-id');
+          var show = rowMatches(row, query) || (eid && matchedEventIds[eid]);
+          row.style.display = show ? '' : 'none';
         }});
       }});
+
+      var nCards = 0;
+      if (query) {{
+        tab.querySelectorAll('.game-card:not([data-search-hidden])').forEach(function () {{ nCards++; }});
+      }}
+      if (hint) {{
+        if (!query) {{
+          hint.style.display = 'none';
+          hint.textContent = '';
+        }} else if (nCards === 0) {{
+          hint.style.display = '';
+          hint.className = 'team-search-hint none';
+          hint.textContent = 'No games match that search — try the school name or abbreviation (e.g. Alabama or ALA).';
+        }} else {{
+          hint.style.display = '';
+          hint.className = 'team-search-hint match';
+          hint.textContent = nCards + ' game breakdown' + (nCards === 1 ? '' : 's') + ' — stage leans and quant picks filtered below.';
+          var first = tab.querySelector('.game-card:not([data-search-hidden])');
+          if (first && first.scrollIntoView) {{
+            first.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+          }}
+        }}
+      }}
     }});
   }}
-  setupSearch('nfl-team-search', 'tab-plays');
-  setupSearch('cfb-team-search', 'tab-cfb');
+  setupSearch('nfl-team-search', 'tab-plays', 'nfl-team-search-hint');
+  setupSearch('cfb-team-search', 'tab-cfb', 'cfb-team-search-hint');
 }})();
 
 function downloadTableCsv(tableId, filename) {{

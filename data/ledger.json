@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-13T21:01:42.108976+00:00",
+  "updated_at": "2026-09-13T23:50:37.256720+00:00",
   "starting_units": 100.0,
   "plays": [
     {
@@ -976,7 +976,7 @@
       "model_mean": null,
       "is_alternate": false,
       "window": null,
-      "rationale": "We project KC ML on the moneyline at 60.1% true probability vs 56.3% implied at betfair_ex_eu \u2014 about 7.5% expected value.\nOn this side, 93% of handle vs 63% of tickets (+30% handle-minus-tickets gap) \u2014 sharp money signal.\nNo opening line stored yet for RLM. The first pipeline run of the week records the current line as the open; later runs compare movement against it.\nSharp money confirms this side (handle % well above ticket %).",
+      "rationale": "We project KC ML on the moneyline at 60.1% true probability vs 56.3% implied at betfair_ex_eu \u2014 about 7.5% expected value.\nOn this side, 91% of handle vs 63% of tickets (+28% handle-minus-tickets gap) \u2014 sharp money signal.\nNo opening line stored yet for RLM. The first pipeline run of the week records the current line as the open; later runs compare movement against it.\nSharp money confirms this side (handle % well above ticket %).",
       "close_line": null,
       "close_price": -142.0,
       "close_book": "pinnacle",
@@ -1337,12 +1337,12 @@
       "is_alternate": false,
       "window": null,
       "rationale": "We project MIN +6.5 on the spread at 86.1% true probability vs 45.0% implied at betsson \u2014 about 80.0% expected value.\nHandle did not exceed tickets enough on this side to confirm sharp money.\nReverse line movement: public 57% away but line -1.5\u2192-2.5 toward home\nReverse line movement supports this side \u2014 line moved against the public.",
-      "close_line": null,
-      "close_price": null,
-      "close_book": null,
-      "clv_points": null,
-      "clv_prob": null,
-      "clv_at": null,
+      "close_line": -1.0,
+      "close_price": -120.0,
+      "close_book": "pinnacle",
+      "clv_points": 7.5,
+      "clv_prob": 0.067,
+      "clv_at": "2026-09-13T18:03:41.733338+00:00",
       "status": "quarantined",
       "home_score": null,
       "away_score": null,
@@ -1391,12 +1391,12 @@
       "is_alternate": false,
       "window": null,
       "rationale": "We project ARI +11 on the spread at 84.8% true probability vs 50.0% implied at betparx \u2014 about 59.8% expected value.\nHandle did not exceed tickets enough on this side to confirm sharp money.\nReverse line movement: public 0% home but line -10.5\u2192-9.5 toward away\nReverse line movement supports this side \u2014 line moved against the public.",
-      "close_line": null,
-      "close_price": null,
-      "close_book": null,
-      "clv_points": null,
-      "clv_prob": null,
-      "clv_at": null,
+      "close_line": 9.5,
+      "close_price": -113.0,
+      "close_book": "pinnacle",
+      "clv_points": 1.5,
+      "clv_prob": 0.0,
+      "clv_at": "2026-09-13T18:03:41.733338+00:00",
       "status": "quarantined",
       "home_score": null,
       "away_score": null,
@@ -5177,11 +5177,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411007+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "public": "loss",
+        "money": "loss",
+        "rlm": "win",
+        "hybrid": "win"
+      },
+      "home_score": 14,
+      "away_score": 26,
+      "settled_at": "2026-09-13T23:50:17.598545+00:00"
     },
     {
       "event_id": "1edfa5ceaa1ad2cb57df1c1b908731f6",
@@ -5291,11 +5297,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411013+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "loss",
+        "sharp": "loss",
+        "public": "loss",
+        "money": "loss",
+        "hybrid": "loss"
+      },
+      "home_score": 14,
+      "away_score": 26,
+      "settled_at": "2026-09-13T23:50:17.598574+00:00"
     },
     {
       "event_id": "1edfa5ceaa1ad2cb57df1c1b908731f6",
@@ -5404,11 +5416,18 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411019+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "public": "win",
+        "money": "win",
+        "sharp_edge": "loss",
+        "rlm": "loss",
+        "hybrid": "win"
+      },
+      "home_score": 14,
+      "away_score": 26,
+      "settled_at": "2026-09-13T23:50:17.598598+00:00"
     },
     {
       "event_id": "cb77efed7e711d25a72c1a2a0a1af119",
@@ -5517,11 +5536,18 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411023+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "public": "loss",
+        "money": "win",
+        "sharp_edge": "win",
+        "rlm": "win",
+        "hybrid": "win"
+      },
+      "home_score": 39,
+      "away_score": 22,
+      "settled_at": "2026-09-13T23:50:17.598617+00:00"
     },
     {
       "event_id": "cb77efed7e711d25a72c1a2a0a1af119",
@@ -5633,11 +5659,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411027+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "sharp": "loss",
+        "public": "win",
+        "money": "win",
+        "hybrid": "win"
+      },
+      "home_score": 39,
+      "away_score": 22,
+      "settled_at": "2026-09-13T23:50:17.598632+00:00"
     },
     {
       "event_id": "cb77efed7e711d25a72c1a2a0a1af119",
@@ -5745,11 +5777,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411031+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "loss",
+        "public": "loss",
+        "money": "loss",
+        "sharp_edge": "win",
+        "hybrid": "loss"
+      },
+      "home_score": 39,
+      "away_score": 22,
+      "settled_at": "2026-09-13T23:50:17.598648+00:00"
     },
     {
       "event_id": "c5d95f48a16849ab6bebc68fbbfcb74a",
@@ -5856,11 +5894,16 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411034+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "loss",
+        "public": "win",
+        "money": "win",
+        "hybrid": "loss"
+      },
+      "home_score": 27,
+      "away_score": 13,
+      "settled_at": "2026-09-13T23:50:17.598664+00:00"
     },
     {
       "event_id": "c5d95f48a16849ab6bebc68fbbfcb74a",
@@ -5970,11 +6013,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411037+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "sharp": "win",
+        "public": "win",
+        "money": "win",
+        "hybrid": "win"
+      },
+      "home_score": 27,
+      "away_score": 13,
+      "settled_at": "2026-09-13T23:50:17.598677+00:00"
     },
     {
       "event_id": "c5d95f48a16849ab6bebc68fbbfcb74a",
@@ -6081,11 +6130,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411040+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "public": "loss",
+        "money": "loss",
+        "sharp_edge": "loss",
+        "hybrid": "win"
+      },
+      "home_score": 27,
+      "away_score": 13,
+      "settled_at": "2026-09-13T23:50:17.598691+00:00"
     },
     {
       "event_id": "17885cb8dcade8f6c3bce14b2de805e8",
@@ -6193,11 +6248,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411043+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "public": "loss",
+        "money": "loss",
+        "sharp_edge": "loss",
+        "hybrid": "win"
+      },
+      "home_score": 24,
+      "away_score": 22,
+      "settled_at": "2026-09-13T23:50:17.598705+00:00"
     },
     {
       "event_id": "17885cb8dcade8f6c3bce14b2de805e8",
@@ -6307,11 +6368,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411046+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "sharp": "win",
+        "public": "win",
+        "money": "win",
+        "hybrid": "win"
+      },
+      "home_score": 24,
+      "away_score": 22,
+      "settled_at": "2026-09-13T23:50:17.598717+00:00"
     },
     {
       "event_id": "17885cb8dcade8f6c3bce14b2de805e8",
@@ -6419,11 +6486,17 @@
       "season": null,
       "week": null,
       "created_at": "2026-09-01T18:09:55.411049+00:00",
-      "status": "pending",
-      "results": {},
-      "home_score": null,
-      "away_score": null,
-      "settled_at": null
+      "status": "settled",
+      "results": {
+        "model": "win",
+        "public": "win",
+        "money": "win",
+        "rlm": "loss",
+        "hybrid": "win"
+      },
+      "home_score": 24,
+      "away_score": 22,
+      "settled_at": "2026-09-13T23:50:17.598731+00:00"
     },
     {
       "event_id": "3e646c7479c57f5d9752d8c7dfe7059b",
@@ -6447,8 +6520,8 @@
           "side": "away",
           "team": "DAL",
           "line": -3.0,
-          "confidence": 0.5162,
-          "reason": "pinnacle no-vig 51.6% @ -112",
+          "confidence": 0.5139,
+          "reason": "pinnacle no-vig 51.4% @ -111",
           "available": true
         },
         "public": {
@@ -6457,8 +6530,8 @@
           "side": "away",
           "team": "DAL",
           "line": -3.0,
-          "confidence": 0.57,
-          "reason": "tickets home=43% away=57%",
+          "confidence": 0.6,
+          "reason": "tickets home=40% away=60%",
           "available": true
         },
         "money": {
@@ -6467,8 +6540,8 @@
           "side": "away",
           "team": "DAL",
           "line": -3.0,
-          "confidence": 0.71,
-          "reason": "money home=29% away=71% (gap vs tickets +14% on away)",
+          "confidence": 0.72,
+          "reason": "money home=28% away=72% (gap vs tickets +12% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -6477,8 +6550,8 @@
           "side": "away",
           "team": "DAL",
           "line": -3.0,
-          "confidence": 0.64,
-          "reason": "+14% money vs tickets on DAL",
+          "confidence": 0.62,
+          "reason": "+12% money vs tickets on DAL",
           "available": true
         },
         "rlm": {
@@ -6563,8 +6636,8 @@
           "side": "away",
           "team": "DAL",
           "line": null,
-          "confidence": 0.6149,
-          "reason": "pinnacle no-vig 61.5% @ -171",
+          "confidence": 0.6134,
+          "reason": "pinnacle no-vig 61.3% @ -170",
           "available": true
         },
         "public": {
@@ -6573,8 +6646,8 @@
           "side": "away",
           "team": "DAL",
           "line": null,
-          "confidence": 0.89,
-          "reason": "tickets home=11% away=89%",
+          "confidence": 0.88,
+          "reason": "tickets home=12% away=88%",
           "available": true
         },
         "money": {
@@ -6583,8 +6656,8 @@
           "side": "away",
           "team": "DAL",
           "line": null,
-          "confidence": 0.88,
-          "reason": "money home=12% away=88% (gap vs tickets -1% on away)",
+          "confidence": 0.86,
+          "reason": "money home=14% away=86% (gap vs tickets -2% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -6593,8 +6666,8 @@
           "side": "home",
           "team": "NYG",
           "line": null,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on NYG",
+          "confidence": 0.52,
+          "reason": "+2% money vs tickets on NYG",
           "available": true
         },
         "rlm": {
@@ -6676,11 +6749,11 @@
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "under",
-          "team": "Under",
+          "side": "over",
+          "team": "Over",
           "line": 47.5,
-          "confidence": 0.5046,
-          "reason": "pinnacle no-vig 50.5% @ -108",
+          "confidence": 0.5,
+          "reason": "pinnacle no-vig 50.0% @ -106",
           "available": true
         },
         "public": {
@@ -6689,8 +6762,8 @@
           "side": "under",
           "team": "Under",
           "line": 47.5,
-          "confidence": 0.87,
-          "reason": "tickets over=13% under=87%",
+          "confidence": 0.86,
+          "reason": "tickets over=14% under=86%",
           "available": true
         },
         "money": {
@@ -6699,8 +6772,8 @@
           "side": "under",
           "team": "Under",
           "line": 47.5,
-          "confidence": 0.82,
-          "reason": "money over=18% under=82% (gap vs tickets -5% on under)",
+          "confidence": 0.83,
+          "reason": "money over=17% under=83% (gap vs tickets -3% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -6709,8 +6782,8 @@
           "side": "over",
           "team": "Over",
           "line": 47.5,
-          "confidence": 0.55,
-          "reason": "+5% money vs tickets on Over",
+          "confidence": 0.53,
+          "reason": "+3% money vs tickets on Over",
           "available": true
         },
         "rlm": {
@@ -6730,18 +6803,19 @@
           "team": "Under",
           "line": 47.5,
           "confidence": 0.5968,
-          "reason": "model aligned with money+sharp (no validated edge)",
+          "reason": "model aligned with money (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 1,
-        "away_votes": 4,
+        "home_votes": 2,
+        "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "Under"
+          "sharp": "Over",
+          "public": "Under",
+          "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
@@ -6754,11 +6828,11 @@
       "consensus_team": "Under",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
         "public",
         "money"
       ],
       "conflict_stages": [
+        "sharp",
         "sharp_edge"
       ],
       "line_perspective": "team",
@@ -6815,8 +6889,8 @@
           "side": "away",
           "team": "DEN",
           "line": 2.5,
-          "confidence": 0.8,
-          "reason": "money home=20% away=80% (gap vs tickets +8% on away)",
+          "confidence": 0.79,
+          "reason": "money home=21% away=79% (gap vs tickets +7% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -6825,8 +6899,8 @@
           "side": "away",
           "team": "DEN",
           "line": 2.5,
-          "confidence": 0.58,
-          "reason": "+8% money vs tickets on DEN",
+          "confidence": 0.57,
+          "reason": "+7% money vs tickets on DEN",
           "available": true
         },
         "rlm": {
@@ -6930,8 +7004,8 @@
           "side": "home",
           "team": "KC",
           "line": null,
-          "confidence": 0.93,
-          "reason": "money home=93% away=7% (gap vs tickets +30% on home)",
+          "confidence": 0.91,
+          "reason": "money home=91% away=9% (gap vs tickets +28% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -6940,8 +7014,8 @@
           "side": "home",
           "team": "KC",
           "line": null,
-          "confidence": 0.8,
-          "reason": "+30% money vs tickets on KC",
+          "confidence": 0.78,
+          "reason": "+28% money vs tickets on KC",
           "available": true
         },
         "rlm": {
@@ -7045,8 +7119,8 @@
           "side": "under",
           "team": "Under",
           "line": 43.5,
-          "confidence": 0.76,
-          "reason": "money over=24% under=76% (gap vs tickets -4% on under)",
+          "confidence": 0.71,
+          "reason": "money over=29% under=71% (gap vs tickets -9% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -7055,8 +7129,8 @@
           "side": "over",
           "team": "Over",
           "line": 43.5,
-          "confidence": 0.54,
-          "reason": "+4% money vs tickets on Over",
+          "confidence": 0.59,
+          "reason": "+9% money vs tickets on Over",
           "available": true
         },
         "rlm": {
@@ -7128,11 +7202,11 @@
         "model": {
           "stage": "model",
           "market": "spread",
-          "side": "away",
-          "team": "DET",
-          "line": 3.0,
-          "confidence": 0.5532,
-          "reason": "S_mod=-2.65 vs mkt -3.00 (home persp) \u2192 DET covers",
+          "side": "home",
+          "team": "BUF",
+          "line": -3.0,
+          "confidence": 0.492,
+          "reason": "S_mod=-3.41 vs mkt -3.00 (home persp) \u2192 BUF covers",
           "available": true
         },
         "sharp": {
@@ -7188,25 +7262,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "away",
-          "team": "DET",
-          "line": 3.0,
-          "confidence": 0.4426,
+          "side": "home",
+          "team": "BUF",
+          "line": -3.0,
+          "confidence": 0.3936,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 0,
-        "away_votes": 1,
+        "home_votes": 1,
+        "away_votes": 0,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "away",
-      "consensus_team": "DET",
+      "consensus_side": "home",
+      "consensus_team": "BUF",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -7235,8 +7309,8 @@
           "side": "home",
           "team": "BUF",
           "line": null,
-          "confidence": 0.5945,
-          "reason": "P_true win home=59.5% away=35.9%",
+          "confidence": 0.6288,
+          "reason": "P_true win home=62.9% away=32.6%",
           "available": true
         },
         "sharp": {
@@ -7295,7 +7369,7 @@
           "side": "home",
           "team": "BUF",
           "line": null,
-          "confidence": 0.4756,
+          "confidence": 0.503,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -7338,9 +7412,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 51.5,
-          "confidence": 0.7455,
-          "reason": "T_mod=45.6 vs market 51.5",
+          "line": 53.5,
+          "confidence": 0.736,
+          "reason": "T_mod=47.7 vs market 53.5",
           "available": true
         },
         "sharp": {
@@ -7398,8 +7472,8 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 51.5,
-          "confidence": 0.5964,
+          "line": 53.5,
+          "confidence": 0.5888,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -7443,8 +7517,8 @@
           "side": "home",
           "team": "ATL",
           "line": -1.5,
-          "confidence": 0.542,
-          "reason": "S_mod=-2.54 vs mkt -1.50 (home persp) \u2192 ATL covers",
+          "confidence": 0.6414,
+          "reason": "S_mod=-4.51 vs mkt -1.50 (home persp) \u2192 ATL covers",
           "available": true
         },
         "sharp": {
@@ -7503,7 +7577,7 @@
           "side": "home",
           "team": "ATL",
           "line": -1.5,
-          "confidence": 0.4336,
+          "confidence": 0.5131,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -7547,8 +7621,8 @@
           "side": "home",
           "team": "ATL",
           "line": null,
-          "confidence": 0.5901,
-          "reason": "P_true win home=59.0% away=36.4%",
+          "confidence": 0.6888,
+          "reason": "P_true win home=68.9% away=26.5%",
           "available": true
         },
         "sharp": {
@@ -7607,7 +7681,7 @@
           "side": "home",
           "team": "ATL",
           "line": null,
-          "confidence": 0.4721,
+          "confidence": 0.551,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -7650,9 +7724,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 43.5,
-          "confidence": 0.5407,
-          "reason": "T_mod=45.0 vs market 43.5",
+          "line": 44.5,
+          "confidence": 0.492,
+          "reason": "T_mod=44.8 vs market 44.5",
           "available": true
         },
         "sharp": {
@@ -7710,8 +7784,8 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 43.5,
-          "confidence": 0.4326,
+          "line": 44.5,
+          "confidence": 0.3936,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -7754,9 +7828,9 @@
           "market": "spread",
           "side": "away",
           "team": "NO",
-          "line": 7.5,
-          "confidence": 0.7328,
-          "reason": "S_mod=-2.60 vs mkt -7.50 (home persp) \u2192 NO covers",
+          "line": 8.5,
+          "confidence": 0.5878,
+          "reason": "S_mod=-6.90 vs mkt -8.50 (home persp) \u2192 NO covers",
           "available": true
         },
         "sharp": {
@@ -7814,8 +7888,8 @@
           "market": "spread",
           "side": "away",
           "team": "NO",
-          "line": 7.5,
-          "confidence": 0.5862,
+          "line": 8.5,
+          "confidence": 0.4702,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -7859,8 +7933,8 @@
           "side": "home",
           "team": "BAL",
           "line": null,
-          "confidence": 0.5939,
-          "reason": "P_true win home=59.4% away=36.0%",
+          "confidence": 0.7844,
+          "reason": "P_true win home=78.4% away=18.1%",
           "available": true
         },
         "sharp": {
@@ -7919,7 +7993,7 @@
           "side": "home",
           "team": "BAL",
           "line": null,
-          "confidence": 0.4751,
+          "confidence": 0.6275,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -7962,9 +8036,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 46.5,
-          "confidence": 0.5951,
-          "reason": "T_mod=44.8 vs market 46.5",
+          "line": 48.5,
+          "confidence": 0.6684,
+          "reason": "T_mod=44.9 vs market 48.5",
           "available": true
         },
         "sharp": {
@@ -8022,8 +8096,8 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 46.5,
-          "confidence": 0.4761,
+          "line": 48.5,
+          "confidence": 0.5347,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -8066,9 +8140,9 @@
           "market": "spread",
           "side": "away",
           "team": "MIN",
-          "line": 3.0,
-          "confidence": 0.5715,
-          "reason": "S_mod=-2.30 vs mkt -3.00 (home persp) \u2192 MIN covers",
+          "line": 5.5,
+          "confidence": 0.5662,
+          "reason": "S_mod=-4.14 vs mkt -5.50 (home persp) \u2192 MIN covers",
           "available": true
         },
         "sharp": {
@@ -8126,8 +8200,8 @@
           "market": "spread",
           "side": "away",
           "team": "MIN",
-          "line": 3.0,
-          "confidence": 0.4572,
+          "line": 5.5,
+          "confidence": 0.453,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -8171,8 +8245,8 @@
           "side": "home",
           "team": "CHI",
           "line": null,
-          "confidence": 0.5806,
-          "reason": "P_true win home=58.1% away=37.5%",
+          "confidence": 0.6552,
+          "reason": "P_true win home=65.5% away=30.0%",
           "available": true
         },
         "sharp": {
@@ -8231,7 +8305,7 @@
           "side": "home",
           "team": "CHI",
           "line": null,
-          "confidence": 0.4645,
+          "confidence": 0.5242,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -8272,11 +8346,11 @@
         "model": {
           "stage": "model",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 45.5,
-          "confidence": 0.5443,
-          "reason": "T_mod=44.9 vs market 45.5",
+          "side": "over",
+          "team": "Over",
+          "line": 48.5,
+          "confidence": 0.5206,
+          "reason": "T_mod=49.6 vs market 48.5",
           "available": true
         },
         "sharp": {
@@ -8332,25 +8406,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 45.5,
-          "confidence": 0.4354,
+          "side": "over",
+          "team": "Over",
+          "line": 48.5,
+          "confidence": 0.4165,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 0,
-        "away_votes": 1,
+        "home_votes": 1,
+        "away_votes": 0,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "under",
-      "consensus_team": "Under",
+      "consensus_side": "over",
+      "consensus_team": "Over",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -8376,11 +8450,11 @@
         "model": {
           "stage": "model",
           "market": "spread",
-          "side": "home",
-          "team": "HOU",
-          "line": -2.5,
-          "confidence": 0.5154,
-          "reason": "S_mod=-3.03 vs mkt -2.50 (home persp) \u2192 HOU covers",
+          "side": "away",
+          "team": "CIN",
+          "line": 2.5,
+          "confidence": 0.5744,
+          "reason": "S_mod=-0.97 vs mkt -2.50 (home persp) \u2192 CIN covers",
           "available": true
         },
         "sharp": {
@@ -8436,25 +8510,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "home",
-          "team": "HOU",
-          "line": -2.5,
-          "confidence": 0.4123,
+          "side": "away",
+          "team": "CIN",
+          "line": 2.5,
+          "confidence": 0.4595,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 1,
-        "away_votes": 0,
+        "home_votes": 0,
+        "away_votes": 1,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "home",
-      "consensus_team": "HOU",
+      "consensus_side": "away",
+      "consensus_team": "CIN",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -8483,8 +8557,8 @@
           "side": "home",
           "team": "HOU",
           "line": null,
-          "confidence": 0.6143,
-          "reason": "P_true win home=61.4% away=33.8%",
+          "confidence": 0.5226,
+          "reason": "P_true win home=52.3% away=42.7%",
           "available": true
         },
         "sharp": {
@@ -8543,7 +8617,7 @@
           "side": "home",
           "team": "HOU",
           "line": null,
-          "confidence": 0.4914,
+          "confidence": 0.4181,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -8586,9 +8660,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 45.5,
-          "confidence": 0.5599,
-          "reason": "T_mod=44.5 vs market 45.5",
+          "line": 47.5,
+          "confidence": 0.6248,
+          "reason": "T_mod=45.0 vs market 47.5",
           "available": true
         },
         "sharp": {
@@ -8646,8 +8720,8 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 45.5,
-          "confidence": 0.4479,
+          "line": 47.5,
+          "confidence": 0.4998,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -8690,9 +8764,9 @@
           "market": "spread",
           "side": "away",
           "team": "CLE",
-          "line": 6.5,
-          "confidence": 0.6917,
-          "reason": "S_mod=-2.64 vs mkt -6.50 (home persp) \u2192 CLE covers",
+          "line": 8.5,
+          "confidence": 0.663,
+          "reason": "S_mod=-5.36 vs mkt -8.50 (home persp) \u2192 CLE covers",
           "available": true
         },
         "sharp": {
@@ -8750,8 +8824,8 @@
           "market": "spread",
           "side": "away",
           "team": "CLE",
-          "line": 6.5,
-          "confidence": 0.5534,
+          "line": 8.5,
+          "confidence": 0.5304,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -8795,8 +8869,8 @@
           "side": "home",
           "team": "TB",
           "line": null,
-          "confidence": 0.5957,
-          "reason": "P_true win home=59.6% away=35.6%",
+          "confidence": 0.7286,
+          "reason": "P_true win home=72.9% away=23.0%",
           "available": true
         },
         "sharp": {
@@ -8855,7 +8929,7 @@
           "side": "home",
           "team": "TB",
           "line": null,
-          "confidence": 0.4766,
+          "confidence": 0.5829,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -8898,9 +8972,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.5609,
-          "reason": "T_mod=44.4 vs market 42.5",
+          "line": 40.5,
+          "confidence": 0.6266,
+          "reason": "T_mod=43.9 vs market 40.5",
           "available": true
         },
         "sharp": {
@@ -8958,8 +9032,8 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.4487,
+          "line": 40.5,
+          "confidence": 0.5013,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -9002,9 +9076,9 @@
           "market": "spread",
           "side": "home",
           "team": "NYJ",
-          "line": 5.5,
-          "confidence": 0.8021,
-          "reason": "S_mod=-1.58 vs mkt +5.50 (home persp) \u2192 NYJ covers",
+          "line": 4.5,
+          "confidence": 0.8366,
+          "reason": "S_mod=-3.52 vs mkt +4.50 (home persp) \u2192 NYJ covers",
           "available": true
         },
         "sharp": {
@@ -9062,8 +9136,8 @@
           "market": "spread",
           "side": "home",
           "team": "NYJ",
-          "line": 5.5,
-          "confidence": 0.6417,
+          "line": 4.5,
+          "confidence": 0.6693,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -9107,8 +9181,8 @@
           "side": "home",
           "team": "NYJ",
           "line": null,
-          "confidence": 0.5439,
-          "reason": "P_true win home=54.4% away=40.5%",
+          "confidence": 0.6382,
+          "reason": "P_true win home=63.8% away=31.3%",
           "available": true
         },
         "sharp": {
@@ -9167,7 +9241,7 @@
           "side": "home",
           "team": "NYJ",
           "line": null,
-          "confidence": 0.4351,
+          "confidence": 0.5106,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -9210,9 +9284,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.6068,
-          "reason": "T_mod=45.6 vs market 42.5",
+          "line": 43.5,
+          "confidence": 0.5642,
+          "reason": "T_mod=45.4 vs market 43.5",
           "available": true
         },
         "sharp": {
@@ -9270,8 +9344,8 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.4854,
+          "line": 43.5,
+          "confidence": 0.4514,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -9312,11 +9386,11 @@
         "model": {
           "stage": "model",
           "market": "spread",
-          "side": "home",
-          "team": "NE",
-          "line": -4.5,
-          "confidence": 0.6298,
-          "reason": "S_mod=-7.31 vs mkt -4.50 (home persp) \u2192 NE covers",
+          "side": "away",
+          "team": "PIT",
+          "line": 5.5,
+          "confidence": 0.6954,
+          "reason": "S_mod=-1.91 vs mkt -5.50 (home persp) \u2192 PIT covers",
           "available": true
         },
         "sharp": {
@@ -9372,25 +9446,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "home",
-          "team": "NE",
-          "line": -4.5,
-          "confidence": 0.5038,
+          "side": "away",
+          "team": "PIT",
+          "line": 5.5,
+          "confidence": 0.5563,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 1,
-        "away_votes": 0,
+        "home_votes": 0,
+        "away_votes": 1,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "home",
-      "consensus_team": "NE",
+      "consensus_side": "away",
+      "consensus_team": "PIT",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -9419,8 +9493,8 @@
           "side": "home",
           "team": "NE",
           "line": null,
-          "confidence": 0.8058,
-          "reason": "P_true win home=80.6% away=16.3%",
+          "confidence": 0.5758,
+          "reason": "P_true win home=57.6% away=36.8%",
           "available": true
         },
         "sharp": {
@@ -9479,7 +9553,7 @@
           "side": "home",
           "team": "NE",
           "line": null,
-          "confidence": 0.6446,
+          "confidence": 0.4606,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -9523,8 +9597,8 @@
           "side": "under",
           "team": "Under",
           "line": 43.5,
-          "confidence": 0.5216,
-          "reason": "T_mod=43.5 vs market 43.5",
+          "confidence": 0.7162,
+          "reason": "T_mod=39.2 vs market 43.5",
           "available": true
         },
         "sharp": {
@@ -9583,7 +9657,7 @@
           "side": "under",
           "team": "Under",
           "line": 43.5,
-          "confidence": 0.4173,
+          "confidence": 0.573,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -9626,9 +9700,9 @@
           "market": "spread",
           "side": "home",
           "team": "TEN",
-          "line": 5.5,
-          "confidence": 0.8086,
-          "reason": "S_mod=-1.71 vs mkt +5.50 (home persp) \u2192 TEN covers",
+          "line": 7.0,
+          "confidence": 0.7866,
+          "reason": "S_mod=+0.24 vs mkt +7.00 (home persp) \u2192 TEN covers",
           "available": true
         },
         "sharp": {
@@ -9686,8 +9760,8 @@
           "market": "spread",
           "side": "home",
           "team": "TEN",
-          "line": 5.5,
-          "confidence": 0.6469,
+          "line": 7.0,
+          "confidence": 0.6293,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -9728,11 +9802,11 @@
         "model": {
           "stage": "model",
           "market": "h2h",
-          "side": "home",
-          "team": "TEN",
+          "side": "away",
+          "team": "PHI",
           "line": null,
-          "confidence": 0.5526,
-          "reason": "P_true win home=55.3% away=40.1%",
+          "confidence": 0.4834,
+          "reason": "P_true win home=46.5% away=48.3%",
           "available": true
         },
         "sharp": {
@@ -9788,25 +9862,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "h2h",
-          "side": "home",
-          "team": "TEN",
+          "side": "away",
+          "team": "PHI",
           "line": null,
-          "confidence": 0.4421,
+          "confidence": 0.3867,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 1,
-        "away_votes": 0,
+        "home_votes": 0,
+        "away_votes": 1,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "home",
-      "consensus_team": "TEN",
+      "consensus_side": "away",
+      "consensus_team": "PHI",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -9834,9 +9908,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.5722,
-          "reason": "T_mod=44.7 vs market 42.5",
+          "line": 41.5,
+          "confidence": 0.617,
+          "reason": "T_mod=44.7 vs market 41.5",
           "available": true
         },
         "sharp": {
@@ -9894,8 +9968,8 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.4578,
+          "line": 41.5,
+          "confidence": 0.4936,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -9938,9 +10012,9 @@
           "market": "spread",
           "side": "away",
           "team": "JAX",
-          "line": 3.0,
-          "confidence": 0.5598,
-          "reason": "S_mod=-2.57 vs mkt -3.00 (home persp) \u2192 JAX covers",
+          "line": 2.5,
+          "confidence": 0.6616,
+          "reason": "S_mod=+0.98 vs mkt -2.50 (home persp) \u2192 JAX covers",
           "available": true
         },
         "sharp": {
@@ -9998,8 +10072,8 @@
           "market": "spread",
           "side": "away",
           "team": "JAX",
-          "line": 3.0,
-          "confidence": 0.4478,
+          "line": 2.5,
+          "confidence": 0.5293,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -10040,11 +10114,11 @@
         "model": {
           "stage": "model",
           "market": "h2h",
-          "side": "home",
-          "team": "DEN",
+          "side": "away",
+          "team": "JAX",
           "line": null,
-          "confidence": 0.5929,
-          "reason": "P_true win home=59.3% away=36.1%",
+          "confidence": 0.5208,
+          "reason": "P_true win home=43.1% away=52.1%",
           "available": true
         },
         "sharp": {
@@ -10100,25 +10174,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "h2h",
-          "side": "home",
-          "team": "DEN",
+          "side": "away",
+          "team": "JAX",
           "line": null,
-          "confidence": 0.4743,
+          "confidence": 0.4166,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 1,
-        "away_votes": 0,
+        "home_votes": 0,
+        "away_votes": 1,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "home",
-      "consensus_team": "DEN",
+      "consensus_side": "away",
+      "consensus_team": "JAX",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -10147,8 +10221,8 @@
           "side": "over",
           "team": "Over",
           "line": 43.5,
-          "confidence": 0.5273,
-          "reason": "T_mod=44.7 vs market 43.5",
+          "confidence": 0.585,
+          "reason": "T_mod=45.9 vs market 43.5",
           "available": true
         },
         "sharp": {
@@ -10207,7 +10281,7 @@
           "side": "over",
           "team": "Over",
           "line": 43.5,
-          "confidence": 0.4218,
+          "confidence": 0.468,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -10250,9 +10324,9 @@
           "market": "spread",
           "side": "away",
           "team": "LV",
-          "line": 9.5,
-          "confidence": 0.8036,
-          "reason": "S_mod=-2.81 vs mkt -9.50 (home persp) \u2192 LV covers",
+          "line": 7.0,
+          "confidence": 0.7264,
+          "reason": "S_mod=-2.79 vs mkt -7.00 (home persp) \u2192 LV covers",
           "available": true
         },
         "sharp": {
@@ -10310,8 +10384,8 @@
           "market": "spread",
           "side": "away",
           "team": "LV",
-          "line": 9.5,
-          "confidence": 0.6429,
+          "line": 7.0,
+          "confidence": 0.5811,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -10355,8 +10429,8 @@
           "side": "home",
           "team": "LAC",
           "line": null,
-          "confidence": 0.6042,
-          "reason": "P_true win home=60.4% away=34.6%",
+          "confidence": 0.6112,
+          "reason": "P_true win home=61.1% away=34.2%",
           "available": true
         },
         "sharp": {
@@ -10415,7 +10489,7 @@
           "side": "home",
           "team": "LAC",
           "line": null,
-          "confidence": 0.4834,
+          "confidence": 0.489,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -10456,11 +10530,11 @@
         "model": {
           "stage": "model",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 42.5,
-          "confidence": 0.5435,
-          "reason": "T_mod=44.0 vs market 42.5",
+          "side": "under",
+          "team": "Under",
+          "line": 45.5,
+          "confidence": 0.5908,
+          "reason": "T_mod=43.9 vs market 45.5",
           "available": true
         },
         "sharp": {
@@ -10516,25 +10590,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 42.5,
-          "confidence": 0.4348,
+          "side": "under",
+          "team": "Under",
+          "line": 45.5,
+          "confidence": 0.4726,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 1,
-        "away_votes": 0,
+        "home_votes": 0,
+        "away_votes": 1,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "over",
-      "consensus_team": "Over",
+      "consensus_side": "under",
+      "consensus_team": "Under",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -10562,9 +10636,9 @@
           "market": "spread",
           "side": "home",
           "team": "ARI",
-          "line": 10.0,
-          "confidence": 0.7058,
-          "reason": "S_mod=+5.42 vs mkt +10.00 (home persp) \u2192 ARI covers",
+          "line": 5.5,
+          "confidence": 0.7688,
+          "reason": "S_mod=-0.29 vs mkt +5.50 (home persp) \u2192 ARI covers",
           "available": true
         },
         "sharp": {
@@ -10622,8 +10696,8 @@
           "market": "spread",
           "side": "home",
           "team": "ARI",
-          "line": 10.0,
-          "confidence": 0.5646,
+          "line": 5.5,
+          "confidence": 0.615,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -10664,11 +10738,11 @@
         "model": {
           "stage": "model",
           "market": "h2h",
-          "side": "away",
-          "team": "SEA",
+          "side": "home",
+          "team": "ARI",
           "line": null,
-          "confidence": 0.7242,
-          "reason": "P_true win home=23.8% away=72.4%",
+          "confidence": 0.4908,
+          "reason": "P_true win home=49.1% away=45.9%",
           "available": true
         },
         "sharp": {
@@ -10724,25 +10798,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "h2h",
-          "side": "away",
-          "team": "SEA",
+          "side": "home",
+          "team": "ARI",
           "line": null,
-          "confidence": 0.5794,
+          "confidence": 0.3926,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 0,
-        "away_votes": 1,
+        "home_votes": 1,
+        "away_votes": 0,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "away",
-      "consensus_team": "SEA",
+      "consensus_side": "home",
+      "consensus_team": "ARI",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -10768,11 +10842,11 @@
         "model": {
           "stage": "model",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 44.5,
-          "confidence": 0.5464,
-          "reason": "T_mod=44.0 vs market 44.5",
+          "side": "over",
+          "team": "Over",
+          "line": 43.5,
+          "confidence": 0.5322,
+          "reason": "T_mod=44.8 vs market 43.5",
           "available": true
         },
         "sharp": {
@@ -10828,25 +10902,25 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 44.5,
-          "confidence": 0.4371,
+          "side": "over",
+          "team": "Over",
+          "line": 43.5,
+          "confidence": 0.4258,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 2,
-        "home_votes": 0,
-        "away_votes": 1,
+        "home_votes": 1,
+        "away_votes": 0,
         "unanimous": true,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "under",
-      "consensus_team": "Under",
+      "consensus_side": "over",
+      "consensus_team": "Over",
       "hybrid_agrees_with": [
         "model"
       ],
@@ -10875,8 +10949,8 @@
           "side": "away",
           "team": "WAS",
           "line": 4.5,
-          "confidence": 0.5908,
-          "reason": "S_mod=-2.85 vs mkt -4.50 (home persp) \u2192 WAS covers",
+          "confidence": 0.583,
+          "reason": "S_mod=-2.84 vs mkt -4.50 (home persp) \u2192 WAS covers",
           "available": true
         },
         "sharp": {
@@ -10935,7 +11009,7 @@
           "side": "away",
           "team": "WAS",
           "line": 4.5,
-          "confidence": 0.4726,
+          "confidence": 0.4664,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -10979,8 +11053,8 @@
           "side": "home",
           "team": "DAL",
           "line": null,
-          "confidence": 0.6022,
-          "reason": "P_true win home=60.2% away=35.1%",
+          "confidence": 0.6094,
+          "reason": "P_true win home=60.9% away=34.7%",
           "available": true
         },
         "sharp": {
@@ -11039,7 +11113,7 @@
           "side": "home",
           "team": "DAL",
           "line": null,
-          "confidence": 0.4818,
+          "confidence": 0.4875,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11082,9 +11156,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 51.5,
-          "confidence": 0.731,
-          "reason": "T_mod=46.0 vs market 51.5",
+          "line": 50.5,
+          "confidence": 0.7036,
+          "reason": "T_mod=45.8 vs market 50.5",
           "available": true
         },
         "sharp": {
@@ -11142,8 +11216,8 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 51.5,
-          "confidence": 0.5848,
+          "line": 50.5,
+          "confidence": 0.5629,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11186,9 +11260,9 @@
           "market": "spread",
           "side": "away",
           "team": "MIA",
-          "line": 10.5,
-          "confidence": 0.8151,
-          "reason": "S_mod=-3.16 vs mkt -10.50 (home persp) \u2192 MIA covers",
+          "line": 12.5,
+          "confidence": 0.7628,
+          "reason": "S_mod=-6.71 vs mkt -12.50 (home persp) \u2192 MIA covers",
           "available": true
         },
         "sharp": {
@@ -11246,8 +11320,8 @@
           "market": "spread",
           "side": "away",
           "team": "MIA",
-          "line": 10.5,
-          "confidence": 0.6521,
+          "line": 12.5,
+          "confidence": 0.6102,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11291,8 +11365,8 @@
           "side": "home",
           "team": "SF",
           "line": null,
-          "confidence": 0.6162,
-          "reason": "P_true win home=61.6% away=33.7%",
+          "confidence": 0.7784,
+          "reason": "P_true win home=77.8% away=18.6%",
           "available": true
         },
         "sharp": {
@@ -11351,7 +11425,7 @@
           "side": "home",
           "team": "SF",
           "line": null,
-          "confidence": 0.493,
+          "confidence": 0.6227,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11395,8 +11469,8 @@
           "side": "under",
           "team": "Under",
           "line": 46.5,
-          "confidence": 0.5585,
-          "reason": "T_mod=45.6 vs market 46.5",
+          "confidence": 0.598,
+          "reason": "T_mod=44.7 vs market 46.5",
           "available": true
         },
         "sharp": {
@@ -11455,7 +11529,7 @@
           "side": "under",
           "team": "Under",
           "line": 46.5,
-          "confidence": 0.4468,
+          "confidence": 0.4784,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11499,8 +11573,8 @@
           "side": "away",
           "team": "IND",
           "line": 6.5,
-          "confidence": 0.7009,
-          "reason": "S_mod=-2.41 vs mkt -6.50 (home persp) \u2192 IND covers",
+          "confidence": 0.5236,
+          "reason": "S_mod=-6.29 vs mkt -6.50 (home persp) \u2192 IND covers",
           "available": true
         },
         "sharp": {
@@ -11559,7 +11633,7 @@
           "side": "away",
           "team": "IND",
           "line": 6.5,
-          "confidence": 0.5607,
+          "confidence": 0.4189,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11603,8 +11677,8 @@
           "side": "home",
           "team": "KC",
           "line": null,
-          "confidence": 0.5852,
-          "reason": "P_true win home=58.5% away=36.9%",
+          "confidence": 0.7624,
+          "reason": "P_true win home=76.2% away=20.2%",
           "available": true
         },
         "sharp": {
@@ -11663,7 +11737,7 @@
           "side": "home",
           "team": "KC",
           "line": null,
-          "confidence": 0.4682,
+          "confidence": 0.6099,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11706,9 +11780,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 47.5,
-          "confidence": 0.6291,
-          "reason": "T_mod=44.9 vs market 47.5",
+          "line": 48.5,
+          "confidence": 0.6648,
+          "reason": "T_mod=45.0 vs market 48.5",
           "available": true
         },
         "sharp": {
@@ -11766,8 +11840,8 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 47.5,
-          "confidence": 0.5033,
+          "line": 48.5,
+          "confidence": 0.5318,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11810,9 +11884,9 @@
           "market": "spread",
           "side": "away",
           "team": "NYG",
-          "line": 9.5,
-          "confidence": 0.7657,
-          "reason": "S_mod=-3.64 vs mkt -9.50 (home persp) \u2192 NYG covers",
+          "line": 7.5,
+          "confidence": 0.815,
+          "reason": "S_mod=-0.04 vs mkt -7.50 (home persp) \u2192 NYG covers",
           "available": true
         },
         "sharp": {
@@ -11870,8 +11944,8 @@
           "market": "spread",
           "side": "away",
           "team": "NYG",
-          "line": 9.5,
-          "confidence": 0.6126,
+          "line": 7.5,
+          "confidence": 0.652,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -11915,8 +11989,8 @@
           "side": "home",
           "team": "LAR",
           "line": null,
-          "confidence": 0.6365,
-          "reason": "P_true win home=63.6% away=31.7%",
+          "confidence": 0.4782,
+          "reason": "P_true win home=47.8% away=47.0%",
           "available": true
         },
         "sharp": {
@@ -11975,7 +12049,7 @@
           "side": "home",
           "team": "LAR",
           "line": null,
-          "confidence": 0.5092,
+          "confidence": 0.3826,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -12018,9 +12092,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 48.5,
-          "confidence": 0.629,
-          "reason": "T_mod=45.8 vs market 48.5",
+          "line": 49.5,
+          "confidence": 0.7092,
+          "reason": "T_mod=44.8 vs market 49.5",
           "available": true
         },
         "sharp": {
@@ -12078,8 +12152,8 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 48.5,
-          "confidence": 0.5032,
+          "line": 49.5,
+          "confidence": 0.5674,
           "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
@@ -87516,7 +87590,7 @@
       "outcome": null
     },
     {
-      "id": "c9c6dcce",
+      "id": "ef6daf33",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87528,7 +87602,7 @@
       "line": null,
       "book": "betfair_ex_eu",
       "p_true": 0.6383,
-      "p_mkt": 0.3851,
+      "p_mkt": 0.3866,
       "edge": 0.6468,
       "tier": "rejected",
       "direction": "model_higher",
@@ -87536,14 +87610,14 @@
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.253",
+        "|p_true-p_mkt|=0.252",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2532,
+      "magnitude": 0.2517,
       "outcome": null
     },
     {
-      "id": "3412492b",
+      "id": "81bf747c",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87555,18 +87629,18 @@
       "line": 2.5,
       "book": "betsson",
       "p_true": 0.7494,
-      "p_mkt": 0.4838,
-      "edge": 0.5513,
+      "p_mkt": 0.4861,
+      "edge": 0.5812,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.266",
+        "|p_true-p_mkt|=0.263",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2656,
+      "magnitude": 0.2633,
       "outcome": null
     },
     {
@@ -87894,7 +87968,7 @@
       "outcome": null
     },
     {
-      "id": "1b8e93b2",
+      "id": "f8f4193e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -87904,20 +87978,19 @@
       "market": "h2h",
       "side": "away",
       "line": null,
-      "book": "fanduel",
-      "p_true": 0.3603,
-      "p_mkt": 0.1456,
-      "edge": 1.378,
+      "book": "courtside",
+      "p_true": 0.204,
+      "p_mkt": 0.1288,
+      "edge": 0.5341,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "model_deficiency",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.35,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.215",
-        "large edge, no market confirmation"
+        "|p_true-p_mkt|=0.075"
       ],
-      "magnitude": 0.2147,
+      "magnitude": 0.0752,
       "outcome": null
     },
     {
@@ -89565,7 +89638,7 @@
       "outcome": null
     },
     {
-      "id": "192acbfe",
+      "id": "e9b90478",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -89574,21 +89647,20 @@
       "home_team": "NYJ",
       "market": "totals",
       "side": "over",
-      "line": 42.5,
-      "book": "lowvig",
-      "p_true": 0.6068,
-      "p_mkt": 0.5,
-      "edge": 0.1739,
+      "line": 43.5,
+      "book": "fanduel",
+      "p_true": 0.5642,
+      "p_mkt": 0.4892,
+      "edge": 0.1015,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "model_deficiency",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.35,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.107",
-        "large edge, no market confirmation"
+        "|p_true-p_mkt|=0.075"
       ],
-      "magnitude": 0.1068,
+      "magnitude": 0.075,
       "outcome": null
     },
     {
@@ -89994,7 +90066,7 @@
       "outcome": null
     },
     {
-      "id": "8ae775cd",
+      "id": "4a1202b8",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90003,21 +90075,20 @@
       "home_team": "LAC",
       "market": "totals",
       "side": "under",
-      "line": 42.5,
-      "book": "fanduel",
-      "p_true": 0.7332,
-      "p_mkt": 0.485,
-      "edge": 0.4382,
+      "line": 45.5,
+      "book": "courtside",
+      "p_true": 0.5908,
+      "p_mkt": 0.5,
+      "edge": 0.1378,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "model_deficiency",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.35,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.248",
-        "large edge, no market confirmation"
+        "|p_true-p_mkt|=0.091"
       ],
-      "magnitude": 0.2482,
+      "magnitude": 0.0908,
       "outcome": null
     },
     {
@@ -90425,7 +90496,7 @@
       "outcome": null
     },
     {
-      "id": "88e15261",
+      "id": "62c2ef0b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90434,21 +90505,21 @@
       "home_team": "MIN",
       "market": "totals",
       "side": "under",
-      "line": 48.5,
-      "book": "sport888",
-      "p_true": 0.6814,
-      "p_mkt": 0.4737,
-      "edge": 0.3628,
+      "line": 63.5,
+      "book": "fanatics",
+      "p_true": 0.9672,
+      "p_mkt": 0.4797,
+      "edge": 0.8883,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.208",
+        "|p_true-p_mkt|=0.487",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2077,
+      "magnitude": 0.4875,
       "outcome": null
     },
     {
@@ -90720,7 +90791,7 @@
       "outcome": null
     },
     {
-      "id": "384c0118",
+      "id": "d37d22d7",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -90729,21 +90800,21 @@
       "home_team": "SF",
       "market": "spreads",
       "side": "away",
-      "line": 11.5,
-      "book": "fanduel",
-      "p_true": 0.8426,
-      "p_mkt": 0.5,
-      "edge": 0.6086,
+      "line": 13.5,
+      "book": "unibet_se",
+      "p_true": 0.7962,
+      "p_mkt": 0.4968,
+      "edge": 0.5267,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.343",
+        "|p_true-p_mkt|=0.299",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.3426,
+      "magnitude": 0.2994,
       "outcome": null
     },
     {
@@ -91123,7 +91194,7 @@
       "outcome": null
     },
     {
-      "id": "47b11eb6",
+      "id": "d55ce8b3",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91132,21 +91203,21 @@
       "home_team": "ARI",
       "market": "spreads",
       "side": "home",
-      "line": 9.5,
-      "book": "rebet",
-      "p_true": 0.7058,
-      "p_mkt": 0.4858,
-      "edge": 0.3593,
+      "line": 6.5,
+      "book": "onexbet",
+      "p_true": 0.8016,
+      "p_mkt": 0.5,
+      "edge": 0.5303,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.220",
+        "|p_true-p_mkt|=0.302",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.22,
+      "magnitude": 0.3016,
       "outcome": null
     },
     {
@@ -91256,7 +91327,7 @@
       "outcome": null
     },
     {
-      "id": "0b20b158",
+      "id": "9e3717b0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91265,21 +91336,20 @@
       "home_team": "BAL",
       "market": "spreads",
       "side": "away",
-      "line": 7.5,
-      "book": "lowvig",
-      "p_true": 0.7328,
+      "line": 8.5,
+      "book": "courtside",
+      "p_true": 0.5878,
       "p_mkt": 0.5,
-      "edge": 0.4307,
+      "edge": 0.1321,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "model_deficiency",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.35,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.233",
-        "large edge, no market confirmation"
+        "|p_true-p_mkt|=0.088"
       ],
-      "magnitude": 0.2328,
+      "magnitude": 0.0878,
       "outcome": null
     },
     {
@@ -91688,7 +91758,7 @@
       "outcome": null
     },
     {
-      "id": "3fd6a893",
+      "id": "8440a809",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91697,21 +91767,21 @@
       "home_team": "HOU",
       "market": "totals",
       "side": "under",
-      "line": 46.5,
-      "book": "lowvig",
-      "p_true": 0.6035,
-      "p_mkt": 0.5,
-      "edge": 0.1675,
+      "line": 47.5,
+      "book": "fanduel",
+      "p_true": 0.6248,
+      "p_mkt": 0.4892,
+      "edge": 0.2198,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.104",
+        "|p_true-p_mkt|=0.136",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1035,
+      "magnitude": 0.1356,
       "outcome": null
     },
     {
@@ -91849,7 +91919,7 @@
       "outcome": null
     },
     {
-      "id": "4dda0cd2",
+      "id": "d3afed8f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91858,21 +91928,21 @@
       "home_team": "BAL",
       "market": "totals",
       "side": "under",
-      "line": 46.5,
-      "book": "fanduel",
-      "p_true": 0.5951,
-      "p_mkt": 0.485,
-      "edge": 0.1673,
+      "line": 48.5,
+      "book": "courtside",
+      "p_true": 0.6684,
+      "p_mkt": 0.5,
+      "edge": 0.2873,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.110",
+        "|p_true-p_mkt|=0.168",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1101,
+      "magnitude": 0.1684,
       "outcome": null
     },
     {
@@ -92223,7 +92293,7 @@
       "outcome": null
     },
     {
-      "id": "3f5c8cbb",
+      "id": "b60826e9",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92233,19 +92303,20 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "draftkings",
-      "p_true": 0.257,
-      "p_mkt": 0.1881,
-      "edge": 0.3107,
+      "book": "fanduel",
+      "p_true": 0.5158,
+      "p_mkt": 0.2864,
+      "edge": 0.7279,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "unknown",
+      "category": "model_deficiency",
       "category_manual": null,
-      "confidence": 0.3,
+      "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.069"
+        "|p_true-p_mkt|=0.229",
+        "large edge, no market confirmation"
       ],
-      "magnitude": 0.0689,
+      "magnitude": 0.2294,
       "outcome": null
     },
     {
@@ -94050,7 +94121,7 @@
       "outcome": null
     },
     {
-      "id": "ddf3a45d",
+      "id": "32c5b9d0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94059,21 +94130,21 @@
       "home_team": "TB",
       "market": "spreads",
       "side": "away",
-      "line": 6.5,
+      "line": 8.5,
       "book": "lowvig",
-      "p_true": 0.6917,
+      "p_true": 0.663,
       "p_mkt": 0.5,
-      "edge": 0.3505,
+      "edge": 0.2944,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.192",
+        "|p_true-p_mkt|=0.163",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1917,
+      "magnitude": 0.163,
       "outcome": null
     },
     {
@@ -95421,7 +95492,7 @@
       "outcome": null
     },
     {
-      "id": "567f9dca",
+      "id": "2a565707",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95431,19 +95502,20 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "fanduel",
-      "p_true": 0.6129,
-      "p_mkt": 0.5242,
-      "edge": 0.1237,
+      "book": "williamhill_us",
+      "p_true": 0.7119,
+      "p_mkt": 0.5132,
+      "edge": 0.3309,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "unknown",
+      "category": "model_deficiency",
       "category_manual": null,
-      "confidence": 0.3,
+      "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.089"
+        "|p_true-p_mkt|=0.199",
+        "large edge, no market confirmation"
       ],
-      "magnitude": 0.0887,
+      "magnitude": 0.1987,
       "outcome": null
     },
     {
@@ -96735,7 +96807,7 @@
       "outcome": null
     },
     {
-      "id": "7d0a021d",
+      "id": "b862e84f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -96744,21 +96816,21 @@
       "home_team": "BUF",
       "market": "totals",
       "side": "under",
-      "line": 52.5,
-      "book": "fanduel",
-      "p_true": 0.7782,
+      "line": 53.5,
+      "book": "lowvig",
+      "p_true": 0.736,
       "p_mkt": 0.5,
-      "edge": 0.4857,
+      "edge": 0.4239,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.278",
+        "|p_true-p_mkt|=0.236",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2782,
+      "magnitude": 0.236,
       "outcome": null
     },
     {
@@ -97167,7 +97239,7 @@
       "outcome": null
     },
     {
-      "id": "9d103380",
+      "id": "7d5c6472",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97177,19 +97249,20 @@
       "market": "spreads",
       "side": "home",
       "line": -1.5,
-      "book": "lowvig",
-      "p_true": 0.5994,
-      "p_mkt": 0.5,
-      "edge": 0.1703,
+      "book": "fanduel",
+      "p_true": 0.6414,
+      "p_mkt": 0.4892,
+      "edge": 0.2523,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "unknown",
+      "category": "model_deficiency",
       "category_manual": null,
-      "confidence": 0.3,
+      "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.099"
+        "|p_true-p_mkt|=0.152",
+        "large edge, no market confirmation"
       ],
-      "magnitude": 0.0994,
+      "magnitude": 0.1522,
       "outcome": null
     },
     {
@@ -97541,7 +97614,7 @@
       "outcome": null
     },
     {
-      "id": "2bb75fe2",
+      "id": "a9e1cb1e",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97550,21 +97623,21 @@
       "home_team": "KC",
       "market": "totals",
       "side": "under",
-      "line": 47.5,
-      "book": "lowvig",
-      "p_true": 0.6291,
-      "p_mkt": 0.5,
-      "edge": 0.217,
+      "line": 48.0,
+      "book": "betmgm",
+      "p_true": 0.6648,
+      "p_mkt": 0.4923,
+      "edge": 0.2979,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.129",
+        "|p_true-p_mkt|=0.172",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1291,
+      "magnitude": 0.1725,
       "outcome": null
     },
     {
@@ -99382,7 +99455,7 @@
       "outcome": null
     },
     {
-      "id": "2d86a671",
+      "id": "f332a84d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99392,19 +99465,19 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "gtbets",
-      "p_true": 0.6854,
-      "p_mkt": 0.5912,
-      "edge": 0.1138,
+      "book": "courtside",
+      "p_true": 0.6516,
+      "p_mkt": 0.601,
+      "edge": 0.0514,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
       "category_manual": null,
       "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.094"
+        "|p_true-p_mkt|=0.051"
       ],
-      "magnitude": 0.0942,
+      "magnitude": 0.0506,
       "outcome": null
     },
     {
@@ -99434,7 +99507,7 @@
       "outcome": null
     },
     {
-      "id": "e4b0bcc1",
+      "id": "525a3496",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99443,21 +99516,21 @@
       "home_team": "TEN",
       "market": "spreads",
       "side": "home",
-      "line": 5.5,
-      "book": "williamhill_us",
-      "p_true": 0.8086,
-      "p_mkt": 0.5,
-      "edge": 0.5504,
+      "line": 6.5,
+      "book": "betsson",
+      "p_true": 0.7866,
+      "p_mkt": 0.4807,
+      "edge": 0.5578,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.309",
+        "|p_true-p_mkt|=0.306",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.3086,
+      "magnitude": 0.3059,
       "outcome": null
     },
     {
@@ -100464,7 +100537,7 @@
       "outcome": null
     },
     {
-      "id": "00abf6c8",
+      "id": "6d30e07b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100473,21 +100546,21 @@
       "home_team": "LAC",
       "market": "spreads",
       "side": "away",
-      "line": 9.0,
-      "book": "lowvig",
-      "p_true": 0.8036,
-      "p_mkt": 0.4884,
-      "edge": 0.6072,
+      "line": 7.0,
+      "book": "betmgm",
+      "p_true": 0.7264,
+      "p_mkt": 0.4892,
+      "edge": 0.4182,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.315",
+        "|p_true-p_mkt|=0.237",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.3152,
+      "magnitude": 0.2372,
       "outcome": null
     },
     {
@@ -100625,7 +100698,7 @@
       "outcome": null
     },
     {
-      "id": "e4fba783",
+      "id": "fe5b50d6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100635,20 +100708,20 @@
       "market": "spreads",
       "side": "away",
       "line": 9.5,
-      "book": "fanduel",
-      "p_true": 0.7657,
-      "p_mkt": 0.485,
-      "edge": 0.502,
+      "book": "nordicbet",
+      "p_true": 0.8674,
+      "p_mkt": 0.5053,
+      "edge": 0.6283,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.281",
+        "|p_true-p_mkt|=0.362",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2807,
+      "magnitude": 0.3621,
       "outcome": null
     },
     {
@@ -101473,7 +101546,7 @@
       "outcome": null
     },
     {
-      "id": "6fe2a8cf",
+      "id": "258f2090",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101482,11 +101555,11 @@
       "home_team": "CHI",
       "market": "spreads",
       "side": "away",
-      "line": 3.0,
-      "book": "williamhill_us",
-      "p_true": 0.5715,
-      "p_mkt": 0.5,
-      "edge": 0.0958,
+      "line": 5.5,
+      "book": "betparx",
+      "p_true": 0.5662,
+      "p_mkt": 0.4946,
+      "edge": 0.0905,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
@@ -101495,7 +101568,7 @@
       "evidence": [
         "|p_true-p_mkt|=0.072"
       ],
-      "magnitude": 0.0715,
+      "magnitude": 0.0716,
       "outcome": null
     },
     {
@@ -102789,7 +102862,7 @@
       "outcome": null
     },
     {
-      "id": "2719ed3e",
+      "id": "f31ee67b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -102799,19 +102872,20 @@
       "market": "spreads",
       "side": "away",
       "line": 3.0,
-      "book": "lowvig",
-      "p_true": 0.5598,
-      "p_mkt": 0.4884,
-      "edge": 0.1196,
+      "book": "mybookieag",
+      "p_true": 0.705,
+      "p_mkt": 0.5,
+      "edge": 0.3459,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "unknown",
+      "category": "model_deficiency",
       "category_manual": null,
-      "confidence": 0.3,
+      "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.071"
+        "|p_true-p_mkt|=0.205",
+        "large edge, no market confirmation"
       ],
-      "magnitude": 0.0714,
+      "magnitude": 0.205,
       "outcome": null
     },
     {
@@ -104675,7 +104749,7 @@
       "outcome": null
     },
     {
-      "id": "365bfa3e",
+      "id": "1d870e34",
       "created_at": "2026-09-06T23:24:01.548063+00:00",
       "season": null,
       "week": null,
@@ -104684,21 +104758,21 @@
       "home_team": "DAL",
       "market": "spreads",
       "side": "away",
-      "line": 4.5,
-      "book": "fanduel",
-      "p_true": 0.5908,
-      "p_mkt": 0.4892,
-      "edge": 0.1535,
+      "line": 5.5,
+      "book": "betsson",
+      "p_true": 0.6304,
+      "p_mkt": 0.515,
+      "edge": 0.1646,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.102",
+        "|p_true-p_mkt|=0.115",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1016,
+      "magnitude": 0.1154,
       "outcome": null
     },
     {
@@ -105127,7 +105201,7 @@
       "outcome": null
     },
     {
-      "id": "739c993e",
+      "id": "4bf584ad",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105138,23 +105212,23 @@
       "side": "away",
       "line": null,
       "book": "fanduel",
-      "p_true": 0.3711,
-      "p_mkt": 0.1925,
-      "edge": 0.8555,
+      "p_true": 0.3652,
+      "p_mkt": 0.2346,
+      "edge": 0.4973,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.179",
+        "|p_true-p_mkt|=0.131",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1786,
+      "magnitude": 0.1306,
       "outcome": null
     },
     {
-      "id": "d123cf66",
+      "id": "90d86b52",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105165,19 +105239,19 @@
       "side": "away",
       "line": null,
       "book": "fanduel",
-      "p_true": 0.3402,
-      "p_mkt": 0.1808,
-      "edge": 0.8033,
+      "p_true": 0.4959,
+      "p_mkt": 0.2005,
+      "edge": 1.3803,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.159",
+        "|p_true-p_mkt|=0.295",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1594,
+      "magnitude": 0.2954,
       "outcome": null
     },
     {
@@ -105208,7 +105282,7 @@
       "outcome": null
     },
     {
-      "id": "07820b9e",
+      "id": "bbe77477",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105219,19 +105293,19 @@
       "side": "home",
       "line": null,
       "book": "fanduel",
-      "p_true": 0.5757,
-      "p_mkt": 0.3099,
-      "edge": 0.7848,
+      "p_true": 0.4906,
+      "p_mkt": 0.2405,
+      "edge": 0.9624,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.266",
+        "|p_true-p_mkt|=0.250",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2658,
+      "magnitude": 0.2501,
       "outcome": null
     },
     {
@@ -105262,7 +105336,7 @@
       "outcome": null
     },
     {
-      "id": "0586718b",
+      "id": "53d3a320",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105272,20 +105346,20 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "draftkings",
-      "p_true": 0.5694,
-      "p_mkt": 0.3194,
-      "edge": 0.7081,
+      "book": "espnbet",
+      "p_true": 0.6625,
+      "p_mkt": 0.3111,
+      "edge": 1.0537,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.250",
+        "|p_true-p_mkt|=0.351",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.25,
+      "magnitude": 0.3514,
       "outcome": null
     },
     {
@@ -105613,7 +105687,7 @@
       "outcome": null
     },
     {
-      "id": "322141cf",
+      "id": "584fc9d5",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105622,21 +105696,21 @@
       "home_team": "NYJ",
       "market": "spreads",
       "side": "home",
-      "line": 5.5,
-      "book": "lowvig",
-      "p_true": 0.8021,
-      "p_mkt": 0.5,
-      "edge": 0.566,
+      "line": 4.5,
+      "book": "fanduel",
+      "p_true": 0.8366,
+      "p_mkt": 0.485,
+      "edge": 0.641,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.302",
+        "|p_true-p_mkt|=0.352",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.3021,
+      "magnitude": 0.3516,
       "outcome": null
     },
     {
@@ -106261,7 +106335,7 @@
       "outcome": null
     },
     {
-      "id": "25388b05",
+      "id": "a54d5108",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -106270,21 +106344,21 @@
       "home_team": "DAL",
       "market": "totals",
       "side": "under",
-      "line": 51.5,
-      "book": "fanduel",
-      "p_true": 0.731,
-      "p_mkt": 0.4892,
-      "edge": 0.4272,
+      "line": 50.5,
+      "book": "courtside",
+      "p_true": 0.7036,
+      "p_mkt": 0.5,
+      "edge": 0.3551,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.242",
+        "|p_true-p_mkt|=0.204",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2418,
+      "magnitude": 0.2036,
       "outcome": null
     },
     {
@@ -107583,7 +107657,7 @@
       "outcome": null
     },
     {
-      "id": "86094bca",
+      "id": "8d3baeaf",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -107594,19 +107668,19 @@
       "side": "over",
       "line": 40.5,
       "book": "fanduel",
-      "p_true": 0.6446,
+      "p_true": 0.6266,
       "p_mkt": 0.4892,
-      "edge": 0.2585,
+      "edge": 0.2234,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.155",
+        "|p_true-p_mkt|=0.137",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1554,
+      "magnitude": 0.1374,
       "outcome": null
     },
     {
@@ -108094,7 +108168,7 @@
       "outcome": null
     },
     {
-      "id": "12a5c311",
+      "id": "cef968cb",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -108103,25 +108177,25 @@
       "home_team": "LAR",
       "market": "totals",
       "side": "under",
-      "line": 48.5,
-      "book": "lowvig",
-      "p_true": 0.629,
+      "line": 49.5,
+      "book": "draftkings",
+      "p_true": 0.7092,
       "p_mkt": 0.5,
-      "edge": 0.2169,
+      "edge": 0.3539,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.129",
+        "|p_true-p_mkt|=0.209",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.129,
+      "magnitude": 0.2092,
       "outcome": null
     },
     {
-      "id": "7427db05",
+      "id": "2a10aab2",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -108131,20 +108205,20 @@
       "market": "totals",
       "side": "under",
       "line": 48.0,
-      "book": "coolbet",
+      "book": "rebet",
       "p_true": 0.6378,
-      "p_mkt": 0.5046,
-      "edge": 0.2284,
+      "p_mkt": 0.5,
+      "edge": 0.2176,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.133",
+        "|p_true-p_mkt|=0.138",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.1332,
+      "magnitude": 0.1378,
       "outcome": null
     },
     {
@@ -109330,7 +109404,7 @@
       "outcome": null
     },
     {
-      "id": "aa0c75a2",
+      "id": "88dce617",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -109339,21 +109413,21 @@
       "home_team": "TEN",
       "market": "totals",
       "side": "over",
-      "line": 41.5,
+      "line": 40.5,
       "book": "fanduel",
-      "p_true": 0.6158,
-      "p_mkt": 0.5108,
-      "edge": 0.1513,
+      "p_true": 0.6588,
+      "p_mkt": 0.485,
+      "edge": 0.2923,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.105",
+        "|p_true-p_mkt|=0.174",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.105,
+      "magnitude": 0.1738,
       "outcome": null
     },
     {
@@ -110484,7 +110558,7 @@
       "outcome": null
     },
     {
-      "id": "889f2503",
+      "id": "caacf4b3",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -110494,19 +110568,19 @@
       "market": "totals",
       "side": "under",
       "line": 46.5,
-      "book": "lowvig",
-      "p_true": 0.5585,
+      "book": "courtside",
+      "p_true": 0.598,
       "p_mkt": 0.5,
-      "edge": 0.0805,
+      "edge": 0.1517,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
       "category_manual": null,
       "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.058"
+        "|p_true-p_mkt|=0.098"
       ],
-      "magnitude": 0.0585,
+      "magnitude": 0.098,
       "outcome": null
     },
     {
@@ -111422,6 +111496,298 @@
         "large edge, no market confirmation"
       ],
       "magnitude": 0.1386,
+      "outcome": null
+    },
+    {
+      "id": "2937d26a",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "cb77efed7e711d25a72c1a2a0a1af119",
+      "away_team": "GB",
+      "home_team": "MIN",
+      "market": "h2h",
+      "side": "away",
+      "line": null,
+      "book": "betclic_fr",
+      "p_true": 0.3892,
+      "p_mkt": 0.0244,
+      "edge": 14.568,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "model_deficiency",
+      "category_manual": null,
+      "confidence": 0.35,
+      "evidence": [
+        "|p_true-p_mkt|=0.365",
+        "large edge, no market confirmation"
+      ],
+      "magnitude": 0.3648,
+      "outcome": null
+    },
+    {
+      "id": "51eed65f",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "cb77efed7e711d25a72c1a2a0a1af119",
+      "away_team": "GB",
+      "home_team": "MIN",
+      "market": "spreads",
+      "side": "away",
+      "line": 16.5,
+      "book": "draftkings",
+      "p_true": 0.9518,
+      "p_mkt": 0.0743,
+      "edge": 11.3734,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "model_deficiency",
+      "category_manual": null,
+      "confidence": 0.35,
+      "evidence": [
+        "|p_true-p_mkt|=0.877",
+        "large edge, no market confirmation"
+      ],
+      "magnitude": 0.8775,
+      "outcome": null
+    },
+    {
+      "id": "223b77ee",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "9d14f87600f6edc74dbcb5c74edf6246",
+      "away_team": "PIT",
+      "home_team": "NE",
+      "market": "totals",
+      "side": "under",
+      "line": 43.5,
+      "book": "courtside",
+      "p_true": 0.7162,
+      "p_mkt": 0.5,
+      "edge": 0.3793,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "model_deficiency",
+      "category_manual": null,
+      "confidence": 0.35,
+      "evidence": [
+        "|p_true-p_mkt|=0.216",
+        "large edge, no market confirmation"
+      ],
+      "magnitude": 0.2162,
+      "outcome": null
+    },
+    {
+      "id": "e4afe38e",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "9d14f87600f6edc74dbcb5c74edf6246",
+      "away_team": "PIT",
+      "home_team": "NE",
+      "market": "spreads",
+      "side": "away",
+      "line": 5.5,
+      "book": "lowvig",
+      "p_true": 0.6954,
+      "p_mkt": 0.493,
+      "edge": 0.3772,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "model_deficiency",
+      "category_manual": null,
+      "confidence": 0.35,
+      "evidence": [
+        "|p_true-p_mkt|=0.202",
+        "large edge, no market confirmation"
+      ],
+      "magnitude": 0.2024,
+      "outcome": null
+    },
+    {
+      "id": "1c1f5fbf",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "1fd6628c781f556a7a19638e97d7107f",
+      "away_team": "JAX",
+      "home_team": "DEN",
+      "market": "h2h",
+      "side": "away",
+      "line": null,
+      "book": "unibet_nl",
+      "p_true": 0.5451,
+      "p_mkt": 0.429,
+      "edge": 0.2156,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "model_deficiency",
+      "category_manual": null,
+      "confidence": 0.35,
+      "evidence": [
+        "|p_true-p_mkt|=0.116",
+        "large edge, no market confirmation"
+      ],
+      "magnitude": 0.1161,
+      "outcome": null
+    },
+    {
+      "id": "866c5605",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "9d14f87600f6edc74dbcb5c74edf6246",
+      "away_team": "PIT",
+      "home_team": "NE",
+      "market": "h2h",
+      "side": "away",
+      "line": null,
+      "book": "courtside",
+      "p_true": 0.3963,
+      "p_mkt": 0.3174,
+      "edge": 0.2087,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.079"
+      ],
+      "magnitude": 0.0789,
+      "outcome": null
+    },
+    {
+      "id": "5f9df38d",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "36ad2fa722f4915ef23d2c81351261de",
+      "away_team": "CIN",
+      "home_team": "HOU",
+      "market": "spreads",
+      "side": "away",
+      "line": 3.0,
+      "book": "mybookieag",
+      "p_true": 0.6248,
+      "p_mkt": 0.5,
+      "edge": 0.1928,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "model_deficiency",
+      "category_manual": null,
+      "confidence": 0.35,
+      "evidence": [
+        "|p_true-p_mkt|=0.125",
+        "large edge, no market confirmation"
+      ],
+      "magnitude": 0.1248,
+      "outcome": null
+    },
+    {
+      "id": "3745f767",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "1fd6628c781f556a7a19638e97d7107f",
+      "away_team": "JAX",
+      "home_team": "DEN",
+      "market": "totals",
+      "side": "over",
+      "line": 43.5,
+      "book": "courtside",
+      "p_true": 0.585,
+      "p_mkt": 0.5,
+      "edge": 0.1267,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.085"
+      ],
+      "magnitude": 0.085,
+      "outcome": null
+    },
+    {
+      "id": "c04e13ea",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "0283a29e1b38ef78b29b904fd56a16dd",
+      "away_team": "MIN",
+      "home_team": "CHI",
+      "market": "totals",
+      "side": "over",
+      "line": 47.5,
+      "book": "rebet",
+      "p_true": 0.564,
+      "p_mkt": 0.4888,
+      "edge": 0.0814,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.075"
+      ],
+      "magnitude": 0.0752,
+      "outcome": null
+    },
+    {
+      "id": "2e1e067d",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "4dd8020192a544385db42374e5555303",
+      "away_team": "SEA",
+      "home_team": "ARI",
+      "market": "totals",
+      "side": "over",
+      "line": 43.5,
+      "book": "onexbet",
+      "p_true": 0.5322,
+      "p_mkt": 0.4737,
+      "edge": 0.0644,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.058"
+      ],
+      "magnitude": 0.0585,
+      "outcome": null
+    },
+    {
+      "id": "a6dbd12b",
+      "created_at": "2026-09-13T23:50:35.112872+00:00",
+      "season": null,
+      "week": null,
+      "event_id": "50bc247030707d823b9c3581d7eb5760",
+      "away_team": "IND",
+      "home_team": "KC",
+      "market": "h2h",
+      "side": "home",
+      "line": null,
+      "book": "betclic_fr",
+      "p_true": 0.78,
+      "p_mkt": 0.6967,
+      "edge": 0.0527,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.083"
+      ],
+      "magnitude": 0.0833,
       "outcome": null
     }
   ]

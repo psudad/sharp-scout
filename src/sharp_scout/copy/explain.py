@@ -107,7 +107,10 @@ STAGE_COLUMN_TIPS: dict[str, str] = {
         "greyed out below that (dollars and tickets are basically in line — no signal)."
     ),
     "RLM": "Reverse line movement — the line moved against the public toward this side.",
-    "Quant Pick": "Quant pick — validated play when filters pass, else best model + market lean.",
+    "Quant Pick": (
+        "LOCKED badge = posted to the ledger this week (bet it). "
+        "LEAN ONLY = research — same column, but not a posted play."
+    ),
 }
 
 # Summary stat cards on the board → hover tooltip on the eye icon next to the label.
@@ -174,8 +177,8 @@ STAGE_RECORD_SECTION_NOTE = (
 
 HYBRID_LEANS_SECTION_NOTE = (
     "Every row is a quant pick for that game and market. "
-    "Yellow-highlighted rows are actual Sharp Plays posted to the ledger. "
-    "Other rows are leans only — market-aligned or model ideas that did not clear the bet bar."
+    "Yellow-highlighted rows match <b>LOCKED PLAYS</b> at the top of the tab (posted to the ledger). "
+    "Other rows are leans only — not bets we tracked."
 )
 
 

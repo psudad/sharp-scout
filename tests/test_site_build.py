@@ -8,7 +8,12 @@ from pathlib import Path
 
 from sharp_scout.config import ARTIFACTS_DIR
 from sharp_scout.site import build as site_build
-from sharp_scout.site.build import _extract_hybrid_leans, _pick_signals, _posted_sharp_play_keys
+from sharp_scout.site.build import (
+    _extract_hybrid_leans,
+    _locked_sharp_play_keys,
+    _pick_signals,
+    _posted_sharp_play_keys,
+)
 
 
 def test_pick_signals_prefers_fresher_artifacts_on_equal_game_count(tmp_path, monkeypatch):
@@ -34,6 +39,25 @@ def test_pick_signals_prefers_fresher_artifacts_on_equal_game_count(tmp_path, mo
     (art / "latest_ncaaf_signals.json").write_text(json.dumps(fresh))
     picked = _pick_signals(("latest_ncaaf_signals.json",))
     assert picked["label"] == "fresh"
+
+
+def test_locked_sharp_play_keys_include_graded_wins():
+    plays = [
+        {
+            "event_id": "ev1",
+            "market": "totals",
+            "side": "over",
+            "status": "win",
+        },
+        {
+            "event_id": "ev2",
+            "market": "spreads",
+            "side": "home",
+            "status": "quarantined",
+        },
+    ]
+    keys = _locked_sharp_play_keys(plays)
+    assert keys == {("ev1", "total", "over")}
 
 
 def test_posted_sharp_play_keys_exclude_quarantined():

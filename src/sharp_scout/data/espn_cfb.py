@@ -7,7 +7,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+
+import httpx
 
 from sharp_scout.utils.odds import normalize_team
 
@@ -97,9 +98,9 @@ def _parse_event(event: dict[str, Any]) -> dict[str, Any] | None:
 def _get_json(url: str) -> dict[str, Any] | None:
     """GET a URL as a browser and parse JSON, or None on any failure."""
     try:
-        req = Request(url, headers=_BROWSER_HEADERS)
-        with urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+        resp = httpx.get(url, headers=_BROWSER_HEADERS, timeout=30.0, follow_redirects=True)
+        resp.raise_for_status()
+        return resp.json()
     except Exception:  # noqa: BLE001
         return None
 

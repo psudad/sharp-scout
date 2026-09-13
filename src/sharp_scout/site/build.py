@@ -167,14 +167,84 @@ def _timing_class_text(htk: float | None) -> tuple[str, str]:
     return "hold", "Don't play yet — lock in closer to game time"
 
 
-def _render_plays_heading(count: int) -> str:
-    """Loud heading over This Week's Plays — these are the actual recommendations."""
+_LOCKED_PLAY_STATUSES = frozenset({"pending", "win", "loss", "push"})
+
+
+def _filter_locked_plays(plays: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Ledger rows we posted as recommendations (not QA-quarantined / void)."""
+    return [p for p in plays if (p.get("status") or "pending") in _LOCKED_PLAY_STATUSES]
+
+
+def _locked_sharp_play_keys(plays: list[dict[str, Any]]) -> set[tuple[str, str, str]]:
+    """Event/market/side keys for all locked plays (open or already graded)."""
+    return _ledger_play_keys(_filter_locked_plays(plays))
+
+
+def _locked_week_play_summary(plays: list[dict[str, Any]]) -> dict[str, Any]:
+    """Stats for a deduped list of locked plays (one row per game/market/side)."""
+    open_n = sum(1 for p in plays if (p.get("status") or "pending") == "pending")
+    wins = losses = pushes = 0
+    pnl = 0.0
+    for p in plays:
+        st = p.get("status") or "pending"
+        if st == "win":
+            wins += 1
+        elif st == "loss":
+            losses += 1
+        elif st == "push":
+            pushes += 1
+        if st in ("win", "loss", "push") and p.get("pnl_units") is not None:
+            pnl += float(p["pnl_units"])
+    decided = wins + losses
+    return {
+        "total": len(plays),
+        "open": open_n,
+        "wins": wins,
+        "losses": losses,
+        "pushes": pushes,
+        "record": f"{wins}-{losses}" + (f"-{pushes}" if pushes else ""),
+        "win_pct": (wins / decided) if decided else None,
+        "pnl": round(pnl, 2),
+        "all_graded": open_n == 0 and len(plays) > 0,
+    }
+
+
+def _sort_locked_plays(plays: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _key(p: dict[str, Any]) -> tuple[int, Any]:
+        open_first = 0 if (p.get("status") or "pending") == "pending" else 1
+        return (open_first, kickoff_sort_key(p.get("kickoff") or p.get("commence_time")))
+
+    return sorted(plays, key=_key)
+
+
+def _render_plays_heading(summary: dict[str, Any]) -> str:
+    """Heading over the locked-play card — the only bets we posted for this week."""
+    total = int(summary.get("total") or 0)
+    open_n = int(summary.get("open") or 0)
+    status_bits: list[str] = [f"<b>{total} locked</b> this week"]
+    if total:
+        if open_n:
+            status_bits.append(f"{open_n} still open")
+        elif summary.get("all_graded"):
+            rec = _esc(str(summary.get("record") or "0-0"))
+            pnl = float(summary.get("pnl") or 0)
+            pnl_s = f"+{pnl:.2f}" if pnl >= 0 else f"{pnl:.2f}"
+            wp = summary.get("win_pct")
+            wp_s = f" · {wp * 100:.1f}% win" if wp is not None else ""
+            status_bits.append(f"card final: <b>{rec}</b>{wp_s} · <b>{pnl_s}u</b>")
+    status_html = " · ".join(status_bits)
     return (
         '<div class="plays-heading">'
-        '<div class="plays-heading-main">PLAY THESE QUANTS NOW</div>'
-        '<div class="plays-heading-sub">RECOMMENDED PLAYS FOR YOU'
-        f'<span class="plays-heading-count"> · {count} validated</span></div>'
-        f'{_CONF_LEGEND}'
+        '<div class="plays-heading-main">LOCKED PLAYS — BET THESE</div>'
+        '<div class="plays-heading-sub">The only rows we posted to the ledger '
+        f"(Phase 4 validated, not QA-held). <span class='plays-heading-count'>{status_html}</span></div>"
+        '<p class="locked-plays-explainer">'
+        "<b>This list is the full weekly card.</b> If we recommended a bet, it appears here "
+        "(and stays here after the game with the result). The stage table below has "
+        "<span class='lock-badge-inline'>LOCKED</span> on matching rows; "
+        "<span class='lean-only-badge-inline'>LEAN ONLY</span> everywhere else — research, not a posted play."
+        "</p>"
+        f"{_CONF_LEGEND}"
         "</div>"
     )
 
@@ -193,10 +263,10 @@ _CONF_LEGEND = (
 # Everything below the plays table is research, not a recommendation. Say it loudly so
 # nobody mistakes a stage/lens column for a posted play.
 _LEANS_CAPS_NOTE = (
-    '<p class="leans-caps-note">THESE ARE LEANS, NOT ACTUAL PICKS.'
-    '<span class="leans-caps-sub">Each column is a different system — see the column '
-    "headers (Model, Sharp Book, Public, Handle, Sharp Money, RLM) to tell which one. Only the "
-    "plays in <b>PLAY THESE QUANTS NOW</b> above are our actual recommendations.</span></p>"
+    '<p class="leans-caps-note">RESEARCH TABLE — NOT THE WEEKLY CARD.'
+    '<span class="leans-caps-sub">Each column is a different lens (model, sharp book, public, '
+    "handle, sharp money, RLM). Only rows in <b>LOCKED PLAYS — BET THESE</b> above (and "
+    "<span class='lock-badge-inline'>LOCKED</span> in the Quant Pick column) are bets we posted.</span></p>"
 )
 
 
@@ -495,28 +565,26 @@ def build_site(
     nfl_week_quarantined = [
         p for p in nfl_week_all if (p.get("status") or "") == "quarantined"
     ]
-    nfl_week_plays_sorted = sorted(
-        collapse_best_signals(nfl_week_pending),
-        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    nfl_week_plays_sorted = _sort_locked_plays(
+        collapse_best_signals(_filter_locked_plays(nfl_week_all))
     )
+    nfl_locked_summary = _locked_week_play_summary(nfl_week_plays_sorted)
     nfl_quarantine_sorted = sorted(
         collapse_best_signals(nfl_week_quarantined),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
-    nfl_week_stats = _compute_play_record(nfl_week_all)
-    nfl_week_pnl = sum(
-        float(p.get("pnl_units") or 0)
-        for p in nfl_week_all
-        if (p.get("status") or "pending") not in ("pending", None)
-    )
+    nfl_week_stats = _locked_week_play_summary(nfl_week_plays_sorted)
+    nfl_week_pnl = float(nfl_locked_summary.get("pnl") or 0)
     nfl_week_pnl_s = f"+{nfl_week_pnl:.2f}" if nfl_week_pnl >= 0 else f"{nfl_week_pnl:.2f}"
     nfl_week_pnl_cls = "pos" if nfl_week_pnl >= 0 else "neg"
     nfl_week_win_pct = (
         f"{nfl_week_stats['win_pct'] * 100:.1f}%"
-        if nfl_week_stats["win_pct"] is not None
+        if nfl_week_stats.get("win_pct") is not None
         else "—"
     )
-    plays_html = _render_play_table(nfl_week_plays_sorted, live_fallback=[], sport="nfl")
+    plays_html = _render_play_table(
+        nfl_week_plays_sorted, live_fallback=[], sport="nfl", mark_locked=True
+    )
     quarantine_html = _render_quarantine_section(nfl_quarantine_sorted, sport="nfl")
     nfl_overall_banner_html = _render_overall_banner(record.get("win_pct"), record.get("pnl_units") or 0)
     nfl_ledger_rows = _render_ledger_rows(settled_sorted + pending_sorted)
@@ -525,7 +593,7 @@ def build_site(
     nfl_pnl_cls = "pos" if nfl_pnl >= 0 else "neg"
     nfl_pnl_s = f"+{nfl_pnl}" if nfl_pnl >= 0 else str(nfl_pnl)
 
-    nfl_signal_count = len(nfl_week_plays_sorted)
+    nfl_signal_count = int(nfl_locked_summary.get("total") or 0)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
     ratings_rows = _render_ratings(signals.get("ratings") or [])
     nfl_stage_cards = normalize_stage_cards_team_lines(
@@ -540,7 +608,14 @@ def build_site(
         nfl_stage_cards,
         events=nfl_games_all,
     )
-    nfl_stage_weeks_html = _render_stage_weeks_html(nfl_current_stage_cards, sport="nfl")
+    nfl_stage_weeks_html = _render_stage_weeks_html(
+        nfl_current_stage_cards,
+        sport="nfl",
+        ledger_plays=filter_plays_nfl_display_slate(
+            ledger.get("plays") or [],
+            events=nfl_games_all,
+        ),
+    )
     nfl_historical_html = _render_historical_weeks(
         nfl_historical_weeks,
         sport="nfl",
@@ -590,29 +665,30 @@ def build_site(
     ncaaf_week_quarantined = [
         p for p in ncaaf_week_all if (p.get("status") or "") == "quarantined"
     ]
-    ncaaf_week_plays_sorted = sorted(
-        collapse_best_signals(ncaaf_week_pending),
-        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
+    ncaaf_week_plays_sorted = _sort_locked_plays(
+        collapse_best_signals(_filter_locked_plays(ncaaf_week_all))
     )
+    ncaaf_locked_summary = _locked_week_play_summary(ncaaf_week_plays_sorted)
     ncaaf_quarantine_sorted = sorted(
         collapse_best_signals(ncaaf_week_quarantined),
         key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
     )
-    ncaaf_week_stats = _compute_play_record(ncaaf_week_all)
-    ncaaf_week_pnl = sum(
-        float(p.get("pnl_units") or 0)
-        for p in ncaaf_week_all
-        if (p.get("status") or "pending") not in ("pending", None)
-    )
+    ncaaf_week_stats = _locked_week_play_summary(ncaaf_week_plays_sorted)
+    ncaaf_week_pnl = float(ncaaf_locked_summary.get("pnl") or 0)
     ncaaf_week_pnl_s = f"+{ncaaf_week_pnl:.2f}" if ncaaf_week_pnl >= 0 else f"{ncaaf_week_pnl:.2f}"
     ncaaf_week_pnl_cls = "pos" if ncaaf_week_pnl >= 0 else "neg"
     ncaaf_week_win_pct = (
         f"{ncaaf_week_stats['win_pct'] * 100:.1f}%"
-        if ncaaf_week_stats["win_pct"] is not None
+        if ncaaf_week_stats.get("win_pct") is not None
         else "—"
     )
     ncaaf_plays_html = _render_play_table(
-        ncaaf_week_plays_sorted, live_fallback=[], sport="ncaaf", large=True, use_timing=True
+        ncaaf_week_plays_sorted,
+        live_fallback=[],
+        sport="ncaaf",
+        large=True,
+        use_timing=True,
+        mark_locked=True,
     )
     ncaaf_quarantine_html = _render_quarantine_section(ncaaf_quarantine_sorted, sport="ncaaf")
     ncaaf_stage_cards = normalize_stage_cards_team_lines(
@@ -626,7 +702,11 @@ def build_site(
     ncaaf_current_stage_cards, ncaaf_historical_weeks = partition_stage_cards_current_historical(
         ncaaf_stage_cards
     )
-    ncaaf_stage_weeks_html = _render_stage_weeks_html(ncaaf_current_stage_cards)
+    ncaaf_stage_weeks_html = _render_stage_weeks_html(
+        ncaaf_current_stage_cards,
+        sport="ncaaf",
+        ledger_plays=filter_plays_college_week(ncaaf_ledger.get("plays") or []),
+    )
     ncaaf_historical_html = _render_historical_weeks(
         ncaaf_historical_weeks,
         sport="ncaaf",
@@ -753,8 +833,8 @@ def build_site(
         board_updated=board_updated,
         week1_banner_html=_WEEK1_BANNER,
         leans_caps_note=_LEANS_CAPS_NOTE,
-        nfl_plays_heading=_render_plays_heading(nfl_signal_count),
-        ncaaf_plays_heading=_render_plays_heading(len(ncaaf_week_plays_sorted)),
+        nfl_plays_heading=_render_plays_heading(nfl_locked_summary),
+        ncaaf_plays_heading=_render_plays_heading(ncaaf_locked_summary),
         nfl_record=record["record"],
         nfl_win_pct=nfl_win_pct,
         nfl_pnl=nfl_pnl_s,
@@ -866,11 +946,17 @@ def _render_landing_section(
             f'<p class="lp-empty">{_esc(empty_note)}</p></div>'
         )
     table = _render_play_table(
-        plays, live_fallback=[], sport=sport, large=True, use_timing=True
+        plays,
+        live_fallback=[],
+        sport=sport,
+        large=True,
+        use_timing=True,
+        mark_locked=True,
     )
     return (
         f'<div class="lp-section">'
-        f'<h2>{_esc(title)} <span class="lp-count">{count} play{"s" if count != 1 else ""}</span></h2>'
+        f'<h2>{_esc(title)} — Locked Plays '
+        f'<span class="lp-count">{count} this week</span></h2>'
         f"{table}</div>"
     )
 
@@ -903,13 +989,13 @@ def _render_landing_page(
             "College Football",
             ncaaf_plays,
             sport="ncaaf",
-            empty_note="No validated CFB plays posted for this week yet. Check back closer to kickoff.",
+            empty_note="No locked CFB plays posted for this week yet. Check back after the pipeline runs.",
         ),
         nfl_section=_render_landing_section(
             "NFL",
             nfl_plays,
             sport="nfl",
-            empty_note="No validated NFL plays posted for this week yet. Check back closer to kickoff.",
+            empty_note="No locked NFL plays posted for this week yet. Check back after the pipeline runs.",
         ),
         timing_script=_TIMING_SCRIPT,
     )
@@ -1019,7 +1105,7 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   <div class="lp-hero">
     {ssq_logo}
     <h1>This Week's Plays</h1>
-    <p class="lp-sub">Sharp Scout Quant · {total_plays} validated plays across NFL and college football</p>
+    <p class="lp-sub">Sharp Scout Quant · {total_plays} locked plays this week (the only bets we posted)</p>
     <div class="lp-chips">{week_chips}</div>
     <div class="board-updated-bar" role="status" aria-live="polite" style="justify-content:center;margin-top:14px">
       <span class="board-updated-label">Picks &amp; prices updated · scores refresh live every 30s</span>
@@ -1253,7 +1339,7 @@ def _render_guide_html() -> str:
   <h3>NFL and CFB (the two main boards)</h3>
   <p>The site is now just two boards — <b>NFL</b> and <b>CFB</b> — and they are laid out identically, top to bottom:</p>
   <ul>
-    <li><b>PLAY THESE QUANTS NOW</b> — validated Sharp Plays only. These are the bets we would actually track on the ledger, and the only rows on the site that are a recommendation.</li>
+    <li><b>LOCKED PLAYS — BET THESE</b> — the full weekly card (posted to the ledger). If we recommended it, it&apos;s here — including results after games finish.</li>
     <li><b>Pregame Stage Winners</b> — every game, three markets (spread, moneyline, total). <b>These are leans, not picks.</b> Each column is a different system (see below). The green <b>Quant Pick</b> is the system side for that market.</li>
     <li><b>Public &amp; Sharp Money &amp; Line Movement</b> — every game on the board with ticket vs money splits and the line we first recorded. <b>Open → now</b> shows which way the number ran off our earliest sharp price.</li>
     <li><b>Stage Records</b> — season-long scorecards for each lens, so you can compare how the different systems have performed.</li>
@@ -1410,6 +1496,7 @@ def _render_play_table(
     table_id: str = "",
     large: bool = False,
     use_timing: bool = False,
+    mark_locked: bool = False,
 ) -> str:
     """Table for This Week's Plays — compact by default; CFB uses larger type + timing guidance."""
     source = plays if plays else (live_fallback or [])
@@ -1457,14 +1544,24 @@ def _render_play_table(
         if not final:
             status_html += _live_score_html(p, sport=sport)
         rationale = format_play_rationale(p).replace("\n", " · ")
-        tr_cls = " class='settled-row'" if final else ""
+        if mark_locked and not final:
+            tr_cls = " class='locked-play-row'"
+        elif mark_locked and final:
+            tr_cls = " class='settled-row locked-play-row'"
+        elif final:
+            tr_cls = " class='settled-row'"
+        else:
+            tr_cls = ""
         search_attrs = _search_attrs(away, home, sport=sport, event_id=p.get("event_id"))
+        pick_label = _esc(_side_label(p))
+        if mark_locked:
+            pick_label = f'<span class="lock-badge-inline">LOCKED</span> {pick_label}'
         # data-label drives the stacked card layout on phones (see .plays-table rules).
         return (
             f"<tr{tr_cls} {search_attrs}>"
             f"<td data-label='Kickoff'>{_esc(kick)}</td>"
             f"<td data-label='Game'>{game}</td>"
-            f"<td class='play-pick-cell' data-label='Play'>{_esc(_side_label(p))}</td>"
+            f"<td class='play-pick-cell' data-label='Play'>{pick_label}</td>"
             f"<td data-label='Units'>{units}u</td>"
             f"<td class='pos' data-label='EV'>{edge_s}</td>"
             f"<td data-label='Win %'>{win_cell}</td>"
@@ -2226,11 +2323,41 @@ def _section_toolbar(title: str, table_id: str, filename: str) -> str:
     )
 
 
+def _render_quant_pick_cell(
+    hybrid: dict[str, Any],
+    card: dict[str, Any],
+    *,
+    locked_keys: set[tuple[str, str, str]] | None,
+    sport: str = "nfl",
+) -> str:
+    """Quant Pick column: LOCKED vs lean-only vs empty."""
+    if not hybrid.get("available") or not hybrid.get("side"):
+        return "<td class='hybrid-cell empty-pick'><span class='pending'>—</span></td>"
+    pick_html = _pick_cell(hybrid, sport=sport)
+    row_key = _quant_pick_row_key(card, hybrid)
+    if locked_keys and row_key in locked_keys:
+        return (
+            f"<td class='hybrid-cell locked-play'>"
+            f'<span class="lock-badge">LOCKED</span><div class="hybrid-pick-text">{pick_html}</div></td>'
+        )
+    if _is_validated_hybrid(hybrid):
+        badge = '<span class="filtered-badge">NOT POSTED</span>'
+        note = "Passed filters in sim but not on this week&apos;s locked card (QA held or superseded)."
+    else:
+        badge = '<span class="lean-only-badge">LEAN ONLY</span>'
+        note = "Research lean — not a posted play."
+    return (
+        f"<td class='hybrid-cell lean-only' title='{_esc(note)}'>"
+        f"{badge}<div class='hybrid-pick-text muted-pick'>{pick_html}</div></td>"
+    )
+
+
 def _render_stage_week_table(
     cards: list[dict],
     *,
     sport: str = "ncaaf",
     table_id: str | None = None,
+    ledger_plays: list[dict[str, Any]] | None = None,
 ) -> str:
     sorted_cards = sorted(
         cards,
@@ -2241,19 +2368,25 @@ def _render_stage_week_table(
         ),
     )
     n_games = len({c.get("event_id") for c in sorted_cards})
-    rows = _render_stage_rows(sorted_cards, sport=sport)
+    locked_keys = _locked_sharp_play_keys(ledger_plays or [])
+    rows = _render_stage_rows(sorted_cards, sport=sport, locked_keys=locked_keys)
     id_attr = f' id="{_esc(table_id)}"' if table_id else ""
     return (
         f'<div class="phase-sub" style="font-size:13px;margin-top:6px">{n_games} games · {len(sorted_cards)} market rows</div>'
         f'<div class="table-wrap stage-table-wrap"><table class="stage-table export-table"{id_attr}>'
         f"{_render_stage_table_head()}<tbody>{rows}</tbody></table></div>"
         f'<p class="phase-note stage-scroll-hint">Three rows per game (spread, ML, total). '
-        f"<b>Quant Pick</b> is the system pick for that market — it can disagree with Model/Sharp/Public "
-        f"when <b>Diff</b> (money vs tickets) confirms sharp action.</p>"
+        f"<b>Quant Pick</b> shows <span class='lock-badge-inline'>LOCKED</span> when that row is on the "
+        f"weekly card above; <span class='lean-only-badge-inline'>LEAN ONLY</span> is research.</p>"
     )
 
 
-def _render_stage_weeks_html(cards: list[dict], *, sport: str = "ncaaf") -> str:
+def _render_stage_weeks_html(
+    cards: list[dict],
+    *,
+    sport: str = "ncaaf",
+    ledger_plays: list[dict[str, Any]] | None = None,
+) -> str:
     if not cards:
         empty = (
             "No stage picks for this NFL week yet. Run the NFL Pipeline when the slate is posted."
@@ -2273,7 +2406,7 @@ def _render_stage_weeks_html(cards: list[dict], *, sport: str = "ncaaf") -> str:
         parts.append(
             f'<div class="week-block">'
             f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)}</div>'
-            f"{_render_stage_week_table(week_cards, sport=sport)}"
+            f"{_render_stage_week_table(week_cards, sport=sport, ledger_plays=ledger_plays)}"
             f"</div>"
         )
     return "".join(parts)
@@ -2337,7 +2470,7 @@ def _render_historical_weeks(
             f"{_section_toolbar('Quant Pick Leans', leans_id, f'sharp-scout-{prefix}-leans-{slug}.csv')}"
             f"{_render_hybrid_leans_section(week_cards, sport=sport, show_intro=False, table_id=leans_id, ledger_plays=week_ledger)}"
             f"{_section_toolbar('Pregame Stage Winners', stages_id, f'sharp-scout-{prefix}-stages-{slug}.csv')}"
-            f"{_render_stage_week_table(week_cards, sport=sport, table_id=stages_id)}"
+            f"{_render_stage_week_table(week_cards, sport=sport, table_id=stages_id, ledger_plays=week_ledger)}"
             f"</div>"
         )
     return "".join(parts)
@@ -2484,7 +2617,12 @@ def _render_weekly_lens_scorecard(
     )
 
 
-def _render_stage_rows(cards: list[dict], *, sport: str = "nfl") -> str:
+def _render_stage_rows(
+    cards: list[dict],
+    *,
+    sport: str = "nfl",
+    locked_keys: set[tuple[str, str, str]] | None = None,
+) -> str:
     if not cards:
         return "<tr><td colspan='11'>No stage picks yet. Run the pipeline.</td></tr>"
     rows = []
@@ -2511,7 +2649,7 @@ def _render_stage_rows(cards: list[dict], *, sport: str = "nfl") -> str:
             f"<td>{_esc(kick_s)}</td>"
             f"<td>{matchup}</td>"
             f"<td>{_esc(_stage_market_label(c.get('market')))}</td>"
-            f"<td class='hybrid-cell pos'>{_pick_cell(hybrid, sport=sport)}</td>"
+            f"{_render_quant_pick_cell(hybrid, c, locked_keys=locked_keys, sport=sport)}"
             f"<td>{_pick_cell(picks.get('model'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('sharp'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('public'), sport=sport)}</td>"
@@ -2567,7 +2705,7 @@ def _extract_hybrid_leans(
     ledger_plays: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """All quant pick rows for the slate — flagged when posted as a Sharp Play."""
-    ledger_keys = _posted_sharp_play_keys(ledger_plays or [])
+    ledger_keys = _locked_sharp_play_keys(ledger_plays or [])
     leans: list[dict[str, Any]] = []
     for card in stage_cards:
         if str(card.get("event_id") or "").startswith("demo"):
@@ -3357,6 +3495,61 @@ _SITE_CSS = """\
   .conf-legend .conf-pct { font-size: 10.5px; font-weight: 600; }
   td { padding: 10px; border-bottom: 1px solid #ececec; color: var(--color-text); }
   tr:last-child td { border-bottom: none; }
+  .lock-badge, .lock-badge-inline {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: #166534;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .lean-only-badge, .lean-only-badge-inline, .filtered-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .lean-only-badge, .lean-only-badge-inline {
+    background: #e5e7eb;
+    color: #4b5563;
+  }
+  .filtered-badge { background: #fef3c7; color: #92400e; }
+  .locked-plays-explainer {
+    margin: 10px 0 4px;
+    padding: 10px 12px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-left: 4px solid #166534;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #14532d;
+  }
+  tr.locked-play-row td { background: #f7fef9; }
+  tr.locked-play-row td.play-pick-cell { border-left: 3px solid #166534; }
+  .stage-table td.hybrid-cell.locked-play {
+    background: #ecfdf5 !important;
+    border-left: 3px solid #166534 !important;
+    white-space: normal;
+    min-width: 88px;
+  }
+  .stage-table td.hybrid-cell.lean-only {
+    background: #f9fafb !important;
+    color: #6b7280;
+    white-space: normal;
+    min-width: 88px;
+  }
+  .hybrid-pick-text.muted-pick b { color: #6b7280; font-weight: 600; }
+  .hybrid-pick-text { margin-top: 4px; }
   .lean-row-sharp-play td {
     background: #fef9c3;
     font-weight: 700;
@@ -3599,10 +3792,10 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {nfl_plays_heading}
   {plays_html}
   {quarantine_html}
-  <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks. Only rows highlighted in yellow in the <b>NFL Ledger</b> below are the posted Sharp Plays we track.</p>
+  <p class="phase-note" style="padding:8px 0 4px">The table above is the <b>only</b> NFL weekly card we posted. Everything below is research unless it shows <span class="lock-badge-inline">LOCKED</span>.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
   {leans_caps_note}
-  <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET; advances to the next slate when this week is empty). Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
+  <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET). Three rows per game (spread, ML, total). <b>Quant Pick</b>: <span class="lock-badge-inline">LOCKED</span> = on the card above; <span class="lean-only-badge-inline">LEAN ONLY</span> = not a posted bet.</p>
   {nfl_stage_weeks_html}
   <div class="section-label">This Week — Public &amp; Sharp Money &amp; Line Movement</div>
   <p class="phase-note" style="padding:4px 0 10px">Every NFL game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>
@@ -3649,10 +3842,10 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {ncaaf_plays_heading}
   {ncaaf_plays_html}
   {ncaaf_quarantine_html}
-  <p class="phase-note" style="padding:8px 0 4px">Plays above are this week's quant picks — use the <b>When to bet</b> column for timing. Only rows highlighted in yellow in the <b>NCAAF Ledger</b> below are the posted Sharp Plays we track.</p>
+  <p class="phase-note" style="padding:8px 0 4px">The table above is the <b>only</b> CFB weekly card we posted (use <b>When to bet</b> for timing on open plays). Research tables below are not the card unless marked <span class="lock-badge-inline">LOCKED</span>.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
   {leans_caps_note}
-  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Three rows per game (spread, ML, total). <b>Quant Pick</b> (green column) matches Sharp Plays above when validated.</p>
+  <p class="phase-note" style="padding:4px 0 10px">Current college week only (Mon–Sun ET). Three rows per game (spread, ML, total). <b>Quant Pick</b>: <span class="lock-badge-inline">LOCKED</span> = on the card above; <span class="lean-only-badge-inline">LEAN ONLY</span> = not a posted bet.</p>
   {ncaaf_stage_weeks_html}
   <div class="section-label">This Week — Public &amp; Sharp Money &amp; Line Movement</div>
   <p class="phase-note" style="padding:4px 0 10px">Every college game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>

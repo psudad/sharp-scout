@@ -6,7 +6,7 @@ settlement reads only public score feeds (ESPN / nflverse / cfbfastR).
 
 Usage:
   python scripts/settle_now.py            # settle both sports + rebuild docs/ (no push)
-  python scripts/settle_now.py --push     # also commit & push (updates the live site)
+  python scripts/settle_now.py --push     # also commit & push (CI normally does this via settle-and-publish.yml)
   python scripts/settle_now.py --sport ncaaf --push
 """
 

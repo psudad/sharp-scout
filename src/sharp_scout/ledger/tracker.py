@@ -722,20 +722,20 @@ def load_scores_from_cfb_schedules(seasons: list[int] | None = None) -> list[dic
 
 
 def load_scores_from_schedules(seasons: list[int] | None = None) -> list[dict[str, Any]]:
-    """Pull final scores from nflverse schedules for settlement."""
+    """Pull final scores from nflverse schedules, merged with recent ESPN finals."""
+    from sharp_scout.data.espn_nfl import fetch_espn_nfl_scores
     from sharp_scout.data.nflfastr import load_schedules
 
+    by_key: dict[str, dict[str, Any]] = {}
+
     sched = load_schedules(seasons)
-    if sched.empty:
-        return []
-    rows = []
-    for _, r in sched.iterrows():
-        hs, as_ = r.get("home_score"), r.get("away_score")
-        if hs is None or as_ is None or (isinstance(hs, float) and hs != hs):
-            continue
-        try:
-            rows.append(
-                {
+    if not sched.empty:
+        for _, r in sched.iterrows():
+            hs, as_ = r.get("home_score"), r.get("away_score")
+            if hs is None or as_ is None or (isinstance(hs, float) and hs != hs):
+                continue
+            try:
+                row = {
                     "home_team": r.get("home_team"),
                     "away_team": r.get("away_team"),
                     "home_score": int(hs),
@@ -744,7 +744,11 @@ def load_scores_from_schedules(seasons: list[int] | None = None) -> list[dict[st
                     "week": int(r["week"]) if r.get("week") == r.get("week") else None,
                     "game_id": r.get("game_id"),
                 }
-            )
-        except (TypeError, ValueError):
-            continue
-    return rows
+            except (TypeError, ValueError):
+                continue
+            by_key[f"{row['away_team']}@{row['home_team']}"] = row
+
+    for row in fetch_espn_nfl_scores():
+        by_key[f"{row['away_team']}@{row['home_team']}"] = row
+
+    return list(by_key.values())

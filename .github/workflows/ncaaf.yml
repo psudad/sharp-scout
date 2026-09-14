@@ -59,6 +59,13 @@ jobs:
         continue-on-error: true
         run: python scripts/settle_plays.py --sport ncaaf
 
+      - name: College-week line plan + opening snapshots
+        continue-on-error: true
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then exit 0; fi
+          python scripts/plan_ncaaf_snapshots.py
+          python scripts/record_line_snapshots.py --sport ncaaf --week-only
+
       - name: Run NCAAF pipeline
         env:
           DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
@@ -81,7 +88,7 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ncaaf_ledger.json data/line_history.json data/open_lines.json docs/
+          git add data/ncaaf_ledger.json data/ncaaf_line_plan.json data/line_history.json data/open_lines.json docs/
           if git diff --staged --quiet; then
             echo "No NCAAF ledger/site changes"
           else

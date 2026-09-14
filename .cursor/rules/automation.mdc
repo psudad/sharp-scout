@@ -1,0 +1,26 @@
+---
+description: Sharp Scout — live site and settlement are CI-owned; do not ask the user to push for routine board updates.
+globs: betting/sharp-scout/**
+alwaysApply: false
+---
+
+# Sharp Scout automation (GitHub Actions)
+
+The public board at GitHub Pages is **maintained by scheduled workflows**, not manual pushes.
+
+## Default agent behavior
+
+- **Do not ask** whether to push or deploy after routine settle / CFB / NFL runs. Either rely on CI (preferred) or run `python scripts/settle_now.py --push` only when fixing production urgently before the next cron.
+- **Local runs** are for debugging; production truth is `main` after Actions commit.
+- **Settlement + site rebuild** without Odds API: workflow `settle-and-publish.yml` (every ~3h + post-game windows).
+- **NFL signals + ledger**: `pipeline.yml` (daily + game-day crons).
+- **CFB signals + opening lines**: `ncaaf.yml` (Mon–Sat) + `ncaaf-lines.yml` (snapshots / gameday rebuild).
+- **NFL pregame windows**: `pregame.yml` (now deploys Pages when it updates).
+
+## Secrets (repo Settings → Actions)
+
+`ODDS_API_KEY` required for live odds/splits pipelines. Settlement workflows need **no** API key.
+
+## When changing workflows
+
+Commit and push workflow changes to `main` so automation takes effect. Include a one-line note in the PR/commit body listing which cron was added or changed.

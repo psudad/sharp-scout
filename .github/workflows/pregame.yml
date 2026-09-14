@@ -41,6 +41,8 @@ concurrency:
 jobs:
   pregame:
     runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.publish_flag.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
 
@@ -119,5 +121,32 @@ jobs:
             echo "No changes"
           else
             git commit -m "chore: pregame window update (sides + props)"
+            git pull --rebase --autostash origin main
             git push
           fi
+
+      - name: Upload Pages artifact
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - id: publish_flag
+        if: always()
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.gate.outputs.run }}" = "true" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: pregame
+    if: github.ref == 'refs/heads/main' && needs.pregame.outputs.publish == 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

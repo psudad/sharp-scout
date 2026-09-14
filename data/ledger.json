@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-14T19:44:10.977352+00:00",
+  "updated_at": "2026-09-14T20:08:44.370406+00:00",
   "starting_units": 100.0,
   "plays": [
     {
@@ -1488,11 +1488,11 @@
       "window": null,
       "rationale": "We project KC ML on the moneyline at 60.2% true probability vs 54.6% implied at betfair_ex_eu \u2014 about 10.4% expected value.\nOn this side, 86% of handle vs 63% of tickets (+23% handle-minus-tickets gap) \u2014 sharp money signal.\nNo opening line stored yet for RLM. The first pipeline run of the week records the current line as the open; later runs compare movement against it.\nSharp money confirms this side (handle % well above ticket %).",
       "close_line": null,
-      "close_price": null,
-      "close_book": null,
+      "close_price": -127.0,
+      "close_book": "pinnacle",
       "clv_points": null,
-      "clv_prob": null,
-      "clv_at": null,
+      "clv_prob": 0.014,
+      "clv_at": "2026-09-14T19:44:08.013414+00:00",
       "status": "pending",
       "home_score": null,
       "away_score": null,
@@ -1528,6 +1528,55 @@
       "is_alternate": false,
       "window": null,
       "rationale": "We project OVER 31.5 on the total at 92.8% true probability vs 49.8% implied at courtside \u2014 about 5.9% expected value.\nOn this side, 38% of handle vs 22% of tickets (+16% handle-minus-tickets gap) \u2014 sharp money signal.\ntotal flat (43.5\u219243.5)\nSharp money confirms this side (handle % well above ticket %).",
+      "close_line": 43.0,
+      "close_price": -105.0,
+      "close_book": "pinnacle",
+      "clv_points": 11.5,
+      "clv_prob": -0.3637,
+      "clv_at": "2026-09-14T19:44:08.013414+00:00",
+      "status": "quarantined",
+      "home_score": null,
+      "away_score": null,
+      "prop_result": null,
+      "pnl_units": null,
+      "settled_at": null,
+      "qa_at": "2026-09-14T19:44:08.695077+00:00",
+      "qa_notes": [
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 1 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "id": "997873b7",
+      "created_at": "2026-09-14T20:08:41.640386+00:00",
+      "event_id": "5ad8135dc2b5f27de0b777acd317855a",
+      "sport": "nfl",
+      "season": null,
+      "week": null,
+      "kickoff": "2026-09-15T00:15:00+00:00",
+      "away_team": "DEN",
+      "home_team": "KC",
+      "play_type": "side",
+      "player_name": null,
+      "market": "totals",
+      "side": "over",
+      "line": 33.5,
+      "book": "courtside",
+      "price": -391.0,
+      "units": 1.5,
+      "tier": "play",
+      "edge": 0.1176,
+      "p_true": 0.89,
+      "p_mkt": 0.4977,
+      "model_spread": -2.13,
+      "model_total": 44.38,
+      "model_mean": null,
+      "is_alternate": false,
+      "window": null,
+      "rationale": "We project OVER 33.5 on the total at 89.0% true probability vs 49.8% implied at courtside \u2014 about 11.8% expected value.\nOn this side, 38% of handle vs 22% of tickets (+16% handle-minus-tickets gap) \u2014 sharp money signal.\ntotal flat (43.5\u219243.5)\nSharp money confirms this side (handle % well above ticket %).",
       "close_line": null,
       "close_price": null,
       "close_book": null,
@@ -1540,7 +1589,7 @@
       "prop_result": null,
       "pnl_units": null,
       "settled_at": null,
-      "qa_at": "2026-09-14T19:44:08.695077+00:00",
+      "qa_at": "2026-09-14T20:08:41.986758+00:00",
       "qa_notes": [
         {
           "code": "single_book",
@@ -7297,9 +7346,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 31.5,
-          "confidence": 0.928,
-          "reason": "validated play EV=5.9% @ courtside",
+          "line": 33.5,
+          "confidence": 0.89,
+          "reason": "validated play EV=11.8% @ courtside",
           "available": true
         }
       },
@@ -7888,11 +7937,11 @@
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "over",
-          "team": "Over",
+          "side": "under",
+          "team": "Under",
           "line": 44.5,
-          "confidence": 0.5045,
-          "reason": "pinnacle no-vig 50.4% @ -110",
+          "confidence": 0.5089,
+          "reason": "pinnacle no-vig 50.9% @ -112",
           "available": true
         },
         "public": {
@@ -7941,27 +7990,28 @@
           "side": "over",
           "team": "Over",
           "line": 44.5,
-          "confidence": 0.488,
-          "reason": "model aligned with sharp (no validated edge)",
+          "confidence": 0.3904,
+          "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 3,
-        "home_votes": 2,
-        "away_votes": 0,
-        "unanimous": true,
+        "home_votes": 1,
+        "away_votes": 1,
+        "unanimous": false,
         "sharp_vs_public": null,
         "money_vs_public": null,
         "rlm_active": false
       },
-      "consensus_side": "over",
-      "consensus_team": "Over",
+      "consensus_side": null,
+      "consensus_team": null,
       "hybrid_agrees_with": [
-        "model",
+        "model"
+      ],
+      "conflict_stages": [
         "sharp"
       ],
-      "conflict_stages": [],
       "line_perspective": "team",
       "kickoff": "2026-09-20 17:00:00+00:00",
       "commence_time": "2026-09-20 17:00:00+00:00",
@@ -11891,8 +11941,8 @@
           "side": "away",
           "team": "IND",
           "line": null,
-          "confidence": 0.5,
-          "reason": "betfair_ex_eu no-vig 50.0% @ -10000",
+          "confidence": 0.5738,
+          "reason": "betfair_ex_eu no-vig 57.4% @ -10000",
           "available": true
         },
         "public": {
@@ -90278,7 +90328,7 @@
       "outcome": null
     },
     {
-      "id": "ee3d8507",
+      "id": "3f1e515a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91004,7 +91054,7 @@
       "outcome": null
     },
     {
-      "id": "dc331845",
+      "id": "77dfc867",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91165,7 +91215,7 @@
       "outcome": null
     },
     {
-      "id": "c9d05110",
+      "id": "805d818b",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91174,21 +91224,20 @@
       "home_team": "CHI",
       "market": "totals",
       "side": "under",
-      "line": 50.0,
+      "line": 49.0,
       "book": "matchbook",
-      "p_true": 0.6234,
+      "p_true": 0.585,
       "p_mkt": 0.5,
-      "edge": 0.1655,
+      "edge": 0.1642,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "model_deficiency",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.35,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.123",
-        "large edge, no market confirmation"
+        "|p_true-p_mkt|=0.085"
       ],
-      "magnitude": 0.1234,
+      "magnitude": 0.085,
       "outcome": null
     },
     {
@@ -91408,7 +91457,7 @@
       "outcome": null
     },
     {
-      "id": "755d3379",
+      "id": "9b4e52c0",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91541,7 +91590,7 @@
       "outcome": null
     },
     {
-      "id": "3cdb4255",
+      "id": "2e5b17cb",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -91973,7 +92022,7 @@
       "outcome": null
     },
     {
-      "id": "0c0382cb",
+      "id": "60ed9578",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92134,7 +92183,7 @@
       "outcome": null
     },
     {
-      "id": "63cbaf78",
+      "id": "307c06b5",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -92508,7 +92557,7 @@
       "outcome": null
     },
     {
-      "id": "b88abebb",
+      "id": "4b81f8ba",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -94336,7 +94385,7 @@
       "outcome": null
     },
     {
-      "id": "f32f7e3a",
+      "id": "c88b23ee",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -95707,7 +95756,7 @@
       "outcome": null
     },
     {
-      "id": "312b6ddb",
+      "id": "467dec40",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97022,7 +97071,7 @@
       "outcome": null
     },
     {
-      "id": "638a5ff3",
+      "id": "f5cd6d55",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97454,7 +97503,7 @@
       "outcome": null
     },
     {
-      "id": "84e7f537",
+      "id": "c90dbc4f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -97829,7 +97878,7 @@
       "outcome": null
     },
     {
-      "id": "2cbe93f7",
+      "id": "6d9339b6",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -99722,7 +99771,7 @@
       "outcome": null
     },
     {
-      "id": "f7ac6869",
+      "id": "10c61a5a",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100752,7 +100801,7 @@
       "outcome": null
     },
     {
-      "id": "73f3d78e",
+      "id": "21825d6d",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -100913,7 +100962,7 @@
       "outcome": null
     },
     {
-      "id": "034f3fe1",
+      "id": "7c05f797",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101761,7 +101810,7 @@
       "outcome": null
     },
     {
-      "id": "f9872be0",
+      "id": "e8d42ca2",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -101770,11 +101819,11 @@
       "home_team": "CHI",
       "market": "spreads",
       "side": "away",
-      "line": 5.0,
-      "book": "matchbook",
+      "line": 5.5,
+      "book": "lowvig",
       "p_true": 0.6266,
       "p_mkt": 0.5,
-      "edge": 0.2409,
+      "edge": 0.2234,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -103078,7 +103127,7 @@
       "outcome": null
     },
     {
-      "id": "810b9376",
+      "id": "54f1ac3f",
       "created_at": "2026-09-01T18:09:55.482646+00:00",
       "season": null,
       "week": null,
@@ -104965,7 +105014,7 @@
       "outcome": null
     },
     {
-      "id": "51676af1",
+      "id": "95f399c0",
       "created_at": "2026-09-06T23:24:01.548063+00:00",
       "season": null,
       "week": null,
@@ -105417,7 +105466,7 @@
       "outcome": null
     },
     {
-      "id": "c6f7c033",
+      "id": "228061f8",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105444,7 +105493,7 @@
       "outcome": null
     },
     {
-      "id": "8310b616",
+      "id": "35f87c80",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105498,7 +105547,7 @@
       "outcome": null
     },
     {
-      "id": "09e63db0",
+      "id": "5fcc5236",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105552,7 +105601,7 @@
       "outcome": null
     },
     {
-      "id": "c11f28df",
+      "id": "1f980a36",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -105903,7 +105952,7 @@
       "outcome": null
     },
     {
-      "id": "cebbe43c",
+      "id": "c1992414",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -107873,7 +107922,7 @@
       "outcome": null
     },
     {
-      "id": "62adb998",
+      "id": "e0ca332c",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -109620,7 +109669,7 @@
       "outcome": null
     },
     {
-      "id": "72d4431b",
+      "id": "01f1c78c",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -110774,7 +110823,7 @@
       "outcome": null
     },
     {
-      "id": "d6d9d73d",
+      "id": "13dd6d89",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -110783,11 +110832,11 @@
       "home_team": "SF",
       "market": "totals",
       "side": "under",
-      "line": 45.5,
-      "book": "fanduel",
+      "line": 45.0,
+      "book": "matchbook",
       "p_true": 0.6556,
       "p_mkt": 0.5,
-      "edge": 0.28,
+      "edge": 0.2983,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
@@ -110801,7 +110850,7 @@
       "outcome": null
     },
     {
-      "id": "e11be5ae",
+      "id": "2658c5e2",
       "created_at": "2026-09-10T10:23:59.255940+00:00",
       "season": null,
       "week": null,
@@ -111689,7 +111738,7 @@
       "outcome": null
     },
     {
-      "id": "c536ae10",
+      "id": "af90416a",
       "created_at": "2026-09-13T18:03:45.209423+00:00",
       "season": null,
       "week": null,
@@ -111698,21 +111747,21 @@
       "home_team": "KC",
       "market": "totals",
       "side": "over",
-      "line": 31.5,
+      "line": 33.5,
       "book": "courtside",
-      "p_true": 0.928,
+      "p_true": 0.89,
       "p_mkt": 0.4977,
-      "edge": 0.0594,
+      "edge": 0.1176,
       "tier": "play",
       "direction": "model_higher",
       "category": "market_overreaction",
       "category_manual": null,
       "confidence": 0.5,
       "evidence": [
-        "|p_true-p_mkt|=0.430",
+        "|p_true-p_mkt|=0.392",
         "sharp money on our side vs public tickets"
       ],
-      "magnitude": 0.4303,
+      "magnitude": 0.3923,
       "outcome": null
     },
     {
@@ -111770,7 +111819,7 @@
       "outcome": null
     },
     {
-      "id": "2192d988",
+      "id": "b1ba7efc",
       "created_at": "2026-09-13T23:50:35.112872+00:00",
       "season": null,
       "week": null,
@@ -111797,7 +111846,7 @@
       "outcome": null
     },
     {
-      "id": "8c2145dc",
+      "id": "21ad2b4f",
       "created_at": "2026-09-13T23:50:35.112872+00:00",
       "season": null,
       "week": null,
@@ -111824,7 +111873,7 @@
       "outcome": null
     },
     {
-      "id": "3cec83f6",
+      "id": "db0f0382",
       "created_at": "2026-09-13T23:50:35.112872+00:00",
       "season": null,
       "week": null,
@@ -111850,7 +111899,7 @@
       "outcome": null
     },
     {
-      "id": "25ecf40d",
+      "id": "efd1fb3a",
       "created_at": "2026-09-13T23:50:35.112872+00:00",
       "season": null,
       "week": null,
@@ -111876,7 +111925,7 @@
       "outcome": null
     },
     {
-      "id": "c325a5fb",
+      "id": "c7a4b37e",
       "created_at": "2026-09-13T23:50:35.112872+00:00",
       "season": null,
       "week": null,
@@ -111955,7 +112004,7 @@
       "outcome": null
     },
     {
-      "id": "a04ca9b1",
+      "id": "152c98be",
       "created_at": "2026-09-13T23:50:35.112872+00:00",
       "season": null,
       "week": null,
@@ -111982,7 +112031,7 @@
       "outcome": null
     },
     {
-      "id": "fbefb10b",
+      "id": "693ddb52",
       "created_at": "2026-09-13T23:50:35.112872+00:00",
       "season": null,
       "week": null,
@@ -111992,24 +112041,24 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "courtside",
+      "book": "betfair_ex_eu",
       "p_true": 0.7797,
-      "p_mkt": 0.5,
-      "edge": 0.0552,
+      "p_mkt": 0.4262,
+      "edge": 0.0602,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "model_deficiency",
       "category_manual": null,
       "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.280",
+        "|p_true-p_mkt|=0.353",
         "large edge, no market confirmation"
       ],
-      "magnitude": 0.2797,
+      "magnitude": 0.3535,
       "outcome": null
     },
     {
-      "id": "2eca0672",
+      "id": "c3b83d37",
       "created_at": "2026-09-14T19:44:08.536038+00:00",
       "season": null,
       "week": null,
@@ -112035,7 +112084,7 @@
       "outcome": null
     },
     {
-      "id": "ae4dbc7b",
+      "id": "a28919b3",
       "created_at": "2026-09-14T19:44:08.536038+00:00",
       "season": null,
       "week": null,
@@ -112045,10 +112094,10 @@
       "market": "h2h",
       "side": "away",
       "line": null,
-      "book": "pinnacle",
+      "book": "betfair_ex_eu",
       "p_true": 0.4247,
       "p_mkt": 0.3538,
-      "edge": 0.1637,
+      "edge": 0.1807,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
@@ -112061,7 +112110,7 @@
       "outcome": null
     },
     {
-      "id": "34d0c3de",
+      "id": "24bcb796",
       "created_at": "2026-09-14T19:44:08.536038+00:00",
       "season": null,
       "week": null,
@@ -112087,7 +112136,7 @@
       "outcome": null
     },
     {
-      "id": "72cb8b85",
+      "id": "f1f0c38b",
       "created_at": "2026-09-14T19:44:08.536038+00:00",
       "season": null,
       "week": null,
@@ -112113,7 +112162,7 @@
       "outcome": null
     },
     {
-      "id": "6223a743",
+      "id": "e90ae253",
       "created_at": "2026-09-14T19:44:08.536038+00:00",
       "season": null,
       "week": null,

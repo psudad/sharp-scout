@@ -2,6 +2,10 @@
 
 Layer 1: block deploy on demo/stale/degenerate ratings.
 Layer 2: quarantine (not delete) plays that fail corroboration or look implausible.
+
+Committed Sharp Plays (tier ``play``) cannot be voided or quarantined from T-2h before
+kickoff through settlement — once the board shows LOCKED inside that window, QA must not
+pull the bet back on a later pipeline run.
 """
 
 from __future__ import annotations
@@ -32,6 +36,26 @@ MIN_RATED_TEAMS_NCAAF = 80
 MIN_POWER_STDEV = 0.01
 MIN_BOOKS_FOR_CORROBORATION = 2
 DUPLICATE_P_TRUE_MIN_CLUSTER = 5
+COMMITTED_PLAY_TIER = "play"
+COMMITMENT_LOCK_BEFORE_KICKOFF = timedelta(hours=2)
+
+
+def play_commitment_locked(
+    play: dict[str, Any],
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """True when a posted Sharp Play must stay on the board until it grades."""
+    if (play.get("tier") or "") != COMMITTED_PLAY_TIER:
+        return False
+    if (play.get("status") or "pending") != "pending":
+        return False
+    kickoff = parse_commence(play.get("kickoff") or play.get("commence_time"))
+    if kickoff is None:
+        return False
+    clock = now or datetime.now(timezone.utc)
+    lock_from = kickoff - COMMITMENT_LOCK_BEFORE_KICKOFF
+    return clock >= lock_from
 
 
 @dataclass
@@ -274,6 +298,7 @@ def review_play(
     sport: str = "nfl",
     validated_keys: set[str] | None = None,
     dup_p_true: set[float] | None = None,
+    now: datetime | None = None,
 ) -> PlayReview:
     """Layer 2 — sanity review for a single pending ledger play."""
     issues: list[QAIssue] = []
@@ -453,6 +478,16 @@ def review_play(
     else:
         action = "approve"
 
+    if action in ("void", "quarantine") and play_commitment_locked(play, now=now):
+        issues.append(
+            QAIssue(
+                "commitment_lock",
+                "warn",
+                "Committed Sharp Play inside T-2h window — QA pullback blocked until settlement",
+            )
+        )
+        action = "approve"
+
     return PlayReview(
         play_id=play.get("id"),
         matchup=matchup,
@@ -507,7 +542,8 @@ def apply_qa_gate(
 
     play_reviews: list[PlayReview] = []
     approved = quarantined = voided = 0
-    now = datetime.now(timezone.utc).isoformat()
+    clock = datetime.now(timezone.utc)
+    now = clock.isoformat()
 
     for play in pending:
         review = review_play(
@@ -516,6 +552,7 @@ def apply_qa_gate(
             sport=sport,
             validated_keys=validated_keys,
             dup_p_true=dup_p_true,
+            now=clock,
         )
         play_reviews.append(review)
         if review.action == "approve":
@@ -550,6 +587,7 @@ def apply_qa_gate(
                 sport=sport,
                 validated_keys=validated_keys,
                 dup_p_true=dup_p_true,
+                now=clock,
             )
             if review.action in ("void", "quarantine"):
                 play_reviews.append(review)

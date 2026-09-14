@@ -7,9 +7,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from datetime import datetime, timezone
+
 from sharp_scout.qa.gate import (
     QAIssue,
     apply_qa_gate,
+    play_commitment_locked,
     review_play,
     review_signals,
 )
@@ -190,6 +193,80 @@ def test_corroborated_spread_passes():
     }
     review = review_play(play, signals, sport="nfl")
     assert review.action == "approve"
+
+
+def test_committed_play_locked_inside_t2h_window():
+    play = {
+        "tier": "play",
+        "status": "pending",
+        "kickoff": "2026-09-13T20:25:00+00:00",
+    }
+    before = datetime(2026, 9, 13, 17, 0, tzinfo=timezone.utc)
+    at_lock = datetime(2026, 9, 13, 18, 25, tzinfo=timezone.utc)
+    after_kick = datetime(2026, 9, 13, 23, 50, tzinfo=timezone.utc)
+    assert not play_commitment_locked(play, now=before)
+    assert play_commitment_locked(play, now=at_lock)
+    assert play_commitment_locked(play, now=after_kick)
+
+
+def test_committed_play_not_voided_after_kickoff_when_not_revalidated():
+    signals = _base_signals()
+    play = {
+        "id": "locked-ml",
+        "tier": "play",
+        "event_id": "ev1",
+        "home_team": "LV",
+        "away_team": "MIA",
+        "market": "h2h",
+        "side": "away",
+        "line": None,
+        "book": "betfair_ex_eu",
+        "price": 180.0,
+        "p_true": 0.4482,
+        "edge": 0.255,
+        "kickoff": "2026-09-13T20:25:00+00:00",
+        "status": "pending",
+    }
+    during_game = datetime(2026, 9, 13, 23, 50, tzinfo=timezone.utc)
+    review = review_play(
+        play,
+        signals,
+        sport="nfl",
+        validated_keys=set(),
+        now=during_game,
+    )
+    assert review.action == "approve"
+    assert any(i.code == "commitment_lock" for i in review.issues)
+    assert any(i.code == "not_revalidated" for i in review.issues)
+
+
+def test_non_play_tier_still_voided_inside_t2h():
+    signals = _base_signals()
+    play = {
+        "id": "lean-ml",
+        "tier": "lean",
+        "event_id": "ev1",
+        "home_team": "LV",
+        "away_team": "MIA",
+        "market": "h2h",
+        "side": "away",
+        "line": None,
+        "book": "betfair_ex_eu",
+        "price": 180.0,
+        "p_true": 0.4482,
+        "edge": 0.255,
+        "kickoff": "2026-09-13T20:25:00+00:00",
+        "status": "pending",
+    }
+    during_game = datetime(2026, 9, 13, 23, 50, tzinfo=timezone.utc)
+    review = review_play(
+        play,
+        signals,
+        sport="nfl",
+        validated_keys=set(),
+        now=during_game,
+    )
+    assert review.action in ("quarantine", "void")
 
 
 def test_stale_kickoff_voided(tmp_path):

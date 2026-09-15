@@ -56,7 +56,9 @@ def _sharp_edge(sides: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "team": sides[best_side].get("label"),
         "diff_pct": best_diff,
         "available": True,
-        "reason": f"+{best_diff:.0%} money vs tickets on {sides[best_side].get('label')}",
+        "reason": (
+            f"+{best_diff * 100:.0f}% money vs tickets on {sides[best_side].get('label')}"
+        ),
     }
 
 

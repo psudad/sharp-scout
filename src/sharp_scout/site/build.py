@@ -516,6 +516,9 @@ def build_site(
         new_n = int(signals.get("n_games") or len(signals.get("games") or []))
         if new_n >= existing_n:
             out_signals.write_text(json.dumps(signals, indent=2, default=str) + "\n")
+        (out / "nfl_ratings.json").write_text(
+            json.dumps(signals.get("ratings") or [], indent=2, default=str) + "\n"
+        )
 
     ncaaf_signals: dict[str, Any] = _strip_demo_signals(_pick_ncaaf_signals())
     ncaaf_ledger = load_ledger(path=DATA_DIR / NCAAF.ledger_name)
@@ -595,7 +598,6 @@ def build_site(
 
     nfl_signal_count = int(nfl_locked_summary.get("total") or 0)
     demo_note = "DEMO data" if signals.get("demo") else "Live pipeline"
-    ratings_rows = _render_ratings(signals.get("ratings") or [])
     nfl_stage_cards = normalize_stage_cards_team_lines(
         _merge_stage_cards(
             ledger.get("stage_cards") or [],
@@ -653,7 +655,6 @@ def build_site(
         nfl_split_boards,
         stage_cards,
         nfl_signals_list,
-        signals.get("ratings") or [],
         sport="nfl",
     )
 
@@ -712,7 +713,6 @@ def build_site(
         sport="ncaaf",
         ledger_plays=ncaaf_ledger.get("plays") or [],
     )
-    ncaaf_ratings_rows = _render_ratings(ncaaf_signals.get("ratings") or [])
     ncaaf_games_week = filter_events_college_week(ncaaf_signals.get("games") or [])
     ncaaf_week_event_ids = {str(g.get("event_id")) for g in ncaaf_games_week}
     ncaaf_games_html = _render_games_pipeline(
@@ -728,7 +728,6 @@ def build_site(
             for s in (ncaaf_signals.get("signals") or [])
             if str(s.get("event_id")) in ncaaf_week_event_ids
         ],
-        ncaaf_signals.get("ratings") or [],
         sport="ncaaf",
     )
     ncaaf_stage_record_rows = _render_stage_record_rows(ncaaf_record.get("stage_records") or {})
@@ -850,8 +849,6 @@ def build_site(
         nfl_stage_weeks_html=nfl_stage_weeks_html,
         nfl_leans_html=nfl_leans_html,
         nfl_historical_html=nfl_historical_html,
-        ratings_rows=ratings_rows,
-        ncaaf_ratings_rows=ncaaf_ratings_rows,
         stage_rows=stage_rows,
         stage_table_head=_render_stage_table_head(),
         stage_record_rows=stage_record_rows,
@@ -1345,7 +1342,6 @@ def _render_guide_html() -> str:
     <li><b>Stage Records</b> — season-long scorecards for each lens, so you can compare how the different systems have performed.</li>
     <li><b>Ledger</b> — full history of posted plays, results, CLV, and units.</li>
     <li><b>Quant Pick Leans</b> — all Quant Pick rows for the week. Yellow rows are posted Sharp Plays; the rest are leans / research, not auto-ledger bets.</li>
-    <li><b>Power Ratings</b> (collapsible) — current offense / defense EPA ratings for that sport. Good for “who is actually strong right now?” before you dig into a line.</li>
     <li><b>Prior weeks (archive)</b> (collapsible) — completed weeks roll here after they finish (NFL Wed–Tue ET; CFB Mon–Sun ET). Download CSV from any table for your own spreadsheet.</li>
   </ul>
   <h3>What each lens column means</h3>
@@ -1358,7 +1354,7 @@ def _render_guide_html() -> str:
     <li><b>Sharp Money</b> — <b>this is the column to watch if you want to follow the money rather than the price.</b> It is Handle % minus Public % on a side. A big positive gap means the dollars are much heavier than the bet count: fewer, larger wagers, which is the classic sharp-money tell. We flag it <b>SHARP MONEY</b> (green) at a 12%+ gap, <b>sharp money</b> (amber) at 10%+, and grey it out below 10% because at that point the dollars and the ticket count are basically in line and there is no real signal.</li>
     <li><b>RLM</b> — reverse line movement: the number moved <i>against</i> the public side, another sign the respected money is on the other team.</li>
   </ul>
-  <p>Everything lives inside those two boards now — there are no separate Games, Stages, Ratings, or Historical tabs to hunt through. Per-game detail, lens scorecards, power ratings, and prior-week archives are all folded into the NFL and CFB boards in the order above.</p>
+  <p>Everything lives inside those two boards now — there are no separate Games, Stages, or Historical tabs to hunt through. Per-game detail, lens scorecards, and prior-week archives are all folded into the NFL and CFB boards in the order above.</p>
 </div>
 
 <div class="guide-block">
@@ -1891,7 +1887,6 @@ def _render_games_pipeline(
     split_boards: list[dict],
     stage_cards: list[dict],
     signals: list[dict],
-    ratings: list[dict],
     *,
     sport: str,
 ) -> str:
@@ -1942,12 +1937,10 @@ def _render_games_pipeline(
           {_live_score_html(g, sport=sport)}
         </div>
         <div class="phase-block">
-          <div class="phase-label">Phase 1 · EPA ratings → model</div>
-          <p class="phase-note"><b>{_esc(away)}</b>: {_esc(_rating_row(away, ratings))}</p>
-          <p class="phase-note"><b>{_esc(home)}</b>: {_esc(_rating_row(home, ratings))}</p>
+          <div class="phase-label">Model line</div>
           <p class="phase-note">Model spread (home): <b>{spread_s}</b> ·
             total <b>{total_s}</b> · P(home win) <b>{p_hw_s}</b></p>
-          <p class="phase-note" style="font-size:11px">Negative model spread = home favored. Power ratings use 3 decimals.</p>
+          <p class="phase-note" style="font-size:11px">Negative model spread = home favored.</p>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
@@ -2125,7 +2118,31 @@ def _sharp_edge_diff_pct(pick: dict[str, Any]) -> float | None:
     return diff if diff > 0 else None
 
 
-def _sharp_money_cell(pick: dict | None, *, sport: str = "nfl") -> str:
+def _total_side_ticket_money_pcts(
+    picks: dict[str, Any],
+    side: str,
+) -> tuple[int | None, int | None]:
+    """Parse Action Network over/under ticket & handle % from public/money stage reasons."""
+    pub = str((picks.get("public") or {}).get("reason") or "")
+    mon = str((picks.get("money") or {}).get("reason") or "")
+    m_tix = re.search(r"tickets over=(\d+)% under=(\d+)%", pub, re.I)
+    m_mon = re.search(r"money over=(\d+)% under=(\d+)%", mon, re.I)
+    if not m_tix or not m_mon:
+        return None, None
+    idx = 1 if side == "over" else 2
+    try:
+        return int(m_tix.group(idx)), int(m_mon.group(idx))
+    except (TypeError, ValueError):
+        return None, None
+
+
+def _sharp_money_cell(
+    pick: dict | None,
+    *,
+    sport: str = "nfl",
+    picks: dict[str, Any] | None = None,
+    market: str | None = None,
+) -> str:
     """Sharp Money column: which side the dollars favor, flagged by how big the gap is."""
     if not pick or not pick.get("available"):
         return "<span class='pending'>—</span>"
@@ -2137,21 +2154,31 @@ def _sharp_money_cell(pick: dict | None, *, sport: str = "nfl") -> str:
     if sport == "ncaaf" and side not in ("over", "under") and label_s.upper() not in ("OVER", "UNDER"):
         label_s = ncaaf_display_code(label_s)
 
+    mkey = _normalize_market_key(market or pick.get("market"))
     diff = _sharp_edge_diff_pct(pick)
+    split_hint = ""
+    if picks and mkey == "total" and side in ("over", "under"):
+        tix_pct, money_pct = _total_side_ticket_money_pcts(picks, side)
+        if tix_pct is not None and money_pct is not None:
+            diff = (money_pct - tix_pct) / 100.0
+            split_hint = (
+                f'<span class="split-pct-hint">{tix_pct}% tix · {money_pct}% $</span>'
+            )
     if diff is None:
         return f"<b>{_esc(label_s)}</b>"
     gap = f"+{diff * 100:.0f}%"
+    body = f"<b>{_esc(label_s)}</b> {gap}{split_hint}"
     if diff >= SHARP_MONEY_STRONG_PCT:
         return (
-            f'<span class="sharp-money strong"><b>{_esc(label_s)}</b> {gap}'
+            f'<span class="sharp-money strong">{body}'
             f'<span class="sharp-flag strong">SHARP MONEY</span></span>'
         )
     if diff >= SHARP_MONEY_MILD_PCT:
         return (
-            f'<span class="sharp-money mild"><b>{_esc(label_s)}</b> {gap}'
+            f'<span class="sharp-money mild">{body}'
             f'<span class="sharp-flag mild">sharp money</span></span>'
         )
-    return f'<span class="sharp-money none">{_esc(label_s)} {gap}</span>'
+    return f'<span class="sharp-money none">{body}</span>'
 
 
 def _stage_card_key(card: dict[str, Any]) -> str:
@@ -2654,7 +2681,7 @@ def _render_stage_rows(
             f"<td>{_pick_cell(picks.get('sharp'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('public'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('money'), sport=sport)}</td>"
-            f"<td>{_sharp_money_cell(picks.get('sharp_edge'), sport=sport)}</td>"
+            f"<td>{_sharp_money_cell(picks.get('sharp_edge'), sport=sport, picks=picks, market=c.get('market'))}</td>"
             f"<td>{_pick_cell(picks.get('rlm'), sport=sport)}</td>"
             f"<td>{_esc(flag or agrees)}</td>"
             "</tr>"
@@ -3638,6 +3665,7 @@ _SITE_CSS = """\
   .sharp-money.strong { color: #0a5c25; font-weight: 800; }
   .sharp-money.mild { color: #7c5c07; }
   .sharp-money.none { color: var(--color-text-muted); font-weight: 300; }
+  .split-pct-hint { display: block; font-size: 11px; font-weight: 500; opacity: 0.85; margin-top: 2px; }
   .final-score { display: block; margin-top: 3px; font-size: 12px; font-weight: 700;
     color: var(--color-text-muted); letter-spacing: 0.02em; }
   @media (max-width: 640px) {
@@ -3816,14 +3844,6 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {leans_caps_note}
   {nfl_leans_html}
   <details class="collapsible">
-    <summary>Power Ratings</summary>
-    <p class="phase-note" style="padding:8px 0">Power ratings from nflverse play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
-      <tbody>{ratings_rows}</tbody>
-    </table></div>
-  </details>
-  <details class="collapsible">
     <summary>Prior weeks (archive)</summary>
     <p class="phase-note" style="padding:8px 0">Archive of completed NFL weeks. Each Wednesday ET, the prior week's stage winners and quant pick leans move here. Use <b>Download CSV</b> on each table to export.</p>
     {nfl_historical_html}
@@ -3865,14 +3885,6 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <div class="section-label">This Week — Quant Pick Leans</div>
   {leans_caps_note}
   {ncaaf_leans_html}
-  <details class="collapsible">
-    <summary>Power Ratings</summary>
-    <p class="phase-note" style="padding:8px 0">Power ratings from cfbfastR play-by-play (EPA per play), opponent-adjusted via ridge regression with recency weighting. Updated each pipeline run from the latest PBP data.</p>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Team</th><th>Power</th><th>Off EPA</th><th>Def EPA</th></tr></thead>
-      <tbody>{ncaaf_ratings_rows}</tbody>
-    </table></div>
-  </details>
   <details class="collapsible">
     <summary>Prior weeks (archive)</summary>
     <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Monday ET, the prior week's stage winners and quant pick leans move here. Use <b>Download CSV</b> on each table to export.</p>

@@ -49,19 +49,18 @@ def test_board_tabs_are_anchors_with_hash_targets(site: Path):
 
 def test_nfl_and_cfb_tabs_are_symmetric(site: Path):
     """NFL and CFB must mirror each other: plays, stage winners, sharp money/line
-    movement, stage records, ledger, leans, and collapsible ratings + archive."""
+    movement, stage records, ledger, leans, and prior-week archive."""
     html = (site / "board.html").read_text()
     nfl = html[html.index('id="tab-plays"'):html.index('id="tab-cfb"')]
     cfb = html[html.index('id="tab-cfb"'):html.index('id="tab-guide"')]
     shared = (
         "Season Overview",
-        "PLAY THESE QUANTS NOW",
+        "LOCKED PLAYS — BET THESE",
         "This Week — Pregame Stage Winners",
         "Sharp Money &amp; Line Movement",
         "Stage Records (season)",
         "Ledger ·",
         "Quant Pick Leans",
-        "<summary>Power Ratings</summary>",
         "Prior weeks (archive)",
     )
     for token in shared:

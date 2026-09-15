@@ -56,7 +56,7 @@ def test_nfl_and_cfb_tabs_are_symmetric(site: Path):
     shared = (
         "Season Overview",
         "LOCKED PLAYS — BET THESE",
-        "This Week — Pregame Stage Winners",
+        "— Pregame Stage Winners",
         "Sharp Money &amp; Line Movement",
         "Stage Records (season)",
         "Ledger ·",

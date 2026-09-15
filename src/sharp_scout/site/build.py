@@ -39,6 +39,9 @@ from sharp_scout.utils.slate import (
     group_stage_cards_by_college_week,
     group_stage_cards_by_nfl_week,
     nfl_week_bounds,
+    nfl_display_season_week,
+    nfl_section_heading,
+    nfl_season_week_for_matchup,
     nfl_week_label,
     parse_commence,
     partition_stage_cards_current_historical,
@@ -825,12 +828,18 @@ def build_site(
         nfl_ledger=ledger,
         ncaaf_ledger=ncaaf_ledger,
     )
+    nfl_week_heading = nfl_section_heading(nfl_games_all or nfl_games_display)
+    _nfl_season, nfl_season_week = nfl_display_season_week(nfl_games_all or nfl_games_display)
+    week1_banner_html = (
+        _WEEK1_BANNER if nfl_season_week == 1 else ""
+    )
 
     html = SITE_TEMPLATE.format(
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         ssq_logo=_ssq_logo_svg(embedded=True),
         board_updated=board_updated,
-        week1_banner_html=_WEEK1_BANNER,
+        nfl_week_heading=nfl_week_heading,
+        week1_banner_html=week1_banner_html,
         leans_caps_note=_LEANS_CAPS_NOTE,
         nfl_plays_heading=_render_plays_heading(nfl_locked_summary),
         ncaaf_plays_heading=_render_plays_heading(ncaaf_locked_summary),
@@ -2429,7 +2438,22 @@ def _render_stage_weeks_html(
     label_fn = nfl_week_label if sport == "nfl" else college_week_label
     parts: list[str] = []
     for week_start, week_cards in groups:
-        label = label_fn(week_start)
+        season_week = None
+        if sport == "nfl" and week_cards:
+            for card in week_cards:
+                _s, w = nfl_season_week_for_matchup(
+                    str(card.get("away_team") or ""),
+                    str(card.get("home_team") or ""),
+                    card.get("kickoff") or card.get("commence_time"),
+                )
+                if w is not None:
+                    season_week = w
+                    break
+        label = (
+            nfl_week_label(week_start, season_week=season_week)
+            if sport == "nfl"
+            else label_fn(week_start)
+        )
         parts.append(
             f'<div class="week-block">'
             f'<div class="phase-sub" style="font-size:13px;margin-top:14px">{_esc(label)}</div>'
@@ -3821,11 +3845,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {plays_html}
   {quarantine_html}
   <p class="phase-note" style="padding:8px 0 4px">The table above is the <b>only</b> NFL weekly card we posted. Everything below is research unless it shows <span class="lock-badge-inline">LOCKED</span>.</p>
-  <div class="section-label">This Week — Pregame Stage Winners</div>
+  <div class="section-label">{nfl_week_heading} — Pregame Stage Winners</div>
   {leans_caps_note}
   <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET). Three rows per game (spread, ML, total). <b>Quant Pick</b>: <span class="lock-badge-inline">LOCKED</span> = on the card above; <span class="lean-only-badge-inline">LEAN ONLY</span> = not a posted bet.</p>
   {nfl_stage_weeks_html}
-  <div class="section-label">This Week — Public &amp; Sharp Money &amp; Line Movement</div>
+  <div class="section-label">{nfl_week_heading} — Public &amp; Sharp Money &amp; Line Movement</div>
   <p class="phase-note" style="padding:4px 0 10px">Every NFL game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>
   {games_html}
   <div class="section-label">Stage Records (season)</div>
@@ -3840,7 +3864,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th><th>Result</th><th>Score</th><th>CLV</th><th>PnL</th></tr></thead>
     <tbody>{nfl_ledger_rows}</tbody>
   </table></div>
-  <div class="section-label">This Week — Quant Pick Leans</div>
+  <div class="section-label">{nfl_week_heading} — Quant Pick Leans</div>
   {leans_caps_note}
   {nfl_leans_html}
   <details class="collapsible">

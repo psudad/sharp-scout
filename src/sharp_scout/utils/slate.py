@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+import logging
+from datetime import date, datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Any
 from zoneinfo import ZoneInfo
+
+logger = logging.getLogger(__name__)
 
 ET = ZoneInfo("America/New_York")
 
@@ -67,7 +71,11 @@ def nfl_display_week_bounds(
     *,
     events: list[dict[str, Any]] | None = None,
 ) -> tuple[datetime, datetime]:
-    """Current NFL week if it has kickoffs; else the next week with scheduled games."""
+    """Current NFL betting week if it has upcoming kickoffs; else the next week with games.
+
+    Uses Wed–Tue ET windows for the board, but rolls forward once every game in the
+    current window has started (so Tue after MNF we show the next slate, not last week).
+    """
     now = _as_utc(now or datetime.now(timezone.utc))
     start, end = nfl_week_bounds(now)
     kickoffs: list[datetime] = []
@@ -75,9 +83,11 @@ def nfl_display_week_bounds(
         kickoff = parse_commence(ev.get("commence_time") or ev.get("kickoff"))
         if kickoff is not None:
             kickoffs.append(kickoff)
-    if any(start <= k <= end for k in kickoffs):
+    grace = now - timedelta(hours=3)
+    in_window = [k for k in kickoffs if start <= k <= end]
+    if any(k >= grace for k in in_window):
         return start, end
-    upcoming = sorted(k for k in kickoffs if k >= now - timedelta(minutes=15))
+    upcoming = sorted(k for k in kickoffs if k >= grace)
     if not upcoming:
         return start, end
     return nfl_week_bounds(upcoming[0])
@@ -119,13 +129,112 @@ def filter_plays_nfl_display_slate(
     return out
 
 
-def nfl_week_label(week_start: datetime) -> str:
-    """Human label for an NFL week (Wed–Tue ET)."""
+def nfl_week_label(week_start: datetime, *, season_week: int | None = None) -> str:
+    """Human label for an NFL week (Wed–Tue ET), optionally with nflverse week number."""
     start_et = _as_utc(week_start).astimezone(ET)
     end_et = (start_et + timedelta(days=6)).replace(hour=23, minute=59)
     if start_et.year == end_et.year:
-        return f"{start_et.strftime('%b %d')} – {end_et.strftime('%b %d, %Y')}"
-    return f"{start_et.strftime('%b %d, %Y')} – {end_et.strftime('%b %d, %Y')}"
+        dates = f"{start_et.strftime('%b %d')} – {end_et.strftime('%b %d, %Y')}"
+    else:
+        dates = f"{start_et.strftime('%b %d, %Y')} – {end_et.strftime('%b %d, %Y')}"
+    if season_week is not None:
+        return f"NFL Week {season_week} · {dates}"
+    return dates
+
+
+@lru_cache(maxsize=1)
+def _nfl_schedule_by_matchup() -> dict[tuple[int, str, str, date], int]:
+    """(season, away, home, gameday ET) → nflverse week."""
+    from sharp_scout.data.nflfastr import load_schedules
+    from sharp_scout.utils.odds import normalize_team
+
+    sched = load_schedules(None)
+    if sched.empty:
+        return {}
+    out: dict[tuple[int, str, str, date], int] = {}
+    for _, row in sched.iterrows():
+        try:
+            season = int(row["season"])
+            week = int(row["week"])
+        except (TypeError, ValueError, KeyError):
+            continue
+        away = normalize_team(str(row.get("away_team") or ""))
+        home = normalize_team(str(row.get("home_team") or ""))
+        raw_day = row.get("gameday")
+        if not away or not home or raw_day is None:
+            continue
+        if isinstance(raw_day, date):
+            gday = raw_day
+        else:
+            try:
+                gday = datetime.fromisoformat(str(raw_day)[:10]).date()
+            except ValueError:
+                continue
+        out[(season, away, home, gday)] = week
+    return out
+
+
+def nfl_season_week_for_matchup(
+    away: str,
+    home: str,
+    kickoff: datetime | Any,
+) -> tuple[int | None, int | None]:
+    """Map a kickoff to nflverse (season, week) using team codes + gameday."""
+    kick = parse_commence(kickoff)
+    if kick is None:
+        return None, None
+    from sharp_scout.utils.odds import normalize_team
+
+    away_n, home_n = normalize_team(str(away or "")), normalize_team(str(home or ""))
+    kick_day = kick.astimezone(ET).date()
+    index = _nfl_schedule_by_matchup()
+    for delta in (0, 1, -1):
+        gday = kick_day + timedelta(days=delta)
+        for season in (kick_day.year, kick_day.year - 1):
+            hit = index.get((season, away_n, home_n, gday))
+            if hit is not None:
+                return season, hit
+    return None, None
+
+
+def nfl_display_season_week(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[int | None, int | None]:
+    """Official NFL week number for the games on the current display slate."""
+    if not events:
+        return None, None
+    start, end = nfl_display_week_bounds(now, events=events)
+    weeks: dict[tuple[int, int], int] = {}
+    for ev in events:
+        kick = parse_commence(ev.get("commence_time") or ev.get("kickoff"))
+        if kick is None or not (start <= kick <= end):
+            continue
+        season, week = nfl_season_week_for_matchup(
+            str(ev.get("away_team") or ""),
+            str(ev.get("home_team") or ""),
+            kick,
+        )
+        if season is None or week is None:
+            continue
+        weeks[(season, week)] = weeks.get((season, week), 0) + 1
+    if not weeks:
+        return None, None
+    (season, week), _ = max(weeks.items(), key=lambda kv: kv[1])
+    return season, week
+
+
+def nfl_section_heading(
+    events: list[dict[str, Any]] | None,
+    *,
+    now: datetime | None = None,
+) -> str:
+    """Board section prefix, e.g. 'NFL Week 2' (not calendar week 3)."""
+    _season, week = nfl_display_season_week(events, now=now)
+    if week is not None:
+        return f"NFL Week {week}"
+    return "This Week"
 
 
 def stage_card_nfl_week_start(card: dict[str, Any]) -> datetime | None:

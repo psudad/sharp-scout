@@ -204,7 +204,15 @@ def run_pipeline(
 
     from sharp_scout.utils.slate import filter_events_nfl_display_slate
 
+    from sharp_scout.utils.slate import nfl_display_season_week
+
     display_events = filter_events_nfl_display_slate(game_results)
+    if season is None or week is None:
+        auto_season, auto_week = nfl_display_season_week(display_events)
+        season = season if season is not None else auto_season
+        week = week if week is not None else auto_week
+        if auto_week is not None:
+            logger.info("NFL display slate: season=%s week=%s", season, week)
     display_ids = {str(g.get("event_id")) for g in display_events}
     week_validated = [s for s in validated if str(s.get("event_id")) in display_ids]
     if len(week_validated) < len(validated):

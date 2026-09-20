@@ -92,6 +92,10 @@ class Settings(BaseSettings):
     # QA gate — quarantine spreads when model and sharp market disagree implausibly
     spread_model_prob_gap: float = 0.15  # |p_true - p_mkt| quarantine threshold
     spread_model_line_gap: float = 4.0  # |model_spread - home market line| in points
+    # NCAAF model hygiene (backtested on 2026 Weeks 1–3, see docs/ncaaf-model-review)
+    ncaaf_prior_seasons: int = 1  # prior seasons of PBP blended into CFB power ratings
+    ncaaf_ban_ml_dogs: bool = True  # NCAAF moneyline underdogs went 4–12 / 8–12 in every rating variant
+    ncaaf_sharp_veto: bool = True  # reject plays where the sharp book's no-vig side is against us
     # Steam detection (pre-kick line velocity across sharp books)
     steam_window_minutes: int = 90  # look-back window for velocity
     steam_min_points: float = 0.5  # minimum aggregate move to consider

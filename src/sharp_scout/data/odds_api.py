@@ -332,8 +332,10 @@ def mock_ncaaf_odds_events() -> list[dict[str, Any]]:
                     "is_sharp": True,
                     "markets": {
                         "spreads": [
-                            {"side": "away", "name": "Alabama Crimson Tide", "price": -108, "point": -2.5},
-                            {"side": "home", "name": "Georgia Bulldogs", "price": -112, "point": 2.5},
+                            # Sharp book shaded toward the away side so the demo spread
+                            # play survives the NCAAF sharp veto (p_mkt must be ≥ 50%).
+                            {"side": "away", "name": "Alabama Crimson Tide", "price": -112, "point": -2.5},
+                            {"side": "home", "name": "Georgia Bulldogs", "price": -108, "point": 2.5},
                         ],
                         "totals": [
                             {"side": "over", "name": "Over", "price": -110, "point": 51.5},

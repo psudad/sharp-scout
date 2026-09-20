@@ -158,10 +158,31 @@ def h2h_outlier_check(edge: EdgeCandidate) -> tuple[bool, str]:
     return True, ""
 
 
+SHARP_VETO_P_MKT = 0.5  # sharp no-vig probability below this means the sharp side is against us
+
+
+def ncaaf_hygiene_check(edge: EdgeCandidate) -> tuple[bool, str | None]:
+    """NCAAF-only rejections learned from the 2026 Weeks 1–3 backtest.
+
+    * Moneyline underdogs: 8–12 (40%) under every rating variant tested; the model
+      only "likes" them because flat early-season ratings make every game a pick'em.
+    * Sharp veto: when Pinnacle/Circa's no-vig number favors the other side, plays
+      went 60% → 64% by skipping them (45–25 vs 71–47 on the same pool).
+    """
+    settings = get_settings()
+    if settings.ncaaf_ban_ml_dogs and edge.market == "h2h" and edge.price > 0:
+        return False, f"NCAAF ML underdog ({edge.price:+.0f}) — disabled (8–12 season, 40%)"
+    if settings.ncaaf_sharp_veto and edge.p_mkt is not None and edge.p_mkt < SHARP_VETO_P_MKT:
+        book = edge.sharp_book or "sharp book"
+        return False, f"sharp veto: {book} no-vig {edge.p_mkt:.1%} on our side (<50%)"
+    return True, None
+
+
 def validate_edge(
     edge: EdgeCandidate,
     splits: list[dict[str, Any]],
     require_confirmation: bool = True,
+    sport: str = "nfl",
 ) -> FilterResult:
     """Sanity-check model edge with market structure signals before surfacing a play."""
     settings = get_settings()
@@ -174,6 +195,12 @@ def validate_edge(
         "h2h_sane": True,
     }
     notes.append(f"EV={edge.edge:.2%} at {edge.book} {edge.price:+.0f}")
+
+    if sport == "ncaaf":
+        ok_hyg, hyg_note = ncaaf_hygiene_check(edge)
+        if not ok_hyg:
+            notes.append(hyg_note or "NCAAF hygiene rejection")
+            return FilterResult(passed=False, notes=notes, flags=flags, tier="rejected")
 
     ok_h2h, h2h_note = h2h_outlier_check(edge)
     flags["h2h_sane"] = ok_h2h
@@ -238,10 +265,12 @@ def validate_edge(
 def attach_filters(
     edges: list[EdgeCandidate],
     splits: list[dict[str, Any]],
+    *,
+    sport: str = "nfl",
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for e in edges:
-        fr = validate_edge(e, splits)
+        fr = validate_edge(e, splits, sport=sport)
         out.append(
             {
                 "event_id": e.event_id,

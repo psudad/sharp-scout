@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 LEDGER_PATH = DATA_DIR / "ledger.json"
 DEFAULT_UNITS = {"play": 1.5, "lean": 1.0, "candidate": 0.5}
+# Mirrors qa.gate.COMMITMENT_LOCK_BEFORE_KICKOFF: the card is frozen once QA can no
+# longer quarantine it, so nothing new can slip on unreviewed.
+CARD_FREEZE_BEFORE_KICKOFF = timedelta(hours=2)
 
 
 def _now() -> str:
@@ -90,21 +93,36 @@ def append_signals(
     season: int | None = None,
     week: int | None = None,
     path: Path | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     """Append new validated plays to the ledger (deduped).
 
     Replaces any pending play on the same game/market/side so only the
-    latest best line/book survives across pipeline runs.
+    latest best line/book survives across pipeline runs — until T-2h before
+    kickoff, when the card freezes (see CARD_FREEZE_BEFORE_KICKOFF).
     """
+    from sharp_scout.utils.slate import parse_commence
+
     ledger = load_ledger(path)
     existing = {_play_key(p) for p in ledger["plays"]}
     added = 0
     replaced = 0
     refreshed = 0
+    frozen = 0
+    clock = now or datetime.now(timezone.utc)
     for s in signals:
         if only_validated and not s.get("filter_passed"):
             continue
         if s.get("tier") == "rejected":
+            continue
+        # Card freeze: inside the T-2h commitment window nothing may be added, replaced
+        # or re-tiered. The QA gate cannot quarantine committed plays in this window, so
+        # a gameday rebuild that appended new/re-lined plays here bypassed QA entirely —
+        # 47 of 81 decided NCAAF plays this season were written <2h before kickoff and
+        # went 21–26, versus 15–11 for plays posted a day or more ahead.
+        kick = parse_commence(s.get("kickoff") or s.get("commence_time"))
+        if kick is not None and kick - clock <= CARD_FREEZE_BEFORE_KICKOFF:
+            frozen += 1
             continue
         row = {
             "id": str(uuid.uuid4())[:8],
@@ -181,10 +199,13 @@ def append_signals(
         added += 1
     save_ledger(ledger, path)
     logger.info(
-        "Ledger: added %d plays, replaced %d pending, refreshed %d pending (total %d)",
+        "Ledger: added %d plays, replaced %d pending, refreshed %d pending, "
+        "%d frozen (inside T-%dh) (total %d)",
         added,
         replaced,
         refreshed,
+        frozen,
+        int(CARD_FREEZE_BEFORE_KICKOFF.total_seconds() // 3600),
         len(ledger["plays"]),
     )
     return ledger
@@ -688,6 +709,27 @@ def compute_record(
         d = b["wins"] + b["losses"]
         b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
         b["win_pct"] = (b["wins"] / d) if d else None
+
+    # Per-market split: the moneyline lens is mostly "the favorite won" (~78–80% but at
+    # chalk prices) and inflates the combined number, so surface spread/total separately.
+    for stage, b in stage_records.items():
+        b["by_market"] = {}
+    for card in ledger.get("stage_cards") or []:
+        if str(card.get("event_id") or "").startswith("demo-"):
+            continue
+        mkt = str(card.get("market") or "")
+        for stage, result in (card.get("results") or {}).items():
+            if result not in ("win", "loss", "push") or stage not in stage_records:
+                continue
+            mb = stage_records[stage]["by_market"].setdefault(
+                mkt, {"wins": 0, "losses": 0, "pushes": 0}
+            )
+            mb["wins" if result == "win" else "losses" if result == "loss" else "pushes"] += 1
+    for b in stage_records.values():
+        for mb in b["by_market"].values():
+            d = mb["wins"] + mb["losses"]
+            mb["record"] = f"{mb['wins']}-{mb['losses']}" + (f"-{mb['pushes']}" if mb["pushes"] else "")
+            mb["win_pct"] = (mb["wins"] / d) if d else None
 
     from sharp_scout.analysis.disagreement import summarize_disagreements
     from sharp_scout.ledger.clv import summarize_clv

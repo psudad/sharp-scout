@@ -72,7 +72,17 @@ def run_ncaaf_pipeline(
     if skip_pbp or demo:
         ratings = _demo_ratings()
     else:
-        pbp = load_cfb_pbp(settings.seasons if season is None else [season])
+        # Blend prior-season PBP as a prior. Early in the year 2–3 games of EPA cannot
+        # separate FCS/G5 from P4 (ratings sd ~0.08 → every game looks like a pick'em and
+        # the model "finds" 30-point edges on big dogs). Backtest Weeks 1–3 2026:
+        # 2026-only 54.0% → with 2025 prior 56.6% on the same candidate pool.
+        # The recency half-life already discounts last season's plays.
+        pbp_seasons = (
+            settings.seasons
+            if season is None
+            else list(range(season - settings.ncaaf_prior_seasons, season + 1))
+        )
+        pbp = load_cfb_pbp(pbp_seasons)
         ratings = build_power_ratings(pbp)
         if not ratings:
             logger.warning("Empty CFB ratings — falling back to demo priors")
@@ -160,7 +170,7 @@ def run_ncaaf_pipeline(
             total_keys=total_keys or None,
         )
         edges = discover_edges(ev, sim)
-        filtered = attach_filters(edges, splits)
+        filtered = attach_filters(edges, splits, sport="ncaaf")
         sims_by_event[str(ev.get("event_id"))] = sim
         kickoff = (
             ev.get("commence_time").isoformat()

@@ -818,6 +818,7 @@ def build_site(
     )
     stage_records_thead = (
         "<thead><tr><th>Stage</th><th>Record</th><th>Win %</th>"
+        "<th>Spread</th><th>Total</th><th>ML</th>"
         + _stage_th("Ungraded", BOARD_STAT_TIPS["stage_ungraded"])
         + "</tr></thead>"
     )
@@ -2901,34 +2902,43 @@ def _render_hybrid_leans_section(
     )
 
 
+def _stage_market_record_cell(b: dict, *keys: str) -> str:
+    """'W-L · pct%' for one market of a stage record (moneyline may be keyed either way)."""
+    by_market = b.get("by_market") or {}
+    mb = next((by_market[k] for k in keys if k in by_market), None)
+    if not mb or (mb.get("wins", 0) + mb.get("losses", 0)) == 0:
+        return "<td>—</td>"
+    pct = f"{mb['win_pct'] * 100:.0f}%" if mb.get("win_pct") is not None else "—"
+    return f"<td>{_esc(mb.get('record'))} <span class='muted'>· {pct}</span></td>"
+
+
 def _render_stage_record_rows(stage_records: dict) -> str:
     if not stage_records:
-        return "<tr><td colspan='4'>Stage records appear after games settle.</td></tr>"
+        return "<tr><td colspan='7'>Stage records appear after games settle.</td></tr>"
     order = ["hybrid", "model", "sharp", "money", "sharp_edge", "rlm", "public"]
     rows = []
+
+    def _row(stage: str, b: dict) -> str:
+        wp = f"{b['win_pct']*100:.0f}%" if b.get("win_pct") is not None else "—"
+        return (
+            f"<tr><td>{_stage_record_label(stage)}</td>"
+            f"<td>{_esc(b.get('record'))}</td>"
+            f"<td>{wp}</td>"
+            f"{_stage_market_record_cell(b, 'spread', 'spreads')}"
+            f"{_stage_market_record_cell(b, 'total', 'totals')}"
+            f"{_stage_market_record_cell(b, 'h2h', 'moneyline')}"
+            f"<td>{b.get('pending', 0)}</td></tr>"
+        )
+
     for stage in order:
         b = stage_records.get(stage)
-        if not b:
-            continue
-        wp = f"{b['win_pct']*100:.0f}%" if b.get("win_pct") is not None else "—"
-        rows.append(
-            f"<tr><td>{_stage_record_label(stage)}</td>"
-            f"<td>{_esc(b.get('record'))}</td>"
-            f"<td>{wp}</td>"
-            f"<td>{b.get('pending', 0)}</td></tr>"
-        )
+        if b:
+            rows.append(_row(stage, b))
     # any extra stages
     for stage, b in stage_records.items():
-        if stage in order:
-            continue
-        wp = f"{b['win_pct']*100:.0f}%" if b.get("win_pct") is not None else "—"
-        rows.append(
-            f"<tr><td>{_stage_record_label(stage)}</td>"
-            f"<td>{_esc(b.get('record'))}</td>"
-            f"<td>{wp}</td>"
-            f"<td>{b.get('pending', 0)}</td></tr>"
-        )
-    return "\n".join(rows) if rows else "<tr><td colspan='4'>No stage records.</td></tr>"
+        if stage not in order:
+            rows.append(_row(stage, b))
+    return "\n".join(rows) if rows else "<tr><td colspan='7'>No stage records.</td></tr>"
 
 
 # Shared stylesheet for the board and the landing page. Plain CSS (single braces):

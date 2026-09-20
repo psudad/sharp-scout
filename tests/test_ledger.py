@@ -75,6 +75,45 @@ def test_settle_total_stage_card(tmp_path: Path):
     assert card["results"]["model"] == "loss"
 
 
+def test_settle_stage_card_when_score_feed_reverses_home_away(tmp_path: Path):
+    path = tmp_path / "ncaaf_ledger.json"
+    ledger = empty_ledger()
+    ledger["stage_cards"] = [
+        {
+            "event_id": "e-uva-wvu",
+            "away_team": "UVA",
+            "home_team": "WVU",
+            "market": "spread",
+            "kickoff": "2026-09-19T23:30:00+00:00",
+            "status": "pending",
+            "picks": {
+                "model": {
+                    "available": True,
+                    "side": "away",
+                    "line": 3.5,
+                }
+            },
+            "results": {},
+        }
+    ]
+    save_ledger(ledger, path)
+    settle_from_scores(
+        [
+            {
+                "away_team": "WVU",
+                "home_team": "UVA",
+                "away_score": 38,
+                "home_score": 27,
+            }
+        ],
+        path=path,
+    )
+    card = load_ledger(path)["stage_cards"][0]
+    assert card["status"] == "settled"
+    assert card["home_score"] == 38
+    assert card["away_score"] == 27
+
+
 def test_regrade_settled_total_stage_card_with_null_results(tmp_path: Path):
     path = tmp_path / "ncaaf_ledger.json"
     ledger = empty_ledger()

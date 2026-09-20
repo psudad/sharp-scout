@@ -423,19 +423,35 @@ def settle_from_scores(
     ledger = load_ledger(path)
     sport = "ncaaf" if path and "ncaaf" in path.name else "nfl"
     index: dict[str, dict[str, Any]] = {}
-    for g in scores:
-        away = _norm_team(g.get("away_team"), sport=sport)
-        home = _norm_team(g.get("home_team"), sport=sport)
-        row = {**g, "away_team": away, "home_team": home}
-        # Prefer season-aware keys when present so 2025 BUF@HOU cannot grade 2026 Week 1.
-        season = g.get("season")
-        week = g.get("week")
+
+    def _index_score_row(row: dict[str, Any], away: str, home: str) -> None:
+        season = row.get("season")
+        week = row.get("week")
         base = f"{away}@{home}"
         index[base] = row
         if season is not None:
             index[f"{season}:{base}"] = row
             if week is not None:
                 index[f"{season}:{week}:{base}"] = row
+        rev = {
+            **row,
+            "away_team": home,
+            "home_team": away,
+            "away_score": row.get("home_score"),
+            "home_score": row.get("away_score"),
+        }
+        rev_base = f"{home}@{away}"
+        index[rev_base] = rev
+        if season is not None:
+            index[f"{season}:{rev_base}"] = rev
+            if week is not None:
+                index[f"{season}:{week}:{rev_base}"] = rev
+
+    for g in scores:
+        away = _norm_team(g.get("away_team"), sport=sport)
+        home = _norm_team(g.get("home_team"), sport=sport)
+        row = {**g, "away_team": away, "home_team": home}
+        _index_score_row(row, away, home)
         if g.get("event_id"):
             index[str(g["event_id"])] = row
         if g.get("game_id"):
@@ -533,6 +549,7 @@ def settle_from_scores(
 
     # Grade stage cards (ATS / ML / total by stage side)
     stage_settled = 0
+    stage_voided = 0
     for card in ledger.get("stage_cards") or []:
         if not _stage_card_needs_grading(card):
             continue
@@ -548,6 +565,19 @@ def settle_from_scores(
         card["status"] = "settled"
         card["settled_at"] = _now()
         stage_settled += 1
+
+    # Orphan stage cards: kickoff passed but no final score (bad event pairing, etc.)
+    for card in ledger.get("stage_cards") or []:
+        if card.get("status") not in (None, "pending"):
+            continue
+        if not _kickoff_eligible(card):
+            continue
+        g = _lookup(card)
+        if g and g.get("home_score") is not None and g.get("away_score") is not None:
+            continue
+        card["status"] = "void"
+        card["settled_at"] = _now()
+        stage_voided += 1
 
     # Fill Closing Line Value for plays whose closing line is now available.
     try:
@@ -572,6 +602,8 @@ def settle_from_scores(
             rec["outcome"] = outcome
 
     save_ledger(ledger, path)
+    if stage_voided:
+        logger.info("Voided %d stage cards with no matching final score", stage_voided)
     logger.info("Settled %d plays, %d stage cards", settled, stage_settled)
     return ledger
 
@@ -713,7 +745,7 @@ def load_scores_from_cfb_schedules(seasons: list[int] | None = None) -> list[dic
 
     try:
         espn_season = max(seasons) if seasons else datetime.now(timezone.utc).year
-        for row in fetch_espn_cfb_scores(season=espn_season):
+        for row in fetch_espn_cfb_scores(season=espn_season, weeks=list(range(1, 6))):
             by_key[f"{row['away_team']}@{row['home_team']}"] = row
     except Exception as exc:  # noqa: BLE001
         logger.warning("ESPN CFB score fallback failed: %s", exc)

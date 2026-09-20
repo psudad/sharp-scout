@@ -140,7 +140,7 @@ def fetch_espn_cfb_scores(
             for row in _fetch_scoreboard({"dates": d, "limit": 400}):
                 by_key[f"{row['away_team']}@{row['home_team']}"] = row
     else:
-        week_list = weeks if weeks is not None else list(range(1, 4))
+        week_list = weeks if weeks is not None else list(range(1, 6))
         for week in week_list:
             for row in _fetch_scoreboard(
                 {"year": season, "seasontype": 2, "week": week, "limit": 400}

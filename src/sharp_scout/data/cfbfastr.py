@@ -38,11 +38,13 @@ def load_cfb_pbp(seasons: list[int] | None = None) -> pd.DataFrame:
     cache = _ensure_cache()
     frames: list[pd.DataFrame] = []
 
+    from sharp_scout.data.nflfastr import _current_season_cache_stale
+
     for season in seasons:
         path = cache / f"cfb_pbp_{season}.parquet"
-        if not path.exists():
+        if not path.exists() or _current_season_cache_stale(path, season):
             logger.info("Downloading CFB PBP %s from sportsdataverse", season)
-            if not _download(PBP_URL.format(season=season), path):
+            if not _download(PBP_URL.format(season=season), path) and not path.exists():
                 continue
         try:
             logger.info("Loading CFB PBP %s", season)

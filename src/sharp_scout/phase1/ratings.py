@@ -31,19 +31,50 @@ class TeamPower:
     power: float  # overall: off - league_def_ref + def edge
 
 
+OFFSEASON_GAP_WEEKS = 4.0  # how "stale" last season's finale is when this season kicks off
+
+
 def _recency_weights(pbp: pd.DataFrame, half_life_weeks: float) -> np.ndarray:
+    """Exponential recency in *football weeks played*, not calendar weeks.
+
+    Calendar decay erased prior seasons: with a 6-week half-life, last January's
+    games are ~35 calendar weeks old at Week 2 (weight 0.02), so early-season ratings
+    were fit on ~2 games per team and ridge-shrunk to nothing (NFL power sd 0.018,
+    every game modeled as home-field only). Counting only weeks with games, plus a
+    small offseason gap, keeps last season as a real prior that fades as the current
+    season accrues.
+    """
+    if "week" in pbp.columns and "season" in pbp.columns:
+        season = pd.to_numeric(pbp["season"], errors="coerce")
+        week = pd.to_numeric(pbp["week"], errors="coerce")
+        ok = season.notna() & week.notna()
+        if ok.any():
+            season_max = int(season[ok].max())
+            last_week = week[ok].groupby(season[ok]).max()  # final week seen per season
+            cur_week = float(last_week.get(season_max, week[ok].max()))
+            weeks_ago = np.zeros(len(pbp))
+            # Walk back season by season: weeks left in that season + full seasons in
+            # between + one offseason gap per season boundary + weeks into this season.
+            for s_val, s_last in last_week.items():
+                mask = (season == s_val).to_numpy()
+                if s_val == season_max:
+                    weeks_ago[mask] = (cur_week - week[mask]).to_numpy()
+                    continue
+                gap_seasons = [
+                    float(last_week[s]) for s in last_week.index if s_val < s < season_max
+                ]
+                between = sum(gap_seasons) + OFFSEASON_GAP_WEEKS * (season_max - s_val)
+                weeks_ago[mask] = (
+                    (float(s_last) - week[mask]).to_numpy() + between + cur_week
+                )
+            weeks_ago = np.maximum(np.nan_to_num(weeks_ago, nan=0.0), 0)
+            return np.power(0.5, weeks_ago / max(half_life_weeks, 0.1))
     if "game_date" in pbp.columns:
         dates = pd.to_datetime(pbp["game_date"], errors="coerce")
         max_date = dates.max()
         weeks_ago = (max_date - dates).dt.days.fillna(0).to_numpy() / 7.0
-    elif "week" in pbp.columns and "season" in pbp.columns:
-        # Approximate chronology
-        season_max = pbp["season"].max()
-        weeks_ago = ((season_max - pbp["season"]) * 18 + (pbp["week"].max() - pbp["week"])).to_numpy()
-        weeks_ago = np.maximum(weeks_ago, 0)
-    else:
-        return np.ones(len(pbp))
-    return np.power(0.5, weeks_ago / max(half_life_weeks, 0.1))
+        return np.power(0.5, weeks_ago / max(half_life_weeks, 0.1))
+    return np.ones(len(pbp))
 
 
 def _ridge_team_effects(

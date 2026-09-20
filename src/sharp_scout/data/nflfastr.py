@@ -35,21 +35,44 @@ def _ensure_cache() -> Path:
 
 
 def _download(url: str, dest: Path) -> bool:
+    """Stream to a temp file and rename, so a failed refresh keeps the old cache."""
+    tmp = dest.with_suffix(dest.suffix + ".part")
     try:
         with httpx.Client(timeout=120.0, follow_redirects=True) as client:
             with client.stream("GET", url) as resp:
                 if resp.status_code >= 400:
                     logger.warning("Download failed %s → %s", url, resp.status_code)
                     return False
-                with dest.open("wb") as f:
+                with tmp.open("wb") as f:
                     for chunk in resp.iter_bytes():
                         f.write(chunk)
+        tmp.replace(dest)
         return True
     except Exception as exc:  # noqa: BLE001
         logger.warning("Download error %s: %s", url, exc)
-        if dest.exists():
-            dest.unlink(missing_ok=True)
+        tmp.unlink(missing_ok=True)
         return False
+
+
+CURRENT_SEASON_CACHE_MAX_AGE_HOURS = 12.0
+
+
+def _current_season_cache_stale(path: Path, season: int) -> bool:
+    """In-season PBP grows weekly; a cached current-season file older than ~12h is stale.
+
+    Prior seasons are final and never re-downloaded. (A stale current-season cache
+    left local NFL ratings on 118 plays — one game — for two weeks.)
+    """
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    if season < now.year - (1 if now.month < 3 else 0):
+        return False
+    try:
+        age_h = (now.timestamp() - path.stat().st_mtime) / 3600.0
+    except OSError:
+        return True
+    return age_h > CURRENT_SEASON_CACHE_MAX_AGE_HOURS
 
 
 def load_pbp(seasons: list[int] | None = None) -> pd.DataFrame:
@@ -61,10 +84,10 @@ def load_pbp(seasons: list[int] | None = None) -> pd.DataFrame:
 
     for season in seasons:
         path = cache / f"pbp_{season}.parquet"
-        if not path.exists():
+        if not path.exists() or _current_season_cache_stale(path, season):
             logger.info("Downloading PBP %s from nflverse", season)
             ok = _download(PBP_URL.format(season=season), path)
-            if not ok:
+            if not ok and not path.exists():
                 continue
         try:
             logger.info("Loading PBP %s", season)

@@ -168,8 +168,9 @@ def run_ncaaf_pipeline(
             means["mu_away"],
             spread_keys=spread_keys or None,
             total_keys=total_keys or None,
+            sport="ncaaf",
         )
-        edges = discover_edges(ev, sim)
+        edges = discover_edges(ev, sim, sport="ncaaf")
         filtered = attach_filters(edges, splits, sport="ncaaf")
         sims_by_event[str(ev.get("event_id"))] = sim
         kickoff = (

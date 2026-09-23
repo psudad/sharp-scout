@@ -201,6 +201,16 @@ def validate_edge(
         if not ok_hyg:
             notes.append(hyg_note or "NCAAF hygiene rejection")
             return FilterResult(passed=False, notes=notes, flags=flags, tier="rejected")
+    elif (
+        settings.nfl_sharp_veto
+        and edge.market in ("spreads", "totals")
+        and edge.p_mkt is not None
+        and edge.p_mkt < SHARP_VETO_P_MKT
+    ):
+        # p_mkt is now the sharp no-vig probability *at the offered line*, so this is
+        # "don't fight Pinnacle on the number we actually bet".
+        notes.append(f"sharp veto: {edge.sharp_book or 'sharp book'} no-vig {edge.p_mkt:.1%} on our side (<50%)")
+        return FilterResult(passed=False, notes=notes, flags=flags, tier="rejected")
 
     ok_h2h, h2h_note = h2h_outlier_check(edge)
     flags["h2h_sane"] = ok_h2h
@@ -288,6 +298,9 @@ def attach_filters(
                 "model_total": round(e.model_total, 2),
                 "sharp_book": e.sharp_book,
                 "sharp_price": e.sharp_price,
+                "p_model": e.p_model,
+                "p_fair": e.p_fair,
+                "line_gain": e.line_gain,
                 "filter_passed": fr.passed,
                 "tier": fr.tier,
                 "flags": fr.flags,

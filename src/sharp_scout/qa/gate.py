@@ -388,7 +388,10 @@ def review_play(
         if model_spread is not None and line is not None and side in ("home", "away"):
             home_line = float(line) if side == "home" else -float(line)
             line_gap = abs(float(model_spread) - home_line)
-            if line_gap >= settings.spread_model_line_gap:
+            # Sport-aware: CFB model residual vs the close is ~22 pts, and p_true is
+            # already market-anchored, so only truly wild gaps get quarantined there.
+            gap_limit = max(settings.spread_model_line_gap, get_sport(sport).spread_model_line_gap)
+            if line_gap >= gap_limit:
                 issues.append(
                     QAIssue(
                         "spread_model_conflict",

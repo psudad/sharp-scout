@@ -35,29 +35,60 @@ class GameSimResult:
     away_scores: np.ndarray | None = field(default=None, repr=False)
 
 
+def score_noise_params(
+    mu_home: float,
+    mu_away: float,
+    margin_sd: float,
+    total_sd: float,
+) -> tuple[float, float, float]:
+    """Per-team score sd / correlation that reproduce the target margin and total sd.
+
+    var(margin) = s_h² + s_a² − 2ρ s_h s_a ;  var(total) = s_h² + s_a² + 2ρ s_h s_a
+    → s_h² + s_a² = (var_m + var_t)/2 ;  ρ s_h s_a = (var_t − var_m)/4.
+    Team sds split in proportion to their means (bigger offenses are noisier).
+    """
+    var_m, var_t = margin_sd**2, total_sd**2
+    sum_sq = (var_m + var_t) / 2.0
+    w = np.array([max(mu_home, 1.0), max(mu_away, 1.0)], dtype=float)
+    w = w / np.sqrt((w**2).sum())
+    s_h, s_a = float(np.sqrt(sum_sq) * w[0]), float(np.sqrt(sum_sq) * w[1])
+    rho = float(np.clip((var_t - var_m) / (4.0 * s_h * s_a), -0.6, 0.6))
+    return s_h, s_a, rho
+
+
 def _sample_scores(
     mu_home: float,
     mu_away: float,
     n: int,
-    rho: float = 0.15,
+    rho: float | None = None,
     rng: np.random.Generator | None = None,
+    *,
+    margin_sd: float | None = None,
+    total_sd: float | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Correlated non-negative scores via latent bivariate normal → skew-ish Poisson-like.
+    """Correlated non-negative scores via latent bivariate normal → gamma quantiles.
 
-    Uses a bivariate Gaussian on a transformed scale then maps through a softplus-like
-    gamma quantile to keep mass on football-like integers.
+    Per-team noise is calibrated to the sport's realized margin/total sd (see
+    ``score_noise_params``). The old fixed CV=0.28 implied a margin sd of ~8 for NFL and
+    ~10 for CFB versus ~13.5 / ~17 in reality, so every cover probability was
+    overconfident — a 4-point model edge showed as 69% instead of ~61%.
     """
     rng = rng or np.random.default_rng()
-    # Latent correlation
+    if margin_sd is not None and total_sd is not None:
+        s_h, s_a, rho_cal = score_noise_params(mu_home, mu_away, margin_sd, total_sd)
+        rho = rho_cal if rho is None else rho
+    else:
+        cv = 0.28
+        s_h, s_a = cv * mu_home, cv * mu_away
+        rho = 0.15 if rho is None else rho
     mean = np.array([0.0, 0.0])
     cov = np.array([[1.0, rho], [rho, 1.0]])
     z = rng.multivariate_normal(mean, cov, size=n)
-    # Map standard normal → gamma with mean mu, CV ~ 0.28 (NFL scoring noise)
-    cv = 0.28
-    shape_h = 1.0 / (cv**2)
-    scale_h = mu_home / shape_h
-    shape_a = 1.0 / (cv**2)
-    scale_a = mu_away / shape_a
+    # Gamma with mean mu and sd s: shape = (mu/s)², scale = s²/mu
+    shape_h = (mu_home / s_h) ** 2
+    scale_h = s_h**2 / mu_home
+    shape_a = (mu_away / s_a) ** 2
+    scale_a = s_a**2 / mu_away
     u_h = stats.norm.cdf(z[:, 0])
     u_a = stats.norm.cdf(z[:, 1])
     # Clip to avoid 0/1
@@ -80,11 +111,20 @@ def simulate_game(
     spread_keys: list[float] | None = None,
     total_keys: list[float] | None = None,
     seed: int | None = 42,
+    sport: str | None = None,
 ) -> GameSimResult:
     settings = get_settings()
     n = n_sims or settings.monte_carlo_sims
     rng = np.random.default_rng(seed)
-    home_s, away_s = _sample_scores(mu_home, mu_away, n, rng=rng)
+    if sport:
+        from sharp_scout.sports import get_sport
+
+        cfg = get_sport(sport)
+        home_s, away_s = _sample_scores(
+            mu_home, mu_away, n, rng=rng, margin_sd=cfg.margin_sd, total_sd=cfg.total_sd
+        )
+    else:
+        home_s, away_s = _sample_scores(mu_home, mu_away, n, rng=rng)
 
     margin = home_s - away_s  # >0 home wins
     total = home_s + away_s

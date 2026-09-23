@@ -352,13 +352,15 @@ def mock_ncaaf_odds_events() -> list[dict[str, Any]]:
                     "title": "DraftKings",
                     "is_sharp": False,
                     "markets": {
+                        # Soft book is a point stale vs Pinnacle on both spread and total;
+                        # under market anchoring that line gain is what produces the demo edge.
                         "spreads": [
-                            {"side": "away", "name": "Alabama Crimson Tide", "price": -105, "point": -2.5},
-                            {"side": "home", "name": "Georgia Bulldogs", "price": -115, "point": 2.5},
+                            {"side": "away", "name": "Alabama Crimson Tide", "price": -105, "point": -1.5},
+                            {"side": "home", "name": "Georgia Bulldogs", "price": -115, "point": 1.5},
                         ],
                         "totals": [
-                            {"side": "over", "name": "Over", "price": -108, "point": 51.5},
-                            {"side": "under", "name": "Under", "price": -112, "point": 51.5},
+                            {"side": "over", "name": "Over", "price": -108, "point": 50.5},
+                            {"side": "under", "name": "Under", "price": -112, "point": 50.5},
                         ],
                         "h2h": [
                             {"side": "away", "name": "Alabama Crimson Tide", "price": -130, "point": None},

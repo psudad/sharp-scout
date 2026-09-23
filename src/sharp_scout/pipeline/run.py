@@ -50,6 +50,7 @@ def run_pipeline(
     init_db()
 
     # ── Phase 1 ──────────────────────────────────────────────
+    qb_adjusted_teams: list[str] = []
     if skip_pbp:
         from sharp_scout.phase1.ratings import _neutral_ratings
 
@@ -60,7 +61,30 @@ def run_pipeline(
         ratings["KC"] = TeamPower("KC", 0.08, 0.04, 0.02, 0.01, 0.4, 0.2, 0.12, 0.0, 0.12)
         ratings["BUF"] = TeamPower("BUF", 0.06, 0.05, 0.02, 0.02, 0.3, 0.25, 0.10, 0.02, 0.11)
     else:
-        ratings = build_power_ratings()
+        from sharp_scout.data.nflfastr import load_pbp
+
+        pbp = load_pbp(settings.seasons)
+        ratings = build_power_ratings(pbp)
+        # QB injuries: INACTIVE_PLAYERS="Caleb Williams,Jaxson Dart" → teams whose
+        # current starter is listed get the starter→backup EPA delta applied.
+        if settings.inactive_list:
+            from sharp_scout.phase1.ratings import (
+                apply_qb_adjustment,
+                backups_from_inactives,
+                current_qb_starters,
+            )
+
+            starters = current_qb_starters(pbp)
+            backups = backups_from_inactives(starters, settings.inactive_list)
+            if backups:
+                ratings = apply_qb_adjustment(ratings, backups)
+                qb_adjusted_teams = sorted(backups)
+                logger.info("QB adjustments applied: %s", qb_adjusted_teams)
+            else:
+                logger.info(
+                    "INACTIVE_PLAYERS set but no current starting QB matched: %s",
+                    settings.inactive_list,
+                )
 
     rating_rows = ratings_as_of_now(ratings)
 
@@ -159,9 +183,10 @@ def run_pipeline(
             means["mu_away"],
             spread_keys=spread_keys or None,
             total_keys=total_keys or None,
+            sport="nfl",
         )
-        edges = discover_edges(ev, sim, calibrate=calibrate)
-        filtered = attach_filters(edges, splits)
+        edges = discover_edges(ev, sim, calibrate=calibrate, sport="nfl")
+        filtered = attach_filters(edges, splits, sport="nfl")
         sims_by_event[str(ev.get("event_id"))] = sim
 
         game_results.append(
@@ -249,6 +274,7 @@ def run_pipeline(
         "splits_date": splits_date,
         "n_splits_games": len(splits),
         "n_games": len(game_results),
+        "qb_adjusted_teams": qb_adjusted_teams,
         "n_candidates": len(all_signals),
         "n_validated": len(validated),
         "ratings": [

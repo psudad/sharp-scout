@@ -113,22 +113,36 @@ def _ridge_team_effects(
     return off, de
 
 
+QB_BACKUP_MIN_DROPBACKS = 80
+
+
 def _qb_epa_split(pbp: pd.DataFrame) -> dict[str, tuple[float, float]]:
-    """Per-team starter vs backup dropback EPA (simple volume split)."""
+    """Per-team *current* starter vs backup dropback EPA.
+
+    Starter = modal QB over the team's last 4 games (not the whole window, which
+    would name a prior-era QB and count the current starter as a backup). Backup EPA
+    = the team's non-starter dropbacks; when that sample is thin (< 80 dropbacks) it
+    is replaced by the league-wide non-starter mean so a handful of garbage-time
+    snaps can't make a backup look better than the starter.
+    """
     if "passer_player_name" not in pbp.columns:
         return {}
-    qb = pbp[pbp["is_dropback"] & pbp["passer_player_name"].notna()].copy()
+    qb = pbp[pbp["is_dropback"].astype(bool) & pbp["passer_player_name"].notna()].copy()
     if qb.empty:
         return {}
+    starters = current_qb_starters(qb)
+    is_starter = qb["passer_player_name"] == qb["posteam"].map(starters)
+    league_backup = qb.loc[~is_starter, "epa"]
+    league_backup_epa = float(league_backup.mean()) if len(league_backup) else 0.0
     out: dict[str, tuple[float, float]] = {}
     for team, g in qb.groupby("posteam"):
-        counts = g.groupby("passer_player_name").size().sort_values(ascending=False)
-        if counts.empty:
+        starter = starters.get(str(team))
+        if starter is None:
             continue
-        starter = counts.index[0]
-        starter_epa = float(g.loc[g["passer_player_name"] == starter, "epa"].mean())
+        s = g.loc[g["passer_player_name"] == starter, "epa"]
+        starter_epa = float(s.mean()) if len(s) else 0.0
         backup = g.loc[g["passer_player_name"] != starter, "epa"]
-        backup_epa = float(backup.mean()) if len(backup) else starter_epa
+        backup_epa = float(backup.mean()) if len(backup) >= QB_BACKUP_MIN_DROPBACKS else league_backup_epa
         out[str(team)] = (starter_epa, backup_epa)
     return out
 
@@ -182,14 +196,56 @@ def build_power_ratings(pbp: pd.DataFrame | None = None) -> dict[str, TeamPower]
     return ratings
 
 
+QB_DELTA_CLIP = (-0.35, 0.15)  # EPA/dropback; a −0.35 swing ≈ −10 pts at NFL scale
+
+
+def qb_short_name(full: str | None) -> str | None:
+    """'Caleb Williams' → 'C.Williams' (nflverse passer_player_name form)."""
+    if not isinstance(full, str) or not full.strip():
+        return None
+    parts = full.replace(".", " ").split()
+    if len(parts) == 1:
+        return parts[0]
+    return f"{parts[0][0]}.{parts[-1]}"
+
+
+def current_qb_starters(pbp: pd.DataFrame, last_n_games: int = 4) -> dict[str, str]:
+    """QB with the most dropbacks over each team's last N games (short-name form)."""
+    if pbp is None or pbp.empty or "passer_player_name" not in pbp.columns:
+        return {}
+    qb = pbp[pbp["is_dropback"].astype(bool) & pbp["passer_player_name"].notna()]
+    sort_col = "game_date" if "game_date" in qb.columns else "week"
+    out: dict[str, str] = {}
+    for team, g in qb.groupby("posteam"):
+        recent = g.sort_values(sort_col)["game_id"].drop_duplicates().tail(last_n_games)
+        counts = g[g["game_id"].isin(recent)].groupby("passer_player_name").size()
+        if not counts.empty:
+            out[str(team)] = str(counts.idxmax())
+    return out
+
+
+def backups_from_inactives(
+    starters: dict[str, str],
+    inactive_players: list[str],
+) -> dict[str, bool]:
+    """Teams whose current starting QB appears on the inactive list."""
+    inactive = {qb_short_name(n).lower() for n in inactive_players if qb_short_name(n)}
+    return {team: True for team, qb in starters.items() if qb.lower() in inactive}
+
+
 def apply_qb_adjustment(ratings: dict[str, TeamPower], backups: dict[str, bool]) -> dict[str, TeamPower]:
-    """If team is on backup QB, shift off_epa by starter-backup delta."""
+    """If team is on backup QB, shift off_epa by the starter→backup EPA/dropback delta.
+
+    Backtest 2024–26 (215 QB-change team-games): unadjusted model 46.2% ATS on those
+    games → 52.2% adjusted; overall 48.7% → 51.5%.
+    """
     out = dict(ratings)
     for team, is_backup in backups.items():
         if not is_backup or team not in out:
             continue
         r = out[team]
-        delta = r.qb_backup_epa - r.qb_starter_epa
+        delta = float(np.clip(r.qb_backup_epa - r.qb_starter_epa, *QB_DELTA_CLIP))
+        logger.info("QB adjustment %s: backup delta %+.3f EPA/dropback", team, delta)
         out[team] = TeamPower(
             team=r.team,
             off_epa=r.off_epa + delta,

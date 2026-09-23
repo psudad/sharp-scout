@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     ncaaf_prior_seasons: int = 1  # prior seasons of PBP blended into CFB power ratings
     ncaaf_ban_ml_dogs: bool = True  # NCAAF moneyline underdogs went 4–12 / 8–12 in every rating variant
     ncaaf_sharp_veto: bool = True  # reject plays where the sharp book's no-vig side is against us
+    nfl_sharp_veto: bool = True  # same rule for NFL (model has no edge vs the close; 48.7% over 546 games)
     # Steam detection (pre-kick line velocity across sharp books)
     steam_window_minutes: int = 90  # look-back window for velocity
     steam_min_points: float = 0.5  # minimum aggregate move to consider

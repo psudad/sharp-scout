@@ -1,0 +1,59 @@
+{
+  "sport": "nfl",
+  "generated_at": "2026-09-24T14:12:54.414519+00:00",
+  "layer1_passed": true,
+  "block_deploy": false,
+  "layer1_issues": [],
+  "approved": 0,
+  "quarantined": 3,
+  "voided": 0,
+  "play_reviews": [
+    {
+      "play_id": "395cf971",
+      "matchup": "ARI@SF",
+      "market": "h2h",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "ml_model_conflict",
+          "severity": "quarantine",
+          "message": "Model favors SF to win (66.9%) but play is ARI ML (p_true=25.9%)"
+        }
+      ]
+    },
+    {
+      "play_id": "879b7d72",
+      "matchup": "KC@MIA",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 1 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model spread +2.3 vs market home line +12.5 (\u039410.2 pts) \u2014 implausible disagreement"
+        }
+      ]
+    },
+    {
+      "play_id": "a3f899cf",
+      "matchup": "ATL@GB",
+      "market": "spreads",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 1 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    }
+  ]
+}

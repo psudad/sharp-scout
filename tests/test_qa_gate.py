@@ -37,7 +37,7 @@ def _base_signals(**overrides) -> dict:
                 "home_team": "LV",
                 "away_team": "MIA",
                 "p_home_win": 0.527,
-                "commence_time": "2026-09-13T20:25:00+00:00",
+                "commence_time": "2026-10-12T20:25:00+00:00",
             }
         ],
         "plays": [],
@@ -96,7 +96,7 @@ def test_mia_ml_quarantined_for_model_conflict():
         "price": 180.0,
         "p_true": 0.4482,
         "edge": 0.255,
-        "kickoff": "2026-09-13T20:25:00+00:00",
+        "kickoff": "2026-10-12T20:25:00+00:00",
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl", validated_keys=set())
@@ -127,7 +127,7 @@ def test_spread_model_conflict_quarantined():
                 "away_team": "MIA",
                 "p_home_win": 0.65,
                 "model_spread": -4.5,
-                "commence_time": "2026-09-13T20:25:00+00:00",
+                "commence_time": "2026-10-12T20:25:00+00:00",
             }
         ],
         signals=[
@@ -149,7 +149,7 @@ def test_spread_model_conflict_quarantined():
         "p_mkt": 0.486,
         "model_spread": -4.48,
         "edge": 0.364,
-        "kickoff": "2026-09-13T20:25:00+00:00",
+        "kickoff": "2026-10-12T20:25:00+00:00",
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl")
@@ -187,8 +187,10 @@ def test_corroborated_spread_passes():
         "book": "draftkings",
         "price": -110,
         "p_true": 0.58,
+        "p_fair": 0.55,
         "edge": 0.05,
-        "kickoff": "2026-09-13T20:25:00+00:00",
+        "tier": "play",
+        "kickoff": "2026-10-12T20:25:00+00:00",
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl")
@@ -199,11 +201,11 @@ def test_committed_play_locked_inside_t2h_window():
     play = {
         "tier": "play",
         "status": "pending",
-        "kickoff": "2026-09-13T20:25:00+00:00",
+        "kickoff": "2026-10-12T20:25:00+00:00",
     }
-    before = datetime(2026, 9, 13, 17, 0, tzinfo=timezone.utc)
-    at_lock = datetime(2026, 9, 13, 18, 25, tzinfo=timezone.utc)
-    after_kick = datetime(2026, 9, 13, 23, 50, tzinfo=timezone.utc)
+    before = datetime(2026, 10, 12, 17, 0, tzinfo=timezone.utc)
+    at_lock = datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc)
+    after_kick = datetime(2026, 10, 12, 23, 50, tzinfo=timezone.utc)
     assert not play_commitment_locked(play, now=before)
     assert play_commitment_locked(play, now=at_lock)
     assert play_commitment_locked(play, now=after_kick)
@@ -224,10 +226,10 @@ def test_committed_play_not_voided_after_kickoff_when_not_revalidated():
         "price": 180.0,
         "p_true": 0.4482,
         "edge": 0.255,
-        "kickoff": "2026-09-13T20:25:00+00:00",
+        "kickoff": "2026-10-12T20:25:00+00:00",
         "status": "pending",
     }
-    during_game = datetime(2026, 9, 13, 23, 50, tzinfo=timezone.utc)
+    during_game = datetime(2026, 10, 12, 23, 50, tzinfo=timezone.utc)
     review = review_play(
         play,
         signals,
@@ -255,10 +257,10 @@ def test_non_play_tier_still_voided_inside_t2h():
         "price": 180.0,
         "p_true": 0.4482,
         "edge": 0.255,
-        "kickoff": "2026-09-13T20:25:00+00:00",
+        "kickoff": "2026-10-12T20:25:00+00:00",
         "status": "pending",
     }
-    during_game = datetime(2026, 9, 13, 23, 50, tzinfo=timezone.utc)
+    during_game = datetime(2026, 10, 12, 23, 50, tzinfo=timezone.utc)
     review = review_play(
         play,
         signals,

@@ -472,6 +472,19 @@ def review_play(
                 )
             )
 
+    if settings.product_gate_enabled:
+        from sharp_scout.qa.product_gate import evaluate_product_play
+
+        pg = evaluate_product_play(play, signals=signals, sport=sport)
+        if not pg.ok:
+            issues.append(
+                QAIssue(
+                    "product_gate",
+                    "quarantine",
+                    f"Fails product gate (LOCKED card): {pg.note()}",
+                )
+            )
+
     # Determine action: void > quarantine > approve
     severities = {i.severity for i in issues}
     if "void" in severities:

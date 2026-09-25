@@ -97,6 +97,21 @@ class Settings(BaseSettings):
     ncaaf_ban_ml_dogs: bool = True  # NCAAF moneyline underdogs went 4–12 / 8–12 in every rating variant
     ncaaf_sharp_veto: bool = True  # reject plays where the sharp book's no-vig side is against us
     nfl_sharp_veto: bool = True  # same rule for NFL (model has no edge vs the close; 48.7% over 546 games)
+
+    # Product gate — only certified plays reach the ledger / LOCKED card (see qa/product_gate.py).
+    product_gate_enabled: bool = True
+    product_ev_min: float = 0.04  # 4% anchored EV floor (live card was ~50% at 2%)
+    product_p_fair_min: float = 0.50  # sharp no-vig must favor our side at the bet line
+    product_markets: str = "spreads,totals,h2h"
+    product_min_books: int = 2  # multi-book corroboration on the same side/line
+    # ML (h2h) on the certified card — stricter than spreads/totals (option B).
+    product_ml_require_split_board: bool = True
+    product_ml_require_spread_sharp_align: bool = True  # spread $ vs tickets same side as ML
+    product_ml_require_ml_ticket_gap: bool = True  # ML market handle gap on our side
+    product_ml_ticket_gap: float | None = None  # default: money_ticket_gap
+    product_play_tier_only: bool = True  # leans stay research-only in artifacts
+    product_max_plays_nfl: int = 5
+    product_max_plays_ncaaf: int = 5
     # Steam detection (pre-kick line velocity across sharp books)
     steam_window_minutes: int = 90  # look-back window for velocity
     steam_min_points: float = 0.5  # minimum aggregate move to consider

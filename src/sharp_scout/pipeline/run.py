@@ -305,8 +305,20 @@ def run_pipeline(
             compute_record,
         )
 
-        if week_validated:
-            append_signals(week_validated, season=season, week=week)
+        from sharp_scout.qa.product_gate import select_certified_plays
+
+        certified = select_certified_plays(
+            week_validated, signals=payload, sport="nfl"
+        )
+        payload["certified_plays"] = certified
+        payload["n_certified"] = len(certified)
+        if certified:
+            append_signals(certified, season=season, week=week)
+        elif week_validated:
+            logger.info(
+                "Product gate: 0 of %d display-week validated plays certified for ledger",
+                len(week_validated),
+            )
         if stage_cards:
             append_stage_cards(stage_cards, season=season, week=week)
 

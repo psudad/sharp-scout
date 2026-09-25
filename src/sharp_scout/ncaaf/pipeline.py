@@ -261,8 +261,18 @@ def run_ncaaf_pipeline(
     if update_ledger:
         from sharp_scout.ledger.tracker import append_signals, append_stage_cards, compute_record
 
-        if validated:
-            append_signals(validated, season=season, week=week, path=ledger_path)
+        from sharp_scout.qa.product_gate import select_certified_plays
+
+        certified = select_certified_plays(validated, signals=payload, sport="ncaaf")
+        payload["certified_plays"] = certified
+        payload["n_certified"] = len(certified)
+        if certified:
+            append_signals(certified, season=season, week=week, path=ledger_path)
+        elif validated:
+            logger.info(
+                "Product gate: 0 of %d validated plays certified for ledger",
+                len(validated),
+            )
         if stage_cards:
             append_stage_cards(stage_cards, season=season, week=week, path=ledger_path)
         payload["record"] = compute_record(path=ledger_path)

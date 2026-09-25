@@ -517,7 +517,10 @@ def build_site(
             except json.JSONDecodeError:
                 existing_n = 0
         new_n = int(signals.get("n_games") or len(signals.get("games") or []))
-        if new_n >= existing_n:
+        new_ts = parse_commence(signals.get("generated_at"))
+        existing_ts = parse_commence(existing.get("generated_at")) if existing_n else None
+        fresher = bool(new_ts and existing_ts and new_ts >= existing_ts)
+        if new_n >= existing_n or fresher:
             out_signals.write_text(json.dumps(signals, indent=2, default=str) + "\n")
         (out / "nfl_ratings.json").write_text(
             json.dumps(signals.get("ratings") or [], indent=2, default=str) + "\n"

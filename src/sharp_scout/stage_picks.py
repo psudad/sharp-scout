@@ -433,6 +433,69 @@ def pick_rlm(split_game: dict[str, Any] | None, home: str, away: str, market: st
     return StagePick("rlm", market, None, None, reason=note or "no RLM", available=False)
 
 
+def _model_market_gap_points(
+    market: str,
+    sim: GameSimResult,
+    event: dict[str, Any],
+    split_game: dict[str, Any] | None,
+) -> float | None:
+    """Point gap between model projection and sharp consensus (spread/total line).
+
+    Used for Quant Pick suppression — unrelated to anchor_k probability blending.
+    """
+    if market == "spread":
+        mkt = _consensus_spread_line(event, split_game)
+        if mkt is None:
+            return None
+        return abs(float(sim.model_spread) - float(mkt))
+    if market == "total":
+        line = _consensus_total_line(event)
+        if line is None:
+            return None
+        return abs(float(sim.model_total) - float(line))
+    if market == "h2h":
+        # ML leans inherit spread disagreement when a line exists.
+        return _model_market_gap_points("spread", sim, event, split_game)
+    return None
+
+
+def _suppress_hybrid_model_lean(
+    *,
+    model: StagePick,
+    sharp: StagePick,
+    market: str,
+    sim: GameSimResult,
+    event: dict[str, Any],
+    split_game: dict[str, Any] | None,
+    sport: str,
+) -> StagePick | None:
+    """Return a blank hybrid pick when model fights the sharp line by >= sport gap."""
+    from sharp_scout.sports import get_sport
+
+    if not model.available or model.side is None:
+        return None
+    if not sharp.available or sharp.side is None:
+        return None
+    if model.side == sharp.side:
+        return None
+    gap = _model_market_gap_points(market, sim, event, split_game)
+    if gap is None:
+        return None
+    limit = get_sport(sport).hybrid_model_market_gap
+    if gap < limit:
+        return None
+    return StagePick(
+        "hybrid",
+        market,
+        None,
+        None,
+        reason=(
+            f"model vs sharp gap {gap:.1f} pts (≥{limit:g}) — Quant Pick suppressed"
+        ),
+        available=False,
+    )
+
+
 def pick_hybrid(
     *,
     home: str,
@@ -443,6 +506,10 @@ def pick_hybrid(
     rlm: StagePick,
     validated_signals: list[dict[str, Any]],
     market: str = "spread",
+    sim: GameSimResult | None = None,
+    event: dict[str, Any] | None = None,
+    split_game: dict[str, Any] | None = None,
+    sport: str = "nfl",
 ) -> StagePick:
     """Prefer a validated system play on this game; else model when it disagrees with sharp."""
     odds_market = _MARKET_ODDS_KEY.get(market, "spreads")
@@ -467,6 +534,19 @@ def pick_hybrid(
                 float(best.get("p_true") or 0.55),
                 f"validated {best.get('tier')} EV={best.get('edge', 0):.1%} @ {best.get('book')}",
             )
+
+    if sim is not None and event is not None:
+        suppressed = _suppress_hybrid_model_lean(
+            model=model,
+            sharp=sharp,
+            market=market,
+            sim=sim,
+            event=event,
+            split_game=split_game,
+            sport=sport,
+        )
+        if suppressed is not None:
+            return suppressed
 
     # Soft hybrid: model side when it disagrees with public AND (agrees with money or RLM or sharp)
     if not model.available or model.side is None:
@@ -523,6 +603,10 @@ def build_game_stage_card(
         rlm=rlm,
         validated_signals=validated_signals,
         market=market,
+        sim=sim,
+        event=event,
+        split_game=split,
+        sport=str(event.get("sport") or "nfl"),
     )
     picks = {
         "model": model,

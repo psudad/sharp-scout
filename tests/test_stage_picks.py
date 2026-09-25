@@ -9,9 +9,11 @@ from sharp_scout.data.odds_api import mock_odds_events
 from sharp_scout.phase2.monte_carlo import simulate_game
 from sharp_scout.stage_picks import (
     build_game_stage_card,
+    pick_hybrid,
     pick_model,
     pick_money,
     pick_public,
+    pick_sharp,
     settle_stage_pick,
     summarize_stage_slate,
 )
@@ -137,6 +139,78 @@ def test_model_h2h_aligns_to_heavy_spread_favorite():
     assert pick.side == "home"
     assert pick.team == "MIA"
     assert "spread favorite" in pick.reason
+
+
+def test_hybrid_suppressed_when_model_opposes_sharp_with_large_gap():
+    """LIB@CCU-style: model likes home dog, market has away favored by 2, model -5.5."""
+    sim = SimpleNamespace(
+        model_spread=-5.52,
+        model_total=58.0,
+        p_home_win=0.61,
+        p_away_win=0.39,
+        cover_probs={},
+    )
+    ev = {
+        "home_team": "COASTAL CAROLINA",
+        "away_team": "LIB",
+        "sport": "ncaaf",
+        "bookmakers": {
+            "pinnacle": {
+                "is_sharp": True,
+                "markets": {
+                    "spreads": [
+                        {"side": "home", "point": 2.0, "price": 100},
+                        {"side": "away", "point": -2.0, "price": -120},
+                    ],
+                    "h2h": [
+                        {"side": "home", "price": 114},
+                        {"side": "away", "price": -129},
+                    ],
+                },
+            }
+        },
+    }
+    model = pick_model(sim, "COASTAL CAROLINA", "LIB", market="spread", event=ev)
+    sharp = pick_sharp(ev, "COASTAL CAROLINA", "LIB", market="spread")
+    assert model.side == "home"
+    assert sharp.side == "away"
+    hybrid = pick_hybrid(
+        home="COASTAL CAROLINA",
+        away="LIB",
+        model=model,
+        sharp=sharp,
+        money=SimpleNamespace(available=False, side=None),
+        rlm=SimpleNamespace(available=False, side=None),
+        validated_signals=[],
+        market="spread",
+        sim=sim,
+        event=ev,
+        sport="ncaaf",
+    )
+    assert not hybrid.available
+    assert "Quant Pick suppressed" in hybrid.reason
+    assert "7." in hybrid.reason or "7" in hybrid.reason
+
+
+def test_hybrid_keeps_small_model_market_gap():
+    sim = SimpleNamespace(model_spread=-3.0, model_total=45.0, p_home_win=0.55, p_away_win=0.45, cover_probs={})
+    ev = _event_with_spread(home_point=-2.5, away_point=2.5)
+    model = pick_model(sim, "RUT", "UMASS", market="spread", event=ev)
+    sharp = pick_sharp(ev, "RUT", "UMASS", market="spread")
+    hybrid = pick_hybrid(
+        home="RUT",
+        away="UMASS",
+        model=model,
+        sharp=sharp,
+        money=SimpleNamespace(available=False, side=None),
+        rlm=SimpleNamespace(available=False, side=None),
+        validated_signals=[],
+        market="spread",
+        sim=sim,
+        event=ev,
+        sport="nfl",
+    )
+    assert hybrid.available and hybrid.side == model.side
 
 
 def test_total_market_stage_card():

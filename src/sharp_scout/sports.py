@@ -34,6 +34,9 @@ class SportConfig:
     # QA: |model_spread - market home line| above this quarantines the play. With
     # anchoring, disagreement is already down-weighted, so CFB gets a wide band.
     spread_model_line_gap: float = 4.0
+    # Quant Pick (soft hybrid): hide the lean when the model opposes the sharp line
+    # and the spread/total disagreement is at least this many points (not anchor_k).
+    hybrid_model_market_gap: float = 4.0
 
 
 NFL = SportConfig(
@@ -54,6 +57,7 @@ NFL = SportConfig(
     anchor_k_total=0.3,
     anchor_k_ml=0.3,
     spread_model_line_gap=4.0,
+    hybrid_model_market_gap=4.0,
 )
 
 NCAAF = SportConfig(
@@ -74,6 +78,7 @@ NCAAF = SportConfig(
     anchor_k_total=0.6,
     anchor_k_ml=0.2,
     spread_model_line_gap=12.0,
+    hybrid_model_market_gap=7.0,
 )
 
 SPORTS = {"nfl": NFL, "ncaaf": NCAAF}

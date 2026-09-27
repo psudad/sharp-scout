@@ -171,6 +171,7 @@ def _timing_class_text(htk: float | None) -> tuple[str, str]:
 
 
 _LOCKED_PLAY_STATUSES = frozenset({"pending", "win", "loss", "push"})
+_QA_HELD_STATUSES = frozenset({"quarantined", "watchlist"})
 
 
 def _filter_locked_plays(plays: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -178,9 +179,58 @@ def _filter_locked_plays(plays: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [p for p in plays if (p.get("status") or "pending") in _LOCKED_PLAY_STATUSES]
 
 
+def _filter_qa_held_plays(plays: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """QA-held rows we still track on the board (quarantine + watchlist)."""
+    return [p for p in plays if (p.get("status") or "") in _QA_HELD_STATUSES]
+
+
+def _qa_held_week_summary(plays: list[dict[str, Any]]) -> dict[str, Any]:
+    """Win/loss for QA-held plays using shadow grades (full recommended units)."""
+    wins = losses = pushes = 0
+    pnl = 0.0
+    open_n = 0
+    for p in plays:
+        st = p.get("shadow_status")
+        if st in ("win", "loss", "push"):
+            if st == "win":
+                wins += 1
+            elif st == "loss":
+                losses += 1
+            else:
+                pushes += 1
+            if p.get("shadow_pnl_units") is not None:
+                pnl += float(p["shadow_pnl_units"])
+        else:
+            open_n += 1
+    decided = wins + losses
+    return {
+        "total": len(plays),
+        "open": open_n,
+        "wins": wins,
+        "losses": losses,
+        "pushes": pushes,
+        "record": f"{wins}-{losses}" + (f"-{pushes}" if pushes else ""),
+        "win_pct": (wins / decided) if decided else None,
+        "pnl": round(pnl, 2),
+        "all_graded": open_n == 0 and decided > 0,
+    }
+
+
 def _locked_sharp_play_keys(plays: list[dict[str, Any]]) -> set[tuple[str, str, str]]:
     """Event/market/side keys for all locked plays (open or already graded)."""
     return _ledger_play_keys(_filter_locked_plays(plays))
+
+
+def _locked_play_status_by_key(plays: list[dict[str, Any]]) -> dict[tuple[str, str, str], str]:
+    """Grading status for locked rows (pending / win / loss / push)."""
+    out: dict[tuple[str, str, str], str] = {}
+    for play in _filter_locked_plays(plays):
+        eid = str(play.get("event_id") or "")
+        market = _normalize_market_key(play.get("market"))
+        side = str(play.get("side") or "").lower()
+        if eid and side:
+            out[(eid, market, side)] = play.get("status") or "pending"
+    return out
 
 
 def _locked_week_play_summary(plays: list[dict[str, Any]]) -> dict[str, Any]:
@@ -571,9 +621,7 @@ def build_site(
     nfl_week_pending = [
         p for p in nfl_week_all if (p.get("status") or "pending") == "pending"
     ]
-    nfl_week_quarantined = [
-        p for p in nfl_week_all if (p.get("status") or "") == "quarantined"
-    ]
+    nfl_week_quarantined = _filter_qa_held_plays(nfl_week_all)
     nfl_week_plays_sorted = _sort_locked_plays(
         collapse_best_signals(_filter_locked_plays(nfl_week_all))
     )
@@ -669,9 +717,7 @@ def build_site(
     ncaaf_week_pending = [
         p for p in ncaaf_week_all if (p.get("status") or "pending") == "pending"
     ]
-    ncaaf_week_quarantined = [
-        p for p in ncaaf_week_all if (p.get("status") or "") == "quarantined"
-    ]
+    ncaaf_week_quarantined = _filter_qa_held_plays(ncaaf_week_all)
     ncaaf_week_plays_sorted = _sort_locked_plays(
         collapse_best_signals(_filter_locked_plays(ncaaf_week_all))
     )
@@ -719,8 +765,22 @@ def build_site(
         sport="ncaaf",
         ledger_plays=ncaaf_ledger.get("plays") or [],
     )
-    ncaaf_games_week = filter_events_college_week(ncaaf_signals.get("games") or [])
+    ncaaf_games_week = filter_events_college_week(
+        ncaaf_signals.get("games") or [],
+        include_started=True,
+    )
     ncaaf_week_event_ids = {str(g.get("event_id")) for g in ncaaf_games_week}
+    ncaaf_week_locked = _filter_locked_plays(
+        filter_plays_college_week(ncaaf_ledger.get("plays") or [])
+    )
+    for p in ncaaf_week_locked:
+        eid = str(p.get("event_id") or "")
+        if eid:
+            ncaaf_week_event_ids.add(eid)
+    for c in ncaaf_current_stage_cards:
+        eid = str(c.get("event_id") or "")
+        if eid:
+            ncaaf_week_event_ids.add(eid)
     ncaaf_games_html = _render_games_pipeline(
         ncaaf_games_week,
         [
@@ -1470,29 +1530,73 @@ def _win_pct_cell(p_true: Any, edge: Any = None) -> str:
 
 
 def _render_quarantine_section(plays: list[dict], *, sport: str = "nfl") -> str:
-    """Held-for-review plays flagged by the QA gate — not recommended."""
+    """QA Watchlist — aired for tracking; not on the LOCKED card."""
     if not plays:
         return ""
+    summary = _qa_held_week_summary(plays)
+    rec = summary.get("record") or "0-0"
+    wp = (
+        f"{summary['win_pct'] * 100:.1f}%"
+        if summary.get("win_pct") is not None
+        else "—"
+    )
+    pnl = float(summary.get("pnl") or 0)
+    pnl_s = f"+{pnl:.2f}" if pnl >= 0 else f"{pnl:.2f}"
+    pnl_cls = "pos" if pnl >= 0 else "neg"
     rows = []
     for p in plays:
         kick = format_kickoff_et(p.get("kickoff") or p.get("commence_time"))
         away = str(p.get("away_team") or "")
         home = str(p.get("home_team") or "")
-        game = f"{_esc(away)} @ {_esc(home)}"
+        if sport == "ncaaf":
+            game = f"{_esc(ncaaf_display_code(away))} @ {_esc(ncaaf_display_code(home))}"
+        else:
+            game = f"{_esc(away)} @ {_esc(home)}"
         pick = _esc(_side_label(p))
+        units = p.get("units") or {"play": 1.5, "lean": 1.0}.get(p.get("tier") or "lean", 0.5)
         notes = p.get("qa_notes") or []
         reason = notes[0].get("message") if notes else (p.get("rationale") or "QA review")
+        st = p.get("shadow_status")
+        if st in ("win", "loss", "push"):
+            result_html = _status_badge(st)
+            if p.get("home_score") is not None and p.get("away_score") is not None:
+                result_html += (
+                    f'<span class="final-score">{_esc(away)} {p.get("away_score")} – '
+                    f'{_esc(home)} {p.get("home_score")}</span>'
+                )
+            spnl = p.get("shadow_pnl_units")
+            if spnl is not None:
+                row_pnl_cls = "pos" if float(spnl) >= 0 else "neg"
+                pnl_cell = f"<span class='{row_pnl_cls}'>{float(spnl):+.2f}u</span>"
+            else:
+                pnl_cell = "—"
+        else:
+            result_html = '<span class="card-result pending">OPEN</span>'
+            pnl_cell = "—"
+        held_cls = "watchlist-row" if (p.get("status") or "") == "watchlist" else "quarantine-row"
         rows.append(
-            f"<tr><td>{kick}</td><td>{game}</td><td>{pick}</td>"
+            f"<tr class='{held_cls}'>"
+            f"<td>{kick}</td><td>{game}</td><td>{pick}</td>"
+            f"<td>{units}u</td>"
+            f"<td>{result_html}</td><td>{pnl_cell}</td>"
             f"<td class='rationale-cell'>{_esc(str(reason))}</td></tr>"
         )
     body = "\n".join(rows)
     return (
-        '<div class="section-label" style="margin-top:18px">Held for Review (QA Gate)</div>'
-        '<p class="phase-note" style="padding:4px 0 10px">These plays failed automated sanity checks '
-        "and are <b>not</b> recommended. Review before acting.</p>"
-        '<div class="table-wrap"><table class="export-table plays-table">'
-        "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Why held</th></tr></thead>"
+        '<div class="section-label" style="margin-top:18px">QA Watchlist (Aired)</div>'
+        '<p class="phase-note" style="padding:4px 0 10px">'
+        "Signal-filtered plays that did <b>not</b> make the LOCKED card. "
+        "We grade them at the <b>same unit size</b> shown so we can tune gates vs results. "
+        "<span class='watchlist-badge-inline'>WATCHLIST</span> = soft hold (totals single-book, "
+        "near-miss EV, prob-gap only); other rows are hard quarantine.</p>"
+        f'<div class="summary-grid" style="margin:8px 0 12px">'
+        f"{_stat_card(rec, 'Watchlist record (this week)', 'Shadow-graded at posted units; not LOCKED plays.')}"
+        f"{_stat_card(wp, 'Watchlist win %', 'Win rate on graded watchlist rows this week.')}"
+        f"{_stat_card(f'{pnl_s}u', 'Watchlist PnL', 'Net units if every aired row was bet at listed size.', val_cls=pnl_cls)}"
+        f"</div>"
+        '<div class="table-wrap"><table class="export-table plays-table qa-watchlist-table">'
+        "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th>"
+        "<th>Result</th><th>PnL</th><th>Why held</th></tr></thead>"
         f"<tbody>{body}</tbody></table></div>"
     )
 
@@ -1585,7 +1689,7 @@ def _render_play_table(
         if open_plays:
             rows.append(
                 "<tr class='settled-divider'><td colspan='9'>"
-                "Settled today — see the History tab for full results</td></tr>"
+                "Finished this week — grayed below; full ledger on the History tab</td></tr>"
             )
         rows.extend(_play_row(p, final=True) for p in final_plays)
 
@@ -2368,6 +2472,7 @@ def _render_quant_pick_cell(
     card: dict[str, Any],
     *,
     locked_keys: set[tuple[str, str, str]] | None,
+    locked_status_by_key: dict[tuple[str, str, str], str] | None = None,
     sport: str = "nfl",
 ) -> str:
     """Quant Pick column: LOCKED vs lean-only vs empty."""
@@ -2376,9 +2481,14 @@ def _render_quant_pick_cell(
     pick_html = _pick_cell(hybrid, sport=sport)
     row_key = _quant_pick_row_key(card, hybrid)
     if locked_keys and row_key in locked_keys:
+        st = (locked_status_by_key or {}).get(row_key, "pending")
+        settled = st in ("win", "loss", "push")
+        cell_cls = "hybrid-cell locked-play" + (" locked-play-settled" if settled else "")
+        grade = _status_badge(st) if settled else ""
         return (
-            f"<td class='hybrid-cell locked-play'>"
-            f'<span class="lock-badge">LOCKED</span><div class="hybrid-pick-text">{pick_html}</div></td>'
+            f"<td class='{cell_cls}'>"
+            f'<span class="lock-badge">LOCKED</span>{grade}'
+            f'<div class="hybrid-pick-text">{pick_html}</div></td>'
         )
     if _is_validated_hybrid(hybrid):
         badge = '<span class="filtered-badge">NOT POSTED</span>'
@@ -2409,7 +2519,13 @@ def _render_stage_week_table(
     )
     n_games = len({c.get("event_id") for c in sorted_cards})
     locked_keys = _locked_sharp_play_keys(ledger_plays or [])
-    rows = _render_stage_rows(sorted_cards, sport=sport, locked_keys=locked_keys)
+    locked_status = _locked_play_status_by_key(ledger_plays or [])
+    rows = _render_stage_rows(
+        sorted_cards,
+        sport=sport,
+        locked_keys=locked_keys,
+        locked_status_by_key=locked_status,
+    )
     id_attr = f' id="{_esc(table_id)}"' if table_id else ""
     return (
         f'<div class="phase-sub" style="font-size:13px;margin-top:6px">{n_games} games · {len(sorted_cards)} market rows</div>'
@@ -2677,6 +2793,7 @@ def _render_stage_rows(
     *,
     sport: str = "nfl",
     locked_keys: set[tuple[str, str, str]] | None = None,
+    locked_status_by_key: dict[tuple[str, str, str], str] | None = None,
 ) -> str:
     if not cards:
         return "<tr><td colspan='11'>No stage picks yet. Run the pipeline.</td></tr>"
@@ -2699,12 +2816,16 @@ def _render_stage_rows(
             matchup = f"{_esc(ncaaf_display_code(away))} @ {_esc(ncaaf_display_code(home))}"
         else:
             matchup = f"{_esc(away)} @ {_esc(home)}"
+        row_key = _quant_pick_row_key(c, hybrid)
+        row_st = (locked_status_by_key or {}).get(row_key, "pending")
+        row_settled = row_st in ("win", "loss", "push")
+        tr_cls = ' class="stage-row-settled"' if row_settled else ""
         rows.append(
-            f"<tr {_search_attrs(away, home, sport=sport, event_id=c.get('event_id'))}>"
+            f"<tr{tr_cls} {_search_attrs(away, home, sport=sport, event_id=c.get('event_id'))}>"
             f"<td>{_esc(kick_s)}</td>"
             f"<td>{matchup}</td>"
             f"<td>{_esc(_stage_market_label(c.get('market')))}</td>"
-            f"{_render_quant_pick_cell(hybrid, c, locked_keys=locked_keys, sport=sport)}"
+            f"{_render_quant_pick_cell(hybrid, c, locked_keys=locked_keys, locked_status_by_key=locked_status_by_key, sport=sport)}"
             f"<td>{_pick_cell(picks.get('model'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('sharp'), sport=sport)}</td>"
             f"<td>{_pick_cell(picks.get('public'), sport=sport)}</td>"
@@ -3599,6 +3720,13 @@ _SITE_CSS = """\
     color: #14532d;
   }
   tr.locked-play-row td { background: #f7fef9; }
+  tr.watchlist-row td { background: #fffbeb; }
+  tr.quarantine-row td { background: #fafafa; opacity: 0.92; }
+  .watchlist-badge-inline {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+    padding: 1px 6px; border-radius: 3px; background: #fef3c7; color: #92400e;
+    border: 1px solid #fcd34d; vertical-align: middle;
+  }
   tr.locked-play-row td.play-pick-cell { border-left: 3px solid #166534; }
   .stage-table td.hybrid-cell.locked-play {
     background: #ecfdf5 !important;
@@ -3627,6 +3755,8 @@ _SITE_CSS = """\
     font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
     text-transform: uppercase; padding: 8px 10px; border-top: 2px solid var(--color-border); text-align: left; }
   .plays-table .settled-row td { opacity: 0.6; background: var(--color-bg-soft); }
+  .stage-table tr.stage-row-settled td { opacity: 0.62; background: var(--color-bg-soft); }
+  .stage-table .hybrid-cell.locked-play-settled .lock-badge { opacity: 0.85; }
   .plays-table-large td, .plays-table-large th { padding: 14px 12px; font-size: 16px; }
   .plays-table-large .play-pick-cell { font-size: 17px; font-weight: 600; }
   .plays-table-large .rationale-cell { font-size: 14px; max-width: 360px; line-height: 1.5; }

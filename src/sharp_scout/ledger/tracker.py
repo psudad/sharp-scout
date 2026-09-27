@@ -568,6 +568,38 @@ def settle_from_scores(
         settle_play(play, int(g["home_score"]), int(g["away_score"]))
         settled += 1
 
+    shadow_graded = 0
+    for play in ledger["plays"]:
+        if (play.get("status") or "") not in ("quarantined", "watchlist"):
+            continue
+        if not _kickoff_eligible(play):
+            continue
+        g = _lookup(play)
+        if not g or g.get("home_score") is None or g.get("away_score") is None:
+            continue
+        if is_prop_play(play):
+            continue
+        from sharp_scout.config import get_settings
+
+        row = dict(play)
+        scale = float(get_settings().qa_watchlist_unit_scale)
+        if scale != 1.0:
+            row["units"] = float(row.get("units") or 1.0) * scale
+        graded = settle_play(
+            row,
+            int(g["home_score"]),
+            int(g["away_score"]),
+        )
+        play["shadow_status"] = graded.get("status")
+        play["shadow_pnl_units"] = graded.get("pnl_units")
+        play["home_score"] = graded.get("home_score")
+        play["away_score"] = graded.get("away_score")
+        play["shadow_graded_at"] = _now()
+        shadow_graded += 1
+
+    if shadow_graded:
+        logger.info("Shadow-graded %d QA-held plays for watchlist tracking", shadow_graded)
+
     if voided:
         logger.info("Voided %d props (player recorded no snaps or ambiguous name)", voided)
 
@@ -757,11 +789,16 @@ def compute_record(
     }
 
 
-def load_scores_from_cfb_schedules(seasons: list[int] | None = None) -> list[dict[str, Any]]:
+def load_scores_from_cfb_schedules(
+    seasons: list[int] | None = None,
+    *,
+    ledger_path: Path | None = None,
+) -> list[dict[str, Any]]:
     """Pull final FBS scores — cfbfastR parquet when available, ESPN scoreboard as fallback."""
-    from sharp_scout.config import get_settings
+    from sharp_scout.config import DATA_DIR, get_settings
     from sharp_scout.data.cfbfastr import load_cfb_schedules
     from sharp_scout.data.espn_cfb import fetch_espn_cfb_scores
+    from sharp_scout.sports import NCAAF
 
     settings = get_settings()
     seasons = seasons or settings.seasons
@@ -789,8 +826,22 @@ def load_scores_from_cfb_schedules(seasons: list[int] | None = None) -> list[dic
                 continue
 
     try:
+        from sharp_scout.data.espn_cfb import kickoff_scoreboard_dates
+
         espn_season = max(seasons) if seasons else datetime.now(timezone.utc).year
-        for row in fetch_espn_cfb_scores(season=espn_season, weeks=list(range(1, 6))):
+        path = ledger_path or (DATA_DIR / NCAAF.ledger_name)
+        pending_plays = [
+            p
+            for p in (load_ledger(path).get("plays") or [])
+            if (p.get("status") or "pending") == "pending"
+        ]
+        extra_dates = kickoff_scoreboard_dates(pending_plays)
+        for row in fetch_espn_cfb_scores(
+            season=espn_season,
+            weeks=list(range(1, 17)),
+            extra_dates=extra_dates,
+            lookback_days=21,
+        ):
             by_key[f"{row['away_team']}@{row['home_team']}"] = row
     except Exception as exc:  # noqa: BLE001
         logger.warning("ESPN CFB score fallback failed: %s", exc)

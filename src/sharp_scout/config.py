@@ -112,6 +112,16 @@ class Settings(BaseSettings):
     product_play_tier_only: bool = True  # leans stay research-only in artifacts
     product_max_plays_nfl: int = 5
     product_max_plays_ncaaf: int = 5
+
+    # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).
+    qa_promote_single_book_totals: bool = True
+    qa_promote_spread_prob_conflict: bool = True  # prob-gap only; spread line-gap stays quarantine
+    # QA watchlist — softer holds still tracked but not LOCKED (near-miss EV, etc.).
+    qa_watchlist_enabled: bool = True
+    qa_air_single_book_totals: bool = True  # legacy alias when promote is off
+    qa_air_spread_prob_conflict: bool = True
+    qa_air_product_gate_near_miss: bool = True  # EV in [ev_threshold, product_ev_min) → watchlist
+    qa_watchlist_unit_scale: float = 1.0  # multiply play-tier units for watchlist tracking
     # Steam detection (pre-kick line velocity across sharp books)
     steam_window_minutes: int = 90  # look-back window for velocity
     steam_min_points: float = 0.5  # minimum aggregate move to consider

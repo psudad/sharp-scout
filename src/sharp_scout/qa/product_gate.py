@@ -133,7 +133,12 @@ def evaluate_product_play(
 
     if signals is not None:
         n_books = _count_books_on_market(signals, play)
-        if n_books < settings.product_min_books:
+        waive_single_book_total = (
+            market == "totals"
+            and settings.qa_promote_single_book_totals
+            and n_books >= 1
+        )
+        if not waive_single_book_total and n_books < settings.product_min_books:
             reasons.append(
                 f"only {n_books} book(s) on line (need ≥{settings.product_min_books})"
             )

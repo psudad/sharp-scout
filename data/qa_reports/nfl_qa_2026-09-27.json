@@ -1,0 +1,368 @@
+{
+  "sport": "nfl",
+  "generated_at": "2026-09-27T10:58:42.503805+00:00",
+  "layer1_passed": true,
+  "block_deploy": false,
+  "layer1_issues": [],
+  "approved": 1,
+  "quarantined": 13,
+  "voided": 4,
+  "play_reviews": [
+    {
+      "play_id": "25dad2e0",
+      "matchup": "CAR@CLE",
+      "market": "spreads",
+      "side": "home",
+      "action": "approve",
+      "issues": []
+    },
+    {
+      "play_id": "1055d700",
+      "matchup": "HOU@IND",
+      "market": "h2h",
+      "side": "home",
+      "action": "void",
+      "issues": [
+        {
+          "code": "not_revalidated",
+          "severity": "void",
+          "message": "Play no longer passes Phase 4 filters in the latest pipeline run"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "ml_model_conflict",
+          "severity": "quarantine",
+          "message": "Model favors HOU to win (52.8%) but play is IND ML (p_true=48.4%)"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): sharp no-vig 41.6% on our side < 50% floor; only 0 book(s) on line (need \u22652); spread money-ticket gap +10% < 12% required for ML; ML sharp money signal unavailable"
+        }
+      ]
+    },
+    {
+      "play_id": "4162bd01",
+      "matchup": "BAL@DAL",
+      "market": "h2h",
+      "side": "home",
+      "action": "void",
+      "issues": [
+        {
+          "code": "not_revalidated",
+          "severity": "void",
+          "message": "Play no longer passes Phase 4 filters in the latest pipeline run"
+        },
+        {
+          "code": "ml_model_conflict",
+          "severity": "quarantine",
+          "message": "Model favors BAL to win (58.0%) but play is DAL ML (p_true=41.4%)"
+        },
+        {
+          "code": "weak_ml_confirmation",
+          "severity": "quarantine",
+          "message": "ML handle gap only +2% (need \u226512%)"
+        },
+        {
+          "code": "product_gate",
+          "severity": "watchlist",
+          "message": "Fails product gate (LOCKED card): EV 3.4% < 4% product floor; sharp no-vig 39.4% on our side < 50% floor; spread sharp money on BAL (+9%) conflicts with ML home; ML handle favors BAL (+2%), not our home side"
+        }
+      ]
+    },
+    {
+      "play_id": "fb1947b7",
+      "matchup": "ARI@SF",
+      "market": "h2h",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "ml_model_conflict",
+          "severity": "quarantine",
+          "message": "Model favors SF to win (66.7%) but play is ARI ML (p_true=25.9%)"
+        },
+        {
+          "code": "offshore_outlier",
+          "severity": "quarantine",
+          "message": "Offshore book courtside price +381 diverges from pinnacle close +311"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): sharp no-vig 23.5% on our side < 50% floor; spread money-ticket gap +8% < 12% required for ML"
+        }
+      ]
+    },
+    {
+      "play_id": "46855f29",
+      "matchup": "PHI@CHI",
+      "market": "h2h",
+      "side": "home",
+      "action": "void",
+      "issues": [
+        {
+          "code": "not_revalidated",
+          "severity": "void",
+          "message": "Play no longer passes Phase 4 filters in the latest pipeline run"
+        },
+        {
+          "code": "weak_ml_confirmation",
+          "severity": "quarantine",
+          "message": "ML handle gap only +10% (need \u226512%)"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): sharp no-vig 33.0% on our side < 50% floor; spread sharp money on PHI (+3%) conflicts with ML home; ML money-ticket gap +10% < 12% required for certified ML"
+        }
+      ]
+    },
+    {
+      "play_id": "44625e71",
+      "matchup": "ATL@GB",
+      "market": "h2h",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): sharp no-vig 30.7% on our side < 50% floor; only 0 book(s) on line (need \u22652); no split-board data for ML confirmation"
+        }
+      ]
+    },
+    {
+      "play_id": "167a8d54",
+      "matchup": "ATL@GB",
+      "market": "spreads",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "watchlist",
+          "message": "Fails product gate (LOCKED card): EV 3.5% < 4% product floor; only 0 book(s) on line (need \u22652)"
+        }
+      ]
+    },
+    {
+      "play_id": "03e6cd73",
+      "matchup": "HOU@IND",
+      "market": "h2h",
+      "side": "home",
+      "action": "void",
+      "issues": [
+        {
+          "code": "not_revalidated",
+          "severity": "void",
+          "message": "Play no longer passes Phase 4 filters in the latest pipeline run"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "ml_model_conflict",
+          "severity": "quarantine",
+          "message": "Model favors HOU to win (52.8%) but play is IND ML (p_true=43.6%)"
+        },
+        {
+          "code": "product_gate",
+          "severity": "watchlist",
+          "message": "Fails product gate (LOCKED card): tier=lean (product requires play); EV 2.1% < 4% product floor; sharp no-vig 41.5% on our side < 50% floor; only 0 book(s) on line (need \u22652); spread money-ticket gap +10% < 12% required for ML; ML sharp money signal unavailable"
+        }
+      ]
+    },
+    {
+      "play_id": "38572958",
+      "matchup": "ATL@GB",
+      "market": "h2h",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "offshore_outlier",
+          "severity": "quarantine",
+          "message": "Offshore book matchbook price +245 diverges from pinnacle close +219"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): sharp no-vig 30.3% on our side < 50% floor; only 0 book(s) on line (need \u22652); no split-board data for ML confirmation"
+        }
+      ]
+    },
+    {
+      "play_id": "93b4259c",
+      "matchup": "ARI@SF",
+      "market": "h2h",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "ml_model_conflict",
+          "severity": "quarantine",
+          "message": "Model favors SF to win (66.7%) but play is ARI ML (p_true=25.8%)"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): sharp no-vig 23.4% on our side < 50% floor; spread money-ticket gap +8% < 12% required for ML"
+        }
+      ]
+    },
+    {
+      "play_id": "395cf971",
+      "matchup": "ARI@SF",
+      "market": "h2h",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "ml_model_conflict",
+          "severity": "quarantine",
+          "message": "Model favors SF to win (66.7%) but play is ARI ML (p_true=25.9%)"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): sharp no-vig 23.4% on our side < 50% floor; spread money-ticket gap +8% < 12% required for ML"
+        }
+      ]
+    },
+    {
+      "play_id": "879b7d72",
+      "matchup": "KC@MIA",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model spread +2.3 vs market home line +12.5 (\u039410.2 pts) \u2014 implausible disagreement"
+        }
+      ]
+    },
+    {
+      "play_id": "a3f899cf",
+      "matchup": "ATL@GB",
+      "market": "spreads",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "watchlist",
+          "message": "Fails product gate (LOCKED card): EV 2.8% < 4% product floor; only 0 book(s) on line (need \u22652)"
+        }
+      ]
+    },
+    {
+      "play_id": "fe90c635",
+      "matchup": "KC@MIA",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model spread +2.3 vs market home line +11.0 (\u03948.7 pts) \u2014 implausible disagreement"
+        },
+        {
+          "code": "offshore_outlier",
+          "severity": "quarantine",
+          "message": "Offshore book lowvig price -105 diverges from pinnacle close -121"
+        }
+      ]
+    },
+    {
+      "play_id": "72e738fa",
+      "matchup": "KC@MIA",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model spread +2.3 vs market home line +11.5 (\u03949.2 pts) \u2014 implausible disagreement"
+        }
+      ]
+    },
+    {
+      "play_id": "2447a348",
+      "matchup": "KC@MIA",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model spread +2.1 vs market home line +11.5 (\u03949.4 pts) \u2014 implausible disagreement"
+        }
+      ]
+    },
+    {
+      "play_id": "dbae8764",
+      "matchup": "KC@MIA",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model spread +2.1 vs market home line +11.5 (\u03949.4 pts) \u2014 implausible disagreement"
+        }
+      ]
+    },
+    {
+      "play_id": "3aeb0d53",
+      "matchup": "KC@MIA",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model spread +2.1 vs market home line +10.0 (\u03947.9 pts) \u2014 implausible disagreement"
+        },
+        {
+          "code": "offshore_outlier",
+          "severity": "quarantine",
+          "message": "Offshore book matchbook price +104 diverges from pinnacle close -132"
+        }
+      ]
+    }
+  ]
+}

@@ -41,7 +41,7 @@ def _settle_one(sport_key: str) -> dict:
     ledger_path = DATA_DIR / sport.ledger_name
     before = _pending(load_ledger(path=ledger_path))
     if sport.key == "ncaaf":
-        scores = load_scores_from_cfb_schedules(None)
+        scores = load_scores_from_cfb_schedules(None, ledger_path=ledger_path)
     else:
         scores = load_scores_from_schedules(None)
     ledger = settle_from_scores(scores, path=ledger_path)

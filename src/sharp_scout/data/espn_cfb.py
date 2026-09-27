@@ -124,23 +124,48 @@ def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
+def kickoff_scoreboard_dates(
+    plays: list[dict[str, Any]],
+    *,
+    pad_days: int = 1,
+) -> list[str]:
+    """ESPN `dates=YYYYMMDD` keys from ledger kickoffs (ET), ± pad for timezone slippage."""
+    from sharp_scout.utils.slate import ET, parse_commence
+
+    out: set[str] = set()
+    for play in plays:
+        kick = parse_commence(play.get("kickoff") or play.get("commence_time"))
+        if kick is None:
+            continue
+        local = kick.astimezone(ET).date()
+        for delta in range(-pad_days, pad_days + 1):
+            out.add((local + timedelta(days=delta)).strftime("%Y%m%d"))
+    return sorted(out)
+
+
 def fetch_espn_cfb_scores(
     *,
     season: int | None = None,
     weeks: list[int] | None = None,
     dates: list[str] | None = None,
-    lookback_days: int = 14,
+    extra_dates: list[str] | None = None,
+    lookback_days: int = 21,
 ) -> list[dict[str, Any]]:
     """Return final FBS/FCS scores from ESPN (deduped by away@home)."""
     season = season or datetime.now(timezone.utc).year
     by_key: dict[str, dict[str, Any]] = {}
 
+    date_list: list[str] = []
     if dates:
-        for d in dates:
-            for row in _fetch_scoreboard({"dates": d, "limit": 400}):
-                by_key[f"{row['away_team']}@{row['home_team']}"] = row
-    else:
-        week_list = weeks if weeks is not None else list(range(1, 6))
+        date_list.extend(dates)
+    if extra_dates:
+        date_list.extend(extra_dates)
+    for d in sorted(set(date_list)):
+        for row in _fetch_scoreboard({"dates": d, "limit": 400}):
+            by_key[f"{row['away_team']}@{row['home_team']}"] = row
+
+    if not dates:
+        week_list = weeks if weeks is not None else list(range(1, 17))
         for week in week_list:
             for row in _fetch_scoreboard(
                 {"year": season, "seasontype": 2, "week": week, "limit": 400}

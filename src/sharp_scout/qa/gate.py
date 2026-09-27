@@ -35,6 +35,8 @@ MIN_RATED_TEAMS_NFL = 28
 MIN_RATED_TEAMS_NCAAF = 80
 MIN_POWER_STDEV = 0.01
 MIN_BOOKS_FOR_CORROBORATION = 2
+
+WATCHLIST_SEVERITY = "watchlist"
 DUPLICATE_P_TRUE_MIN_CLUSTER = 5
 COMMITTED_PLAY_TIER = "play"
 COMMITMENT_LOCK_BEFORE_KICKOFF = timedelta(hours=2)
@@ -56,6 +58,36 @@ def play_commitment_locked(
     clock = now or datetime.now(timezone.utc)
     lock_from = kickoff - COMMITMENT_LOCK_BEFORE_KICKOFF
     return clock >= lock_from
+
+
+def play_eligible_for_qa_promote_lock(play: dict[str, Any]) -> bool:
+    """True when stored QA notes show the play was held only for promoted policies."""
+    issues = play.get("qa_notes") or []
+    if not issues:
+        return False
+    market = play.get("market")
+    blocking = [
+        i
+        for i in issues
+        if (i.get("severity") or "") in ("quarantine", "watchlist")
+    ]
+    if not blocking:
+        return False
+    for iss in blocking:
+        code = iss.get("code")
+        msg = iss.get("message") or ""
+        if code == "single_book" and market == "totals":
+            continue
+        if code == "spread_model_conflict" and "Model spread" not in msg:
+            continue
+        if code == "product_gate" and market == "totals" and "book" in msg.lower():
+            if all(
+                token not in msg.lower()
+                for token in ("ev ", "tier=", "p_fair", "money-ticket", "split-board")
+            ):
+                continue
+        return False
+    return True
 
 
 @dataclass
@@ -307,7 +339,15 @@ def review_play(
     dup_p_true = dup_p_true if dup_p_true is not None else _duplicate_p_true_clusters(signals)
     logical = _logical_play_key(play)
 
+    clock = now or datetime.now(timezone.utc)
     kickoff = parse_commence(play.get("kickoff") or play.get("commence_time"))
+    status = play.get("status") or "pending"
+    graded = status in ("win", "loss", "push")
+    game_started = (
+        kickoff is not None and kickoff <= clock - timedelta(minutes=15)
+    )
+    freeze_pipeline_checks = graded or game_started
+
     games = signals.get("games") or []
     slate_plays = filter_plays_nfl_display_slate([play], events=games) if sport == "nfl" else [play]
     if kickoff is None:
@@ -322,11 +362,11 @@ def review_play(
         )
 
     game = _find_game(signals, play)
-    if game is None:
+    if game is None and not freeze_pipeline_checks:
         issues.append(
             QAIssue("orphan_event", "void", "Game not found in latest pipeline output")
         )
-    elif logical not in validated_keys:
+    elif game is not None and logical not in validated_keys and not freeze_pipeline_checks:
         issues.append(
             QAIssue(
                 "not_revalidated",
@@ -337,6 +377,9 @@ def review_play(
 
     ratings = _ratings_map(signals)
     home, away = play.get("home_team"), play.get("away_team")
+    market = play.get("market")
+    side = play.get("side")
+    settings = get_settings()
     for team in (home, away):
         if team not in ratings:
             issues.append(
@@ -345,13 +388,27 @@ def review_play(
 
     n_books = _count_books_on_market(signals, play)
     if n_books < MIN_BOOKS_FOR_CORROBORATION:
-        issues.append(
-            QAIssue(
-                "single_book",
-                "quarantine",
-                f"Only {n_books} book(s) on this line — no multi-book corroboration",
-            )
+        promote_single_total = (
+            settings.qa_promote_single_book_totals
+            and str(market or "") == "totals"
+            and n_books >= 1
         )
+        if not promote_single_total:
+            single_sev = "quarantine"
+            if (
+                settings.qa_watchlist_enabled
+                and settings.qa_air_single_book_totals
+                and str(market or "") == "totals"
+                and n_books >= 1
+            ):
+                single_sev = WATCHLIST_SEVERITY
+            issues.append(
+                QAIssue(
+                    "single_book",
+                    single_sev,
+                    f"Only {n_books} book(s) on this line — no multi-book corroboration",
+                )
+            )
 
     pt = play.get("p_true")
     if pt is not None and round(float(pt), 4) in dup_p_true:
@@ -363,23 +420,28 @@ def review_play(
             )
         )
 
-    market = play.get("market")
-    side = play.get("side")
-    settings = get_settings()
     if market == "spreads":
         p_true = play.get("p_true")
         p_mkt = play.get("p_mkt")
         if p_true is not None and p_mkt is not None:
             prob_gap = abs(float(p_true) - float(p_mkt))
             if prob_gap >= settings.spread_model_prob_gap:
-                issues.append(
-                    QAIssue(
-                        "spread_model_conflict",
-                        "quarantine",
-                        f"Model cover prob {float(p_true):.1%} vs sharp market "
-                        f"{float(p_mkt):.1%} (Δ{prob_gap:.0%}) — implausible disagreement",
+                promote_prob = settings.qa_promote_spread_prob_conflict
+                if not promote_prob:
+                    prob_sev = (
+                        WATCHLIST_SEVERITY
+                        if settings.qa_watchlist_enabled
+                        and settings.qa_air_spread_prob_conflict
+                        else "quarantine"
                     )
-                )
+                    issues.append(
+                        QAIssue(
+                            "spread_model_conflict",
+                            prob_sev,
+                            f"Model cover prob {float(p_true):.1%} vs sharp market "
+                            f"{float(p_mkt):.1%} (Δ{prob_gap:.0%}) — implausible disagreement",
+                        )
+                    )
 
         model_spread = play.get("model_spread")
         if model_spread is None and game is not None:
@@ -477,24 +539,46 @@ def review_play(
 
         pg = evaluate_product_play(play, signals=signals, sport=sport)
         if not pg.ok:
-            issues.append(
-                QAIssue(
-                    "product_gate",
-                    "quarantine",
-                    f"Fails product gate (LOCKED card): {pg.note()}",
+            book_only_fail = (
+                str(market or "") == "totals"
+                and pg.reasons
+                and all("book" in r.lower() for r in pg.reasons)
+                and (
+                    settings.qa_promote_single_book_totals
+                    or (
+                        settings.qa_watchlist_enabled
+                        and settings.qa_air_single_book_totals
+                    )
                 )
             )
+            if not book_only_fail:
+                pg_sev = "quarantine"
+                if settings.qa_watchlist_enabled and settings.qa_air_product_gate_near_miss:
+                    edge = float(play.get("edge") or 0)
+                    if edge >= settings.ev_threshold and edge < settings.product_ev_min:
+                        pg_sev = WATCHLIST_SEVERITY
+                issues.append(
+                    QAIssue(
+                        "product_gate",
+                        pg_sev,
+                        f"Fails product gate (LOCKED card): {pg.note()}",
+                    )
+                )
 
-    # Determine action: void > quarantine > approve
+    # Determine action: void > quarantine > watchlist > approve
     severities = {i.severity for i in issues}
     if "void" in severities:
         action = "void"
     elif "quarantine" in severities:
         action = "quarantine"
+    elif WATCHLIST_SEVERITY in severities:
+        action = WATCHLIST_SEVERITY
     else:
         action = "approve"
 
-    if action in ("void", "quarantine") and play_commitment_locked(play, now=now):
+    if action in ("void", "quarantine", WATCHLIST_SEVERITY) and play_commitment_locked(
+        play, now=now
+    ):
         issues.append(
             QAIssue(
                 "commitment_lock",
@@ -557,7 +641,7 @@ def apply_qa_gate(
     dup_p_true = _duplicate_p_true_clusters(signals)
 
     play_reviews: list[PlayReview] = []
-    approved = quarantined = voided = 0
+    approved = quarantined = voided = watchlisted = promoted = 0
     clock = datetime.now(timezone.utc)
     now = clock.isoformat()
 
@@ -577,6 +661,13 @@ def apply_qa_gate(
             quarantined += 1
             if apply:
                 play["status"] = "quarantined"
+                play["qa_at"] = now
+                play["qa_notes"] = [i.to_dict() for i in review.issues]
+        elif review.action == WATCHLIST_SEVERITY:
+            watchlisted += 1
+            if apply:
+                play["status"] = "watchlist"
+                play["tier"] = play.get("tier") or "watch"
                 play["qa_at"] = now
                 play["qa_notes"] = [i.to_dict() for i in review.issues]
         elif review.action == "void":
@@ -605,14 +696,84 @@ def apply_qa_gate(
                 dup_p_true=dup_p_true,
                 now=clock,
             )
-            if review.action in ("void", "quarantine"):
+            if review.action in ("void", "quarantine", WATCHLIST_SEVERITY):
                 play_reviews.append(review)
                 if review.action == "void":
                     voided += 1
                     play["status"] = "void"
+                elif review.action == WATCHLIST_SEVERITY:
+                    watchlisted += 1
+                    play["status"] = "watchlist"
+                    play["tier"] = play.get("tier") or "watch"
                 else:
                     quarantined += 1
                     play["status"] = "quarantined"
+                play["qa_at"] = now
+                play["qa_notes"] = [i.to_dict() for i in review.issues]
+
+        # Re-review QA-held rows on the display slate — promote to LOCKED when policy allows.
+        if sport == "nfl":
+            slate_plays = filter_plays_nfl_display_slate(
+                ledger.get("plays") or [], events=games
+            )
+        elif sport == "ncaaf":
+            from sharp_scout.utils.slate import filter_plays_college_week
+
+            slate_plays = filter_plays_college_week(ledger.get("plays") or [])
+        else:
+            slate_plays = list(ledger.get("plays") or [])
+
+        for play in slate_plays:
+            if (play.get("status") or "") not in ("quarantined", "watchlist"):
+                continue
+            review = review_play(
+                play,
+                signals,
+                sport=sport,
+                validated_keys=validated_keys,
+                dup_p_true=dup_p_true,
+                now=clock,
+            )
+            play_reviews.append(review)
+            voided_now = any(i.severity == "void" for i in review.issues)
+            should_promote = (
+                not voided_now
+                and (
+                    review.action == "approve"
+                    or play_eligible_for_qa_promote_lock(play)
+                )
+            )
+            if should_promote:
+                promoted += 1
+                graded = play.get("shadow_status")
+                if graded in ("win", "loss", "push"):
+                    play["status"] = graded
+                else:
+                    play["status"] = "pending"
+                if play.get("tier") == "watch":
+                    play["tier"] = COMMITTED_PLAY_TIER
+                play["qa_at"] = now
+                play["qa_notes"] = [
+                    {
+                        "code": "qa_promoted",
+                        "severity": "info",
+                        "message": "Promoted to LOCKED (single-book totals / spread prob-gap policy)",
+                    }
+                ]
+            elif review.action == "void":
+                voided += 1
+                play["status"] = "void"
+                play["qa_at"] = now
+                play["qa_notes"] = [i.to_dict() for i in review.issues]
+            elif review.action == WATCHLIST_SEVERITY:
+                watchlisted += 1
+                play["status"] = "watchlist"
+                play["tier"] = play.get("tier") or "watch"
+                play["qa_at"] = now
+                play["qa_notes"] = [i.to_dict() for i in review.issues]
+            elif review.action == "quarantine":
+                quarantined += 1
+                play["status"] = "quarantined"
                 play["qa_at"] = now
                 play["qa_notes"] = [i.to_dict() for i in review.issues]
 

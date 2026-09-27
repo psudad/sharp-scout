@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-27T16:58:19.376845+00:00",
+  "updated_at": "2026-09-27T18:58:08.141479+00:00",
   "starting_units": 100.0,
   "plays": [
     {
@@ -16556,19 +16556,19 @@
           "market": "spread",
           "side": "home",
           "team": "BUF",
-          "line": -7.5,
-          "confidence": 0.5148,
-          "reason": "S_mod=-8.63 vs mkt -7.50 (home persp) \u2192 BUF covers",
+          "line": -2.5,
+          "confidence": 0.669,
+          "reason": "S_mod=-8.63 vs mkt -2.50 (home persp) \u2192 BUF covers",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "spread",
-          "side": "away",
-          "team": "LAC",
-          "line": 7.5,
-          "confidence": 0.5216,
-          "reason": "pinnacle no-vig 52.2% @ -116",
+          "side": "home",
+          "team": "BUF",
+          "line": -2.5,
+          "confidence": 0.5307,
+          "reason": "pinnacle no-vig 53.1% @ -123",
           "available": true
         },
         "public": {
@@ -16576,9 +16576,9 @@
           "market": "spread",
           "side": "home",
           "team": "BUF",
-          "line": -7.5,
-          "confidence": 0.75,
-          "reason": "tickets home=75% away=25%",
+          "line": -3.5,
+          "confidence": 0.0,
+          "reason": "tickets home=0% away=0%",
           "available": true
         },
         "money": {
@@ -16586,73 +16586,72 @@
           "market": "spread",
           "side": "home",
           "team": "BUF",
-          "line": -7.5,
-          "confidence": 0.73,
-          "reason": "money home=73% away=27% (gap vs tickets -2% on home)",
+          "line": -3.5,
+          "confidence": 0.0,
+          "reason": "money home=0% away=0% (gap vs tickets +0% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "away",
-          "team": "LAC",
-          "line": 7.5,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on LAC",
-          "available": true
-        },
-        "rlm": {
-          "stage": "rlm",
-          "market": "spread",
           "side": null,
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "no RLM (public=home, line -7.0\u2192-7.5)",
+          "reason": "no positive money-ticket diff",
           "available": false
+        },
+        "rlm": {
+          "stage": "rlm",
+          "market": "spread",
+          "side": "away",
+          "team": "LAC",
+          "line": 3.5,
+          "confidence": 0.6,
+          "reason": "RLM: public 0% home but line -7.0\u2192-3.5 toward away",
+          "available": true
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
           "side": "home",
           "team": "BUF",
-          "line": -7.5,
-          "confidence": 0.5148,
-          "reason": "model aligned with money (no validated edge)",
+          "line": -2.5,
+          "confidence": 0.669,
+          "reason": "model aligned with money+sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 3,
-        "away_votes": 2,
+        "home_votes": 4,
+        "away_votes": 1,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "LAC",
-          "public": "BUF",
-          "fade_public": true
+          "fade_public": false,
+          "side": "BUF"
         },
         "money_vs_public": {
           "aligned": true,
           "money": "BUF",
           "public": "BUF"
         },
-        "rlm_active": false
+        "rlm_active": true
       },
       "consensus_side": "home",
       "consensus_team": "BUF",
       "hybrid_agrees_with": [
         "model",
+        "sharp",
         "public",
         "money"
       ],
       "conflict_stages": [
-        "sharp",
-        "sharp_edge"
+        "rlm"
       ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:53+00:00",
+      "commence_time": "2026-09-27 17:02:53+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411234+00:00",
@@ -16684,8 +16683,8 @@
           "side": "home",
           "team": "BUF",
           "line": null,
-          "confidence": 0.7419,
-          "reason": "pinnacle no-vig 74.2% @ -332",
+          "confidence": 0.6164,
+          "reason": "pinnacle no-vig 61.6% @ -178",
           "available": true
         },
         "public": {
@@ -16695,7 +16694,7 @@
           "team": "BUF",
           "line": null,
           "confidence": 0.97,
-          "reason": "tickets home=97% away=3%",
+          "reason": "tickets home=97% away=0%",
           "available": true
         },
         "money": {
@@ -16705,7 +16704,7 @@
           "team": "BUF",
           "line": null,
           "confidence": 0.97,
-          "reason": "money home=97% away=3% (gap vs tickets +0% on home)",
+          "reason": "money home=97% away=0% (gap vs tickets +0% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -16765,8 +16764,8 @@
       ],
       "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:53+00:00",
+      "commence_time": "2026-09-27 17:02:53+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411237+00:00",
@@ -16785,21 +16784,21 @@
         "model": {
           "stage": "model",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 50.0,
-          "confidence": 0.6194,
-          "reason": "T_mod=47.8 vs market 50.0",
+          "side": "over",
+          "team": "Over",
+          "line": 43.0,
+          "confidence": 0.5878,
+          "reason": "T_mod=47.8 vs market 43.0",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 50.0,
-          "confidence": 0.5,
-          "reason": "pinnacle no-vig 50.0% @ -107",
+          "side": "under",
+          "team": "Under",
+          "line": 43.0,
+          "confidence": 0.5162,
+          "reason": "pinnacle no-vig 51.6% @ -118",
           "available": true
         },
         "public": {
@@ -16808,18 +16807,18 @@
           "side": "under",
           "team": "Under",
           "line": 50.5,
-          "confidence": 0.76,
-          "reason": "tickets over=24% under=76%",
+          "confidence": 0.61,
+          "reason": "tickets over=39% under=61%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "total",
-          "side": "under",
-          "team": "Under",
+          "side": "over",
+          "team": "Over",
           "line": 50.5,
-          "confidence": 0.72,
-          "reason": "money over=28% under=72% (gap vs tickets -4% on under)",
+          "confidence": 0.57,
+          "reason": "money over=57% under=43% (gap vs tickets +18% on over)",
           "available": true
         },
         "sharp_edge": {
@@ -16828,8 +16827,8 @@
           "side": "over",
           "team": "Over",
           "line": 50.5,
-          "confidence": 0.54,
-          "reason": "+4% money vs tickets on Over",
+          "confidence": 0.68,
+          "reason": "+18% money vs tickets on Over",
           "available": true
         },
         "rlm": {
@@ -16845,45 +16844,44 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 50.0,
-          "confidence": 0.6194,
-          "reason": "model aligned with money (no validated edge)",
+          "side": "over",
+          "team": "Over",
+          "line": 40.5,
+          "confidence": 0.5933,
+          "reason": "validated play EV=9.6% @ betmgm",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 2,
-        "away_votes": 3,
+        "home_votes": 3,
+        "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "Over",
-          "public": "Under",
-          "fade_public": true
+          "fade_public": false,
+          "side": "Under"
         },
         "money_vs_public": {
-          "aligned": true,
-          "money": "Under",
+          "aligned": false,
+          "money": "Over",
           "public": "Under"
         },
         "rlm_active": false
       },
-      "consensus_side": "under",
-      "consensus_team": "Under",
+      "consensus_side": "over",
+      "consensus_team": "Over",
       "hybrid_agrees_with": [
         "model",
-        "public",
-        "money"
+        "money",
+        "sharp_edge"
       ],
       "conflict_stages": [
         "sharp",
-        "sharp_edge"
+        "public"
       ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:53+00:00",
+      "commence_time": "2026-09-27 17:02:53+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411241+00:00",
@@ -16902,11 +16900,11 @@
         "model": {
           "stage": "model",
           "market": "spread",
-          "side": "home",
-          "team": "CLE",
-          "line": 2.5,
-          "confidence": 0.5674,
-          "reason": "S_mod=+0.61 vs mkt +2.50 (home persp) \u2192 CLE covers",
+          "side": "away",
+          "team": "CAR",
+          "line": 3.0,
+          "confidence": 0.6282,
+          "reason": "S_mod=+0.61 vs mkt -3.00 (home persp) \u2192 CAR covers",
           "available": true
         },
         "sharp": {
@@ -16914,9 +16912,9 @@
           "market": "spread",
           "side": "home",
           "team": "CLE",
-          "line": 2.5,
-          "confidence": 0.5216,
-          "reason": "pinnacle no-vig 52.2% @ -116",
+          "line": -3.0,
+          "confidence": 0.5459,
+          "reason": "pinnacle no-vig 54.6% @ -131",
           "available": true
         },
         "public": {
@@ -16925,18 +16923,18 @@
           "side": "away",
           "team": "CAR",
           "line": -2.5,
-          "confidence": 0.78,
-          "reason": "tickets home=22% away=78%",
+          "confidence": 0.73,
+          "reason": "tickets home=27% away=73%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "spread",
-          "side": "away",
-          "team": "CAR",
-          "line": -2.5,
-          "confidence": 0.52,
-          "reason": "money home=48% away=52% (gap vs tickets -26% on away)",
+          "side": "home",
+          "team": "CLE",
+          "line": 2.5,
+          "confidence": 0.55,
+          "reason": "money home=55% away=45% (gap vs tickets +28% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -16945,8 +16943,8 @@
           "side": "home",
           "team": "CLE",
           "line": 2.5,
-          "confidence": 0.76,
-          "reason": "+26% money vs tickets on CLE",
+          "confidence": 0.78,
+          "reason": "+28% money vs tickets on CLE",
           "available": true
         },
         "rlm": {
@@ -16962,11 +16960,11 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "home",
-          "team": "CLE",
-          "line": 2.5,
-          "confidence": 0.5353,
-          "reason": "validated play EV=5.5% @ tipico_de",
+          "side": "away",
+          "team": "CAR",
+          "line": 3.0,
+          "confidence": 0.5026,
+          "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
@@ -16981,8 +16979,8 @@
           "fade_public": true
         },
         "money_vs_public": {
-          "aligned": true,
-          "money": "CAR",
+          "aligned": false,
+          "money": "CLE",
           "public": "CAR"
         },
         "rlm_active": false
@@ -16991,16 +16989,16 @@
       "consensus_team": "CLE",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
-        "sharp_edge"
+        "public"
       ],
       "conflict_stages": [
-        "public",
-        "money"
+        "sharp",
+        "money",
+        "sharp_edge"
       ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:57+00:00",
+      "commence_time": "2026-09-27 17:02:57+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411244+00:00",
@@ -17029,11 +17027,11 @@
         "sharp": {
           "stage": "sharp",
           "market": "h2h",
-          "side": "away",
-          "team": "CAR",
+          "side": "home",
+          "team": "CLE",
           "line": null,
-          "confidence": 0.5437,
-          "reason": "pinnacle no-vig 54.4% @ -127",
+          "confidence": 0.6395,
+          "reason": "pinnacle no-vig 64.0% @ -198",
           "available": true
         },
         "public": {
@@ -17042,8 +17040,8 @@
           "side": "away",
           "team": "CAR",
           "line": null,
-          "confidence": 0.88,
-          "reason": "tickets home=12% away=88%",
+          "confidence": 0.87,
+          "reason": "tickets home=0% away=87%",
           "available": true
         },
         "money": {
@@ -17052,8 +17050,8 @@
           "side": "away",
           "team": "CAR",
           "line": null,
-          "confidence": 0.94,
-          "reason": "money home=6% away=94% (gap vs tickets +6% on away)",
+          "confidence": 0.95,
+          "reason": "money home=0% away=95% (gap vs tickets +8% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -17062,8 +17060,8 @@
           "side": "away",
           "team": "CAR",
           "line": null,
-          "confidence": 0.56,
-          "reason": "+6% money vs tickets on CAR",
+          "confidence": 0.58,
+          "reason": "+8% money vs tickets on CAR",
           "available": true
         },
         "rlm": {
@@ -17083,18 +17081,19 @@
           "team": "CAR",
           "line": null,
           "confidence": 0.5002,
-          "reason": "model aligned with money+sharp (no validated edge)",
+          "reason": "model aligned with money (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 0,
-        "away_votes": 5,
-        "unanimous": true,
+        "home_votes": 1,
+        "away_votes": 4,
+        "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "CAR"
+          "sharp": "CLE",
+          "public": "CAR",
+          "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
@@ -17107,15 +17106,16 @@
       "consensus_team": "CAR",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
         "public",
         "money",
         "sharp_edge"
       ],
-      "conflict_stages": [],
+      "conflict_stages": [
+        "sharp"
+      ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:57+00:00",
+      "commence_time": "2026-09-27 17:02:57+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411247+00:00",
@@ -17136,49 +17136,49 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.0,
-          "confidence": 0.4464,
-          "reason": "T_mod=42.2 vs market 42.0",
+          "line": 36.0,
+          "confidence": 0.6254,
+          "reason": "T_mod=42.2 vs market 36.0",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 42.0,
-          "confidence": 0.5068,
-          "reason": "pinnacle no-vig 50.7% @ -110",
+          "side": "under",
+          "team": "Under",
+          "line": 36.0,
+          "confidence": 0.5087,
+          "reason": "pinnacle no-vig 50.9% @ -114",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 42.5,
-          "confidence": 0.51,
-          "reason": "tickets over=51% under=49%",
+          "side": "under",
+          "team": "Under",
+          "line": 41.5,
+          "confidence": 0.44,
+          "reason": "tickets over=0% under=44%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 42.5,
-          "confidence": 0.53,
-          "reason": "money over=53% under=47% (gap vs tickets +2% on over)",
+          "side": "under",
+          "team": "Under",
+          "line": 41.5,
+          "confidence": 0.51,
+          "reason": "money over=0% under=51% (gap vs tickets +7% on under)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 42.5,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on Over",
+          "side": "under",
+          "team": "Under",
+          "line": 41.5,
+          "confidence": 0.57,
+          "reason": "+7% money vs tickets on Under",
           "available": true
         },
         "rlm": {
@@ -17188,49 +17188,43 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "no totals RLM (public=over, 42.0\u219242.5)",
+          "reason": "no totals RLM (public=under, 42.0\u219241.5)",
           "available": false
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 42.0,
-          "confidence": 0.4464,
-          "reason": "model aligned with money+sharp (no validated edge)",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "model vs sharp gap 6.2 pts (\u22654) \u2014 Quant Pick suppressed",
+          "available": false
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 5,
-        "away_votes": 0,
-        "unanimous": true,
+        "n_available": 5,
+        "home_votes": 1,
+        "away_votes": 4,
+        "unanimous": false,
         "sharp_vs_public": {
           "fade_public": false,
-          "side": "Over"
+          "side": "Under"
         },
         "money_vs_public": {
           "aligned": true,
-          "money": "Over",
-          "public": "Over"
+          "money": "Under",
+          "public": "Under"
         },
         "rlm_active": false
       },
-      "consensus_side": "over",
-      "consensus_team": "Over",
-      "hybrid_agrees_with": [
-        "model",
-        "sharp",
-        "public",
-        "money",
-        "sharp_edge"
-      ],
+      "consensus_side": "under",
+      "consensus_team": "Under",
+      "hybrid_agrees_with": [],
       "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:57+00:00",
+      "commence_time": "2026-09-27 17:02:57+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411251+00:00",
@@ -17251,49 +17245,49 @@
           "market": "spread",
           "side": "home",
           "team": "PIT",
-          "line": 3.5,
-          "confidence": 0.6078,
-          "reason": "S_mod=+0.18 vs mkt +3.50 (home persp) \u2192 PIT covers",
+          "line": 3.0,
+          "confidence": 0.5772,
+          "reason": "S_mod=+0.18 vs mkt +3.00 (home persp) \u2192 PIT covers",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "spread",
-          "side": "home",
-          "team": "PIT",
-          "line": 3.5,
-          "confidence": 0.5193,
-          "reason": "pinnacle no-vig 51.9% @ -115",
+          "side": "away",
+          "team": "CIN",
+          "line": -3.0,
+          "confidence": 0.5279,
+          "reason": "pinnacle no-vig 52.8% @ -124",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "spread",
-          "side": "away",
-          "team": "CIN",
-          "line": -3.5,
-          "confidence": 0.75,
-          "reason": "tickets home=25% away=75%",
+          "side": "home",
+          "team": "PIT",
+          "line": 3.5,
+          "confidence": 0.28,
+          "reason": "tickets home=28% away=0%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "spread",
-          "side": "away",
-          "team": "CIN",
-          "line": -3.5,
-          "confidence": 0.81,
-          "reason": "money home=19% away=81% (gap vs tickets +6% on away)",
+          "side": "home",
+          "team": "PIT",
+          "line": 3.5,
+          "confidence": 0.56,
+          "reason": "money home=56% away=0% (gap vs tickets +28% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "away",
-          "team": "CIN",
-          "line": -3.5,
-          "confidence": 0.56,
-          "reason": "+6% money vs tickets on CIN",
+          "side": "home",
+          "team": "PIT",
+          "line": 3.5,
+          "confidence": 0.78,
+          "reason": "+28% money vs tickets on PIT",
           "available": true
         },
         "rlm": {
@@ -17311,43 +17305,43 @@
           "market": "spread",
           "side": "home",
           "team": "PIT",
-          "line": 3.5,
-          "confidence": 0.6078,
-          "reason": "model aligned with sharp (no validated edge)",
+          "line": 5.5,
+          "confidence": 0.5829,
+          "reason": "validated play EV=9.0% @ hardrockbet",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 2,
-        "away_votes": 3,
+        "home_votes": 4,
+        "away_votes": 1,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "PIT",
-          "public": "CIN",
+          "sharp": "CIN",
+          "public": "PIT",
           "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
-          "money": "CIN",
-          "public": "CIN"
+          "money": "PIT",
+          "public": "PIT"
         },
         "rlm_active": false
       },
-      "consensus_side": "away",
-      "consensus_team": "CIN",
+      "consensus_side": "home",
+      "consensus_team": "PIT",
       "hybrid_agrees_with": [
         "model",
-        "sharp"
-      ],
-      "conflict_stages": [
         "public",
         "money",
         "sharp_edge"
       ],
+      "conflict_stages": [
+        "sharp"
+      ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:37+00:00",
+      "commence_time": "2026-09-27 17:02:37+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411254+00:00",
@@ -17379,39 +17373,39 @@
           "side": "away",
           "team": "CIN",
           "line": null,
-          "confidence": 0.6229,
-          "reason": "pinnacle no-vig 62.3% @ -180",
+          "confidence": 0.6481,
+          "reason": "pinnacle no-vig 64.8% @ -212",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "h2h",
-          "side": "away",
-          "team": "CIN",
+          "side": "home",
+          "team": "PIT",
           "line": null,
-          "confidence": 0.9,
-          "reason": "tickets home=10% away=90%",
+          "confidence": 0.09,
+          "reason": "tickets home=9% away=0%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "h2h",
-          "side": "away",
-          "team": "CIN",
+          "side": "home",
+          "team": "PIT",
           "line": null,
-          "confidence": 0.96,
-          "reason": "money home=4% away=96% (gap vs tickets +6% on away)",
+          "confidence": 0.08,
+          "reason": "money home=8% away=0% (gap vs tickets -1% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": "away",
-          "team": "CIN",
+          "side": null,
+          "team": null,
           "line": null,
-          "confidence": 0.56,
-          "reason": "+6% money vs tickets on CIN",
-          "available": true
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -17430,39 +17424,40 @@
           "team": "CIN",
           "line": null,
           "confidence": 0.4866,
-          "reason": "model aligned with money+sharp (no validated edge)",
+          "reason": "model aligned with sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 0,
-        "away_votes": 5,
-        "unanimous": true,
+        "n_available": 5,
+        "home_votes": 2,
+        "away_votes": 2,
+        "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "CIN"
+          "sharp": "CIN",
+          "public": "PIT",
+          "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
-          "money": "CIN",
-          "public": "CIN"
+          "money": "PIT",
+          "public": "PIT"
         },
         "rlm_active": false
       },
-      "consensus_side": "away",
-      "consensus_team": "CIN",
+      "consensus_side": null,
+      "consensus_team": null,
       "hybrid_agrees_with": [
         "model",
-        "sharp",
-        "public",
-        "money",
-        "sharp_edge"
+        "sharp"
       ],
-      "conflict_stages": [],
+      "conflict_stages": [
+        "public",
+        "money"
+      ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:37+00:00",
+      "commence_time": "2026-09-27 17:02:37+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411257+00:00",
@@ -17483,9 +17478,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 43.0,
-          "confidence": 0.6276,
-          "reason": "T_mod=40.5 vs market 43.0",
+          "line": 56.5,
+          "confidence": 0.8808,
+          "reason": "T_mod=40.5 vs market 56.5",
           "available": true
         },
         "sharp": {
@@ -17493,19 +17488,19 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 43.0,
-          "confidence": 0.5235,
-          "reason": "pinnacle no-vig 52.4% @ -118",
+          "line": 56.5,
+          "confidence": 0.5499,
+          "reason": "pinnacle no-vig 55.0% @ -133",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "total",
-          "side": "under",
-          "team": "Under",
+          "side": "over",
+          "team": "Over",
           "line": 42.5,
-          "confidence": 0.54,
-          "reason": "tickets over=46% under=54%",
+          "confidence": 0.5,
+          "reason": "tickets over=50% under=50%",
           "available": true
         },
         "money": {
@@ -17514,8 +17509,8 @@
           "side": "under",
           "team": "Under",
           "line": 42.5,
-          "confidence": 0.6,
-          "reason": "money over=40% under=60% (gap vs tickets +6% on under)",
+          "confidence": 0.58,
+          "reason": "money over=42% under=58% (gap vs tickets +8% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -17524,8 +17519,8 @@
           "side": "under",
           "team": "Under",
           "line": 42.5,
-          "confidence": 0.56,
-          "reason": "+6% money vs tickets on Under",
+          "confidence": 0.58,
+          "reason": "+8% money vs tickets on Under",
           "available": true
         },
         "rlm": {
@@ -17543,25 +17538,26 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 43.0,
-          "confidence": 0.6276,
+          "line": 56.5,
+          "confidence": 0.8808,
           "reason": "model aligned with money+sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 0,
-        "away_votes": 5,
-        "unanimous": true,
+        "home_votes": 1,
+        "away_votes": 4,
+        "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "Under"
+          "sharp": "Under",
+          "public": "Over",
+          "fade_public": true
         },
         "money_vs_public": {
-          "aligned": true,
+          "aligned": false,
           "money": "Under",
-          "public": "Under"
+          "public": "Over"
         },
         "rlm_active": false
       },
@@ -17570,14 +17566,15 @@
       "hybrid_agrees_with": [
         "model",
         "sharp",
-        "public",
         "money",
         "sharp_edge"
       ],
-      "conflict_stages": [],
+      "conflict_stages": [
+        "public"
+      ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:37+00:00",
+      "commence_time": "2026-09-27 17:02:37+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411260+00:00",
@@ -17598,19 +17595,19 @@
           "market": "spread",
           "side": "away",
           "team": "NYJ",
-          "line": 7.0,
-          "confidence": 0.5524,
-          "reason": "S_mod=-6.32 vs mkt -7.00 (home persp) \u2192 NYJ covers",
+          "line": 10.0,
+          "confidence": 0.6442,
+          "reason": "S_mod=-6.32 vs mkt -10.00 (home persp) \u2192 NYJ covers",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "spread",
-          "side": "away",
-          "team": "NYJ",
-          "line": 7.0,
-          "confidence": 0.5313,
-          "reason": "pinnacle no-vig 53.1% @ -121",
+          "side": "home",
+          "team": "DET",
+          "line": -10.0,
+          "confidence": 0.5097,
+          "reason": "pinnacle no-vig 51.0% @ -115",
           "available": true
         },
         "public": {
@@ -17618,9 +17615,9 @@
           "market": "spread",
           "side": "home",
           "team": "DET",
-          "line": -6.5,
-          "confidence": 0.73,
-          "reason": "tickets home=73% away=27%",
+          "line": -7.0,
+          "confidence": 0.74,
+          "reason": "tickets home=74% away=26%",
           "available": true
         },
         "money": {
@@ -17628,9 +17625,9 @@
           "market": "spread",
           "side": "home",
           "team": "DET",
-          "line": -6.5,
-          "confidence": 0.76,
-          "reason": "money home=76% away=24% (gap vs tickets +3% on home)",
+          "line": -7.0,
+          "confidence": 0.85,
+          "reason": "money home=85% away=15% (gap vs tickets +11% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -17638,9 +17635,9 @@
           "market": "spread",
           "side": "home",
           "team": "DET",
-          "line": -6.5,
-          "confidence": 0.53,
-          "reason": "+3% money vs tickets on DET",
+          "line": -7.0,
+          "confidence": 0.61,
+          "reason": "+11% money vs tickets on DET",
           "available": true
         },
         "rlm": {
@@ -17650,7 +17647,7 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "line flat (-6.5\u2192-6.5)",
+          "reason": "no RLM (public=home, line -6.5\u2192-7.0)",
           "available": false
         },
         "hybrid": {
@@ -17658,21 +17655,20 @@
           "market": "spread",
           "side": "away",
           "team": "NYJ",
-          "line": 7.0,
-          "confidence": 0.5524,
-          "reason": "model aligned with sharp (no validated edge)",
+          "line": 10.0,
+          "confidence": 0.5154,
+          "reason": "model lean only \u2014 no confirming market stage",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 3,
-        "away_votes": 2,
+        "home_votes": 4,
+        "away_votes": 1,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "NYJ",
-          "public": "DET",
-          "fade_public": true
+          "fade_public": false,
+          "side": "DET"
         },
         "money_vs_public": {
           "aligned": true,
@@ -17684,17 +17680,17 @@
       "consensus_side": "home",
       "consensus_team": "DET",
       "hybrid_agrees_with": [
-        "model",
-        "sharp"
+        "model"
       ],
       "conflict_stages": [
+        "sharp",
         "public",
         "money",
         "sharp_edge"
       ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:48+00:00",
+      "commence_time": "2026-09-27 17:02:48+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411263+00:00",
@@ -17726,8 +17722,8 @@
           "side": "home",
           "team": "DET",
           "line": null,
-          "confidence": 0.7221,
-          "reason": "pinnacle no-vig 72.2% @ -295",
+          "confidence": 0.8683,
+          "reason": "pinnacle no-vig 86.8% @ -933",
           "available": true
         },
         "public": {
@@ -17746,8 +17742,8 @@
           "side": "home",
           "team": "DET",
           "line": null,
-          "confidence": 0.97,
-          "reason": "money home=97% away=3% (gap vs tickets +2% on home)",
+          "confidence": 0.98,
+          "reason": "money home=98% away=2% (gap vs tickets +3% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -17756,8 +17752,8 @@
           "side": "home",
           "team": "DET",
           "line": null,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on DET",
+          "confidence": 0.53,
+          "reason": "+3% money vs tickets on DET",
           "available": true
         },
         "rlm": {
@@ -17808,8 +17804,8 @@
       ],
       "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:48+00:00",
+      "commence_time": "2026-09-27 17:02:48+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411266+00:00",
@@ -17828,31 +17824,31 @@
         "model": {
           "stage": "model",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 48.0,
-          "confidence": 0.6118,
-          "reason": "T_mod=46.1 vs market 48.0",
+          "side": "over",
+          "team": "Over",
+          "line": 45.0,
+          "confidence": 0.4702,
+          "reason": "T_mod=46.1 vs market 45.0",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 48.0,
-          "confidence": 0.5045,
-          "reason": "pinnacle no-vig 50.5% @ -109",
+          "side": "under",
+          "team": "Under",
+          "line": 45.0,
+          "confidence": 0.5105,
+          "reason": "pinnacle no-vig 51.1% @ -117",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 48.5,
-          "confidence": 0.75,
-          "reason": "tickets over=25% under=75%",
+          "side": "over",
+          "team": "Over",
+          "line": 43.5,
+          "confidence": 0.0,
+          "reason": "tickets over=0% under=0%",
           "available": true
         },
         "money": {
@@ -17860,39 +17856,39 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 48.5,
-          "confidence": 0.51,
-          "reason": "money over=51% under=49% (gap vs tickets +26% on over)",
+          "line": 43.5,
+          "confidence": 0.0,
+          "reason": "money over=0% under=0% (gap vs tickets +0% on over)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 48.5,
-          "confidence": 0.76,
-          "reason": "+26% money vs tickets on Over",
-          "available": true
-        },
-        "rlm": {
-          "stage": "rlm",
-          "market": "total",
           "side": null,
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "total flat (48.5\u219248.5)",
+          "reason": "no positive money-ticket diff",
           "available": false
+        },
+        "rlm": {
+          "stage": "rlm",
+          "market": "total",
+          "side": "under",
+          "team": "Under",
+          "line": 43.5,
+          "confidence": 0.6,
+          "reason": "RLM: public over but total 48.5\u219243.5",
+          "available": true
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 48.0,
-          "confidence": 0.4894,
-          "reason": "model lean only \u2014 no confirming market stage",
+          "side": "over",
+          "team": "Over",
+          "line": 45.0,
+          "confidence": 0.4702,
+          "reason": "model aligned with money (no validated edge)",
           "available": true
         }
       },
@@ -17902,31 +17898,31 @@
         "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "Over",
-          "public": "Under",
+          "sharp": "Under",
+          "public": "Over",
           "fade_public": true
         },
         "money_vs_public": {
-          "aligned": false,
+          "aligned": true,
           "money": "Over",
-          "public": "Under"
+          "public": "Over"
         },
-        "rlm_active": false
+        "rlm_active": true
       },
       "consensus_side": "over",
       "consensus_team": "Over",
       "hybrid_agrees_with": [
         "model",
-        "public"
+        "public",
+        "money"
       ],
       "conflict_stages": [
         "sharp",
-        "money",
-        "sharp_edge"
+        "rlm"
       ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:48+00:00",
+      "commence_time": "2026-09-27 17:02:48+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411269+00:00",
@@ -17945,11 +17941,11 @@
         "model": {
           "stage": "model",
           "market": "spread",
-          "side": "home",
-          "team": "IND",
-          "line": 2.0,
-          "confidence": 0.543,
-          "reason": "S_mod=+0.28 vs mkt +2.00 (home persp) \u2192 IND covers",
+          "side": "away",
+          "team": "HOU",
+          "line": 5.5,
+          "confidence": 0.681,
+          "reason": "S_mod=+0.28 vs mkt -5.50 (home persp) \u2192 HOU covers",
           "available": true
         },
         "sharp": {
@@ -17957,9 +17953,9 @@
           "market": "spread",
           "side": "home",
           "team": "IND",
-          "line": 2.0,
-          "confidence": 0.5171,
-          "reason": "pinnacle no-vig 51.7% @ -114",
+          "line": -5.5,
+          "confidence": 0.5166,
+          "reason": "pinnacle no-vig 51.7% @ -116",
           "available": true
         },
         "public": {
@@ -17967,9 +17963,9 @@
           "market": "spread",
           "side": "home",
           "team": "IND",
-          "line": 1.5,
-          "confidence": 0.57,
-          "reason": "tickets home=57% away=43%",
+          "line": -5.5,
+          "confidence": 0.0,
+          "reason": "tickets home=0% away=0%",
           "available": true
         },
         "money": {
@@ -17977,20 +17973,20 @@
           "market": "spread",
           "side": "home",
           "team": "IND",
-          "line": 1.5,
-          "confidence": 0.68,
-          "reason": "money home=68% away=32% (gap vs tickets +11% on home)",
+          "line": -5.5,
+          "confidence": 0.0,
+          "reason": "money home=0% away=0% (gap vs tickets +0% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "home",
-          "team": "IND",
-          "line": 1.5,
-          "confidence": 0.61,
-          "reason": "+11% money vs tickets on IND",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -17999,25 +17995,25 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "no RLM (public=home, line 2.5\u21921.5)",
+          "reason": "no RLM (public=home, line 2.5\u2192-5.5)",
           "available": false
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "home",
-          "team": "IND",
-          "line": 2.0,
-          "confidence": 0.543,
-          "reason": "model aligned with money+sharp (no validated edge)",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "model vs sharp gap 5.8 pts (\u22654) \u2014 Quant Pick suppressed",
+          "available": false
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 5,
-        "away_votes": 0,
-        "unanimous": true,
+        "n_available": 4,
+        "home_votes": 3,
+        "away_votes": 1,
+        "unanimous": false,
         "sharp_vs_public": {
           "fade_public": false,
           "side": "IND"
@@ -18031,17 +18027,11 @@
       },
       "consensus_side": "home",
       "consensus_team": "IND",
-      "hybrid_agrees_with": [
-        "model",
-        "sharp",
-        "public",
-        "money",
-        "sharp_edge"
-      ],
+      "hybrid_agrees_with": [],
       "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:03:23+00:00",
+      "commence_time": "2026-09-27 17:03:23+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411272+00:00",
@@ -18070,11 +18060,11 @@
         "sharp": {
           "stage": "sharp",
           "market": "h2h",
-          "side": "away",
-          "team": "HOU",
+          "side": "home",
+          "team": "IND",
           "line": null,
-          "confidence": 0.5325,
-          "reason": "pinnacle no-vig 53.2% @ -121",
+          "confidence": 0.7286,
+          "reason": "pinnacle no-vig 72.9% @ -310",
           "available": true
         },
         "public": {
@@ -18083,8 +18073,8 @@
           "side": "away",
           "team": "HOU",
           "line": null,
-          "confidence": 0.63,
-          "reason": "tickets home=37% away=63%",
+          "confidence": 0.65,
+          "reason": "tickets home=0% away=65%",
           "available": true
         },
         "money": {
@@ -18093,18 +18083,18 @@
           "side": "away",
           "team": "HOU",
           "line": null,
-          "confidence": 0.6,
-          "reason": "money home=40% away=60% (gap vs tickets -3% on away)",
+          "confidence": 0.7,
+          "reason": "money home=0% away=70% (gap vs tickets +5% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": "home",
-          "team": "IND",
+          "side": "away",
+          "team": "HOU",
           "line": null,
-          "confidence": 0.53,
-          "reason": "+3% money vs tickets on IND",
+          "confidence": 0.55,
+          "reason": "+5% money vs tickets on HOU",
           "available": true
         },
         "rlm": {
@@ -18120,22 +18110,23 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "h2h",
-          "side": "away",
-          "team": "HOU",
+          "side": null,
+          "team": null,
           "line": null,
-          "confidence": 0.4922,
-          "reason": "model aligned with money+sharp (no validated edge)",
-          "available": true
+          "confidence": null,
+          "reason": "model vs sharp gap 5.8 pts (\u22654) \u2014 Quant Pick suppressed",
+          "available": false
         }
       },
       "agreement": {
-        "n_available": 6,
+        "n_available": 5,
         "home_votes": 1,
         "away_votes": 4,
         "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "HOU"
+          "sharp": "IND",
+          "public": "HOU",
+          "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
@@ -18146,18 +18137,11 @@
       },
       "consensus_side": "away",
       "consensus_team": "HOU",
-      "hybrid_agrees_with": [
-        "model",
-        "sharp",
-        "public",
-        "money"
-      ],
-      "conflict_stages": [
-        "sharp_edge"
-      ],
+      "hybrid_agrees_with": [],
+      "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:03:23+00:00",
+      "commence_time": "2026-09-27 17:03:23+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411275+00:00",
@@ -18178,19 +18162,19 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.476,
-          "reason": "T_mod=43.2 vs market 42.5",
+          "line": 36.5,
+          "confidence": 0.6544,
+          "reason": "T_mod=43.2 vs market 36.5",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 42.5,
-          "confidence": 0.509,
-          "reason": "pinnacle no-vig 50.9% @ -111",
+          "side": "over",
+          "team": "Over",
+          "line": 36.5,
+          "confidence": 0.5298,
+          "reason": "pinnacle no-vig 53.0% @ -122",
           "available": true
         },
         "public": {
@@ -18199,8 +18183,8 @@
           "side": "under",
           "team": "Under",
           "line": 42.5,
-          "confidence": 0.62,
-          "reason": "tickets over=38% under=62%",
+          "confidence": 0.5,
+          "reason": "tickets over=0% under=50%",
           "available": true
         },
         "money": {
@@ -18209,8 +18193,8 @@
           "side": "under",
           "team": "Under",
           "line": 42.5,
-          "confidence": 0.64,
-          "reason": "money over=36% under=64% (gap vs tickets +2% on under)",
+          "confidence": 0.59,
+          "reason": "money over=0% under=59% (gap vs tickets +9% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -18219,8 +18203,8 @@
           "side": "under",
           "team": "Under",
           "line": 42.5,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on Under",
+          "confidence": 0.59,
+          "reason": "+9% money vs tickets on Under",
           "available": true
         },
         "rlm": {
@@ -18238,20 +18222,21 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.3808,
-          "reason": "model lean only \u2014 no confirming market stage",
+          "line": 36.5,
+          "confidence": 0.6544,
+          "reason": "model aligned with sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 1,
-        "away_votes": 4,
+        "home_votes": 2,
+        "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "Under"
+          "sharp": "Over",
+          "public": "Under",
+          "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
@@ -18263,17 +18248,17 @@
       "consensus_side": "under",
       "consensus_team": "Under",
       "hybrid_agrees_with": [
-        "model"
+        "model",
+        "sharp"
       ],
       "conflict_stages": [
-        "sharp",
         "public",
         "money",
         "sharp_edge"
       ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:03:23+00:00",
+      "commence_time": "2026-09-27 17:03:23+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411278+00:00",
@@ -18294,9 +18279,9 @@
           "market": "spread",
           "side": "away",
           "team": "NE",
-          "line": 2.5,
-          "confidence": 0.5318,
-          "reason": "S_mod=-1.71 vs mkt -2.50 (home persp) \u2192 NE covers",
+          "line": 7.5,
+          "confidence": 0.6852,
+          "reason": "S_mod=-1.71 vs mkt -7.50 (home persp) \u2192 NE covers",
           "available": true
         },
         "sharp": {
@@ -18304,9 +18289,9 @@
           "market": "spread",
           "side": "home",
           "team": "JAX",
-          "line": -2.5,
-          "confidence": 0.5238,
-          "reason": "pinnacle no-vig 52.4% @ -117",
+          "line": -7.5,
+          "confidence": 0.5439,
+          "reason": "pinnacle no-vig 54.4% @ -130",
           "available": true
         },
         "public": {
@@ -18314,9 +18299,9 @@
           "market": "spread",
           "side": "away",
           "team": "NE",
-          "line": 2.5,
-          "confidence": 0.63,
-          "reason": "tickets home=37% away=63%",
+          "line": 3.0,
+          "confidence": 0.59,
+          "reason": "tickets home=41% away=59%",
           "available": true
         },
         "money": {
@@ -18324,19 +18309,19 @@
           "market": "spread",
           "side": "away",
           "team": "NE",
-          "line": 2.5,
-          "confidence": 0.54,
-          "reason": "money home=46% away=54% (gap vs tickets -9% on away)",
+          "line": 3.0,
+          "confidence": 0.63,
+          "reason": "money home=37% away=63% (gap vs tickets +4% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "home",
-          "team": "JAX",
-          "line": -2.5,
-          "confidence": 0.59,
-          "reason": "+9% money vs tickets on JAX",
+          "side": "away",
+          "team": "NE",
+          "line": 3.0,
+          "confidence": 0.54,
+          "reason": "+4% money vs tickets on NE",
           "available": true
         },
         "rlm": {
@@ -18346,24 +18331,24 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "no RLM (public=away, line -3.0\u2192-2.5)",
+          "reason": "line flat (-3.0\u2192-3.0)",
           "available": false
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "away",
-          "team": "NE",
-          "line": 2.5,
-          "confidence": 0.5318,
-          "reason": "model aligned with money (no validated edge)",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "model vs sharp gap 5.8 pts (\u22654) \u2014 Quant Pick suppressed",
+          "available": false
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 2,
-        "away_votes": 3,
+        "n_available": 5,
+        "home_votes": 1,
+        "away_votes": 4,
         "unanimous": false,
         "sharp_vs_public": {
           "sharp": "JAX",
@@ -18379,18 +18364,11 @@
       },
       "consensus_side": "away",
       "consensus_team": "NE",
-      "hybrid_agrees_with": [
-        "model",
-        "public",
-        "money"
-      ],
-      "conflict_stages": [
-        "sharp",
-        "sharp_edge"
-      ],
+      "hybrid_agrees_with": [],
+      "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:40+00:00",
+      "commence_time": "2026-09-27 17:02:40+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411281+00:00",
@@ -18422,8 +18400,8 @@
           "side": "home",
           "team": "JAX",
           "line": null,
-          "confidence": 0.5813,
-          "reason": "pinnacle no-vig 58.1% @ -149",
+          "confidence": 0.84,
+          "reason": "pinnacle no-vig 84.0% @ -663",
           "available": true
         },
         "public": {
@@ -18432,8 +18410,8 @@
           "side": "home",
           "team": "JAX",
           "line": null,
-          "confidence": 0.58,
-          "reason": "tickets home=58% away=42%",
+          "confidence": 0.0,
+          "reason": "tickets home=0% away=0%",
           "available": true
         },
         "money": {
@@ -18442,19 +18420,19 @@
           "side": "home",
           "team": "JAX",
           "line": null,
-          "confidence": 0.63,
-          "reason": "money home=63% away=37% (gap vs tickets +5% on home)",
+          "confidence": 0.0,
+          "reason": "money home=0% away=0% (gap vs tickets +0% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": "home",
-          "team": "JAX",
+          "side": null,
+          "team": null,
           "line": null,
-          "confidence": 0.55,
-          "reason": "+5% money vs tickets on JAX",
-          "available": true
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -18478,8 +18456,8 @@
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 5,
+        "n_available": 5,
+        "home_votes": 4,
         "away_votes": 0,
         "unanimous": true,
         "sharp_vs_public": {
@@ -18499,13 +18477,12 @@
         "model",
         "sharp",
         "public",
-        "money",
-        "sharp_edge"
+        "money"
       ],
       "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:40+00:00",
+      "commence_time": "2026-09-27 17:02:40+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411285+00:00",
@@ -18524,21 +18501,21 @@
         "model": {
           "stage": "model",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 45.5,
-          "confidence": 0.6,
-          "reason": "T_mod=43.5 vs market 45.5",
+          "side": "over",
+          "team": "Over",
+          "line": 40.5,
+          "confidence": 0.5436,
+          "reason": "T_mod=43.5 vs market 40.5",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 45.5,
-          "confidence": 0.5213,
-          "reason": "pinnacle no-vig 52.1% @ -117",
+          "side": "under",
+          "team": "Under",
+          "line": 40.5,
+          "confidence": 0.5285,
+          "reason": "pinnacle no-vig 52.9% @ -122",
           "available": true
         },
         "public": {
@@ -18547,8 +18524,8 @@
           "side": "under",
           "team": "Under",
           "line": 46.5,
-          "confidence": 0.71,
-          "reason": "tickets over=29% under=71%",
+          "confidence": 0.56,
+          "reason": "tickets over=44% under=56%",
           "available": true
         },
         "money": {
@@ -18557,8 +18534,8 @@
           "side": "under",
           "team": "Under",
           "line": 46.5,
-          "confidence": 0.66,
-          "reason": "money over=34% under=66% (gap vs tickets -5% on under)",
+          "confidence": 0.53,
+          "reason": "money over=47% under=53% (gap vs tickets -3% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -18567,8 +18544,8 @@
           "side": "over",
           "team": "Over",
           "line": 46.5,
-          "confidence": 0.55,
-          "reason": "+5% money vs tickets on Over",
+          "confidence": 0.53,
+          "reason": "+3% money vs tickets on Over",
           "available": true
         },
         "rlm": {
@@ -18584,11 +18561,11 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 45.5,
-          "confidence": 0.6,
-          "reason": "model aligned with money (no validated edge)",
+          "side": "over",
+          "team": "Over",
+          "line": 34.5,
+          "confidence": 0.6676,
+          "reason": "validated play EV=28.0% @ betparx",
           "available": true
         }
       },
@@ -18598,9 +18575,8 @@
         "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "Over",
-          "public": "Under",
-          "fade_public": true
+          "fade_public": false,
+          "side": "Under"
         },
         "money_vs_public": {
           "aligned": true,
@@ -18613,17 +18589,17 @@
       "consensus_team": null,
       "hybrid_agrees_with": [
         "model",
-        "public",
-        "money"
-      ],
-      "conflict_stages": [
-        "sharp",
         "sharp_edge",
         "rlm"
       ],
+      "conflict_stages": [
+        "sharp",
+        "public",
+        "money"
+      ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:40+00:00",
+      "commence_time": "2026-09-27 17:02:40+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411288+00:00",
@@ -18644,19 +18620,19 @@
           "market": "spread",
           "side": "home",
           "team": "MIA",
-          "line": 11.5,
-          "confidence": 0.7702,
-          "reason": "S_mod=+2.08 vs mkt +11.50 (home persp) \u2192 MIA covers",
+          "line": 6.0,
+          "confidence": 0.6088,
+          "reason": "S_mod=+2.08 vs mkt +6.00 (home persp) \u2192 MIA covers",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "spread",
-          "side": "home",
-          "team": "MIA",
-          "line": 11.5,
-          "confidence": 0.5544,
-          "reason": "pinnacle no-vig 55.4% @ -133",
+          "side": "away",
+          "team": "KC",
+          "line": -6.0,
+          "confidence": 0.5255,
+          "reason": "pinnacle no-vig 52.5% @ -120",
           "available": true
         },
         "public": {
@@ -18664,9 +18640,9 @@
           "market": "spread",
           "side": "away",
           "team": "KC",
-          "line": -10.5,
-          "confidence": 0.88,
-          "reason": "tickets home=12% away=88%",
+          "line": -7.5,
+          "confidence": 0.86,
+          "reason": "tickets home=0% away=86%",
           "available": true
         },
         "money": {
@@ -18674,29 +18650,29 @@
           "market": "spread",
           "side": "away",
           "team": "KC",
-          "line": -10.5,
-          "confidence": 0.85,
-          "reason": "money home=15% away=85% (gap vs tickets -3% on away)",
+          "line": -7.5,
+          "confidence": 0.64,
+          "reason": "money home=0% away=64% (gap vs tickets -22% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "home",
-          "team": "MIA",
-          "line": 10.5,
-          "confidence": 0.53,
-          "reason": "+3% money vs tickets on MIA",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
           "market": "spread",
           "side": "home",
           "team": "MIA",
-          "line": 10.5,
+          "line": 7.5,
           "confidence": 0.6,
-          "reason": "RLM: public 88% away but line 11.5\u219210.5 toward home",
+          "reason": "RLM: public 86% away but line 11.5\u21927.5 toward home",
           "available": true
         },
         "hybrid": {
@@ -18704,21 +18680,20 @@
           "market": "spread",
           "side": "home",
           "team": "MIA",
-          "line": 10.0,
-          "confidence": 0.5739,
-          "reason": "validated play EV=14.8% @ matchbook",
+          "line": 9.5,
+          "confidence": 0.6209,
+          "reason": "validated play EV=16.6% @ williamhill_us",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 7,
-        "home_votes": 4,
-        "away_votes": 2,
+        "n_available": 6,
+        "home_votes": 2,
+        "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "MIA",
-          "public": "KC",
-          "fade_public": true
+          "fade_public": false,
+          "side": "KC"
         },
         "money_vs_public": {
           "aligned": true,
@@ -18727,21 +18702,20 @@
         },
         "rlm_active": true
       },
-      "consensus_side": "home",
-      "consensus_team": "MIA",
+      "consensus_side": "away",
+      "consensus_team": "KC",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
-        "sharp_edge",
         "rlm"
       ],
       "conflict_stages": [
+        "sharp",
         "public",
         "money"
       ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:38+00:00",
+      "commence_time": "2026-09-27 17:02:38+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411291+00:00",
@@ -18773,39 +18747,39 @@
           "side": "away",
           "team": "KC",
           "line": null,
-          "confidence": 0.8469,
-          "reason": "pinnacle no-vig 84.7% @ -729",
+          "confidence": 0.8111,
+          "reason": "pinnacle no-vig 81.1% @ -527",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "h2h",
-          "side": "away",
-          "team": "KC",
+          "side": "home",
+          "team": "MIA",
           "line": null,
-          "confidence": 0.98,
-          "reason": "tickets home=2% away=98%",
+          "confidence": 0.0,
+          "reason": "tickets home=0% away=0%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "h2h",
-          "side": "away",
-          "team": "KC",
+          "side": "home",
+          "team": "MIA",
           "line": null,
-          "confidence": 0.95,
-          "reason": "money home=5% away=95% (gap vs tickets -3% on away)",
+          "confidence": 0.0,
+          "reason": "money home=0% away=0% (gap vs tickets +0% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": "home",
-          "team": "MIA",
+          "side": null,
+          "team": null,
           "line": null,
-          "confidence": 0.53,
-          "reason": "+3% money vs tickets on MIA",
-          "available": true
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -18824,40 +18798,40 @@
           "team": "KC",
           "line": null,
           "confidence": 0.5448,
-          "reason": "model aligned with money+sharp (no validated edge)",
+          "reason": "model aligned with sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 1,
-        "away_votes": 4,
+        "n_available": 5,
+        "home_votes": 2,
+        "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "KC"
+          "sharp": "KC",
+          "public": "MIA",
+          "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
-          "money": "KC",
-          "public": "KC"
+          "money": "MIA",
+          "public": "MIA"
         },
         "rlm_active": false
       },
-      "consensus_side": "away",
-      "consensus_team": "KC",
+      "consensus_side": null,
+      "consensus_team": null,
       "hybrid_agrees_with": [
         "model",
-        "sharp",
+        "sharp"
+      ],
+      "conflict_stages": [
         "public",
         "money"
       ],
-      "conflict_stages": [
-        "sharp_edge"
-      ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:38+00:00",
+      "commence_time": "2026-09-27 17:02:38+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411294+00:00",
@@ -18878,103 +18852,96 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 45.0,
-          "confidence": 0.5116,
-          "reason": "T_mod=47.3 vs market 45.0",
+          "line": 41.5,
+          "confidence": 0.632,
+          "reason": "T_mod=47.3 vs market 41.5",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 45.0,
-          "confidence": 0.5068,
-          "reason": "pinnacle no-vig 50.7% @ -110",
+          "side": "under",
+          "team": "Under",
+          "line": 41.5,
+          "confidence": 0.5183,
+          "reason": "pinnacle no-vig 51.8% @ -119",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 45.5,
-          "confidence": 0.74,
-          "reason": "tickets over=26% under=74%",
+          "side": "over",
+          "team": "Over",
+          "line": 41.5,
+          "confidence": 0.0,
+          "reason": "tickets over=0% under=0%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 45.5,
-          "confidence": 0.75,
-          "reason": "money over=25% under=75% (gap vs tickets +1% on under)",
+          "side": "over",
+          "team": "Over",
+          "line": 41.5,
+          "confidence": 0.0,
+          "reason": "money over=0% under=0% (gap vs tickets +0% on over)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 45.5,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on Under",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
+          "market": "total",
+          "side": "under",
+          "team": "Under",
+          "line": 41.5,
+          "confidence": 0.6,
+          "reason": "RLM: public over but total 46.5\u219241.5",
+          "available": true
+        },
+        "hybrid": {
+          "stage": "hybrid",
           "market": "total",
           "side": null,
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "no totals RLM (public=under, 46.5\u219245.5)",
+          "reason": "model vs sharp gap 5.8 pts (\u22654) \u2014 Quant Pick suppressed",
           "available": false
-        },
-        "hybrid": {
-          "stage": "hybrid",
-          "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 45.0,
-          "confidence": 0.5116,
-          "reason": "model aligned with sharp (no validated edge)",
-          "available": true
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 2,
-        "away_votes": 3,
+        "n_available": 5,
+        "home_votes": 3,
+        "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "Over",
-          "public": "Under",
+          "sharp": "Under",
+          "public": "Over",
           "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
-          "money": "Under",
-          "public": "Under"
+          "money": "Over",
+          "public": "Over"
         },
-        "rlm_active": false
+        "rlm_active": true
       },
-      "consensus_side": "under",
-      "consensus_team": "Under",
-      "hybrid_agrees_with": [
-        "model",
-        "sharp"
-      ],
-      "conflict_stages": [
-        "public",
-        "money",
-        "sharp_edge"
-      ],
+      "consensus_side": "over",
+      "consensus_team": "Over",
+      "hybrid_agrees_with": [],
+      "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:38+00:00",
+      "commence_time": "2026-09-27 17:02:38+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411297+00:00",
@@ -18993,11 +18960,11 @@
         "model": {
           "stage": "model",
           "market": "spread",
-          "side": "home",
-          "team": "NYG",
-          "line": -2.5,
-          "confidence": 0.5318,
-          "reason": "S_mod=-3.72 vs mkt -2.50 (home persp) \u2192 NYG covers",
+          "side": "away",
+          "team": "TEN",
+          "line": 11.5,
+          "confidence": 0.7414,
+          "reason": "S_mod=-3.72 vs mkt -11.50 (home persp) \u2192 TEN covers",
           "available": true
         },
         "sharp": {
@@ -19005,40 +18972,40 @@
           "market": "spread",
           "side": "home",
           "team": "NYG",
-          "line": -2.5,
-          "confidence": 0.5,
-          "reason": "pinnacle no-vig 50.0% @ -106",
+          "line": -11.5,
+          "confidence": 0.5201,
+          "reason": "pinnacle no-vig 52.0% @ -117",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "spread",
-          "side": "away",
-          "team": "TEN",
-          "line": 2.5,
-          "confidence": 0.71,
-          "reason": "tickets home=29% away=71%",
+          "side": "home",
+          "team": "NYG",
+          "line": -11.5,
+          "confidence": 0.0,
+          "reason": "tickets home=0% away=0%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "spread",
-          "side": "away",
-          "team": "TEN",
-          "line": 2.5,
-          "confidence": 0.72,
-          "reason": "money home=28% away=72% (gap vs tickets +1% on away)",
+          "side": "home",
+          "team": "NYG",
+          "line": -11.5,
+          "confidence": 0.0,
+          "reason": "money home=0% away=0% (gap vs tickets +0% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "away",
-          "team": "TEN",
-          "line": 2.5,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on TEN",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -19047,51 +19014,43 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "no RLM (public=away, line -3.0\u2192-2.5)",
+          "reason": "no RLM (public=home, line -3.0\u2192-11.5)",
           "available": false
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "home",
-          "team": "NYG",
-          "line": -2.5,
-          "confidence": 0.5318,
-          "reason": "model aligned with sharp (no validated edge)",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "model vs sharp gap 7.8 pts (\u22654) \u2014 Quant Pick suppressed",
+          "available": false
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 2,
-        "away_votes": 3,
+        "n_available": 4,
+        "home_votes": 3,
+        "away_votes": 1,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "NYG",
-          "public": "TEN",
-          "fade_public": true
+          "fade_public": false,
+          "side": "NYG"
         },
         "money_vs_public": {
           "aligned": true,
-          "money": "TEN",
-          "public": "TEN"
+          "money": "NYG",
+          "public": "NYG"
         },
         "rlm_active": false
       },
-      "consensus_side": "away",
-      "consensus_team": "TEN",
-      "hybrid_agrees_with": [
-        "model",
-        "sharp"
-      ],
-      "conflict_stages": [
-        "public",
-        "money",
-        "sharp_edge"
-      ],
+      "consensus_side": "home",
+      "consensus_team": "NYG",
+      "hybrid_agrees_with": [],
+      "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:56+00:00",
+      "commence_time": "2026-09-27 17:02:56+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411301+00:00",
@@ -19123,39 +19082,39 @@
           "side": "home",
           "team": "NYG",
           "line": null,
-          "confidence": 0.5583,
-          "reason": "pinnacle no-vig 55.8% @ -135",
+          "confidence": 0.8938,
+          "reason": "pinnacle no-vig 89.4% @ -1157",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "h2h",
-          "side": "home",
-          "team": "NYG",
+          "side": "away",
+          "team": "TEN",
           "line": null,
-          "confidence": 0.61,
-          "reason": "tickets home=61% away=39%",
+          "confidence": 0.39,
+          "reason": "tickets home=0% away=39%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "h2h",
-          "side": "home",
-          "team": "NYG",
+          "side": "away",
+          "team": "TEN",
           "line": null,
-          "confidence": 0.59,
-          "reason": "money home=59% away=41% (gap vs tickets -2% on home)",
+          "confidence": 0.2,
+          "reason": "money home=0% away=20% (gap vs tickets -19% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": "away",
-          "team": "TEN",
+          "side": null,
+          "team": null,
           "line": null,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on TEN",
-          "available": true
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -19174,40 +19133,40 @@
           "team": "NYG",
           "line": null,
           "confidence": 0.59,
-          "reason": "model aligned with money+sharp (no validated edge)",
+          "reason": "model aligned with sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 4,
-        "away_votes": 1,
+        "n_available": 5,
+        "home_votes": 2,
+        "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "NYG"
+          "sharp": "NYG",
+          "public": "TEN",
+          "fade_public": true
         },
         "money_vs_public": {
           "aligned": true,
-          "money": "NYG",
-          "public": "NYG"
+          "money": "TEN",
+          "public": "TEN"
         },
         "rlm_active": false
       },
-      "consensus_side": "home",
-      "consensus_team": "NYG",
+      "consensus_side": null,
+      "consensus_team": null,
       "hybrid_agrees_with": [
         "model",
-        "sharp",
+        "sharp"
+      ],
+      "conflict_stages": [
         "public",
         "money"
       ],
-      "conflict_stages": [
-        "sharp_edge"
-      ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:56+00:00",
+      "commence_time": "2026-09-27 17:02:56+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411304+00:00",
@@ -19228,9 +19187,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 38.5,
-          "confidence": 0.7112,
-          "reason": "T_mod=47.1 vs market 38.5",
+          "line": 25.5,
+          "confidence": 0.9646,
+          "reason": "T_mod=47.1 vs market 25.5",
           "available": true
         },
         "sharp": {
@@ -19238,9 +19197,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 38.5,
-          "confidence": 0.5235,
-          "reason": "pinnacle no-vig 52.4% @ -118",
+          "line": 25.5,
+          "confidence": 0.5342,
+          "reason": "pinnacle no-vig 53.4% @ -127",
           "available": true
         },
         "public": {
@@ -19248,9 +19207,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 38.5,
-          "confidence": 0.61,
-          "reason": "tickets over=61% under=39%",
+          "line": 37.5,
+          "confidence": 0.72,
+          "reason": "tickets over=72% under=28%",
           "available": true
         },
         "money": {
@@ -19258,9 +19217,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 38.5,
-          "confidence": 0.53,
-          "reason": "money over=53% under=47% (gap vs tickets -8% on over)",
+          "line": 37.5,
+          "confidence": 0.62,
+          "reason": "money over=62% under=38% (gap vs tickets -10% on over)",
           "available": true
         },
         "sharp_edge": {
@@ -19268,9 +19227,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 38.5,
-          "confidence": 0.58,
-          "reason": "+8% money vs tickets on Under",
+          "line": 37.5,
+          "confidence": 0.6,
+          "reason": "+10% money vs tickets on Under",
           "available": true
         },
         "rlm": {
@@ -19278,9 +19237,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 38.5,
+          "line": 37.5,
           "confidence": 0.6,
-          "reason": "RLM: public over but total 40.5\u219238.5",
+          "reason": "RLM: public over but total 40.5\u219237.5",
           "available": true
         },
         "hybrid": {
@@ -19290,7 +19249,7 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "model vs sharp gap 8.6 pts (\u22654) \u2014 Quant Pick suppressed",
+          "reason": "model vs sharp gap 21.6 pts (\u22654) \u2014 Quant Pick suppressed",
           "available": false
         }
       },
@@ -19316,8 +19275,8 @@
       "hybrid_agrees_with": [],
       "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:02:56+00:00",
+      "commence_time": "2026-09-27 17:02:56+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411307+00:00",
@@ -19336,11 +19295,11 @@
         "model": {
           "stage": "model",
           "market": "spread",
-          "side": "home",
-          "team": "WAS",
-          "line": 7.5,
-          "confidence": 0.5542,
-          "reason": "S_mod=+6.28 vs mkt +7.50 (home persp) \u2192 WAS covers",
+          "side": "away",
+          "team": "SEA",
+          "line": 1.0,
+          "confidence": 0.7238,
+          "reason": "S_mod=+6.28 vs mkt -1.00 (home persp) \u2192 SEA covers",
           "available": true
         },
         "sharp": {
@@ -19348,9 +19307,9 @@
           "market": "spread",
           "side": "away",
           "team": "SEA",
-          "line": -7.5,
-          "confidence": 0.5092,
-          "reason": "pinnacle no-vig 50.9% @ -110",
+          "line": 1.0,
+          "confidence": 0.5276,
+          "reason": "pinnacle no-vig 52.8% @ -121",
           "available": true
         },
         "public": {
@@ -19358,9 +19317,9 @@
           "market": "spread",
           "side": "away",
           "team": "SEA",
-          "line": -7.5,
-          "confidence": 0.89,
-          "reason": "tickets home=11% away=89%",
+          "line": -8.5,
+          "confidence": 0.88,
+          "reason": "tickets home=12% away=88%",
           "available": true
         },
         "money": {
@@ -19368,19 +19327,19 @@
           "market": "spread",
           "side": "away",
           "team": "SEA",
-          "line": -7.5,
-          "confidence": 0.9,
-          "reason": "money home=10% away=90% (gap vs tickets +1% on away)",
+          "line": -8.5,
+          "confidence": 0.85,
+          "reason": "money home=15% away=85% (gap vs tickets -3% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "away",
-          "team": "SEA",
-          "line": -7.5,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on SEA",
+          "side": "home",
+          "team": "WAS",
+          "line": 8.5,
+          "confidence": 0.53,
+          "reason": "+3% money vs tickets on WAS",
           "available": true
         },
         "rlm": {
@@ -19390,17 +19349,17 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "no RLM (public=away, line 7.0\u21927.5)",
+          "reason": "no RLM (public=away, line 7.0\u21928.5)",
           "available": false
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "home",
-          "team": "WAS",
-          "line": 7.5,
-          "confidence": 0.4434,
-          "reason": "model lean only \u2014 no confirming market stage",
+          "side": "away",
+          "team": "SEA",
+          "line": 1.0,
+          "confidence": 0.7238,
+          "reason": "model aligned with money+sharp (no validated edge)",
           "available": true
         }
       },
@@ -19423,17 +19382,17 @@
       "consensus_side": "away",
       "consensus_team": "SEA",
       "hybrid_agrees_with": [
-        "model"
-      ],
-      "conflict_stages": [
+        "model",
         "sharp",
         "public",
-        "money",
+        "money"
+      ],
+      "conflict_stages": [
         "sharp_edge"
       ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:03:12+00:00",
+      "commence_time": "2026-09-27 17:03:12+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411310+00:00",
@@ -19465,8 +19424,8 @@
           "side": "away",
           "team": "SEA",
           "line": null,
-          "confidence": 0.757,
-          "reason": "pinnacle no-vig 75.7% @ -364",
+          "confidence": 0.5089,
+          "reason": "pinnacle no-vig 50.9% @ -112",
           "available": true
         },
         "public": {
@@ -19475,8 +19434,8 @@
           "side": "away",
           "team": "SEA",
           "line": null,
-          "confidence": 0.97,
-          "reason": "tickets home=3% away=97%",
+          "confidence": 0.98,
+          "reason": "tickets home=2% away=98%",
           "available": true
         },
         "money": {
@@ -19485,18 +19444,18 @@
           "side": "away",
           "team": "SEA",
           "line": null,
-          "confidence": 0.98,
-          "reason": "money home=2% away=98% (gap vs tickets +1% on away)",
+          "confidence": 0.9,
+          "reason": "money home=10% away=90% (gap vs tickets -8% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": "away",
-          "team": "SEA",
+          "side": "home",
+          "team": "WAS",
           "line": null,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on SEA",
+          "confidence": 0.58,
+          "reason": "+8% money vs tickets on WAS",
           "available": true
         },
         "rlm": {
@@ -19522,9 +19481,9 @@
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 0,
-        "away_votes": 5,
-        "unanimous": true,
+        "home_votes": 1,
+        "away_votes": 4,
+        "unanimous": false,
         "sharp_vs_public": {
           "fade_public": false,
           "side": "SEA"
@@ -19542,13 +19501,14 @@
         "model",
         "sharp",
         "public",
-        "money",
+        "money"
+      ],
+      "conflict_stages": [
         "sharp_edge"
       ],
-      "conflict_stages": [],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:03:12+00:00",
+      "commence_time": "2026-09-27 17:03:12+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411313+00:00",
@@ -19567,21 +19527,21 @@
         "model": {
           "stage": "model",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 40.5,
-          "confidence": 0.6126,
-          "reason": "T_mod=45.6 vs market 40.5",
+          "side": "under",
+          "team": "Under",
+          "line": 47.0,
+          "confidence": 0.5944,
+          "reason": "T_mod=45.6 vs market 47.0",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 40.5,
-          "confidence": 0.5191,
-          "reason": "pinnacle no-vig 51.9% @ -116",
+          "side": "over",
+          "team": "Over",
+          "line": 47.0,
+          "confidence": 0.5233,
+          "reason": "pinnacle no-vig 52.3% @ -119",
           "available": true
         },
         "public": {
@@ -19589,9 +19549,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 40.5,
-          "confidence": 0.54,
-          "reason": "tickets over=54% under=46%",
+          "line": 47.5,
+          "confidence": 0.0,
+          "reason": "tickets over=0% under=0%",
           "available": true
         },
         "money": {
@@ -19599,20 +19559,20 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 40.5,
-          "confidence": 0.51,
-          "reason": "money over=51% under=49% (gap vs tickets -3% on over)",
+          "line": 47.5,
+          "confidence": 0.0,
+          "reason": "money over=0% under=0% (gap vs tickets +0% on over)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 40.5,
-          "confidence": 0.53,
-          "reason": "+3% money vs tickets on Under",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -19621,29 +19581,28 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "total flat (40.5\u219240.5)",
+          "reason": "no totals RLM (public=over, 40.5\u219247.5)",
           "available": false
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "total",
-          "side": null,
-          "team": null,
-          "line": null,
-          "confidence": null,
-          "reason": "model vs sharp gap 5.1 pts (\u22654) \u2014 Quant Pick suppressed",
-          "available": false
+          "side": "under",
+          "team": "Under",
+          "line": 47.0,
+          "confidence": 0.4755,
+          "reason": "model lean only \u2014 no confirming market stage",
+          "available": true
         }
       },
       "agreement": {
         "n_available": 5,
         "home_votes": 3,
-        "away_votes": 2,
+        "away_votes": 1,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "Under",
-          "public": "Over",
-          "fade_public": true
+          "fade_public": false,
+          "side": "Over"
         },
         "money_vs_public": {
           "aligned": true,
@@ -19654,11 +19613,17 @@
       },
       "consensus_side": "over",
       "consensus_team": "Over",
-      "hybrid_agrees_with": [],
-      "conflict_stages": [],
+      "hybrid_agrees_with": [
+        "model"
+      ],
+      "conflict_stages": [
+        "sharp",
+        "public",
+        "money"
+      ],
       "line_perspective": "team",
-      "kickoff": "2026-09-27 17:00:00+00:00",
-      "commence_time": "2026-09-27 17:00:00+00:00",
+      "kickoff": "2026-09-27 17:03:12+00:00",
+      "commence_time": "2026-09-27 17:03:12+00:00",
       "season": 2026,
       "week": 3,
       "created_at": "2026-09-01T18:09:55.411316+00:00",
@@ -19679,9 +19644,9 @@
           "market": "spread",
           "side": "away",
           "team": "ARI",
-          "line": 8.5,
-          "confidence": 0.5792,
-          "reason": "S_mod=-6.49 vs mkt -8.50 (home persp) \u2192 ARI covers",
+          "line": 7.5,
+          "confidence": 0.5436,
+          "reason": "S_mod=-6.49 vs mkt -7.50 (home persp) \u2192 ARI covers",
           "available": true
         },
         "sharp": {
@@ -19689,9 +19654,9 @@
           "market": "spread",
           "side": "away",
           "team": "ARI",
-          "line": 8.5,
-          "confidence": 0.5171,
-          "reason": "pinnacle no-vig 51.7% @ -114",
+          "line": 7.5,
+          "confidence": 0.5,
+          "reason": "pinnacle no-vig 50.0% @ -105",
           "available": true
         },
         "public": {
@@ -19699,9 +19664,9 @@
           "market": "spread",
           "side": "home",
           "team": "SF",
-          "line": -8.5,
-          "confidence": 0.81,
-          "reason": "tickets home=81% away=19%",
+          "line": -7.5,
+          "confidence": 0.84,
+          "reason": "tickets home=84% away=16%",
           "available": true
         },
         "money": {
@@ -19709,46 +19674,46 @@
           "market": "spread",
           "side": "home",
           "team": "SF",
-          "line": -8.5,
-          "confidence": 0.81,
-          "reason": "money home=81% away=19% (gap vs tickets +0% on home)",
+          "line": -7.5,
+          "confidence": 0.79,
+          "reason": "money home=79% away=21% (gap vs tickets -5% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": null,
-          "team": null,
-          "line": null,
-          "confidence": null,
-          "reason": "no positive money-ticket diff",
-          "available": false
+          "side": "away",
+          "team": "ARI",
+          "line": 7.5,
+          "confidence": 0.55,
+          "reason": "+5% money vs tickets on ARI",
+          "available": true
         },
         "rlm": {
           "stage": "rlm",
           "market": "spread",
-          "side": null,
-          "team": null,
-          "line": null,
-          "confidence": null,
-          "reason": "line flat (-8.5\u2192-8.5)",
-          "available": false
+          "side": "away",
+          "team": "ARI",
+          "line": 7.5,
+          "confidence": 0.6,
+          "reason": "RLM: public 84% home but line -8.5\u2192-7.5 toward away",
+          "available": true
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
           "side": "away",
           "team": "ARI",
-          "line": 8.5,
-          "confidence": 0.5792,
-          "reason": "model aligned with sharp (no validated edge)",
+          "line": 8.0,
+          "confidence": 0.5341,
+          "reason": "validated play EV=4.8% @ matchbook",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 5,
+        "n_available": 7,
         "home_votes": 2,
-        "away_votes": 2,
+        "away_votes": 4,
         "unanimous": false,
         "sharp_vs_public": {
           "sharp": "ARI",
@@ -19760,13 +19725,15 @@
           "money": "SF",
           "public": "SF"
         },
-        "rlm_active": false
+        "rlm_active": true
       },
-      "consensus_side": null,
-      "consensus_team": null,
+      "consensus_side": "away",
+      "consensus_team": "ARI",
       "hybrid_agrees_with": [
         "model",
-        "sharp"
+        "sharp",
+        "sharp_edge",
+        "rlm"
       ],
       "conflict_stages": [
         "public",
@@ -19806,18 +19773,18 @@
           "side": "home",
           "team": "SF",
           "line": null,
-          "confidence": 0.7612,
-          "reason": "pinnacle no-vig 76.1% @ -374",
+          "confidence": 0.7592,
+          "reason": "pinnacle no-vig 75.9% @ -359",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "h2h",
-          "side": "away",
-          "team": "ARI",
+          "side": "home",
+          "team": "SF",
           "line": null,
-          "confidence": 1.0,
-          "reason": "tickets home=99% away=100%",
+          "confidence": 0.98,
+          "reason": "tickets home=98% away=2%",
           "available": true
         },
         "money": {
@@ -19827,18 +19794,18 @@
           "team": "ARI",
           "line": null,
           "confidence": 1.0,
-          "reason": "money home=99% away=100% (gap vs tickets +0% on away)",
+          "reason": "money home=99% away=100% (gap vs tickets +98% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": null,
-          "team": null,
+          "side": "away",
+          "team": "ARI",
           "line": null,
-          "confidence": null,
-          "reason": "no positive money-ticket diff",
-          "available": false
+          "confidence": 0.99,
+          "reason": "+98% money vs tickets on ARI",
+          "available": true
         },
         "rlm": {
           "stage": "rlm",
@@ -19853,40 +19820,40 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "h2h",
-          "side": "home",
-          "team": "SF",
+          "side": "away",
+          "team": "ARI",
           "line": null,
-          "confidence": 0.67,
-          "reason": "model aligned with sharp (no validated edge)",
+          "confidence": 0.2638,
+          "reason": "validated play EV=18.7% @ unibet_se",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 5,
-        "home_votes": 2,
+        "n_available": 6,
+        "home_votes": 3,
         "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "SF",
-          "public": "ARI",
-          "fade_public": true
+          "fade_public": false,
+          "side": "SF"
         },
         "money_vs_public": {
-          "aligned": true,
+          "aligned": false,
           "money": "ARI",
-          "public": "ARI"
+          "public": "SF"
         },
         "rlm_active": false
       },
-      "consensus_side": null,
-      "consensus_team": null,
+      "consensus_side": "home",
+      "consensus_team": "SF",
       "hybrid_agrees_with": [
-        "model",
-        "sharp"
+        "money",
+        "sharp_edge"
       ],
       "conflict_stages": [
-        "public",
-        "money"
+        "model",
+        "sharp",
+        "public"
       ],
       "line_perspective": "team",
       "kickoff": "2026-09-27 20:05:00+00:00",
@@ -19911,19 +19878,19 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 47.5,
-          "confidence": 0.5102,
-          "reason": "T_mod=49.3 vs market 47.5",
+          "line": 48.5,
+          "confidence": 0.4824,
+          "reason": "T_mod=49.3 vs market 48.5",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "total",
-          "side": "over",
-          "team": "Over",
-          "line": 47.5,
-          "confidence": 0.5191,
-          "reason": "pinnacle no-vig 51.9% @ -116",
+          "side": "under",
+          "team": "Under",
+          "line": 48.5,
+          "confidence": 0.5046,
+          "reason": "pinnacle no-vig 50.5% @ -108",
           "available": true
         },
         "public": {
@@ -19931,9 +19898,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 48.0,
-          "confidence": 0.79,
-          "reason": "tickets over=21% under=79%",
+          "line": 48.5,
+          "confidence": 0.61,
+          "reason": "tickets over=39% under=61%",
           "available": true
         },
         "money": {
@@ -19941,19 +19908,19 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 48.0,
-          "confidence": 0.8,
-          "reason": "money over=20% under=80% (gap vs tickets +1% on under)",
+          "line": 48.5,
+          "confidence": 0.55,
+          "reason": "money over=45% under=55% (gap vs tickets -6% on under)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "total",
-          "side": "under",
-          "team": "Under",
-          "line": 48.0,
-          "confidence": 0.51,
-          "reason": "+1% money vs tickets on Under",
+          "side": "over",
+          "team": "Over",
+          "line": 48.5,
+          "confidence": 0.56,
+          "reason": "+6% money vs tickets on Over",
           "available": true
         },
         "rlm": {
@@ -19961,9 +19928,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 48.0,
+          "line": 48.5,
           "confidence": 0.6,
-          "reason": "RLM: public under but total 47.5\u219248.0",
+          "reason": "RLM: public under but total 47.5\u219248.5",
           "available": true
         },
         "hybrid": {
@@ -19971,9 +19938,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 47.5,
-          "confidence": 0.5102,
-          "reason": "model aligned with rlm+sharp (no validated edge)",
+          "line": 48.5,
+          "confidence": 0.4824,
+          "reason": "model aligned with rlm (no validated edge)",
           "available": true
         }
       },
@@ -19983,9 +19950,8 @@
         "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "Over",
-          "public": "Under",
-          "fade_public": true
+          "fade_public": false,
+          "side": "Under"
         },
         "money_vs_public": {
           "aligned": true,
@@ -19998,13 +19964,13 @@
       "consensus_team": null,
       "hybrid_agrees_with": [
         "model",
-        "sharp",
+        "sharp_edge",
         "rlm"
       ],
       "conflict_stages": [
+        "sharp",
         "public",
-        "money",
-        "sharp_edge"
+        "money"
       ],
       "line_perspective": "team",
       "kickoff": "2026-09-27 20:05:00+00:00",
@@ -20029,9 +19995,9 @@
           "market": "spread",
           "side": "home",
           "team": "TB",
-          "line": 2.0,
-          "confidence": 0.549,
-          "reason": "S_mod=+0.19 vs mkt +2.00 (home persp) \u2192 TB covers",
+          "line": 1.0,
+          "confidence": 0.5114,
+          "reason": "S_mod=+0.19 vs mkt +1.00 (home persp) \u2192 TB covers",
           "available": true
         },
         "sharp": {
@@ -20039,9 +20005,9 @@
           "market": "spread",
           "side": "home",
           "team": "TB",
-          "line": 2.0,
-          "confidence": 0.5238,
-          "reason": "pinnacle no-vig 52.4% @ -117",
+          "line": 1.0,
+          "confidence": 0.5023,
+          "reason": "pinnacle no-vig 50.2% @ -106",
           "available": true
         },
         "public": {
@@ -20050,28 +20016,28 @@
           "side": "away",
           "team": "MIN",
           "line": -1.5,
-          "confidence": 0.61,
-          "reason": "tickets home=39% away=61%",
+          "confidence": 0.58,
+          "reason": "tickets home=42% away=58%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "spread",
-          "side": "away",
-          "team": "MIN",
-          "line": -1.5,
-          "confidence": 0.63,
-          "reason": "money home=37% away=63% (gap vs tickets +2% on away)",
+          "side": "home",
+          "team": "TB",
+          "line": 1.5,
+          "confidence": 0.54,
+          "reason": "money home=54% away=46% (gap vs tickets +12% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": "away",
-          "team": "MIN",
-          "line": -1.5,
-          "confidence": 0.52,
-          "reason": "+2% money vs tickets on MIN",
+          "side": "home",
+          "team": "TB",
+          "line": 1.5,
+          "confidence": 0.62,
+          "reason": "+12% money vs tickets on TB",
           "available": true
         },
         "rlm": {
@@ -20089,16 +20055,16 @@
           "market": "spread",
           "side": "home",
           "team": "TB",
-          "line": 2.0,
-          "confidence": 0.549,
-          "reason": "model aligned with sharp (no validated edge)",
+          "line": 1.0,
+          "confidence": 0.5114,
+          "reason": "model aligned with money+sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 2,
-        "away_votes": 3,
+        "home_votes": 4,
+        "away_votes": 1,
         "unanimous": false,
         "sharp_vs_public": {
           "sharp": "TB",
@@ -20106,22 +20072,22 @@
           "fade_public": true
         },
         "money_vs_public": {
-          "aligned": true,
-          "money": "MIN",
+          "aligned": false,
+          "money": "TB",
           "public": "MIN"
         },
         "rlm_active": false
       },
-      "consensus_side": "away",
-      "consensus_team": "MIN",
+      "consensus_side": "home",
+      "consensus_team": "TB",
       "hybrid_agrees_with": [
         "model",
-        "sharp"
-      ],
-      "conflict_stages": [
-        "public",
+        "sharp",
         "money",
         "sharp_edge"
+      ],
+      "conflict_stages": [
+        "public"
       ],
       "line_perspective": "team",
       "kickoff": "2026-09-27 20:05:00+00:00",
@@ -20157,8 +20123,8 @@
           "side": "away",
           "team": "MIN",
           "line": null,
-          "confidence": 0.526,
-          "reason": "pinnacle no-vig 52.6% @ -118",
+          "confidence": 0.5139,
+          "reason": "pinnacle no-vig 51.4% @ -111",
           "available": true
         },
         "public": {
@@ -20167,8 +20133,8 @@
           "side": "away",
           "team": "MIN",
           "line": null,
-          "confidence": 0.7,
-          "reason": "tickets home=30% away=70%",
+          "confidence": 0.68,
+          "reason": "tickets home=32% away=68%",
           "available": true
         },
         "money": {
@@ -20177,8 +20143,8 @@
           "side": "away",
           "team": "MIN",
           "line": null,
-          "confidence": 0.66,
-          "reason": "money home=34% away=66% (gap vs tickets -4% on away)",
+          "confidence": 0.62,
+          "reason": "money home=38% away=62% (gap vs tickets -6% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -20187,8 +20153,8 @@
           "side": "home",
           "team": "TB",
           "line": null,
-          "confidence": 0.54,
-          "reason": "+4% money vs tickets on TB",
+          "confidence": 0.56,
+          "reason": "+6% money vs tickets on TB",
           "available": true
         },
         "rlm": {
@@ -20273,8 +20239,8 @@
           "side": "under",
           "team": "Under",
           "line": 43.0,
-          "confidence": 0.5235,
-          "reason": "pinnacle no-vig 52.4% @ -118",
+          "confidence": 0.5238,
+          "reason": "pinnacle no-vig 52.4% @ -117",
           "available": true
         },
         "public": {
@@ -20283,8 +20249,8 @@
           "side": "under",
           "team": "Under",
           "line": 42.5,
-          "confidence": 0.73,
-          "reason": "tickets over=27% under=73%",
+          "confidence": 0.6,
+          "reason": "tickets over=40% under=60%",
           "available": true
         },
         "money": {
@@ -20293,18 +20259,18 @@
           "side": "under",
           "team": "Under",
           "line": 42.5,
-          "confidence": 0.72,
-          "reason": "money over=28% under=72% (gap vs tickets -1% on under)",
+          "confidence": 0.61,
+          "reason": "money over=39% under=61% (gap vs tickets +1% on under)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "total",
-          "side": "over",
-          "team": "Over",
+          "side": "under",
+          "team": "Under",
           "line": 42.5,
           "confidence": 0.51,
-          "reason": "+1% money vs tickets on Over",
+          "reason": "+1% money vs tickets on Under",
           "available": true
         },
         "rlm": {
@@ -20330,9 +20296,9 @@
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 1,
-        "away_votes": 4,
-        "unanimous": false,
+        "home_votes": 0,
+        "away_votes": 5,
+        "unanimous": true,
         "sharp_vs_public": {
           "fade_public": false,
           "side": "Under"
@@ -20350,11 +20316,10 @@
         "model",
         "sharp",
         "public",
-        "money"
-      ],
-      "conflict_stages": [
+        "money",
         "sharp_edge"
       ],
+      "conflict_stages": [],
       "line_perspective": "team",
       "kickoff": "2026-09-27 20:05:00+00:00",
       "commence_time": "2026-09-27 20:05:00+00:00",
@@ -20389,18 +20354,18 @@
           "side": "home",
           "team": "DAL",
           "line": 3.5,
-          "confidence": 0.5216,
-          "reason": "pinnacle no-vig 52.2% @ -116",
+          "confidence": 0.524,
+          "reason": "pinnacle no-vig 52.4% @ -116",
           "available": true
         },
         "public": {
           "stage": "public",
           "market": "spread",
-          "side": "home",
-          "team": "DAL",
-          "line": 3.5,
-          "confidence": 0.51,
-          "reason": "tickets home=51% away=49%",
+          "side": "away",
+          "team": "BAL",
+          "line": -3.5,
+          "confidence": 0.53,
+          "reason": "tickets home=47% away=53%",
           "available": true
         },
         "money": {
@@ -20409,8 +20374,8 @@
           "side": "away",
           "team": "BAL",
           "line": -3.5,
-          "confidence": 0.69,
-          "reason": "money home=31% away=69% (gap vs tickets +20% on away)",
+          "confidence": 0.56,
+          "reason": "money home=44% away=56% (gap vs tickets +3% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -20419,19 +20384,19 @@
           "side": "away",
           "team": "BAL",
           "line": -3.5,
-          "confidence": 0.7,
-          "reason": "+20% money vs tickets on BAL",
+          "confidence": 0.53,
+          "reason": "+3% money vs tickets on BAL",
           "available": true
         },
         "rlm": {
           "stage": "rlm",
           "market": "spread",
-          "side": "away",
-          "team": "BAL",
-          "line": -3.5,
-          "confidence": 0.6,
-          "reason": "RLM: public 51% home but line 3.0\u21923.5 toward away",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "no RLM (public=away, line 3.0\u21923.5)",
+          "available": false
         },
         "hybrid": {
           "stage": "hybrid",
@@ -20445,32 +20410,32 @@
         }
       },
       "agreement": {
-        "n_available": 7,
-        "home_votes": 3,
+        "n_available": 6,
+        "home_votes": 2,
         "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
-          "fade_public": false,
-          "side": "DAL"
+          "sharp": "DAL",
+          "public": "BAL",
+          "fade_public": true
         },
         "money_vs_public": {
-          "aligned": false,
+          "aligned": true,
           "money": "BAL",
-          "public": "DAL"
+          "public": "BAL"
         },
-        "rlm_active": true
+        "rlm_active": false
       },
-      "consensus_side": null,
-      "consensus_team": null,
+      "consensus_side": "away",
+      "consensus_team": "BAL",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
-        "public"
+        "sharp"
       ],
       "conflict_stages": [
+        "public",
         "money",
-        "sharp_edge",
-        "rlm"
+        "sharp_edge"
       ],
       "line_perspective": "team",
       "kickoff": "2026-09-27 20:25:00+00:00",
@@ -20506,8 +20471,8 @@
           "side": "away",
           "team": "BAL",
           "line": null,
-          "confidence": 0.6192,
-          "reason": "pinnacle no-vig 61.9% @ -176",
+          "confidence": 0.6191,
+          "reason": "pinnacle no-vig 61.9% @ -174",
           "available": true
         },
         "public": {
@@ -20516,8 +20481,8 @@
           "side": "away",
           "team": "BAL",
           "line": null,
-          "confidence": 0.81,
-          "reason": "tickets home=19% away=81%",
+          "confidence": 0.82,
+          "reason": "tickets home=18% away=82%",
           "available": true
         },
         "money": {
@@ -20526,19 +20491,19 @@
           "side": "away",
           "team": "BAL",
           "line": null,
-          "confidence": 0.78,
-          "reason": "money home=22% away=78% (gap vs tickets -3% on away)",
+          "confidence": 0.82,
+          "reason": "money home=18% away=82% (gap vs tickets +0% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": "home",
-          "team": "DAL",
+          "side": null,
+          "team": null,
           "line": null,
-          "confidence": 0.53,
-          "reason": "+3% money vs tickets on DAL",
-          "available": true
+          "confidence": null,
+          "reason": "no positive money-ticket diff",
+          "available": false
         },
         "rlm": {
           "stage": "rlm",
@@ -20562,10 +20527,10 @@
         }
       },
       "agreement": {
-        "n_available": 6,
-        "home_votes": 1,
+        "n_available": 5,
+        "home_votes": 0,
         "away_votes": 4,
-        "unanimous": false,
+        "unanimous": true,
         "sharp_vs_public": {
           "fade_public": false,
           "side": "BAL"
@@ -20585,9 +20550,7 @@
         "public",
         "money"
       ],
-      "conflict_stages": [
-        "sharp_edge"
-      ],
+      "conflict_stages": [],
       "line_perspective": "team",
       "kickoff": "2026-09-27 20:25:00+00:00",
       "commence_time": "2026-09-27 20:25:00+00:00",
@@ -20622,8 +20585,8 @@
           "side": "over",
           "team": "Over",
           "line": 53.0,
-          "confidence": 0.5158,
-          "reason": "pinnacle no-vig 51.6% @ -114",
+          "confidence": 0.5092,
+          "reason": "pinnacle no-vig 50.9% @ -110",
           "available": true
         },
         "public": {
@@ -20632,8 +20595,8 @@
           "side": "under",
           "team": "Under",
           "line": 53.5,
-          "confidence": 0.87,
-          "reason": "tickets over=13% under=87%",
+          "confidence": 0.84,
+          "reason": "tickets over=16% under=84%",
           "available": true
         },
         "money": {
@@ -20642,8 +20605,8 @@
           "side": "under",
           "team": "Under",
           "line": 53.5,
-          "confidence": 0.75,
-          "reason": "money over=25% under=75% (gap vs tickets -12% on under)",
+          "confidence": 0.52,
+          "reason": "money over=48% under=52% (gap vs tickets -32% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -20652,8 +20615,8 @@
           "side": "over",
           "team": "Over",
           "line": 53.5,
-          "confidence": 0.62,
-          "reason": "+12% money vs tickets on Over",
+          "confidence": 0.82,
+          "reason": "+32% money vs tickets on Over",
           "available": true
         },
         "rlm": {
@@ -20740,8 +20703,8 @@
           "side": "away",
           "team": "LV",
           "line": 3.5,
-          "confidence": 0.5282,
-          "reason": "pinnacle no-vig 52.8% @ -119",
+          "confidence": 0.5185,
+          "reason": "pinnacle no-vig 51.9% @ -113",
           "available": true
         },
         "public": {
@@ -20749,7 +20712,7 @@
           "market": "spread",
           "side": "away",
           "team": "LV",
-          "line": 3.0,
+          "line": 3.5,
           "confidence": 0.52,
           "reason": "tickets home=48% away=52%",
           "available": true
@@ -20757,32 +20720,32 @@
         "money": {
           "stage": "money",
           "market": "spread",
-          "side": "away",
-          "team": "LV",
-          "line": 3.0,
+          "side": "home",
+          "team": "NO",
+          "line": -3.5,
           "confidence": 0.52,
-          "reason": "money home=48% away=52% (gap vs tickets +0% on away)",
+          "reason": "money home=52% away=48% (gap vs tickets +4% on home)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "spread",
-          "side": null,
-          "team": null,
-          "line": null,
-          "confidence": null,
-          "reason": "no positive money-ticket diff",
-          "available": false
+          "side": "home",
+          "team": "NO",
+          "line": -3.5,
+          "confidence": 0.54,
+          "reason": "+4% money vs tickets on NO",
+          "available": true
         },
         "rlm": {
           "stage": "rlm",
           "market": "spread",
-          "side": null,
-          "team": null,
-          "line": null,
-          "confidence": null,
-          "reason": "line flat (-3.0\u2192-3.0)",
-          "available": false
+          "side": "home",
+          "team": "NO",
+          "line": -3.5,
+          "confidence": 0.6,
+          "reason": "RLM: public 52% away but line -3.0\u2192-3.5 toward home",
+          "available": true
         },
         "hybrid": {
           "stage": "hybrid",
@@ -20790,36 +20753,38 @@
           "side": "home",
           "team": "NO",
           "line": -3.5,
-          "confidence": 0.4502,
-          "reason": "model lean only \u2014 no confirming market stage",
+          "confidence": 0.5628,
+          "reason": "model aligned with money+rlm (no validated edge)",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 5,
-        "home_votes": 1,
-        "away_votes": 3,
+        "n_available": 7,
+        "home_votes": 4,
+        "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
           "fade_public": false,
           "side": "LV"
         },
         "money_vs_public": {
-          "aligned": true,
-          "money": "LV",
+          "aligned": false,
+          "money": "NO",
           "public": "LV"
         },
-        "rlm_active": false
+        "rlm_active": true
       },
-      "consensus_side": "away",
-      "consensus_team": "LV",
+      "consensus_side": "home",
+      "consensus_team": "NO",
       "hybrid_agrees_with": [
-        "model"
+        "model",
+        "money",
+        "sharp_edge",
+        "rlm"
       ],
       "conflict_stages": [
         "sharp",
-        "public",
-        "money"
+        "public"
       ],
       "line_perspective": "team",
       "kickoff": "2026-09-27 20:25:00+00:00",
@@ -20855,8 +20820,8 @@
           "side": "home",
           "team": "NO",
           "line": null,
-          "confidence": 0.6183,
-          "reason": "pinnacle no-vig 61.8% @ -176",
+          "confidence": 0.6233,
+          "reason": "pinnacle no-vig 62.3% @ -177",
           "available": true
         },
         "public": {
@@ -20865,8 +20830,8 @@
           "side": "home",
           "team": "NO",
           "line": null,
-          "confidence": 0.76,
-          "reason": "tickets home=76% away=24%",
+          "confidence": 0.79,
+          "reason": "tickets home=79% away=21%",
           "available": true
         },
         "money": {
@@ -20875,8 +20840,8 @@
           "side": "home",
           "team": "NO",
           "line": null,
-          "confidence": 0.72,
-          "reason": "money home=72% away=28% (gap vs tickets -4% on home)",
+          "confidence": 0.76,
+          "reason": "money home=76% away=24% (gap vs tickets -3% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -20885,8 +20850,8 @@
           "side": "away",
           "team": "LV",
           "line": null,
-          "confidence": 0.54,
-          "reason": "+4% money vs tickets on LV",
+          "confidence": 0.53,
+          "reason": "+3% money vs tickets on LV",
           "available": true
         },
         "rlm": {
@@ -20971,8 +20936,8 @@
           "side": "under",
           "team": "Under",
           "line": 44.0,
-          "confidence": 0.5191,
-          "reason": "pinnacle no-vig 51.9% @ -116",
+          "confidence": 0.5102,
+          "reason": "pinnacle no-vig 51.0% @ -111",
           "available": true
         },
         "public": {
@@ -20981,18 +20946,18 @@
           "side": "under",
           "team": "Under",
           "line": 43.5,
-          "confidence": 0.71,
-          "reason": "tickets over=29% under=71%",
+          "confidence": 0.58,
+          "reason": "tickets over=42% under=58%",
           "available": true
         },
         "money": {
           "stage": "money",
           "market": "total",
-          "side": "under",
-          "team": "Under",
+          "side": "over",
+          "team": "Over",
           "line": 43.5,
-          "confidence": 0.67,
-          "reason": "money over=33% under=67% (gap vs tickets -4% on under)",
+          "confidence": 0.5,
+          "reason": "money over=50% under=50% (gap vs tickets +8% on over)",
           "available": true
         },
         "sharp_edge": {
@@ -21001,8 +20966,8 @@
           "side": "over",
           "team": "Over",
           "line": 43.5,
-          "confidence": 0.54,
-          "reason": "+4% money vs tickets on Over",
+          "confidence": 0.58,
+          "reason": "+8% money vs tickets on Over",
           "available": true
         },
         "rlm": {
@@ -21022,22 +20987,22 @@
           "team": "Under",
           "line": 44.0,
           "confidence": 0.7258,
-          "reason": "model aligned with money+sharp (no validated edge)",
+          "reason": "model aligned with sharp (no validated edge)",
           "available": true
         }
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 1,
-        "away_votes": 4,
+        "home_votes": 2,
+        "away_votes": 3,
         "unanimous": false,
         "sharp_vs_public": {
           "fade_public": false,
           "side": "Under"
         },
         "money_vs_public": {
-          "aligned": true,
-          "money": "Under",
+          "aligned": false,
+          "money": "Over",
           "public": "Under"
         },
         "rlm_active": false
@@ -21047,10 +21012,10 @@
       "hybrid_agrees_with": [
         "model",
         "sharp",
-        "public",
-        "money"
+        "public"
       ],
       "conflict_stages": [
+        "money",
         "sharp_edge"
       ],
       "line_perspective": "team",
@@ -21076,19 +21041,19 @@
           "market": "spread",
           "side": "home",
           "team": "DEN",
-          "line": 2.5,
-          "confidence": 0.5612,
-          "reason": "S_mod=+0.77 vs mkt +2.50 (home persp) \u2192 DEN covers",
+          "line": 1.5,
+          "confidence": 0.5252,
+          "reason": "S_mod=+0.77 vs mkt +1.50 (home persp) \u2192 DEN covers",
           "available": true
         },
         "sharp": {
           "stage": "sharp",
           "market": "spread",
-          "side": "home",
-          "team": "DEN",
-          "line": 2.5,
-          "confidence": 0.5092,
-          "reason": "pinnacle no-vig 50.9% @ -110",
+          "side": "away",
+          "team": "LAR",
+          "line": -1.5,
+          "confidence": 0.5116,
+          "reason": "pinnacle no-vig 51.2% @ -110",
           "available": true
         },
         "public": {
@@ -21096,9 +21061,9 @@
           "market": "spread",
           "side": "away",
           "team": "LAR",
-          "line": -2.5,
-          "confidence": 0.64,
-          "reason": "tickets home=36% away=64%",
+          "line": -1.5,
+          "confidence": 0.62,
+          "reason": "tickets home=38% away=62%",
           "available": true
         },
         "money": {
@@ -21106,9 +21071,9 @@
           "market": "spread",
           "side": "home",
           "team": "DEN",
-          "line": 2.5,
-          "confidence": 0.56,
-          "reason": "money home=56% away=44% (gap vs tickets +20% on home)",
+          "line": 1.5,
+          "confidence": 0.61,
+          "reason": "money home=61% away=39% (gap vs tickets +23% on home)",
           "available": true
         },
         "sharp_edge": {
@@ -21116,20 +21081,20 @@
           "market": "spread",
           "side": "home",
           "team": "DEN",
-          "line": 2.5,
-          "confidence": 0.7,
-          "reason": "+20% money vs tickets on DEN",
+          "line": 1.5,
+          "confidence": 0.73,
+          "reason": "+23% money vs tickets on DEN",
           "available": true
         },
         "rlm": {
           "stage": "rlm",
           "market": "spread",
-          "side": null,
-          "team": null,
-          "line": null,
-          "confidence": null,
-          "reason": "line flat (2.5\u21922.5)",
-          "available": false
+          "side": "home",
+          "team": "DEN",
+          "line": 1.5,
+          "confidence": 0.6,
+          "reason": "RLM: public 62% away but line 2.5\u21921.5 toward home",
+          "available": true
         },
         "hybrid": {
           "stage": "hybrid",
@@ -21137,37 +21102,37 @@
           "side": "home",
           "team": "DEN",
           "line": 2.5,
-          "confidence": 0.5612,
-          "reason": "model aligned with money+sharp (no validated edge)",
+          "confidence": 0.5309,
+          "reason": "validated lean EV=2.2% @ tipico_de",
           "available": true
         }
       },
       "agreement": {
-        "n_available": 6,
+        "n_available": 7,
         "home_votes": 4,
-        "away_votes": 1,
+        "away_votes": 2,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "DEN",
-          "public": "LAR",
-          "fade_public": true
+          "fade_public": false,
+          "side": "LAR"
         },
         "money_vs_public": {
           "aligned": false,
           "money": "DEN",
           "public": "LAR"
         },
-        "rlm_active": false
+        "rlm_active": true
       },
       "consensus_side": "home",
       "consensus_team": "DEN",
       "hybrid_agrees_with": [
         "model",
-        "sharp",
         "money",
-        "sharp_edge"
+        "sharp_edge",
+        "rlm"
       ],
       "conflict_stages": [
+        "sharp",
         "public"
       ],
       "line_perspective": "team",
@@ -21204,8 +21169,8 @@
           "side": "away",
           "team": "LAR",
           "line": null,
-          "confidence": 0.5505,
-          "reason": "pinnacle no-vig 55.1% @ -131",
+          "confidence": 0.5411,
+          "reason": "pinnacle no-vig 54.1% @ -124",
           "available": true
         },
         "public": {
@@ -21224,18 +21189,18 @@
           "side": "away",
           "team": "LAR",
           "line": null,
-          "confidence": 0.82,
-          "reason": "money home=18% away=82% (gap vs tickets +4% on away)",
+          "confidence": 0.77,
+          "reason": "money home=23% away=77% (gap vs tickets -1% on away)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "h2h",
-          "side": "away",
-          "team": "LAR",
+          "side": "home",
+          "team": "DEN",
           "line": null,
-          "confidence": 0.54,
-          "reason": "+4% money vs tickets on LAR",
+          "confidence": 0.51,
+          "reason": "+1% money vs tickets on DEN",
           "available": true
         },
         "rlm": {
@@ -21261,9 +21226,9 @@
       },
       "agreement": {
         "n_available": 6,
-        "home_votes": 0,
-        "away_votes": 5,
-        "unanimous": true,
+        "home_votes": 1,
+        "away_votes": 4,
+        "unanimous": false,
         "sharp_vs_public": {
           "fade_public": false,
           "side": "LAR"
@@ -21281,10 +21246,11 @@
         "model",
         "sharp",
         "public",
-        "money",
+        "money"
+      ],
+      "conflict_stages": [
         "sharp_edge"
       ],
-      "conflict_stages": [],
       "line_perspective": "team",
       "kickoff": "2026-09-28 00:20:00+00:00",
       "commence_time": "2026-09-28 00:20:00+00:00",
@@ -21320,7 +21286,7 @@
           "team": "Over",
           "line": 44.0,
           "confidence": 0.5,
-          "reason": "pinnacle no-vig 50.0% @ -107",
+          "reason": "pinnacle no-vig 50.0% @ -106",
           "available": true
         },
         "public": {
@@ -21329,8 +21295,8 @@
           "side": "under",
           "team": "Under",
           "line": 44.5,
-          "confidence": 0.8,
-          "reason": "tickets over=20% under=80%",
+          "confidence": 0.67,
+          "reason": "tickets over=33% under=67%",
           "available": true
         },
         "money": {
@@ -21339,8 +21305,8 @@
           "side": "under",
           "team": "Under",
           "line": 44.5,
-          "confidence": 0.83,
-          "reason": "money over=17% under=83% (gap vs tickets +3% on under)",
+          "confidence": 0.7,
+          "reason": "money over=30% under=70% (gap vs tickets +3% on under)",
           "available": true
         },
         "sharp_edge": {
@@ -21433,11 +21399,11 @@
         "sharp": {
           "stage": "sharp",
           "market": "spread",
-          "side": "home",
-          "team": "CHI",
-          "line": 3.5,
-          "confidence": 0.5262,
-          "reason": "pinnacle no-vig 52.6% @ -117",
+          "side": "away",
+          "team": "PHI",
+          "line": -3.5,
+          "confidence": 0.507,
+          "reason": "pinnacle no-vig 50.7% @ -108",
           "available": true
         },
         "public": {
@@ -21445,9 +21411,9 @@
           "market": "spread",
           "side": "away",
           "team": "PHI",
-          "line": -3.5,
-          "confidence": 0.72,
-          "reason": "tickets home=28% away=72%",
+          "line": -4.0,
+          "confidence": 0.76,
+          "reason": "tickets home=24% away=76%",
           "available": true
         },
         "money": {
@@ -21455,9 +21421,9 @@
           "market": "spread",
           "side": "away",
           "team": "PHI",
-          "line": -3.5,
-          "confidence": 0.78,
-          "reason": "money home=22% away=78% (gap vs tickets +6% on away)",
+          "line": -4.0,
+          "confidence": 0.8,
+          "reason": "money home=20% away=80% (gap vs tickets +4% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -21465,61 +21431,52 @@
           "market": "spread",
           "side": "away",
           "team": "PHI",
-          "line": -3.5,
-          "confidence": 0.56,
-          "reason": "+6% money vs tickets on PHI",
+          "line": -4.0,
+          "confidence": 0.54,
+          "reason": "+4% money vs tickets on PHI",
           "available": true
         },
         "rlm": {
           "stage": "rlm",
           "market": "spread",
-          "side": "home",
-          "team": "CHI",
-          "line": 3.5,
-          "confidence": 0.6,
-          "reason": "RLM: public 72% away but line 4.0\u21923.5 toward home",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "line flat (4.0\u21924.0)",
+          "available": false
         },
         "hybrid": {
           "stage": "hybrid",
           "market": "spread",
-          "side": "home",
-          "team": "CHI",
-          "line": 4.5,
-          "confidence": 0.6078,
-          "reason": "validated play EV=18.7% @ onexbet",
-          "available": true
+          "side": null,
+          "team": null,
+          "line": null,
+          "confidence": null,
+          "reason": "model vs sharp gap 7.1 pts (\u22654) \u2014 Quant Pick suppressed",
+          "available": false
         }
       },
       "agreement": {
-        "n_available": 7,
-        "home_votes": 3,
-        "away_votes": 3,
+        "n_available": 5,
+        "home_votes": 1,
+        "away_votes": 4,
         "unanimous": false,
         "sharp_vs_public": {
-          "sharp": "CHI",
-          "public": "PHI",
-          "fade_public": true
+          "fade_public": false,
+          "side": "PHI"
         },
         "money_vs_public": {
           "aligned": true,
           "money": "PHI",
           "public": "PHI"
         },
-        "rlm_active": true
+        "rlm_active": false
       },
-      "consensus_side": null,
-      "consensus_team": null,
-      "hybrid_agrees_with": [
-        "model",
-        "sharp",
-        "rlm"
-      ],
-      "conflict_stages": [
-        "public",
-        "money",
-        "sharp_edge"
-      ],
+      "consensus_side": "away",
+      "consensus_team": "PHI",
+      "hybrid_agrees_with": [],
+      "conflict_stages": [],
       "line_perspective": "team",
       "kickoff": "2026-09-29 00:15:00+00:00",
       "commence_time": "2026-09-29 00:15:00+00:00",
@@ -21554,8 +21511,8 @@
           "side": "away",
           "team": "PHI",
           "line": null,
-          "confidence": 0.6238,
-          "reason": "pinnacle no-vig 62.4% @ -178",
+          "confidence": 0.6459,
+          "reason": "pinnacle no-vig 64.6% @ -197",
           "available": true
         },
         "public": {
@@ -21564,8 +21521,8 @@
           "side": "away",
           "team": "PHI",
           "line": null,
-          "confidence": 0.93,
-          "reason": "tickets home=7% away=93%",
+          "confidence": 0.95,
+          "reason": "tickets home=5% away=95%",
           "available": true
         },
         "money": {
@@ -21574,8 +21531,8 @@
           "side": "away",
           "team": "PHI",
           "line": null,
-          "confidence": 0.79,
-          "reason": "money home=21% away=79% (gap vs tickets -14% on away)",
+          "confidence": 0.87,
+          "reason": "money home=13% away=87% (gap vs tickets -8% on away)",
           "available": true
         },
         "sharp_edge": {
@@ -21584,8 +21541,8 @@
           "side": "home",
           "team": "CHI",
           "line": null,
-          "confidence": 0.64,
-          "reason": "+14% money vs tickets on CHI",
+          "confidence": 0.58,
+          "reason": "+8% money vs tickets on CHI",
           "available": true
         },
         "rlm": {
@@ -21601,16 +21558,16 @@
         "hybrid": {
           "stage": "hybrid",
           "market": "h2h",
-          "side": "home",
-          "team": "CHI",
+          "side": null,
+          "team": null,
           "line": null,
-          "confidence": 0.4442,
-          "reason": "validated play EV=20.8% @ betfair_ex_eu",
-          "available": true
+          "confidence": null,
+          "reason": "model vs sharp gap 7.1 pts (\u22654) \u2014 Quant Pick suppressed",
+          "available": false
         }
       },
       "agreement": {
-        "n_available": 6,
+        "n_available": 5,
         "home_votes": 2,
         "away_votes": 3,
         "unanimous": false,
@@ -21627,15 +21584,8 @@
       },
       "consensus_side": "away",
       "consensus_team": "PHI",
-      "hybrid_agrees_with": [
-        "model",
-        "sharp_edge"
-      ],
-      "conflict_stages": [
-        "sharp",
-        "public",
-        "money"
-      ],
+      "hybrid_agrees_with": [],
+      "conflict_stages": [],
       "line_perspective": "team",
       "kickoff": "2026-09-29 00:15:00+00:00",
       "commence_time": "2026-09-29 00:15:00+00:00",
@@ -21659,9 +21609,9 @@
           "market": "total",
           "side": "over",
           "team": "Over",
-          "line": 42.5,
-          "confidence": 0.6116,
-          "reason": "T_mod=47.7 vs market 42.5",
+          "line": 41.5,
+          "confidence": 0.644,
+          "reason": "T_mod=47.7 vs market 41.5",
           "available": true
         },
         "sharp": {
@@ -21669,9 +21619,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 42.5,
-          "confidence": 0.5216,
-          "reason": "pinnacle no-vig 52.2% @ -116",
+          "line": 41.5,
+          "confidence": 0.5023,
+          "reason": "pinnacle no-vig 50.2% @ -107",
           "available": true
         },
         "public": {
@@ -21679,9 +21629,9 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 42.5,
-          "confidence": 0.61,
-          "reason": "tickets over=39% under=61%",
+          "line": 41.5,
+          "confidence": 0.58,
+          "reason": "tickets over=42% under=58%",
           "available": true
         },
         "money": {
@@ -21689,20 +21639,20 @@
           "market": "total",
           "side": "under",
           "team": "Under",
-          "line": 42.5,
+          "line": 41.5,
           "confidence": 0.61,
-          "reason": "money over=39% under=61% (gap vs tickets +0% on under)",
+          "reason": "money over=39% under=61% (gap vs tickets +3% on under)",
           "available": true
         },
         "sharp_edge": {
           "stage": "sharp_edge",
           "market": "total",
-          "side": null,
-          "team": null,
-          "line": null,
-          "confidence": null,
-          "reason": "no positive money-ticket diff",
-          "available": false
+          "side": "under",
+          "team": "Under",
+          "line": 41.5,
+          "confidence": 0.53,
+          "reason": "+3% money vs tickets on Under",
+          "available": true
         },
         "rlm": {
           "stage": "rlm",
@@ -21711,7 +21661,7 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "total flat (42.5\u219242.5)",
+          "reason": "no totals RLM (public=under, 42.5\u219241.5)",
           "available": false
         },
         "hybrid": {
@@ -21721,14 +21671,14 @@
           "team": null,
           "line": null,
           "confidence": null,
-          "reason": "model vs sharp gap 5.2 pts (\u22654) \u2014 Quant Pick suppressed",
+          "reason": "model vs sharp gap 6.2 pts (\u22654) \u2014 Quant Pick suppressed",
           "available": false
         }
       },
       "agreement": {
-        "n_available": 4,
+        "n_available": 5,
         "home_votes": 1,
-        "away_votes": 3,
+        "away_votes": 4,
         "unanimous": false,
         "sharp_vs_public": {
           "fade_public": false,
@@ -119765,7 +119715,7 @@
       "outcome": null
     },
     {
-      "id": "d299fc1a",
+      "id": "db0651f7",
       "created_at": "2026-09-22T18:30:28.913434+00:00",
       "season": 2026,
       "week": 3,
@@ -119775,23 +119725,23 @@
       "market": "h2h",
       "side": "home",
       "line": null,
-      "book": "matchbook",
-      "p_true": 0.2388,
-      "p_mkt": 0.1531,
-      "edge": 0.6242,
+      "book": "williamhill_us",
+      "p_true": 0.2639,
+      "p_mkt": 0.1889,
+      "edge": 0.7811,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
       "category_manual": null,
       "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.086"
+        "|p_true-p_mkt|=0.075"
       ],
-      "magnitude": 0.0857,
+      "magnitude": 0.075,
       "outcome": null
     },
     {
-      "id": "d6e46983",
+      "id": "9f51be79",
       "created_at": "2026-09-22T18:30:28.913434+00:00",
       "season": 2026,
       "week": 3,
@@ -119802,19 +119752,18 @@
       "side": "home",
       "line": null,
       "book": "betfair_ex_eu",
-      "p_true": 0.4442,
-      "p_mkt": 0.3762,
-      "edge": 0.2082,
-      "tier": "play",
+      "p_true": 0.4287,
+      "p_mkt": 0.3541,
+      "edge": 0.2262,
+      "tier": "rejected",
       "direction": "model_higher",
-      "category": "market_overreaction",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.5,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.068",
-        "sharp money on our side vs public tickets"
+        "|p_true-p_mkt|=0.075"
       ],
-      "magnitude": 0.068,
+      "magnitude": 0.0746,
       "outcome": null
     },
     {
@@ -119845,7 +119794,7 @@
       "outcome": null
     },
     {
-      "id": "168f596f",
+      "id": "fd9fe4ee",
       "created_at": "2026-09-22T18:30:28.913434+00:00",
       "season": 2026,
       "week": 3,
@@ -119854,25 +119803,24 @@
       "home_team": "CHI",
       "market": "spreads",
       "side": "home",
-      "line": 4.5,
-      "book": "onexbet",
-      "p_true": 0.6078,
-      "p_mkt": 0.5556,
-      "edge": 0.1867,
-      "tier": "play",
+      "line": 3.5,
+      "book": "lowvig",
+      "p_true": 0.5576,
+      "p_mkt": 0.493,
+      "edge": 0.1207,
+      "tier": "rejected",
       "direction": "model_higher",
-      "category": "public_bias",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.55,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.052",
-        "RLM toward our side (line moved against public)"
+        "|p_true-p_mkt|=0.065"
       ],
-      "magnitude": 0.0522,
+      "magnitude": 0.0646,
       "outcome": null
     },
     {
-      "id": "1edba7df",
+      "id": "b807ded9",
       "created_at": "2026-09-22T18:30:28.913434+00:00",
       "season": 2026,
       "week": 3,
@@ -119881,24 +119829,24 @@
       "home_team": "NO",
       "market": "totals",
       "side": "under",
-      "line": 43.5,
+      "line": 44.0,
       "book": "matchbook",
-      "p_true": 0.5631,
-      "p_mkt": 0.5043,
-      "edge": 0.1487,
+      "p_true": 0.5749,
+      "p_mkt": 0.5102,
+      "edge": 0.1173,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
       "category_manual": null,
       "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.059"
+        "|p_true-p_mkt|=0.065"
       ],
-      "magnitude": 0.0588,
+      "magnitude": 0.0647,
       "outcome": null
     },
     {
-      "id": "2b64d052",
+      "id": "04345860",
       "created_at": "2026-09-22T18:30:28.913434+00:00",
       "season": 2026,
       "week": 3,
@@ -119907,20 +119855,21 @@
       "home_team": "NYG",
       "market": "totals",
       "side": "over",
-      "line": 37.5,
-      "book": "matchbook",
-      "p_true": 0.5761,
-      "p_mkt": 0.506,
-      "edge": 0.13,
+      "line": 23.5,
+      "book": "betmgm",
+      "p_true": 0.6609,
+      "p_mkt": 0.5248,
+      "edge": 0.2617,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "unknown",
+      "category": "model_deficiency",
       "category_manual": null,
-      "confidence": 0.3,
+      "confidence": 0.35,
       "evidence": [
-        "|p_true-p_mkt|=0.070"
+        "|p_true-p_mkt|=0.136",
+        "large edge, no market confirmation"
       ],
-      "magnitude": 0.0701,
+      "magnitude": 0.1361,
       "outcome": null
     },
     {
@@ -120165,7 +120114,7 @@
       "outcome": null
     },
     {
-      "id": "36507d1f",
+      "id": "54d1aaee",
       "created_at": "2026-09-22T18:30:28.913434+00:00",
       "season": 2026,
       "week": 3,
@@ -120174,21 +120123,20 @@
       "home_team": "PIT",
       "market": "totals",
       "side": "under",
-      "line": 43.0,
-      "book": "betanysports",
-      "p_true": 0.6472,
-      "p_mkt": 0.5257,
-      "edge": 0.2356,
+      "line": 56.5,
+      "book": "coolbet",
+      "p_true": 0.6491,
+      "p_mkt": 0.5499,
+      "edge": 0.3048,
       "tier": "rejected",
       "direction": "model_higher",
-      "category": "model_deficiency",
+      "category": "unknown",
       "category_manual": null,
-      "confidence": 0.35,
+      "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.122",
-        "large edge, no market confirmation"
+        "|p_true-p_mkt|=0.099"
       ],
-      "magnitude": 0.1215,
+      "magnitude": 0.0992,
       "outcome": null
     },
     {
@@ -120404,7 +120352,7 @@
       "outcome": null
     },
     {
-      "id": "e3227717",
+      "id": "5b7181b7",
       "created_at": "2026-09-22T18:30:28.913434+00:00",
       "season": 2026,
       "week": 3,
@@ -120413,20 +120361,20 @@
       "home_team": "JAX",
       "market": "spreads",
       "side": "away",
-      "line": 3.0,
-      "book": "lowvig",
-      "p_true": 0.5908,
-      "p_mkt": 0.5023,
-      "edge": 0.1482,
+      "line": 10.5,
+      "book": "espnbet",
+      "p_true": 0.6108,
+      "p_mkt": 0.5445,
+      "edge": 0.2216,
       "tier": "rejected",
       "direction": "model_higher",
       "category": "unknown",
       "category_manual": null,
       "confidence": 0.3,
       "evidence": [
-        "|p_true-p_mkt|=0.089"
+        "|p_true-p_mkt|=0.066"
       ],
-      "magnitude": 0.0885,
+      "magnitude": 0.0663,
       "outcome": null
     },
     {
@@ -120875,6 +120823,214 @@
         "|p_true-p_mkt|=0.050"
       ],
       "magnitude": 0.0503,
+      "outcome": null
+    },
+    {
+      "id": "68b2f1c3",
+      "created_at": "2026-09-27T18:58:05.782938+00:00",
+      "season": 2026,
+      "week": 3,
+      "event_id": "1f3cfd315a24d1a7dd5859a8e6b88e18",
+      "away_team": "NE",
+      "home_team": "JAX",
+      "market": "h2h",
+      "side": "away",
+      "line": null,
+      "book": "espnbet",
+      "p_true": 0.2461,
+      "p_mkt": 0.16,
+      "edge": 1.7074,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.086"
+      ],
+      "magnitude": 0.0861,
+      "outcome": null
+    },
+    {
+      "id": "998726cc",
+      "created_at": "2026-09-27T18:58:05.782938+00:00",
+      "season": 2026,
+      "week": 3,
+      "event_id": "07f552badfa8a565d1be22123713e4da",
+      "away_team": "NYJ",
+      "home_team": "DET",
+      "market": "h2h",
+      "side": "away",
+      "line": null,
+      "book": "nordicbet",
+      "p_true": 0.1888,
+      "p_mkt": 0.1317,
+      "edge": 1.455,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.057"
+      ],
+      "magnitude": 0.0571,
+      "outcome": null
+    },
+    {
+      "id": "0543c024",
+      "created_at": "2026-09-27T18:58:05.782938+00:00",
+      "season": 2026,
+      "week": 3,
+      "event_id": "555afd4a27aaa392662881cffa8f2eef",
+      "away_team": "TEN",
+      "home_team": "NYG",
+      "market": "h2h",
+      "side": "away",
+      "line": null,
+      "book": "betmgm",
+      "p_true": 0.1929,
+      "p_mkt": 0.1062,
+      "edge": 1.4112,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.087"
+      ],
+      "magnitude": 0.0867,
+      "outcome": null
+    },
+    {
+      "id": "11783535",
+      "created_at": "2026-09-27T18:58:05.782938+00:00",
+      "season": 2026,
+      "week": 3,
+      "event_id": "17a730b7d399feeab6a78c30767c29d2",
+      "away_team": "HOU",
+      "home_team": "IND",
+      "market": "h2h",
+      "side": "away",
+      "line": null,
+      "book": "betfair_ex_eu",
+      "p_true": 0.3426,
+      "p_mkt": 0.2714,
+      "edge": 0.3702,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.071"
+      ],
+      "magnitude": 0.0712,
+      "outcome": null
+    },
+    {
+      "id": "8016581c",
+      "created_at": "2026-09-27T18:58:05.782938+00:00",
+      "season": 2026,
+      "week": 3,
+      "event_id": "555afd4a27aaa392662881cffa8f2eef",
+      "away_team": "TEN",
+      "home_team": "NYG",
+      "market": "spreads",
+      "side": "away",
+      "line": 14.5,
+      "book": "mybookieag",
+      "p_true": 0.6392,
+      "p_mkt": 0.5682,
+      "edge": 0.2479,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.071"
+      ],
+      "magnitude": 0.071,
+      "outcome": null
+    },
+    {
+      "id": "6d4c1f3f",
+      "created_at": "2026-09-27T18:58:05.782938+00:00",
+      "season": 2026,
+      "week": 3,
+      "event_id": "2a529c108305ffa049d8b6cfdbaa4d36",
+      "away_team": "SEA",
+      "home_team": "WAS",
+      "market": "h2h",
+      "side": "away",
+      "line": null,
+      "book": "betfair_ex_eu",
+      "p_true": 0.5607,
+      "p_mkt": 0.5089,
+      "edge": 0.1439,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.052"
+      ],
+      "magnitude": 0.0518,
+      "outcome": null
+    },
+    {
+      "id": "bea1e743",
+      "created_at": "2026-09-27T18:58:05.782938+00:00",
+      "season": 2026,
+      "week": 3,
+      "event_id": "2a529c108305ffa049d8b6cfdbaa4d36",
+      "away_team": "SEA",
+      "home_team": "WAS",
+      "market": "spreads",
+      "side": "away",
+      "line": 1.5,
+      "book": "williamhill_us",
+      "p_true": 0.5968,
+      "p_mkt": 0.5423,
+      "edge": 0.0859,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.054"
+      ],
+      "magnitude": 0.0545,
+      "outcome": null
+    },
+    {
+      "id": "dd1383e1",
+      "created_at": "2026-09-27T18:58:05.782938+00:00",
+      "season": 2026,
+      "week": 3,
+      "event_id": "17a730b7d399feeab6a78c30767c29d2",
+      "away_team": "HOU",
+      "home_team": "IND",
+      "market": "spreads",
+      "side": "away",
+      "line": 5.5,
+      "book": "pinnacle",
+      "p_true": 0.5427,
+      "p_mkt": 0.4834,
+      "edge": 0.08,
+      "tier": "rejected",
+      "direction": "model_higher",
+      "category": "unknown",
+      "category_manual": null,
+      "confidence": 0.3,
+      "evidence": [
+        "|p_true-p_mkt|=0.059"
+      ],
+      "magnitude": 0.0593,
       "outcome": null
     }
   ]

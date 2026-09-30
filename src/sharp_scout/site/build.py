@@ -882,7 +882,7 @@ def build_site(
     stage_records_thead = (
         "<thead><tr><th>Stage</th><th>Record</th><th>Win %</th>"
         "<th>Spread</th><th>Total</th><th>ML</th>"
-        + _stage_th("Ungraded", BOARD_STAT_TIPS["stage_ungraded"])
+        + _stage_th("Awaiting final", BOARD_STAT_TIPS["stage_awaiting_final"])
         + "</tr></thead>"
     )
 
@@ -2721,38 +2721,18 @@ def _compute_play_record(plays: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _compute_stage_records_from_cards(cards: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    stage_records: dict[str, dict[str, Any]] = {}
-    for card in cards:
-        if str(card.get("event_id") or "").startswith("demo-"):
-            continue
-        for stage, result in (card.get("results") or {}).items():
-            bucket = stage_records.setdefault(
-                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-            )
-            if result == "win":
-                bucket["wins"] += 1
-            elif result == "loss":
-                bucket["losses"] += 1
-            elif result == "push":
-                bucket["pushes"] += 1
-            elif result is not None:
-                bucket["pending"] += 1
-        if card.get("status") in (None, "pending"):
-            for stage, pick in (card.get("picks") or {}).items():
-                if not pick.get("available") or not pick.get("side"):
-                    continue
-                bucket = stage_records.setdefault(
-                    stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-                )
-                existing = (card.get("results") or {}).get(stage)
-                if existing is None and stage not in (card.get("results") or {}):
-                    bucket["pending"] += 1
-    for stage, b in stage_records.items():
-        decided = b["wins"] + b["losses"]
-        b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
-        b["win_pct"] = (b["wins"] / decided) if decided else None
-    return stage_records
+def _compute_stage_records_from_cards(
+    cards: list[dict[str, Any]],
+    *,
+    sport: str = "nfl",
+) -> dict[str, dict[str, Any]]:
+    from sharp_scout.ledger.tracker import aggregate_stage_records
+
+    return aggregate_stage_records(
+        cards,
+        sport=sport,
+        pending_in_display_slate_only=False,
+    )
 
 
 def _render_weekly_lens_scorecard(
@@ -2783,7 +2763,7 @@ def _render_weekly_lens_scorecard(
         "How each lens performed this week if you bet every pick (spread, ML, total). "
         "<b>Sharp Plays</b> = actual posted bets only.</p>"
         '<div class="table-wrap"><table class="weekly-scorecard-table">'
-        "<thead><tr><th>Lens</th><th>Record</th><th>Win %</th><th>Ungraded</th></tr></thead>"
+        "<thead><tr><th>Lens</th><th>Record</th><th>Win %</th><th>Awaiting final</th></tr></thead>"
         f"<tbody>{body}</tbody></table></div>"
     )
 

@@ -307,6 +307,46 @@ def settle_play(
     return play
 
 
+def ledger_sport_from_path(path: Path | None) -> str:
+    if path and "ncaaf" in path.name:
+        return "ncaaf"
+    return "nfl"
+
+
+def prune_stage_cards_outside_display_slate(
+    ledger: dict[str, Any],
+    *,
+    sport: str,
+    events: list[dict[str, Any]] | None = None,
+) -> int:
+    """Drop pending stage cards outside the current display slate (keeps settled history)."""
+    from sharp_scout.utils.slate import filter_stage_cards_display_slate
+
+    cards = ledger.get("stage_cards") or []
+    if not cards:
+        return 0
+    slate_events = events or [
+        {"commence_time": c.get("kickoff") or c.get("commence_time")} for c in cards
+    ]
+    in_slate = filter_stage_cards_display_slate(
+        cards, sport=sport, events=slate_events
+    )
+    keep_keys = {f"{c.get('event_id')}|{c.get('market')}" for c in in_slate}
+    kept: list[dict[str, Any]] = []
+    pruned = 0
+    for card in cards:
+        key = f"{card.get('event_id')}|{card.get('market')}"
+        if card.get("status") not in (None, "pending"):
+            kept.append(card)
+            continue
+        if key in keep_keys:
+            kept.append(card)
+        else:
+            pruned += 1
+    ledger["stage_cards"] = kept
+    return pruned
+
+
 def append_stage_cards(
     cards: list[dict[str, Any]],
     *,
@@ -315,6 +355,13 @@ def append_stage_cards(
     path: Path | None = None,
 ) -> dict[str, Any]:
     """Upsert per-game stage pick cards (one row per event+market)."""
+    sport = ledger_sport_from_path(path)
+    from sharp_scout.utils.slate import filter_stage_cards_display_slate
+
+    slate_events = [
+        {"commence_time": c.get("kickoff") or c.get("commence_time")} for c in cards
+    ]
+    cards = filter_stage_cards_display_slate(cards, sport=sport, events=slate_events)
     ledger = load_ledger(path)
     existing = {
         f"{c.get('event_id')}|{c.get('market')}": i
@@ -345,6 +392,17 @@ def append_stage_cards(
         else:
             ledger.setdefault("stage_cards", []).append(row)
             existing[key] = len(ledger["stage_cards"]) - 1
+    pruned = prune_stage_cards_outside_display_slate(
+        ledger,
+        sport=sport,
+        events=slate_events,
+    )
+    if pruned:
+        logger.info(
+            "Pruned %d pending stage cards outside current %s display slate",
+            pruned,
+            sport,
+        )
     save_ledger(ledger, path)
     return ledger
 
@@ -664,6 +722,87 @@ def settle_from_scores(
     return ledger
 
 
+def aggregate_stage_records(
+    cards: list[dict[str, Any]],
+    *,
+    sport: str = "nfl",
+    pending_in_display_slate_only: bool = False,
+) -> dict[str, dict[str, Any]]:
+    """Win/loss/push totals per stage lens; optional display-week scope for awaiting-final."""
+    from sharp_scout.utils.slate import filter_stage_cards_display_slate
+
+    pending_card_keys: set[str] | None = None
+    if pending_in_display_slate_only:
+        slate_events = [
+            {"commence_time": c.get("kickoff") or c.get("commence_time")} for c in cards
+        ]
+        in_slate = filter_stage_cards_display_slate(
+            cards, sport=sport, events=slate_events
+        )
+        pending_card_keys = {f"{c.get('event_id')}|{c.get('market')}" for c in in_slate}
+
+    def _counts_awaiting_final(card: dict[str, Any]) -> bool:
+        if card.get("status") not in (None, "pending"):
+            return False
+        if pending_card_keys is None:
+            return True
+        key = f"{card.get('event_id')}|{card.get('market')}"
+        return key in pending_card_keys
+
+    stage_records: dict[str, dict[str, Any]] = {}
+    for card in cards:
+        if str(card.get("event_id") or "").startswith("demo-"):
+            continue
+        for stage, result in (card.get("results") or {}).items():
+            bucket = stage_records.setdefault(
+                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+            )
+            if result == "win":
+                bucket["wins"] += 1
+            elif result == "loss":
+                bucket["losses"] += 1
+            elif result == "push":
+                bucket["pushes"] += 1
+            elif result is not None:
+                bucket["pending"] += 1
+        if not _counts_awaiting_final(card):
+            continue
+        for stage, pick in (card.get("picks") or {}).items():
+            if not pick.get("available") or not pick.get("side"):
+                continue
+            bucket = stage_records.setdefault(
+                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+            )
+            existing = (card.get("results") or {}).get(stage)
+            if existing is None and stage not in (card.get("results") or {}):
+                bucket["pending"] += 1
+
+    for stage, b in stage_records.items():
+        d = b["wins"] + b["losses"]
+        b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
+        b["win_pct"] = (b["wins"] / d) if d else None
+
+    for stage, b in stage_records.items():
+        b["by_market"] = {}
+    for card in cards:
+        if str(card.get("event_id") or "").startswith("demo-"):
+            continue
+        mkt = str(card.get("market") or "")
+        for stage, result in (card.get("results") or {}).items():
+            if result not in ("win", "loss", "push") or stage not in stage_records:
+                continue
+            mb = stage_records[stage]["by_market"].setdefault(
+                mkt, {"wins": 0, "losses": 0, "pushes": 0}
+            )
+            mb["wins" if result == "win" else "losses" if result == "loss" else "pushes"] += 1
+    for b in stage_records.values():
+        for mb in b["by_market"].values():
+            d = mb["wins"] + mb["losses"]
+            mb["record"] = f"{mb['wins']}-{mb['losses']}" + (f"-{mb['pushes']}" if mb["pushes"] else "")
+            mb["win_pct"] = (mb["wins"] / d) if d else None
+    return stage_records
+
+
 def compute_record(
     ledger: dict[str, Any] | None = None,
     *,
@@ -712,59 +851,11 @@ def compute_record(
     win_pct = (wins / decided) if decided else None
     starting = float(ledger.get("starting_units") or 100)
 
-    # Per-stage ATS/ML records from stage_cards (skip demo/test rows)
-    stage_records: dict[str, dict[str, Any]] = {}
-    for card in ledger.get("stage_cards") or []:
-        if str(card.get("event_id") or "").startswith("demo-"):
-            continue
-        for stage, result in (card.get("results") or {}).items():
-            bucket = stage_records.setdefault(
-                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-            )
-            if result == "win":
-                bucket["wins"] += 1
-            elif result == "loss":
-                bucket["losses"] += 1
-            elif result == "push":
-                bucket["pushes"] += 1
-            elif result is not None:
-                bucket["pending"] += 1
-        if card.get("status") in (None, "pending"):
-            for stage, pick in (card.get("picks") or {}).items():
-                if not pick.get("available") or not pick.get("side"):
-                    continue
-                bucket = stage_records.setdefault(
-                    stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-                )
-                existing = (card.get("results") or {}).get(stage)
-                if existing is None and stage not in (card.get("results") or {}):
-                    bucket["pending"] += 1
-
-    for stage, b in stage_records.items():
-        d = b["wins"] + b["losses"]
-        b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
-        b["win_pct"] = (b["wins"] / d) if d else None
-
-    # Per-market split: the moneyline lens is mostly "the favorite won" (~78–80% but at
-    # chalk prices) and inflates the combined number, so surface spread/total separately.
-    for stage, b in stage_records.items():
-        b["by_market"] = {}
-    for card in ledger.get("stage_cards") or []:
-        if str(card.get("event_id") or "").startswith("demo-"):
-            continue
-        mkt = str(card.get("market") or "")
-        for stage, result in (card.get("results") or {}).items():
-            if result not in ("win", "loss", "push") or stage not in stage_records:
-                continue
-            mb = stage_records[stage]["by_market"].setdefault(
-                mkt, {"wins": 0, "losses": 0, "pushes": 0}
-            )
-            mb["wins" if result == "win" else "losses" if result == "loss" else "pushes"] += 1
-    for b in stage_records.values():
-        for mb in b["by_market"].values():
-            d = mb["wins"] + mb["losses"]
-            mb["record"] = f"{mb['wins']}-{mb['losses']}" + (f"-{mb['pushes']}" if mb["pushes"] else "")
-            mb["win_pct"] = (mb["wins"] / d) if d else None
+    stage_records = aggregate_stage_records(
+        ledger.get("stage_cards") or [],
+        sport=ledger_sport_from_path(path),
+        pending_in_display_slate_only=True,
+    )
 
     from sharp_scout.analysis.disagreement import summarize_disagreements
     from sharp_scout.ledger.clv import summarize_clv

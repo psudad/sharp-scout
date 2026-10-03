@@ -15,6 +15,7 @@ from sharp_scout.qa.gate import (
     play_commitment_locked,
     review_play,
     review_signals,
+    _validated_keys,
 )
 
 
@@ -239,7 +240,7 @@ def test_committed_play_not_voided_after_kickoff_when_not_revalidated():
     )
     assert review.action == "approve"
     assert any(i.code == "commitment_lock" for i in review.issues)
-    assert any(i.code == "not_revalidated" for i in review.issues)
+    assert not any(i.code == "not_revalidated" for i in review.issues)
 
 
 def test_non_play_tier_still_voided_inside_t2h():
@@ -300,3 +301,102 @@ def test_stale_kickoff_voided(tmp_path):
 
     ledger = json.loads(ledger_path.read_text())
     assert ledger["plays"][0]["status"] == "void"
+
+
+def test_graded_play_not_voided_for_missing_pipeline_game():
+    signals = _base_signals(games=[], split_boards=[])
+    play = {
+        "id": "graded",
+        "event_id": "ev1",
+        "home_team": "LV",
+        "away_team": "MIA",
+        "market": "spreads",
+        "side": "home",
+        "line": 3.0,
+        "book": "draftkings",
+        "price": -110,
+        "p_true": 0.55,
+        "edge": 0.05,
+        "kickoff": "2026-10-12T20:25:00+00:00",
+        "status": "win",
+    }
+    review = review_play(play, signals, sport="nfl", validated_keys=set())
+    codes = {i.code for i in review.issues}
+    assert "orphan_event" not in codes
+    assert "not_revalidated" not in codes
+
+
+def test_pending_play_after_kickoff_not_voided_for_stale_pipeline():
+    signals = _base_signals(games=[], split_boards=[])
+    play = {
+        "id": "late",
+        "event_id": "ev1",
+        "home_team": "LV",
+        "away_team": "MIA",
+        "market": "spreads",
+        "side": "home",
+        "line": 3.0,
+        "book": "draftkings",
+        "price": -110,
+        "p_true": 0.55,
+        "edge": 0.05,
+        "kickoff": "2026-10-12T20:25:00+00:00",
+        "status": "pending",
+    }
+    after = datetime(2026, 10, 13, 6, 0, tzinfo=timezone.utc)
+    review = review_play(
+        play,
+        signals,
+        sport="nfl",
+        validated_keys=set(),
+        now=after,
+    )
+    codes = {i.code for i in review.issues}
+    assert "orphan_event" not in codes
+    assert "not_revalidated" not in codes
+
+
+def test_single_book_total_goes_watchlist_not_quarantine():
+    signals = _base_signals(
+        plays=[
+            {
+                "event_id": "ev1",
+                "home_team": "LV",
+                "away_team": "MIA",
+                "market": "totals",
+                "side": "over",
+                "line": 44.5,
+                "filter_passed": True,
+            }
+        ],
+        signals=[
+            {
+                "event_id": "ev1",
+                "market": "totals",
+                "side": "over",
+                "line": 44.5,
+                "book": "draftkings",
+            },
+        ],
+    )
+    play = {
+        "id": "tot-single",
+        "event_id": "ev1",
+        "home_team": "LV",
+        "away_team": "MIA",
+        "market": "totals",
+        "side": "over",
+        "line": 44.5,
+        "book": "draftkings",
+        "price": -110,
+        "p_true": 0.56,
+        "p_mkt": 0.52,
+        "p_fair": 0.52,
+        "edge": 0.06,
+        "kickoff": "2026-10-12T20:25:00+00:00",
+        "status": "pending",
+        "tier": "play",
+    }
+    review = review_play(play, signals, sport="nfl", validated_keys=_validated_keys(signals))
+    assert review.action == "approve"
+    assert not any(i.code == "single_book" for i in review.issues)

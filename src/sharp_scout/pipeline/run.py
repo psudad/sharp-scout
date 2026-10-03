@@ -320,7 +320,10 @@ def run_pipeline(
                 len(week_validated),
             )
         if stage_cards:
-            append_stage_cards(stage_cards, season=season, week=week)
+            stage_cards_ledger = [
+                c for c in stage_cards if str(c.get("event_id")) in display_ids
+            ]
+            append_stage_cards(stage_cards_ledger, season=season, week=week)
 
         # "Why is our model wrong?" — log material model-vs-market disagreements.
         from sharp_scout.analysis.disagreement import build_disagreements

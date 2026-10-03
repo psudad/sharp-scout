@@ -6,10 +6,12 @@ import json
 from pathlib import Path
 
 from sharp_scout.ledger.tracker import (
+    aggregate_stage_records,
     append_signals,
     compute_record,
     empty_ledger,
     load_ledger,
+    prune_stage_cards_outside_display_slate,
     save_ledger,
     settle_from_scores,
     settle_play,
@@ -141,6 +143,86 @@ def test_regrade_settled_total_stage_card_with_null_results(tmp_path: Path):
     card = load_ledger(path)["stage_cards"][0]
     assert card["results"]["model"] == "loss"
     assert card["results"]["hybrid"] == "loss"
+
+
+def test_stage_awaiting_final_scoped_to_display_week(monkeypatch):
+    from datetime import datetime, timezone
+
+    start = datetime(2026, 10, 1, 0, 0, tzinfo=timezone.utc)
+    end = datetime(2026, 10, 8, 0, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(
+        "sharp_scout.utils.slate.nfl_display_week_bounds",
+        lambda now=None, events=None: (start, end),
+    )
+    in_week = {
+        "event_id": "e-in",
+        "market": "spread",
+        "kickoff": "2026-10-05T20:00:00+00:00",
+        "status": "pending",
+        "picks": {"model": {"available": True, "side": "home"}},
+        "results": {},
+    }
+    far_future = {
+        "event_id": "e-far",
+        "market": "spread",
+        "kickoff": "2027-01-10T21:00:00+00:00",
+        "status": "pending",
+        "picks": {"model": {"available": True, "side": "away"}},
+        "results": {},
+    }
+    graded = {
+        "event_id": "e-done",
+        "market": "spread",
+        "kickoff": "2026-09-20T17:00:00+00:00",
+        "status": "settled",
+        "picks": {"model": {"available": True, "side": "home"}},
+        "results": {"model": "win"},
+    }
+    rec = aggregate_stage_records(
+        [in_week, far_future, graded],
+        sport="nfl",
+        pending_in_display_slate_only=True,
+    )
+    assert rec["model"]["wins"] == 1
+    assert rec["model"]["pending"] == 1
+
+
+def test_prune_pending_stage_cards_outside_display_slate(monkeypatch):
+    from datetime import datetime, timezone
+
+    start = datetime(2026, 10, 1, 0, 0, tzinfo=timezone.utc)
+    end = datetime(2026, 10, 8, 0, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(
+        "sharp_scout.utils.slate.nfl_display_week_bounds",
+        lambda now=None, events=None: (start, end),
+    )
+    ledger = empty_ledger()
+    ledger["stage_cards"] = [
+        {
+            "event_id": "keep",
+            "market": "spread",
+            "kickoff": "2026-10-05T20:00:00+00:00",
+            "status": "pending",
+        },
+        {
+            "event_id": "drop",
+            "market": "spread",
+            "kickoff": "2027-01-10T21:00:00+00:00",
+            "status": "pending",
+        },
+        {
+            "event_id": "history",
+            "market": "spread",
+            "kickoff": "2026-09-01T17:00:00+00:00",
+            "status": "settled",
+            "results": {"model": "win"},
+        },
+    ]
+    pruned = prune_stage_cards_outside_display_slate(ledger, sport="nfl")
+    assert pruned == 1
+    assert len(ledger["stage_cards"]) == 2
+    ids = {c["event_id"] for c in ledger["stage_cards"]}
+    assert ids == {"keep", "history"}
 
 
 def test_ledger_append_dedupe(tmp_path: Path):

@@ -1,42 +1,120 @@
 {
   "sport": "ncaaf",
-  "generated_at": "2026-09-26T12:25:45.016270+00:00",
-  "layer1_passed": true,
-  "block_deploy": false,
+  "generated_at": "2026-09-26T12:29:52.235881+00:00",
+  "layer1_passed": false,
+  "block_deploy": true,
   "layer1_issues": [
     {
-      "code": "no_splits",
-      "severity": "warn",
-      "message": "Action Network splits unavailable \u2014 Phase 4 confirmation may be incomplete"
+      "code": "demo_mode",
+      "severity": "block",
+      "message": "Pipeline ran in demo mode \u2014 not safe to deploy"
+    },
+    {
+      "code": "low_game_count",
+      "severity": "block",
+      "message": "Only 1 games in slate (need \u226520 for NCAA Football)"
+    },
+    {
+      "code": "flat_ratings_count",
+      "severity": "block",
+      "message": "Only 20 rated teams (need \u226580) \u2014 likely skip-pbp or demo ratings"
     }
   ],
-  "approved": 3,
+  "approved": 0,
   "quarantined": 0,
-  "voided": 0,
+  "voided": 3,
   "play_reviews": [
     {
       "play_id": "48a6eed1",
       "matchup": "CONNECTICUT@MIAMI OHIO",
       "market": "totals",
       "side": "over",
-      "action": "approve",
-      "issues": []
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team MIAMI OHIO missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team CONNECTICUT missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): only 0 book(s) on line (need \u22652)"
+        }
+      ]
     },
     {
       "play_id": "c47ab7a4",
       "matchup": "OU@UGA",
       "market": "spreads",
       "side": "away",
-      "action": "approve",
-      "issues": []
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): only 0 book(s) on line (need \u22652)"
+        }
+      ]
     },
     {
       "play_id": "12396391",
       "matchup": "MASSACHUSETTS@SACRAMENTO STATE",
       "market": "spreads",
       "side": "home",
-      "action": "approve",
-      "issues": []
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team SACRAMENTO STATE missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team MASSACHUSETTS missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): only 0 book(s) on line (need \u22652)"
+        }
+      ]
     }
   ]
 }

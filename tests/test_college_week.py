@@ -115,3 +115,26 @@ def test_partition_stage_cards_current_historical():
     assert current[0]["event_id"] == "a"
     assert len(historical) == 1
     assert historical[0][1][0]["event_id"] == "b"
+
+
+def test_filter_events_college_week_include_started_keeps_finished():
+    # Saturday Sep 26 2026 morning ET — Friday night final; Saturday kickoff still ahead
+    now = datetime(2026, 9, 26, 14, 0, tzinfo=timezone.utc)
+    events = [
+        {
+            "event_id": "fri",
+            "home_team": "UAB",
+            "away_team": "NAVY",
+            "commence_time": "2026-09-26T00:30:00+00:00",  # Fri Sep 25 evening ET
+        },
+        {
+            "event_id": "sat",
+            "home_team": "TCU",
+            "away_team": "UNC",
+            "commence_time": "2026-09-26T19:00:00+00:00",
+        },
+    ]
+    default = filter_events_college_week(events, now=now)
+    assert [e["event_id"] for e in default] == ["sat"]
+    with_started = filter_events_college_week(events, now=now, include_started=True)
+    assert {e["event_id"] for e in with_started} == {"fri", "sat"}

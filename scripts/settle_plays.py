@@ -53,7 +53,7 @@ def main() -> None:
     elif args.scores_json:
         scores = json.loads(args.scores_json.read_text())
     elif sport.key == "ncaaf":
-        scores = load_scores_from_cfb_schedules(args.season or None)
+        scores = load_scores_from_cfb_schedules(args.season or None, ledger_path=ledger_path)
     else:
         scores = load_scores_from_schedules(args.season or None)
 

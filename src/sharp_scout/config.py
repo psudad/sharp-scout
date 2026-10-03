@@ -97,6 +97,8 @@ class Settings(BaseSettings):
     # CFB ratings fit (as-of backtest 2025 Wk4–13 → 2026 Wk2–4, FBS-vs-FBS margins)
     ncaaf_epa_half_life_weeks: float = 10.0
     ncaaf_epa_ridge_alpha: float = 20.0
+    # NFL sides ratings (as-of backtest 2024–25 Wk4–17: margin corr 0.27 → 0.37)
+    nfl_epa_half_life_weeks: float = 16.0
     ncaaf_ban_ml_dogs: bool = True  # NCAAF moneyline underdogs went 4–12 / 8–12 in every rating variant
     ncaaf_sharp_veto: bool = True  # reject plays where the sharp book's no-vig side is against us
     nfl_sharp_veto: bool = True  # same rule for NFL (model has no edge vs the close; 48.7% over 546 games)

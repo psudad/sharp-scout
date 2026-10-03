@@ -12,7 +12,7 @@ from scipy import sparse
 from sklearn.linear_model import Ridge
 
 from sharp_scout.config import get_settings
-from sharp_scout.data.nflfastr import load_pbp
+from sharp_scout.data.nflfastr import load_pbp, nfl_rating_plays
 from sharp_scout.utils.odds import normalize_team
 
 logger = logging.getLogger(__name__)
@@ -200,6 +200,17 @@ def build_power_ratings(
         )
     logger.info("Built power ratings for %d teams", len(ratings))
     return ratings
+
+
+def build_nfl_ratings(pbp: pd.DataFrame | None = None) -> dict[str, TeamPower]:
+    """NFL team ratings on clean plays with the NFL half-life (sides + props)."""
+    settings = get_settings()
+    if pbp is None:
+        pbp = load_pbp(settings.seasons)
+    return build_power_ratings(
+        nfl_rating_plays(pbp),
+        half_life_weeks=settings.nfl_epa_half_life_weeks,
+    )
 
 
 QB_DELTA_CLIP = (-0.35, 0.15)  # EPA/dropback; a −0.35 swing ≈ −10 pts at NFL scale

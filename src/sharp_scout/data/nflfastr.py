@@ -147,6 +147,7 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
         "roof",
         "temp",
         "wind",
+        "wp",
     ]
     present = [c for c in cols if c in pbp.columns]
     df = pbp[present].copy()
@@ -191,6 +192,28 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
     else:
         df["is_rush_attempt"] = df["is_rush"]
 
+    return df.reset_index(drop=True)
+
+
+GARBAGE_WP = (0.05, 0.95)
+
+
+def nfl_rating_plays(pbp: pd.DataFrame) -> pd.DataFrame:
+    """Plays the NFL team ratings should be fit on.
+
+    Kneels and spikes hand negative EPA to the team that is winning (or managing the
+    clock), and blowout snaps say little about true strength. Drop both; untyped rows
+    (penalty-only snaps) go too.
+    """
+    if pbp.empty:
+        return pbp
+    df = pbp
+    if "play_type" in df.columns:
+        df = df[df["play_type"].isin(["pass", "run"])]
+    if "wp" in df.columns:
+        wp = pd.to_numeric(df["wp"], errors="coerce")
+        lo, hi = GARBAGE_WP
+        df = df[wp.isna() | ((wp > lo) & (wp < hi))]
     return df.reset_index(drop=True)
 
 

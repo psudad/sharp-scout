@@ -9,11 +9,12 @@ from typing import Any
 
 from sharp_scout.config import ARTIFACTS_DIR, get_settings
 from sharp_scout.data.odds_api import OddsClient, mock_odds_events
-from sharp_scout.phase1.ratings import build_power_ratings, matchup_means
+from sharp_scout.phase1.ratings import build_nfl_ratings, matchup_means
 from sharp_scout.props.filters import apply_weather_to_usage_mult, attach_prop_filters
 from sharp_scout.props.markets import build_sims_for_event, discover_prop_edges, mock_prop_event
 from sharp_scout.props.matchup import opponent_matchup_tilts
 from sharp_scout.props.simulate import CORE_PROP_MARKETS
+from sharp_scout.sports import NFL
 from sharp_scout.props.usage import (
     PlayerUsage,
     apply_game_script,
@@ -119,7 +120,7 @@ def run_props_pipeline(
     ratings = None
     try:
         if not skip_pbp and not demo:
-            ratings = build_power_ratings()
+            ratings = build_nfl_ratings()
     except Exception:  # noqa: BLE001
         ratings = None
 
@@ -136,7 +137,7 @@ def run_props_pipeline(
         home, away = ev["home_team"], ev["away_team"]
         ctx = game_context.get(eid) or {}
         if not ctx and ratings is not None:
-            means = matchup_means(home, away, ratings)
+            means = matchup_means(home, away, ratings, home_boost=NFL.base_hfa)
             ctx = {
                 "home_spread": means["model_spread"],
                 "total": means["model_total"],

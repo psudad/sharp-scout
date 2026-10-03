@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
+from scipy import sparse
 from sklearn.linear_model import Ridge
 
 from sharp_scout.config import get_settings
@@ -94,12 +95,12 @@ def _ridge_team_effects(
     k = len(teams)
 
     # Design: offense dummy - defense dummy (sum-to-zero via ridge shrinkage)
-    X = np.zeros((n, 2 * k))
-    for i, (_, row) in enumerate(df.iterrows()):
-        oi = team_index[row["posteam"]]
-        di = team_index[row["defteam"]]
-        X[i, oi] = 1.0
-        X[i, k + di] = 1.0
+    oi = df["posteam"].map(team_index).to_numpy()
+    di = df["defteam"].map(team_index).to_numpy() + k
+    rows = np.repeat(np.arange(n), 2)
+    cols = np.empty(2 * n, dtype=np.int64)
+    cols[0::2], cols[1::2] = oi, di
+    X = sparse.csr_matrix((np.ones(2 * n), (rows, cols)), shape=(n, 2 * k))
 
     y = df[value_col].to_numpy(dtype=float)
     w = _recency_weights(df, half_life)
@@ -147,7 +148,12 @@ def _qb_epa_split(pbp: pd.DataFrame) -> dict[str, tuple[float, float]]:
     return out
 
 
-def build_power_ratings(pbp: pd.DataFrame | None = None) -> dict[str, TeamPower]:
+def build_power_ratings(
+    pbp: pd.DataFrame | None = None,
+    *,
+    half_life_weeks: float | None = None,
+    epa_alpha: float = 80.0,
+) -> dict[str, TeamPower]:
     settings = get_settings()
     if pbp is None:
         pbp = load_pbp(settings.seasons)
@@ -155,8 +161,8 @@ def build_power_ratings(pbp: pd.DataFrame | None = None) -> dict[str, TeamPower]
         logger.warning("Empty PBP — using neutral prior ratings for all 32 teams")
         return _neutral_ratings()
 
-    half = settings.epa_half_life_weeks
-    off_epa, def_epa = _ridge_team_effects(pbp, "epa", half, alpha=80.0)
+    half = settings.epa_half_life_weeks if half_life_weeks is None else half_life_weeks
+    off_epa, def_epa = _ridge_team_effects(pbp, "epa", half, alpha=epa_alpha)
 
     # Success rate on early downs
     early = pbp[pbp["down"].isin([1, 2])] if "down" in pbp.columns else pbp
@@ -281,8 +287,13 @@ def matchup_means(
     hr = ratings.get(normalize_team(home, sport)) or TeamPower(home, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     ar = ratings.get(normalize_team(away, sport)) or TeamPower(away, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-    home_off = base + scale * (hr.off_epa - ar.def_epa) + home_boost / 2
-    away_off = base + scale * (ar.off_epa - hr.def_epa) - home_boost / 2
+    total_scale = scale if epa_scale is not None or cfg.total_epa_scale is None else cfg.total_epa_scale
+    home_edge = hr.off_epa - ar.def_epa
+    away_edge = ar.off_epa - hr.def_epa
+    margin = scale * (home_edge - away_edge)
+    total = 2 * base + total_scale * (home_edge + away_edge)
+    home_off = total / 2 + margin / 2 + home_boost / 2
+    away_off = total / 2 - margin / 2 - home_boost / 2
 
     home_off += total_adj / 2
     away_off += total_adj / 2

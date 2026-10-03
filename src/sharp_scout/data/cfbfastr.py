@@ -105,7 +105,8 @@ def _normalize_cfb_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
         "season", "week", "game_id", "play_id", "posteam", "defteam",
         "home_team", "away_team", "passer_player_name", "rusher_player_name",
         "epa", "success", "yards_gained", "pass", "rush", "qb_dropback",
-        "down", "play_type", "game_date",
+        "down", "play_type", "game_date", "wp_before",
+        "home_team_division", "away_team_division",
     ]
     present = [c for c in cols if c in df.columns]
     out = df[present].copy()
@@ -126,6 +127,47 @@ def _normalize_cfb_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
     else:
         out["is_rush"] = ~out["is_dropback"]
     return out.reset_index(drop=True)
+
+
+NON_FBS_POOL = "NONFBS"
+GARBAGE_WP = (0.05, 0.95)
+
+
+def fbs_teams(pbp: pd.DataFrame) -> set[str]:
+    """Teams that appear as an FBS home or away side anywhere in the PBP window."""
+    out: set[str] = set()
+    for side in ("home", "away"):
+        team_col, div_col = f"{side}_team", f"{side}_team_division"
+        if team_col in pbp.columns and div_col in pbp.columns:
+            mask = pbp[div_col].astype(str).str.lower() == "fbs"
+            out |= set(pbp.loc[mask, team_col].dropna().astype(str))
+    return out
+
+
+def cfb_rating_plays(pbp: pd.DataFrame) -> tuple[pd.DataFrame, set[str]]:
+    """Plays the CFB ratings should be fit on, plus the FBS team set.
+
+    cfbfastR attaches EPA to timeouts, kickoffs, penalties and period-end rows; fitting
+    on those (and on blowout garbage time) left ratings with ~0 out-of-sample signal
+    (2026 Weeks 2–4 margin corr 0.03 → 0.64 after this filter). FCS/D2 teams play one
+    or two FBS games, so they share a single pooled rating instead of floating to the
+    top of the table off one result.
+    """
+    if pbp.empty:
+        return pbp, set()
+    df = pbp
+    if "is_rush" in df.columns and "is_dropback" in df.columns:
+        df = df[df["is_rush"].astype(bool) | df["is_dropback"].astype(bool)]
+    if "wp_before" in df.columns:
+        wp = pd.to_numeric(df["wp_before"], errors="coerce")
+        lo, hi = GARBAGE_WP
+        df = df[wp.isna() | ((wp > lo) & (wp < hi))]
+    fbs = fbs_teams(pbp)
+    if fbs:
+        df = df.copy()
+        for col in ("posteam", "defteam"):
+            df[col] = df[col].where(df[col].isin(fbs), NON_FBS_POOL)
+    return df.reset_index(drop=True), fbs
 
 
 def load_cfb_schedules(seasons: list[int] | None = None) -> pd.DataFrame:

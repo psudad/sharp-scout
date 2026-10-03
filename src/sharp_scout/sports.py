@@ -37,6 +37,9 @@ class SportConfig:
     # Quant Pick (soft hybrid): hide the lean when the model opposes the sharp line
     # and the spread/total disagreement is at least this many points (not anchor_k).
     hybrid_model_market_gap: float = 4.0
+    # Points per EPA/play on the total (None → epa_scale). CFB EPA predicts margin far
+    # better than combined scoring, so totals get a flatter slope.
+    total_epa_scale: float | None = None
 
 
 NFL = SportConfig(
@@ -70,8 +73,9 @@ NCAAF = SportConfig(
     ledger_name="ncaaf_ledger.json",
     pbp_cache_prefix="cfb_pbp",
     base_hfa=3.0,  # college HFA is typically larger
-    scoring_base=27.5,
-    epa_scale=26.0,
+    scoring_base=26.5,
+    epa_scale=56.0,  # fitted margin slope on scrimmage-EPA power diff
+    total_epa_scale=16.0,
     margin_sd=17.0,
     total_sd=17.0,
     anchor_k_spread=0.3,

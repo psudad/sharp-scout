@@ -1555,7 +1555,11 @@ def _render_quarantine_section(plays: list[dict], *, sport: str = "nfl") -> str:
         pick = _esc(_side_label(p))
         units = p.get("units") or {"play": 1.5, "lean": 1.0}.get(p.get("tier") or "lean", 0.5)
         notes = p.get("qa_notes") or []
-        reason = notes[0].get("message") if notes else (p.get("rationale") or "QA review")
+        messages = [str(n.get("message") or "").strip() for n in notes if n.get("message")]
+        if messages:
+            reason = " · ".join(messages[:3])
+        else:
+            reason = p.get("rationale") or "QA review"
         st = p.get("shadow_status")
         if st in ("win", "loss", "push"):
             result_html = _status_badge(st)

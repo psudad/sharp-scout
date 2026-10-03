@@ -422,11 +422,13 @@ def describe_stage_pick(stage: str, pick: dict[str, Any], home: str, away: str) 
     conf_s = f" · {conf * 100:.0f}% confidence" if conf is not None else ""
 
     if stage == "model":
-        spread = pick.get("line")
-        if spread is not None:
+        from sharp_scout.copy.spread_context import format_model_margin, parse_s_mod_from_reason
+
+        mod = parse_s_mod_from_reason(pick.get("reason"))
+        if mod is not None:
             return (
-                f"{intro} {team}{line_s}. Model spread (home) is {float(spread):+.2f} "
-                f"(negative = home favored).{conf_s}"
+                f"{intro} {team}{line_s}. Model margin: "
+                f"{format_model_margin(mod, home, away)}.{conf_s}"
             )
     if stage == "hybrid" and "validated" in str(pick.get("reason") or ""):
         return f"{intro} {team}{line_s}. {pick.get('reason')}{conf_s}"

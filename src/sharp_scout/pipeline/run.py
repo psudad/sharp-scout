@@ -18,6 +18,7 @@ from sharp_scout.phase2.monte_carlo import simulate_game
 from sharp_scout.phase3.market import discover_edges
 from sharp_scout.data.splits_board import prepare_splits_for_filters
 from sharp_scout.phase4.filters import attach_filters
+from sharp_scout.sports import NFL
 from sharp_scout.utils.odds import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -61,10 +62,13 @@ def run_pipeline(
         ratings["KC"] = TeamPower("KC", 0.08, 0.04, 0.02, 0.01, 0.4, 0.2, 0.12, 0.0, 0.12)
         ratings["BUF"] = TeamPower("BUF", 0.06, 0.05, 0.02, 0.02, 0.3, 0.25, 0.10, 0.02, 0.11)
     else:
-        from sharp_scout.data.nflfastr import load_pbp
+        from sharp_scout.data.nflfastr import load_pbp, nfl_rating_plays
 
         pbp = load_pbp(settings.seasons)
-        ratings = build_power_ratings(pbp)
+        ratings = build_power_ratings(
+            nfl_rating_plays(pbp),
+            half_life_weeks=settings.nfl_epa_half_life_weeks,
+        )
         # QB injuries: INACTIVE_PLAYERS="Caleb Williams,Jaxson Dart" → teams whose
         # current starter is listed get the starter→backup EPA delta applied.
         if settings.inactive_list:
@@ -159,7 +163,7 @@ def run_pipeline(
 
     for ev in events:
         home, away = ev["home_team"], ev["away_team"]
-        situ = situational_spread_adj(home, away)
+        situ = situational_spread_adj(home, away, hfa=NFL.base_hfa)
         means = matchup_means(
             home,
             away,

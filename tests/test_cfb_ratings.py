@@ -47,8 +47,16 @@ def test_ncaaf_total_uses_flatter_scale_than_margin():
     assert m["model_total"] == pytest.approx(54.6)
 
 
-def test_nfl_total_scale_unchanged():
+def test_explicit_epa_scale_applies_to_margin_and_total():
     ratings = {"KC": _tp("KC", 0.1, 0.05), "LV": _tp("LV", -0.05, 0.0)}
-    m = matchup_means("KC", "LV", ratings, home_boost=2.2, sport="nfl")
+    m = matchup_means("KC", "LV", ratings, home_boost=2.2, sport="nfl", epa_scale=28.0, scoring_base=22.5)
     assert m["mu_home"] == pytest.approx(22.5 + 28.0 * (0.1 - 0.0) + 1.1)
     assert m["mu_away"] == pytest.approx(22.5 + 28.0 * (-0.05 - 0.05) - 1.1)
+
+
+def test_nfl_margin_and_total_scales():
+    ratings = {"KC": _tp("KC", 0.1, 0.05), "LV": _tp("LV", -0.05, 0.0)}
+    m = matchup_means("KC", "LV", ratings, home_boost=0.0, sport="nfl")
+    # margin = 45 * ((0.1-0.0) - (-0.05-0.05)) = 9; total = 45 + 28 * (0.1 - 0.1) = 45
+    assert m["model_spread"] == pytest.approx(-9.0)
+    assert m["model_total"] == pytest.approx(45.0)

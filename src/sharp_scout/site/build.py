@@ -978,6 +978,17 @@ def build_site(
             analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         )
     )
+    props_payload = _pick_props()
+    (out / "props.html").write_text(
+        _render_props_page(
+            props_payload,
+            analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+        )
+    )
+    if props_payload and not props_payload.get("demo"):
+        published = {k: v for k, v in props_payload.items() if k not in ("props", "events", "plays")}
+        published["plays"] = props_board_rows(props_payload)
+        (out / "latest_props.json").write_text(json.dumps(published, indent=2, default=str))
 
     assets_dir = out / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
@@ -1170,6 +1181,7 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="board.html#tab-cfb">CFB</a>
   <a class="tab" href="board.html#tab-guide">How to use</a>
   <a class="tab tab-comments" href="comments.html">Comments</a>
+  <a class="tab" href="props.html">NFL Props</a>
 </div>
 <div class="lp-wrap">
   <div class="lp-hero">
@@ -1246,6 +1258,184 @@ def _render_comments_page(*, analytics_head: str) -> str:
     )
 
 
+PROP_MARKET_LABELS = {
+    "player_pass_yds": "Pass yds",
+    "player_pass_tds": "Pass TDs",
+    "player_rush_yds": "Rush yds",
+    "player_rush_attempts": "Rush att",
+    "player_receptions": "Receptions",
+    "player_reception_yds": "Rec yds",
+    "player_reception_tds": "Rec TDs",
+    "player_anytime_td": "Anytime TD",
+}
+PROPS_LIVE_GRACE_HOURS = 4.0
+
+
+def _pick_props() -> dict[str, Any]:
+    """Fresh props run from artifacts/, else the last copy published to docs/."""
+    for path in (ARTIFACTS_DIR / "latest_props.json", DOCS_DIR / "latest_props.json"):
+        if path.exists():
+            try:
+                return json.loads(path.read_text())
+            except json.JSONDecodeError:
+                continue
+    return {}
+
+
+def props_board_rows(payload: dict[str, Any], *, now: datetime | None = None) -> list[dict[str, Any]]:
+    """Validated NFL props for games not yet over, one row per player/prop/side, by edge."""
+    if not payload or payload.get("demo"):
+        return []
+    now = now or datetime.now(timezone.utc)
+    best: dict[tuple[str, str, str], dict[str, Any]] = {}
+    alts: dict[tuple[str, str, str], int] = {}
+    for p in payload.get("plays") or []:
+        kick = parse_commence(p.get("kickoff") or p.get("commence_time"))
+        if kick is not None and (now - kick).total_seconds() > PROPS_LIVE_GRACE_HOURS * 3600:
+            continue
+        key = (str(p.get("player_name")), str(p.get("market")), str(p.get("side")))
+        alts[key] = alts.get(key, 0) + 1
+        if key not in best or float(p.get("edge") or 0) > float(best[key].get("edge") or 0):
+            best[key] = p
+    rows = [dict(p, n_offers=alts[k]) for k, p in best.items()]
+    rows.sort(key=lambda p: float(p.get("edge") or 0), reverse=True)
+    return rows
+
+
+def _pct(x: Any) -> str:
+    try:
+        return f"{float(x) * 100:.1f}%"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _render_props_rows(rows: list[dict[str, Any]]) -> str:
+    out = []
+    for i, p in enumerate(rows, 1):
+        market = PROP_MARKET_LABELS.get(str(p.get("market")), str(p.get("market")))
+        side = str(p.get("side") or "").title()
+        line = p.get("line")
+        pick = f"{side} {line:g}" if isinstance(line, (int, float)) else side
+        game = f"{p.get('away_team', '')} @ {p.get('home_team', '')}"
+        mean = p.get("model_mean")
+        proj = f"{float(mean):.1f}" if isinstance(mean, (int, float)) else "—"
+        offers = int(p.get("n_offers") or 1)
+        more = f'<div class="props-more">+{offers - 1} other line/book</div>' if offers > 1 else ""
+        out.append(
+            "<tr>"
+            f'<td data-label="#">{i}</td>'
+            f'<td data-label="Kickoff">{_esc(format_kickoff_compact(p.get("kickoff")))}</td>'
+            f'<td data-label="Game">{_esc(game)}</td>'
+            f'<td data-label="Player" class="play-pick-cell">{_esc(p.get("player_name"))}'
+            f' <span class="props-team">{_esc(p.get("team", ""))}</span></td>'
+            f'<td data-label="Prop">{_esc(market)}</td>'
+            f'<td data-label="Pick"><b>{_esc(pick)}</b></td>'
+            f'<td data-label="Best price"><span class="props-price">{_esc(_price(p.get("price")))} '
+            f'<span class="props-book">{_esc(p.get("book", ""))}</span>{more}</span></td>'
+            f'<td data-label="Model proj">{proj}</td>'
+            f'<td data-label="Model win %">{_pct(p.get("p_true"))}</td>'
+            f'<td data-label="Market %">{_pct(p.get("p_mkt"))}</td>'
+            f'<td data-label="Edge" class="props-edge">{_pct(p.get("edge"))}</td>'
+            "</tr>"
+        )
+    return "".join(out)
+
+
+def _render_props_page(
+    payload: dict[str, Any],
+    *,
+    analytics_head: str,
+    now: datetime | None = None,
+) -> str:
+    rows = props_board_rows(payload, now=now)
+    generated = parse_commence(payload.get("generated_at")) if payload else None
+    updated = _format_timestamp_et(generated) if generated else "—"
+    if rows:
+        table = (
+            '<div class="table-wrap"><table class="export-table plays-table props-table">'
+            "<thead><tr><th>#</th><th>Kickoff</th><th>Game</th><th>Player</th><th>Prop</th>"
+            "<th>Pick</th><th>Best price</th><th>Model proj</th><th>Model win %</th>"
+            "<th>Market %</th><th>Edge</th></tr></thead>"
+            f"<tbody>{_render_props_rows(rows)}</tbody></table></div>"
+        )
+    else:
+        table = '<p class="empty">No NFL props for upcoming games yet. Check back after the next pregame run.</p>'
+    shadow = (
+        ""
+        if payload.get("publish_enabled")
+        else '<div class="week1-banner" role="note"><b>SHADOW MODE.</b> Props are still being '
+        "calibrated against settled results. They are not graded on the record and are not "
+        "Sharp Plays. Treat this page as research.</div>"
+    )
+    return PROPS_TEMPLATE.format(
+        site_css=_SITE_CSS,
+        analytics_head=analytics_head,
+        ssq_logo=_ssq_logo_svg(embedded=True),
+        shadow_banner=shadow,
+        updated=_esc(updated),
+        n_rows=len(rows),
+        table=table,
+    )
+
+
+PROPS_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFL Props · Sharp Scout Quant</title>
+<meta name="description" content="Sharp Scout Quant NFL player props ranked by model edge">
+<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
+<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+{analytics_head}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+{site_css}
+  .props-wrap {{ max-width: 1200px; margin: 0 auto; padding: 0 20px 48px; }}
+  .props-hero {{ text-align: center; padding: 30px 16px 8px; }}
+  .props-hero h1 {{ font-family: var(--font-serif); font-size: 38px; font-weight: 500; margin: 10px 0 4px; }}
+  .props-hero p {{ color: var(--color-text-muted); font-size: 14px; font-weight: 300; }}
+  .props-team, .props-book {{ font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }}
+  .props-more {{ font-size: 11px; color: var(--color-text-muted); }}
+  .props-edge {{ font-weight: 800; color: #0a5c25; }}
+  .props-price {{ text-align: right; overflow-wrap: anywhere; }}
+  .props-wrap .table-wrap {{ overflow-x: auto; overflow-y: visible; max-height: none; }}
+  .props-wrap .table-wrap thead th {{ position: static; box-shadow: none; }}
+  @media (max-width: 640px) {{ .props-hero h1 {{ font-size: 29px; }} }}
+</style>
+</head>
+<body>
+<div class="tabs" role="navigation" aria-label="Sections">
+  <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
+  <a class="tab" href="board.html#tab-plays">NFL</a>
+  <a class="tab" href="board.html#tab-cfb">CFB</a>
+  <a class="tab" href="board.html#tab-guide">How to use</a>
+  <a class="tab tab-comments" href="comments.html">Comments</a>
+  <span class="tab active">NFL Props</span>
+</div>
+<div class="props-wrap">
+  <div class="props-hero">
+    {ssq_logo}
+    <h1>NFL Props</h1>
+    <p>Player props ranked by model edge · {n_rows} props · updated {updated}</p>
+  </div>
+  {shadow_banner}
+  <p class="phase-note">Edge = expected return per $1 at the listed price, using the model's
+  calibrated win probability. Market % is the book's no-vig probability. One row per player
+  and prop, at the line and book with the highest edge.
+  Games drop off about four hours after kickoff.</p>
+  {table}
+</div>
+<div class="footer">
+  Sharp Scout Quant · research and entertainment only · not betting advice.
+</div>
+</body>
+</html>
+"""
+
+
 COMMENTS_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1305,6 +1495,7 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="board.html#tab-cfb">CFB</a>
   <a class="tab" href="board.html#tab-guide">How to use</a>
   <span class="tab tab-comments active">Comments</span>
+  <a class="tab" href="props.html">NFL Props</a>
 </div>
 <div class="cf-wrap">
   <div class="cf-hero">
@@ -3956,6 +4147,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="#tab-cfb" data-tab="cfb">CFB</a>
   <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
   <a class="tab tab-comments" href="comments.html">Comments</a>
+  <a class="tab" href="props.html">NFL Props</a>
 </div>
 </div>
 

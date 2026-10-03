@@ -4331,8 +4331,10 @@ function showTab(name, el) {{
 
       tab.querySelectorAll('table tbody').forEach(function (tbody) {{
         tbody.querySelectorAll('tr').forEach(function (row) {{
+          // Rows inside a game card follow the card; filtering them by text hid the
+          // opponent, Over/Under, and EV rows of the very game that was searched.
           if (row.classList.contains('settled-divider') || row.classList.contains('week-heading') ||
-              row.classList.contains('stage-summary')) {{
+              row.classList.contains('stage-summary') || row.closest('.game-card')) {{
             row.style.display = '';
             return;
           }}

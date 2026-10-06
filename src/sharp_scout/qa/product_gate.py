@@ -97,6 +97,69 @@ def _check_ml_split_board_confirmation(
     return reasons
 
 
+def _check_total_sharp_confirmation(
+    play: dict[str, Any],
+    signals: dict[str, Any],
+    *,
+    settings: Any,
+) -> list[str]:
+    """Totals must not fight the sharp-money read.
+
+    A total is only certified when it does NOT run into money on the other side. We reject
+    when (a) sharp money (handle-minus-tickets) sits on the opposite side, (b) both tickets
+    and handle majorities are on the opposite side, or (c) the model total is far off the
+    market line without any money confirmation on our side. RLM alone is not enough.
+    """
+    reasons: list[str] = []
+    side = str(play.get("side") or "")
+    if side not in ("over", "under"):
+        return reasons
+    opp = "over" if side == "under" else "under"
+
+    sb = _split_board(signals, play)
+    total = None
+    if sb and sb.get("available"):
+        total = (sb.get("markets") or {}).get("total")
+
+    confirmed = False
+    if total:
+        se = total.get("sharp_edge") or {}
+        se_side = se.get("side")
+        se_gap = float(se.get("diff_pct") or 0)
+        if se.get("available") and se_side == side and se_gap >= settings.product_total_money_gap:
+            confirmed = True
+        if se.get("available") and se_side == opp and se_gap >= settings.product_total_opposing_gap:
+            reasons.append(
+                f"total sharp money on {opp} (+{se_gap:.0%}) opposes our {side} — RLM not enough"
+            )
+
+        sides = total.get("sides") or {}
+        our = sides.get(side) or {}
+        their = sides.get(opp) or {}
+        our_t, our_m = our.get("tickets_pct"), our.get("money_pct")
+        their_t, their_m = their.get("tickets_pct"), their.get("money_pct")
+        if (
+            None not in (our_t, our_m, their_t, their_m)
+            and their_t > our_t
+            and their_m > our_m
+        ):
+            reasons.append(
+                f"both tickets ({their_t:.0%}) and handle ({their_m:.0%}) favor {opp}, not our {side}"
+            )
+
+    model_total = play.get("model_total")
+    line = play.get("line")
+    if model_total is not None and line is not None:
+        gap = abs(float(model_total) - float(line))
+        if gap > settings.product_total_model_market_max_gap and not confirmed:
+            reasons.append(
+                f"model total off market by {gap:.1f} pts "
+                f"(>{settings.product_total_model_market_max_gap:.0f}) without sharp-money confirmation"
+            )
+
+    return reasons
+
+
 def evaluate_product_play(
     play: dict[str, Any],
     *,
@@ -145,6 +208,9 @@ def evaluate_product_play(
 
         if market == "h2h":
             reasons.extend(_check_ml_split_board_confirmation(play, signals, settings=settings))
+
+        if market == "totals" and settings.product_total_sharp_guardrail:
+            reasons.extend(_check_total_sharp_confirmation(play, signals, settings=settings))
 
     if reasons:
         return ProductGateResult(False, tuple(reasons))

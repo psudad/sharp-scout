@@ -91,6 +91,84 @@ def test_requires_p_fair_and_ev():
     assert not r2.ok
 
 
+def _total_split(over_tix, over_money, under_tix, under_money):
+    def _row(label, t, m):
+        return {"label": label, "tickets_pct": t, "money_pct": m, "diff_pct": round(m - t, 4)}
+
+    sides = {
+        "over": _row("Over", over_tix, over_money),
+        "under": _row("Under", under_tix, under_money),
+    }
+    best_side, best_diff = None, 0.0
+    for s, r in sides.items():
+        if r["diff_pct"] > best_diff:
+            best_side, best_diff = s, r["diff_pct"]
+    edge = (
+        {"available": True, "side": best_side, "team": sides[best_side]["label"], "diff_pct": best_diff}
+        if best_side
+        else {"available": False, "side": None, "team": None, "diff_pct": None}
+    )
+    return {
+        "home_team": "SEA",
+        "away_team": "LAC",
+        "available": True,
+        "markets": {"total": {"sides": sides, "sharp_edge": edge}},
+    }
+
+
+def _total_play(**kw):
+    base = dict(
+        market="totals",
+        side="under",
+        line=43.0,
+        home_team="SEA",
+        away_team="LAC",
+        event_id="e2",
+        edge=0.07,
+        p_fair=0.52,
+        p_mkt=0.52,
+        model_total=39.4,
+    )
+    base.update(kw)
+    return _sig(**base)
+
+
+def test_total_vetoed_when_both_tickets_and_handle_oppose():
+    # SEA U43: over 54%/54%, under 46%/46% — crowd AND money on the over.
+    signals = {
+        "signals": [_total_play(book="dk"), _total_play(book="coolbet")],
+        "split_boards": [_total_split(0.54, 0.54, 0.46, 0.46)],
+    }
+    r = evaluate_product_play(_total_play(), signals=signals, sport="nfl")
+    assert not r.ok and "favor over" in r.note()
+
+
+def test_total_vetoed_when_sharp_money_opposes():
+    # NO U48: over 37% tix / 45% money (+8% sharp on over) and model 6.4 pts off market.
+    signals = {
+        "signals": [
+            _total_play(line=48.0, model_total=41.6, book="dk"),
+            _total_play(line=48.0, model_total=41.6, book="lowvig"),
+        ],
+        "split_boards": [_total_split(0.37, 0.45, 0.63, 0.55)],
+    }
+    r = evaluate_product_play(
+        _total_play(line=48.0, model_total=41.6), signals=signals, sport="nfl"
+    )
+    assert not r.ok
+    assert "opposes our under" in r.note() or "without sharp-money confirmation" in r.note()
+
+
+def test_total_passes_when_money_confirms_our_side():
+    # Under gets the sharp money (+12%) and model is close to the line — this should certify.
+    signals = {
+        "signals": [_total_play(book="dk"), _total_play(book="pinnacle")],
+        "split_boards": [_total_split(0.55, 0.43, 0.45, 0.57)],
+    }
+    r = evaluate_product_play(_total_play(), signals=signals, sport="nfl")
+    assert r.ok, r.note()
+
+
 def test_select_certified_caps_and_dedupes():
     signals = {
         "signals": [

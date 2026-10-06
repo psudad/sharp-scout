@@ -117,6 +117,13 @@ class Settings(BaseSettings):
     product_play_tier_only: bool = True  # leans stay research-only in artifacts
     product_max_plays_nfl: int = 5
     product_max_plays_ncaaf: int = 5
+    # Totals on the certified card — don't LOCK a total that fights the sharp-money read.
+    # (Week 4 2026: SEA U43 and NO U48 both locked on model + RLM while the dollars were
+    # on the OVER, and both lost. These rules require money agreement, not RLM alone.)
+    product_total_sharp_guardrail: bool = True
+    product_total_money_gap: float = 0.10  # money-ticket gap on OUR side that counts as confirmation
+    product_total_opposing_gap: float = 0.05  # sharp money this far on the OTHER side vetoes the total
+    product_total_model_market_max_gap: float = 5.0  # |model_total - market line| allowed w/o confirmation
 
     # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).
     qa_promote_single_book_totals: bool = True

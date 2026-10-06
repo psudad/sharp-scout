@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from sharp_scout.qa.product_gate import evaluate_product_play, select_certified_plays
+from sharp_scout.qa.product_gate import (
+    evaluate_product_play,
+    is_shadow_only,
+    select_certified_plays,
+    select_shadow_plays,
+)
 
 
 def _sig(**kw):
@@ -69,7 +74,7 @@ def test_ml_requires_split_board_confirmation():
 
     signals["split_boards"] = [_split_board_for(side="away")]
     r2 = evaluate_product_play(play, signals=signals, sport="nfl")
-    assert r2.ok
+    assert not r2.ok and is_shadow_only(r2.reasons)
 
     signals["split_boards"] = [_split_board_for(side="home", spread_gap=0.12, ml_gap=0.12)]
     r3 = evaluate_product_play(play, signals=signals, sport="nfl")
@@ -89,6 +94,46 @@ def test_requires_p_fair_and_ev():
 
     r2 = evaluate_product_play(_sig(edge=0.02), signals=signals, sport="ncaaf")
     assert not r2.ok
+
+
+def test_rejects_price_worse_than_sharp_fair():
+    signals = {"signals": [_sig(), _sig(book="fanduel")]}
+    ok = evaluate_product_play(_sig(price=-110), signals=signals, sport="nfl")
+    assert ok.ok, ok.note()
+
+    # Fair 52% vs -125 (55.6% implied): we'd be paying 3.6% over sharp — negative CLV at entry.
+    bad = evaluate_product_play(_sig(price=-125), signals=signals, sport="nfl")
+    assert not bad.ok and "worse than sharp fair" in bad.note()
+
+
+def test_ml_shadow_plays_selected_for_watchlist_not_certified():
+    ml = dict(market="h2h", side="away", line=None, home_team="LV", away_team="MIA")
+    signals = {
+        "signals": [_sig(**ml, book="dk"), _sig(**ml, book="fd", edge=0.06)],
+        "split_boards": [_split_board_for(side="away")],
+    }
+    cands = signals["signals"]
+    assert select_certified_plays(cands, signals=signals, sport="nfl") == []
+    shadow = select_shadow_plays(cands, signals=signals, sport="nfl")
+    assert len(shadow) == 1 and shadow[0]["product_shadow"] is True
+    assert shadow[0]["edge"] == 0.06
+
+
+def test_ml_with_other_failures_is_not_shadowed():
+    ml = dict(market="h2h", side="away", line=None, home_team="LV", away_team="MIA")
+    signals = {"signals": [_sig(**ml, book="dk"), _sig(**ml, book="fd")]}
+    # No split board: fails on confirmation, not just shadow — stays out of the watchlist.
+    assert select_shadow_plays(signals["signals"], signals=signals, sport="nfl") == []
+
+
+def test_append_signals_watchlist_status(tmp_path):
+    from sharp_scout.ledger.tracker import append_signals, load_ledger
+
+    path = tmp_path / "ledger.json"
+    play = _sig(market="h2h", side="away", line=None, price=120, commence_time="2099-01-01T00:00:00Z")
+    append_signals([play], path=path, status="watchlist")
+    rows = load_ledger(path)["plays"]
+    assert len(rows) == 1 and rows[0]["status"] == "watchlist"
 
 
 def _total_split(over_tix, over_money, under_tix, under_money):

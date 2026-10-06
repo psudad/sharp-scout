@@ -558,7 +558,7 @@ def review_play(
             )
 
     if settings.product_gate_enabled:
-        from sharp_scout.qa.product_gate import evaluate_product_play
+        from sharp_scout.qa.product_gate import evaluate_product_play, is_shadow_only
 
         pg = evaluate_product_play(play, signals=signals, sport=sport)
         if not pg.ok:
@@ -576,7 +576,9 @@ def review_play(
             )
             if not book_only_fail:
                 pg_sev = "quarantine"
-                if settings.qa_watchlist_enabled and settings.qa_air_product_gate_near_miss:
+                if is_shadow_only(pg.reasons):
+                    pg_sev = WATCHLIST_SEVERITY
+                elif settings.qa_watchlist_enabled and settings.qa_air_product_gate_near_miss:
                     edge = float(play.get("edge") or 0)
                     if edge >= settings.ev_threshold and edge < settings.product_ev_min:
                         pg_sev = WATCHLIST_SEVERITY

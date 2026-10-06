@@ -13,6 +13,19 @@ from typing import Any
 
 from sharp_scout.config import get_settings
 from sharp_scout.qa.gate import _count_books_on_market, _split_board
+from sharp_scout.utils.odds import american_to_implied_prob
+
+SHADOW_MARKET_NOTE = "shadow market"
+
+
+def shadow_markets(settings: Any | None = None) -> set[str]:
+    s = settings or get_settings()
+    return {m.strip() for m in (s.product_shadow_markets or "").split(",") if m.strip()}
+
+
+def is_shadow_only(reasons: tuple[str, ...] | list[str]) -> bool:
+    """True when the only thing keeping a play off the card is its shadow market."""
+    return bool(reasons) and all(r.startswith(SHADOW_MARKET_NOTE) for r in reasons)
 
 
 @dataclass(frozen=True)
@@ -194,6 +207,15 @@ def evaluate_product_play(
             f"sharp no-vig {pf:.1%} on our side < {settings.product_p_fair_min:.0%} floor"
         )
 
+    price = play.get("price")
+    if pf is not None and price is not None:
+        value = pf - american_to_implied_prob(float(price))
+        if value < settings.product_min_price_vs_fair:
+            reasons.append(
+                f"price {float(price):+.0f} is {-value:.1%} worse than sharp fair "
+                f"(limit {-settings.product_min_price_vs_fair:.0%}) — starts with negative CLV"
+            )
+
     if signals is not None:
         n_books = _count_books_on_market(signals, play)
         waive_single_book_total = (
@@ -211,6 +233,9 @@ def evaluate_product_play(
 
         if market == "totals" and settings.product_total_sharp_guardrail:
             reasons.extend(_check_total_sharp_confirmation(play, signals, settings=settings))
+
+    if market in shadow_markets(settings):
+        reasons.append(f"{SHADOW_MARKET_NOTE}: {market} is tracked on the watchlist, not posted")
 
     if reasons:
         return ProductGateResult(False, tuple(reasons))
@@ -243,15 +268,40 @@ def select_certified_plays(
         else settings.product_max_plays_nfl
     )
 
-    # At most one certified play per (event, market) — keep best edge.
+    return _best_per_event_market(passed, cap=cap)
+
+
+def select_shadow_plays(
+    candidates: list[dict[str, Any]],
+    *,
+    signals: dict[str, Any],
+    sport: str = "nfl",
+) -> list[dict[str, Any]]:
+    """Plays that would certify except for being in a shadow market (watchlist tracking)."""
+    passed: list[dict[str, Any]] = []
+    for s in candidates:
+        if not s.get("filter_passed") or s.get("market") not in shadow_markets():
+            continue
+        res = evaluate_product_play(s, signals=signals, sport=sport)
+        if is_shadow_only(res.reasons):
+            s["product_shadow"] = True
+            passed.append(s)
+    passed.sort(key=lambda x: float(x.get("edge") or 0), reverse=True)
+    return _best_per_event_market(passed, cap=None)
+
+
+def _best_per_event_market(
+    plays: list[dict[str, Any]], *, cap: int | None
+) -> list[dict[str, Any]]:
+    """At most one play per (event, market) — input must already be sorted best-first."""
     seen: set[tuple[str, str]] = set()
     out: list[dict[str, Any]] = []
-    for s in passed:
+    for s in plays:
         key = (str(s.get("event_id")), str(s.get("market")))
         if key in seen:
             continue
         seen.add(key)
         out.append(s)
-        if len(out) >= cap:
+        if cap is not None and len(out) >= cap:
             break
     return out

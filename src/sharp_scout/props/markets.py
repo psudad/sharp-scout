@@ -36,6 +36,9 @@ class PropEdge:
     # Pre-calibration probability, kept so the reliability of the raw simulation stays
     # auditable after a calibrator is applied.
     p_raw: float | None = None
+    # Calibrated model probability before the market anchor — what the model-vs-market
+    # disagreement filter must judge, since anchoring shrinks p_true toward p_mkt.
+    p_model: float | None = None
 
 
 def discover_prop_edges(
@@ -124,14 +127,22 @@ def discover_prop_edges(
                 # line reading +EV at once.
                 p_over_raw = p_true_over_under(sim, "over", line)
                 p_over_cal = float(min(max(calibrate(p_over_raw, market), 0.0), 1.0))
+                p_over_model = p_over_cal
+                if "over" in fair:
+                    k = settings.prop_anchor_k
+                    p_over_cal = fair["over"] + k * (p_over_cal - fair["over"])
 
                 for side, meta in sides.items():
                     if side not in ("over", "under"):
                         continue
                     if side == "over":
-                        p_raw, p_true = p_over_raw, p_over_cal
+                        p_raw, p_true, p_model = p_over_raw, p_over_cal, p_over_model
                     else:
-                        p_raw, p_true = 1.0 - p_over_raw, 1.0 - p_over_cal
+                        p_raw, p_true, p_model = (
+                            1.0 - p_over_raw,
+                            1.0 - p_over_cal,
+                            1.0 - p_over_model,
+                        )
                     p_mkt = fair.get(side)
                     edge = expected_value(p_true, meta["price"])
                     # Tail alts: require slightly higher edge
@@ -157,6 +168,7 @@ def discover_prop_edges(
                                 model_median=sim.median,
                                 is_alternate=is_alt,
                                 p_raw=p_raw,
+                                p_model=p_model,
                             )
                         )
     edges.sort(key=lambda e: e.edge, reverse=True)

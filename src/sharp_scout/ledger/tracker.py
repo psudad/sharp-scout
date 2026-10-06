@@ -94,8 +94,12 @@ def append_signals(
     week: int | None = None,
     path: Path | None = None,
     now: datetime | None = None,
+    status: str = "pending",
 ) -> dict[str, Any]:
     """Append new validated plays to the ledger (deduped).
+
+    ``status="watchlist"`` records shadow-market plays: shadow-graded at settlement,
+    never shown on the LOCKED card.
 
     Replaces any pending play on the same game/market/side so only the
     latest best line/book survives across pipeline runs — until T-2h before
@@ -161,7 +165,7 @@ def append_signals(
             "clv_points": None,
             "clv_prob": None,
             "clv_at": None,
-            "status": "pending",
+            "status": status,
             "home_score": None,
             "away_score": None,
             "prop_result": None,
@@ -175,7 +179,7 @@ def append_signals(
             # when the market line does not, so edge/p_true/tier must never go stale
             # (e.g. a bad-ratings run must be correctable by a later good run).
             for p in ledger["plays"]:
-                if (p.get("status") or "pending") == "pending" and _play_key(p) == key:
+                if (p.get("status") or "pending") == status and _play_key(p) == key:
                     for field in (
                         "edge", "p_true", "p_mkt", "p_model", "p_fair", "line_gain",
                         "model_spread", "model_total", "model_mean", "price", "rationale", "sport",
@@ -192,7 +196,7 @@ def append_signals(
         ledger["plays"] = [
             p
             for p in ledger["plays"]
-            if (p.get("status") or "pending") != "pending" or _logical_play_key(p) != logical
+            if (p.get("status") or "pending") != status or _logical_play_key(p) != logical
         ]
         if len(ledger["plays"]) < before_len:
             replaced += 1

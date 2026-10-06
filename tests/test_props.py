@@ -310,8 +310,35 @@ def test_discover_prop_edges_applies_calibrator():
     assert edges, "expected candidate edges from the demo event"
     for e in edges:
         assert e.p_raw is not None
-        assert e.p_true == pytest.approx(0.5 + (e.p_raw - 0.5) * 0.1, abs=1e-9)
-        assert 0.45 <= e.p_true <= 0.55
+        assert e.p_model == pytest.approx(0.5 + (e.p_raw - 0.5) * 0.1, abs=1e-9)
+        assert 0.45 <= e.p_model <= 0.55
+
+
+def test_prop_p_true_anchored_to_no_vig_market(monkeypatch):
+    """Backfit showed the model overconfident; p_true shrinks toward the two-way market."""
+    from sharp_scout.config import get_settings
+    from sharp_scout.props.markets import build_sims_for_event
+    from sharp_scout.props.simulate import CORE_PROP_MARKETS
+
+    monkeypatch.setattr(get_settings(), "prop_anchor_k", 0.3)
+    ev = mock_prop_event(mock_odds_events()[0])
+    profiles = _demo_usage()
+    sims = build_sims_for_event(ev, profiles, profiles, CORE_PROP_MARKETS, n_sims=2000)
+    edges = discover_prop_edges(ev, sims, ev_threshold=-1.0, calibrate=lambda p, _m: p)
+
+    anchored = [e for e in edges if e.p_mkt is not None]
+    assert anchored, "expected two-way lines in the demo event"
+    for e in anchored:
+        assert e.p_true == pytest.approx(e.p_mkt + 0.3 * (e.p_model - e.p_mkt), abs=1e-9)
+        assert abs(e.p_true - e.p_mkt) <= abs(e.p_model - e.p_mkt) + 1e-12
+
+
+def test_gap_filter_judges_pre_anchor_model_probability():
+    """Anchoring must not let a 25-point model/market disagreement slip under the cap."""
+    edge = _edge(p_true=0.625, p_mkt=0.55, ev=0.15)
+    edge.p_model = 0.80
+    fr = validate_prop_edge(edge)
+    assert fr.flags["plausible"] is False
 
 
 def test_calibrated_over_under_stay_complementary():

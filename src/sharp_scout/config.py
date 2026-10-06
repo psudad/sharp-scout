@@ -49,11 +49,17 @@ class Settings(BaseSettings):
     epa_half_life_weeks: float = 6.0
 
     # Player props
+    # player_rush_attempts dropped: 1-7 live in Week 3 and its overs are the most
+    # over-confident market in the backfit (p 0.7 -> 0.60 realized).
     prop_markets: str = (
-        "player_pass_yds,player_pass_tds,player_rush_yds,player_rush_attempts,"
+        "player_pass_yds,player_pass_tds,player_rush_yds,"
         "player_receptions,player_reception_yds,player_reception_tds,player_anytime_td"
     )
     prop_ev_threshold: float = 0.02
+    # p_true = p_mkt + k·(p_cal − p_mkt) against the two-way no-vig prop price, same idea
+    # as the sides' anchor_k. Unanchored, the biggest model-vs-market gaps were the worst
+    # bets (10-20% "edge" bucket went 26-41 in Week 3).
+    prop_anchor_k: float = 0.3
     # Per-season weight decay for prop usage baselines (0.5 → last season counts double
     # the one before it), so a stale rookie year cannot anchor a current projection.
     prop_season_decay: float = 0.5
@@ -124,6 +130,13 @@ class Settings(BaseSettings):
     product_total_money_gap: float = 0.10  # money-ticket gap on OUR side that counts as confirmation
     product_total_opposing_gap: float = 0.05  # sharp money this far on the OTHER side vetoes the total
     product_total_model_market_max_gap: float = 5.0  # |model_total - market line| allowed w/o confirmation
+    # Price vs sharp: p_fair (Pinnacle no-vig at our line) minus our price's implied prob.
+    # A play priced well below sharp fair starts with negative CLV; the vig alone is ~-2.4%
+    # at -110, so -1% only blocks prices materially worse than the sharp market.
+    product_min_price_vs_fair: float = -0.01
+    # Markets tracked as watchlist (shadow-graded) but never posted to the LOCKED card.
+    # Moneyline went 8-13 (-4.4u) across NFL+NCAAF through Week 4 2026.
+    product_shadow_markets: str = "h2h"
 
     # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).
     qa_promote_single_book_totals: bool = True

@@ -214,8 +214,14 @@ def run_due_pregame(
             p["pregame_window"] = p["window"]
         if update_ledger and due_side:
             from sharp_scout.ledger.tracker import append_signals
+            from sharp_scout.qa.product_gate import select_certified_plays, select_shadow_plays
 
-            append_signals(due_side)
+            certified = select_certified_plays(due_side, signals=side, sport="nfl")
+            if certified:
+                append_signals(certified)
+            shadow = select_shadow_plays(due_side, signals=side, sport="nfl")
+            if shadow:
+                append_signals(shadow, status="watchlist")
 
         # Props for due events only
         prop_events = []

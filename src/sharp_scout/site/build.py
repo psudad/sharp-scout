@@ -1852,6 +1852,9 @@ def _render_play_table(
         if not final:
             status_html += _live_score_html(p, sport=sport)
         rationale = format_play_rationale(p).replace("\n", " · ")
+        posted = ""
+        if mark_locked and p.get("created_at"):
+            posted = format_kickoff_et(p.get("created_at"))
         if mark_locked and not final:
             tr_cls = " class='locked-play-row'"
         elif mark_locked and final:
@@ -1874,16 +1877,22 @@ def _render_play_table(
             f"<td class='pos' data-label='EV'>{edge_s}</td>"
             f"<td data-label='Win %'>{win_cell}</td>"
             f"<td data-label='Book'>{_esc(p.get('book') or '—')}</td>"
-            f"<td class='play-timing-cell' data-label='{_esc(status_hdr)}'>{status_html}</td>"
-            f"<td class='rationale-cell' data-label='Why'>{_esc(rationale)}</td>"
-            "</tr>"
+            + (
+                f"<td data-label='Posted'>{_esc(posted or '—')}</td>"
+                if mark_locked
+                else ""
+            )
+            + f"<td class='play-timing-cell' data-label='{_esc(status_hdr)}'>{status_html}</td>"
+            + f"<td class='rationale-cell' data-label='Why'>{_esc(rationale)}</td>"
+            + "</tr>"
         )
 
     rows: list[str] = [_play_row(p) for p in open_plays]
     if final_plays:
         if open_plays:
+            colspan = "10" if mark_locked else "9"
             rows.append(
-                "<tr class='settled-divider'><td colspan='9'>"
+                f"<tr class='settled-divider'><td colspan='{colspan}'>"
                 "Finished this week — grayed below; full ledger on the History tab</td></tr>"
             )
         rows.extend(_play_row(p, final=True) for p in final_plays)
@@ -1893,7 +1902,9 @@ def _render_play_table(
     return (
         f'<div class="table-wrap"><table class="export-table plays-table{size_cls}"{id_attr}>'
         "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th>"
-        f"<th>EV</th><th>Win %</th><th>Book</th><th>{status_hdr}</th><th>Why</th></tr></thead>"
+        f"<th>EV</th><th>Win %</th><th>Book</th>"
+        + ("<th>Posted</th>" if mark_locked else "")
+        + f"<th>{status_hdr}</th><th>Why</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table></div>"
     )

@@ -1,6 +1,6 @@
 {
   "sport": "ncaaf",
-  "generated_at": "2026-10-08T17:04:11.348500+00:00",
+  "generated_at": "2026-10-08T20:41:13.191949+00:00",
   "layer1_passed": true,
   "block_deploy": false,
   "layer1_issues": [
@@ -10,38 +10,10 @@
       "message": "Action Network splits unavailable \u2014 Phase 4 confirmation may be incomplete"
     }
   ],
-  "approved": 2,
-  "quarantined": 7,
+  "approved": 3,
+  "quarantined": 8,
   "voided": 0,
   "play_reviews": [
-    {
-      "play_id": "faae4f4c",
-      "matchup": "LSU@UK",
-      "market": "totals",
-      "side": "under",
-      "action": "quarantine",
-      "issues": [
-        {
-          "code": "product_gate",
-          "severity": "quarantine",
-          "message": "Fails product gate (LOCKED card): both tickets (65%) and handle (55%) favor over, not our under"
-        }
-      ]
-    },
-    {
-      "play_id": "08b1ab53",
-      "matchup": "OLD DOMINION@APPALACHIAN STATE",
-      "market": "spreads",
-      "side": "away",
-      "action": "quarantine",
-      "issues": [
-        {
-          "code": "spread_model_conflict",
-          "severity": "quarantine",
-          "message": "Model margin: OLD DOMINION by 5.1 \u00b7 Market: APPALACHIAN STATE -9.5 (APPALACHIAN STATE by 9.5) \u00b7 Gap 14.6 pts \u2014 exceeds 12 pt QA band"
-        }
-      ]
-    },
     {
       "play_id": "b37ba413",
       "matchup": "STAN@ND",
@@ -70,10 +42,51 @@
       ]
     },
     {
-      "play_id": "03b5cb85",
-      "matchup": "MIAMI OHIO@MASSACHUSETTS",
+      "play_id": "3362d2b7",
+      "matchup": "OLD DOMINION@APPALACHIAN STATE",
       "market": "spreads",
       "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model margin: OLD DOMINION by 5.1 \u00b7 Market: APPALACHIAN STATE -9.5 (APPALACHIAN STATE by 9.5) \u00b7 Gap 14.6 pts \u2014 exceeds 12 pt QA band"
+        },
+        {
+          "code": "offshore_outlier",
+          "severity": "quarantine",
+          "message": "Offshore book matchbook price +100 diverges from pinnacle close -109"
+        }
+      ]
+    },
+    {
+      "play_id": "197265d5",
+      "matchup": "LSU@UK",
+      "market": "spreads",
+      "side": "home",
+      "action": "approve",
+      "issues": []
+    },
+    {
+      "play_id": "0ecc9db6",
+      "matchup": "MISS@VAN",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model margin: VAN by 4.0 \u00b7 Market: VAN +9.5 (MISS by 9.5) \u00b7 Gap 13.5 pts \u2014 exceeds 12 pt QA band"
+        }
+      ]
+    },
+    {
+      "play_id": "f46d3ec1",
+      "matchup": "MISSOURI STATE@WESTERN KENTUCKY",
+      "market": "totals",
+      "side": "under",
       "action": "approve",
       "issues": []
     },
@@ -87,7 +100,7 @@
         {
           "code": "product_gate",
           "severity": "quarantine",
-          "message": "Fails product gate (LOCKED card): both tickets (65%) and handle (55%) favor over, not our under"
+          "message": "Fails product gate (LOCKED card): both tickets (65%) and handle (56%) favor over, not our under; model total off market by 7.1 pts (>5) without sharp-money confirmation"
         }
       ]
     },
@@ -120,20 +133,6 @@
       ]
     },
     {
-      "play_id": "08b1ab53",
-      "matchup": "OLD DOMINION@APPALACHIAN STATE",
-      "market": "spreads",
-      "side": "away",
-      "action": "quarantine",
-      "issues": [
-        {
-          "code": "spread_model_conflict",
-          "severity": "quarantine",
-          "message": "Model margin: OLD DOMINION by 5.1 \u00b7 Market: APPALACHIAN STATE -9.5 (APPALACHIAN STATE by 9.5) \u00b7 Gap 14.6 pts \u2014 exceeds 12 pt QA band"
-        }
-      ]
-    },
-    {
       "play_id": "fee509c5",
       "matchup": "BUFFALO@TOLEDO",
       "market": "spreads",
@@ -149,6 +148,39 @@
           "code": "product_gate",
           "severity": "quarantine",
           "message": "Fails product gate (LOCKED card): only 1 book(s) on line (need \u22652)"
+        }
+      ]
+    },
+    {
+      "play_id": "3362d2b7",
+      "matchup": "OLD DOMINION@APPALACHIAN STATE",
+      "market": "spreads",
+      "side": "away",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model margin: OLD DOMINION by 5.1 \u00b7 Market: APPALACHIAN STATE -9.5 (APPALACHIAN STATE by 9.5) \u00b7 Gap 14.6 pts \u2014 exceeds 12 pt QA band"
+        },
+        {
+          "code": "offshore_outlier",
+          "severity": "quarantine",
+          "message": "Offshore book matchbook price +100 diverges from pinnacle close -109"
+        }
+      ]
+    },
+    {
+      "play_id": "0ecc9db6",
+      "matchup": "MISS@VAN",
+      "market": "spreads",
+      "side": "home",
+      "action": "quarantine",
+      "issues": [
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model margin: VAN by 4.0 \u00b7 Market: VAN +9.5 (MISS by 9.5) \u00b7 Gap 13.5 pts \u2014 exceeds 12 pt QA band"
         }
       ]
     }

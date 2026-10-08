@@ -1,24 +1,50 @@
 {
   "sport": "nfl",
-  "generated_at": "2026-10-08T17:03:27.041891+00:00",
-  "layer1_passed": true,
-  "block_deploy": false,
-  "layer1_issues": [],
+  "generated_at": "2026-10-08T20:40:29.016224+00:00",
+  "layer1_passed": false,
+  "block_deploy": true,
+  "layer1_issues": [
+    {
+      "code": "low_game_count",
+      "severity": "block",
+      "message": "Only 1 games in slate (need \u22654 for NFL)"
+    }
+  ],
   "approved": 0,
-  "quarantined": 2,
-  "voided": 0,
+  "quarantined": 0,
+  "voided": 2,
   "play_reviews": [
     {
       "play_id": "b2cc326b",
       "matchup": "BAL@ATL",
       "market": "spreads",
       "side": "away",
-      "action": "quarantine",
+      "action": "void",
       "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
         {
           "code": "spread_model_conflict",
           "severity": "quarantine",
           "message": "Model margin: BAL by 2.1 \u00b7 Market: ATL -3.0 (ATL by 3) \u00b7 Gap 5.1 pts \u2014 exceeds 4 pt QA band"
+        },
+        {
+          "code": "offshore_outlier",
+          "severity": "quarantine",
+          "message": "Offshore book gtbets price +101 diverges from pinnacle close -118"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): only 0 book(s) on line (need \u22652)"
         }
       ]
     },
@@ -27,40 +53,32 @@
       "matchup": "CIN@MIA",
       "market": "spreads",
       "side": "home",
-      "action": "quarantine",
+      "action": "void",
       "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
         {
           "code": "spread_model_conflict",
           "severity": "quarantine",
           "message": "Model margin: CIN by 1.4 \u00b7 Market: MIA +6.5 (CIN by 6.5) \u00b7 Gap 5.1 pts \u2014 exceeds 4 pt QA band"
-        }
-      ]
-    },
-    {
-      "play_id": "b2cc326b",
-      "matchup": "BAL@ATL",
-      "market": "spreads",
-      "side": "away",
-      "action": "quarantine",
-      "issues": [
+        },
         {
-          "code": "spread_model_conflict",
+          "code": "offshore_outlier",
           "severity": "quarantine",
-          "message": "Model margin: BAL by 2.1 \u00b7 Market: ATL -3.0 (ATL by 3) \u00b7 Gap 5.1 pts \u2014 exceeds 4 pt QA band"
-        }
-      ]
-    },
-    {
-      "play_id": "65652208",
-      "matchup": "CIN@MIA",
-      "market": "spreads",
-      "side": "home",
-      "action": "quarantine",
-      "issues": [
+          "message": "Offshore book gtbets price +101 diverges from pinnacle close -115"
+        },
         {
-          "code": "spread_model_conflict",
+          "code": "product_gate",
           "severity": "quarantine",
-          "message": "Model margin: CIN by 1.4 \u00b7 Market: MIA +6.5 (CIN by 6.5) \u00b7 Gap 5.1 pts \u2014 exceeds 4 pt QA band"
+          "message": "Fails product gate (LOCKED card): only 0 book(s) on line (need \u22652)"
         }
       ]
     }

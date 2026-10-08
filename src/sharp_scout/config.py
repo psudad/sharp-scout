@@ -130,6 +130,12 @@ class Settings(BaseSettings):
     product_total_money_gap: float = 0.10  # money-ticket gap on OUR side that counts as confirmation
     product_total_opposing_gap: float = 0.05  # sharp money this far on the OTHER side vetoes the total
     product_total_model_market_max_gap: float = 5.0  # |model_total - market line| allowed w/o confirmation
+    # Spreads on the certified card — Phase 4 can pass on RLM alone; product gate needs handle
+    # on our side (Southern Miss +10 locked at T-4h with only +8% spread sharp money).
+    product_spread_sharp_guardrail: bool = True
+    product_spread_money_gap: float = 0.12  # money-ticket gap on OUR spread side (default = filter bar)
+    # Do not post a first-time LOCKED play inside this window before kickoff (hours).
+    product_min_certify_lead_hours: float = 8.0
     # Price vs sharp: p_fair (Pinnacle no-vig at our line) minus our price's implied prob.
     # A play priced well below sharp fair starts with negative CLV; the vig alone is ~-2.4%
     # at -110, so -1% only blocks prices materially worse than the sharp market.

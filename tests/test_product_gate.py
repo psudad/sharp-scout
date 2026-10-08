@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from sharp_scout.qa.product_gate import (
     evaluate_product_play,
     is_shadow_only,
@@ -14,6 +16,8 @@ def _sig(**kw):
     base = {
         "filter_passed": True,
         "event_id": "e1",
+        "home_team": "LV",
+        "away_team": "MIA",
         "market": "spreads",
         "side": "away",
         "line": 7.5,
@@ -25,6 +29,31 @@ def _sig(**kw):
     }
     base.update(kw)
     return base
+
+
+def _spread_split(
+    side: str = "away",
+    gap: float = 0.12,
+    *,
+    home_team: str = "LV",
+    away_team: str = "MIA",
+):
+    team = away_team if side == "away" else home_team
+    return {
+        "home_team": home_team,
+        "away_team": away_team,
+        "available": True,
+        "markets": {
+            "spread": {
+                "sharp_edge": {
+                    "available": True,
+                    "side": side,
+                    "team": team,
+                    "diff_pct": gap,
+                }
+            }
+        },
+    }
 
 
 def _split_board_for(side: str = "away", spread_gap: float = 0.12, ml_gap: float = 0.12):
@@ -87,8 +116,18 @@ def test_rejects_lean_tier():
     assert not r2.ok and "tier" in r2.note()
 
 
+def _spread_signals(**sig_kw):
+    play = _sig(**sig_kw)
+    home, away = play["home_team"], play["away_team"]
+    side = play.get("side", "away")
+    return {
+        "signals": [play, _sig(book="fanduel", **{k: v for k, v in sig_kw.items() if k != "book"})],
+        "split_boards": [_spread_split(side=side, home_team=home, away_team=away)],
+    }
+
+
 def test_requires_p_fair_and_ev():
-    signals = {"signals": [_sig(), _sig(book="fanduel")]}
+    signals = _spread_signals()
     r = evaluate_product_play(_sig(p_fair=0.48, p_mkt=0.48), signals=signals, sport="ncaaf")
     assert not r.ok
 
@@ -97,7 +136,7 @@ def test_requires_p_fair_and_ev():
 
 
 def test_rejects_price_worse_than_sharp_fair():
-    signals = {"signals": [_sig(), _sig(book="fanduel")]}
+    signals = _spread_signals()
     ok = evaluate_product_play(_sig(price=-110), signals=signals, sport="nfl")
     assert ok.ok, ok.note()
 
@@ -214,6 +253,53 @@ def test_total_passes_when_money_confirms_our_side():
     assert r.ok, r.note()
 
 
+def test_spread_vetoed_when_sharp_money_gap_below_bar():
+    signals = _spread_signals(edge=0.08)
+    signals["split_boards"] = [_spread_split(side="away", gap=0.08)]
+    play = _sig(
+        edge=0.08,
+        kickoff="2099-06-01T20:00:00+00:00",
+        commence_time="2099-06-01T20:00:00+00:00",
+    )
+    r = evaluate_product_play(play, signals=signals, sport="nfl")
+    assert not r.ok and "spread money-ticket gap" in r.note()
+
+
+def test_spread_blocked_inside_lead_window():
+    now = datetime(2026, 10, 6, 20, 0, tzinfo=timezone.utc)
+    kick = (now + timedelta(hours=4)).isoformat()
+    signals = _spread_signals()
+    play = _sig(kickoff=kick, commence_time=kick)
+    r = evaluate_product_play(play, signals=signals, sport="nfl", now=now)
+    assert not r.ok and "until kickoff" in r.note()
+
+
+def test_southern_miss_style_spread_would_not_certify_at_post_time():
+    """Replay USM +10 @ TROY: +8% spread sharp money and T-4h — both guardrails fire."""
+    post_time = datetime(2026, 10, 6, 20, 4, 35, tzinfo=timezone.utc)
+    kick = "2026-10-07T00:00:00+00:00"
+    play = _sig(
+        event_id="57ad14afc7db1843fd56f5971dadb058",
+        home_team="TROY",
+        away_team="SOUTHERN MISS",
+        side="away",
+        line=10.0,
+        edge=0.1367,
+        price=-104,
+        kickoff=kick,
+        commence_time=kick,
+    )
+    signals = {
+        "signals": [play, _sig(book="pinnacle", event_id=play["event_id"], home_team="TROY", away_team="SOUTHERN MISS")],
+        "split_boards": [
+            _spread_split(side="away", gap=0.08, home_team="TROY", away_team="SOUTHERN MISS")
+        ],
+    }
+    r = evaluate_product_play(play, signals=signals, sport="ncaaf", now=post_time)
+    assert not r.ok
+    assert "spread money-ticket gap" in r.note() or "until kickoff" in r.note()
+
+
 def test_select_certified_caps_and_dedupes():
     signals = {
         "signals": [
@@ -221,7 +307,8 @@ def test_select_certified_caps_and_dedupes():
             _sig(edge=0.05, book="fd"),
             _sig(edge=0.08, event_id="e2", market="totals", side="over", line=45.5, book="dk"),
             _sig(edge=0.07, event_id="e2", market="totals", side="over", line=45.5, book="pin"),
-        ]
+        ],
+        "split_boards": [_spread_split()],
     }
     cands = signals["signals"]
     out = select_certified_plays(cands, signals=signals, sport="nfl")

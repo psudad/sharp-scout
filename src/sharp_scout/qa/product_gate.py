@@ -11,9 +11,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from datetime import datetime, timezone
+
 from sharp_scout.config import get_settings
 from sharp_scout.qa.gate import _count_books_on_market, _split_board
 from sharp_scout.utils.odds import american_to_implied_prob
+from sharp_scout.utils.slate import parse_commence
 
 SHADOW_MARKET_NOTE = "shadow market"
 
@@ -173,11 +176,66 @@ def _check_total_sharp_confirmation(
     return reasons
 
 
+def _spread_ticket_gap_min(settings: Any) -> float:
+    gap = settings.product_spread_money_gap
+    if gap is not None:
+        return float(gap)
+    return float(settings.money_ticket_gap)
+
+
+def _check_spread_sharp_confirmation(
+    play: dict[str, Any],
+    signals: dict[str, Any],
+    *,
+    settings: Any,
+) -> list[str]:
+    """Spreads need split-board sharp money on our side — RLM alone is not enough to LOCK."""
+    reasons: list[str] = []
+    side = str(play.get("side") or "")
+    gap_min = _spread_ticket_gap_min(settings)
+
+    sb = _split_board(signals, play)
+    if sb is None:
+        reasons.append("no split-board data for spread confirmation")
+        return reasons
+    if not sb.get("available"):
+        reasons.append("split-board unavailable for this game")
+
+    spread = (sb.get("markets") or {}).get("spread") or {}
+    se = spread.get("sharp_edge") or {}
+    se_gap = float(se.get("diff_pct") or 0)
+    se_side = se.get("side")
+    if not se.get("available"):
+        reasons.append("spread sharp money signal unavailable")
+    elif se_side != side:
+        team = se.get("team") or se_side
+        reasons.append(
+            f"spread sharp money on {team} (+{se_gap:.0%}) conflicts with our {side}"
+        )
+    elif se_gap < gap_min:
+        reasons.append(
+            f"spread money-ticket gap +{se_gap:.0%} < {gap_min:.0%} required to post spread"
+        )
+
+    return reasons
+
+
+def _hours_until_kickoff(play: dict[str, Any], *, now: datetime | None = None) -> float | None:
+    kick = parse_commence(play.get("kickoff") or play.get("commence_time"))
+    if kick is None:
+        return None
+    if kick.tzinfo is None:
+        kick = kick.replace(tzinfo=timezone.utc)
+    ref = now or datetime.now(timezone.utc)
+    return (kick - ref).total_seconds() / 3600.0
+
+
 def evaluate_product_play(
     play: dict[str, Any],
     *,
     signals: dict[str, Any] | None = None,
     sport: str = "nfl",
+    now: datetime | None = None,
 ) -> ProductGateResult:
     """Return whether this signal/play is eligible for the public LOCKED card."""
     settings = get_settings()
@@ -233,6 +291,16 @@ def evaluate_product_play(
 
         if market == "totals" and settings.product_total_sharp_guardrail:
             reasons.extend(_check_total_sharp_confirmation(play, signals, settings=settings))
+
+        if market == "spreads" and settings.product_spread_sharp_guardrail:
+            reasons.extend(_check_spread_sharp_confirmation(play, signals, settings=settings))
+
+    lead_h = _hours_until_kickoff(play, now=now)
+    if lead_h is not None and lead_h < settings.product_min_certify_lead_hours:
+        reasons.append(
+            f"only {lead_h:.1f}h until kickoff "
+            f"(need ≥{settings.product_min_certify_lead_hours:g}h on the card before we post)"
+        )
 
     if market in shadow_markets(settings):
         reasons.append(f"{SHADOW_MARKET_NOTE}: {market} is tracked on the watchlist, not posted")

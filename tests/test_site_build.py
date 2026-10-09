@@ -10,10 +10,44 @@ from sharp_scout.config import ARTIFACTS_DIR
 from sharp_scout.site import build as site_build
 from sharp_scout.site.build import (
     _extract_hybrid_leans,
+    _format_play_line_suffix,
     _locked_sharp_play_keys,
     _pick_signals,
     _posted_sharp_play_keys,
+    _side_label,
+    early_season_banner_html,
+    show_early_season_banner,
 )
+
+
+def test_totals_play_label_omits_plus_sign():
+    play = {
+        "market": "totals",
+        "side": "under",
+        "line": 56.0,
+        "price": -110,
+    }
+    assert _side_label(play) == "UNDER 56 (total) -110"
+
+
+def test_spread_play_label_keeps_sign():
+    play = {
+        "market": "spreads",
+        "side": "home",
+        "home_team": "BUF",
+        "line": -3.5,
+        "price": -108,
+    }
+    assert _side_label(play) == "BUF -3.5 (spread) -108"
+
+
+def test_early_season_banner_weeks_one_through_three_only():
+    assert show_early_season_banner(1)
+    assert show_early_season_banner(3)
+    assert not show_early_season_banner(4)
+    assert not show_early_season_banner(None)
+    assert early_season_banner_html(2) != ""
+    assert early_season_banner_html(5) == ""
 
 
 def test_pick_signals_prefers_fresher_artifacts_on_equal_game_count(tmp_path, monkeypatch):

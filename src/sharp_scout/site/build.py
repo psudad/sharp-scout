@@ -28,6 +28,7 @@ from sharp_scout.copy.explain import (
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.sports import NCAAF
 from sharp_scout.utils.odds import normalize_team
+from sharp_scout.utils.cfb_calendar import current_cfb_week
 from sharp_scout.utils.slate import (
     ET,
     college_week_bounds,
@@ -63,6 +64,7 @@ _WEEK1_BANNER = (
     "this board, treat it as informational and bet at your own risk."
     "</div>"
 )
+_EARLY_SEASON_WEEKS = 3
 from sharp_scout.utils.teams import matchup_search_blob, ncaaf_display_code
 
 DOCS_DIR = ROOT / "docs"
@@ -100,6 +102,33 @@ def _price(p: Any) -> str:
     return f"+{int(round(n))}" if n > 0 else str(int(round(n)))
 
 
+def show_early_season_banner(season_week: int | None, *, max_week: int = _EARLY_SEASON_WEEKS) -> bool:
+    """True during the first few weeks of a sport's season (banner-worthy)."""
+    return season_week is not None and 1 <= season_week <= max_week
+
+
+def early_season_banner_html(season_week: int | None) -> str:
+    return _WEEK1_BANNER if show_early_season_banner(season_week) else ""
+
+
+def _format_play_line_suffix(p: dict[str, Any]) -> str:
+    """Signed line for spreads; unsigned magnitude for totals."""
+    line = p.get("line")
+    if line is None:
+        return ""
+    market = str(p.get("market") or "")
+    try:
+        fv = float(line)
+    except (TypeError, ValueError):
+        return f" {line}"
+    if market == "totals":
+        fv = abs(fv)
+        return f" {int(fv)}" if fv == int(fv) else f" {fv:g}"
+    if fv == 0:
+        return " 0"
+    return f" {fv:+g}"
+
+
 def _team_for_side(p: dict[str, Any]) -> str:
     side = str(p.get("side") or "").lower()
     if side == "home":
@@ -115,10 +144,7 @@ def _side_label(p: dict[str, Any]) -> str:
         line_s = f" {line}" if line is not None else ""
         mkt = str(p.get("market") or "").replace("player_", "").replace("_", " ")
         return f"{p.get('player_name')} {str(p.get('side', '')).upper()}{line_s} ({mkt}) {_price(p.get('price'))}"
-    line = p.get("line")
-    line_s = ""
-    if line is not None:
-        line_s = f" {float(line):+g}" if float(line) != 0 else " 0"
+    line_s = _format_play_line_suffix(p)
     m = {"spreads": "spread", "totals": "total", "h2h": "ML"}.get(p.get("market"), p.get("market"))
     team = _team_for_side(p)
     return f"{team}{line_s} ({m}) {_price(p.get('price'))}"
@@ -894,16 +920,17 @@ def build_site(
     )
     nfl_week_heading = nfl_section_heading(nfl_games_all or nfl_games_display)
     _nfl_season, nfl_season_week = nfl_display_season_week(nfl_games_all or nfl_games_display)
-    week1_banner_html = (
-        _WEEK1_BANNER if nfl_season_week == 1 else ""
-    )
+    _ncaaf_season, ncaaf_season_week = current_cfb_week()
+    nfl_week1_banner_html = early_season_banner_html(nfl_season_week)
+    ncaaf_week1_banner_html = early_season_banner_html(ncaaf_season_week)
 
     html = SITE_TEMPLATE.format(
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         ssq_logo=_ssq_logo_svg(embedded=True),
         board_updated=board_updated,
         nfl_week_heading=nfl_week_heading,
-        week1_banner_html=week1_banner_html,
+        nfl_week1_banner_html=nfl_week1_banner_html,
+        ncaaf_week1_banner_html=ncaaf_week1_banner_html,
         leans_caps_note=_LEANS_CAPS_NOTE,
         nfl_plays_heading=_render_plays_heading(nfl_locked_summary),
         ncaaf_plays_heading=_render_plays_heading(ncaaf_locked_summary),
@@ -971,6 +998,8 @@ def build_site(
             nfl_week_pnl=nfl_week_pnl,
             board_updated=board_updated,
             analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+            nfl_season_week=nfl_season_week,
+            ncaaf_season_week=ncaaf_season_week,
         )
     )
     (out / "comments.html").write_text(
@@ -1018,12 +1047,14 @@ def _render_landing_section(
     *,
     sport: str,
     empty_note: str,
+    season_week: int | None = None,
 ) -> str:
     """One sport's block of actual plays on the landing page."""
     count = len(plays)
+    banner = early_season_banner_html(season_week)
     if not plays:
         return (
-            f'<div class="lp-section"><h2>{_esc(title)}</h2>'
+            f'<div class="lp-section">{banner}<h2>{_esc(title)}</h2>'
             f'<p class="lp-empty">{_esc(empty_note)}</p></div>'
         )
     table = _render_play_table(
@@ -1036,6 +1067,7 @@ def _render_landing_section(
     )
     return (
         f'<div class="lp-section">'
+        f"{banner}"
         f'<h2>{_esc(title)} — Locked Plays '
         f'<span class="lp-count">{count} this week</span></h2>'
         f"{table}</div>"
@@ -1052,6 +1084,8 @@ def _render_landing_page(
     nfl_week_pnl: float,
     board_updated: str,
     analytics_head: str,
+    nfl_season_week: int | None = None,
+    ncaaf_season_week: int | None = None,
 ) -> str:
     """Plays-only landing page: just this week's actual recommended plays."""
     total = len(ncaaf_plays) + len(nfl_plays)
@@ -1060,7 +1094,6 @@ def _render_landing_page(
         analytics_head=analytics_head,
         ssq_logo=_ssq_logo_svg(embedded=True),
         board_updated=_esc(board_updated),
-        week1_banner_html=_WEEK1_BANNER,
         total_plays=total,
         week_chips=(
             _landing_week_pill("CFB", ncaaf_week_stats, ncaaf_week_pnl)
@@ -1071,12 +1104,14 @@ def _render_landing_page(
             ncaaf_plays,
             sport="ncaaf",
             empty_note="No locked CFB plays posted for this week yet. Check back after the pipeline runs.",
+            season_week=ncaaf_season_week,
         ),
         nfl_section=_render_landing_section(
             "NFL",
             nfl_plays,
             sport="nfl",
             empty_note="No locked NFL plays posted for this week yet. Check back after the pipeline runs.",
+            season_week=nfl_season_week,
         ),
         timing_script=_TIMING_SCRIPT,
     )
@@ -1195,8 +1230,6 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite" style="margin-top:12px"></div>
   </div>
-
-  {week1_banner_html}
 
   <p class="phase-note" style="padding:2px 0 6px">Everything on this page is an actual
   recommended play that we track on the ledger. Use the <b>When to bet</b> column for
@@ -4152,7 +4185,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-plays" class="content active">
-  {week1_banner_html}
+  {nfl_week1_banner_html}
   <div class="team-search-wrap">
     <input type="text" id="nfl-team-search" class="team-search-input" placeholder="Search for a team (e.g. Chiefs, KC)..." />
   </div>
@@ -4194,7 +4227,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-cfb" class="content">
-  {week1_banner_html}
+  {ncaaf_week1_banner_html}
   <div class="team-search-wrap">
     <input type="text" id="cfb-team-search" class="team-search-input" placeholder="Search for a team (e.g. Alabama, Crimson Tide)..." />
   </div>

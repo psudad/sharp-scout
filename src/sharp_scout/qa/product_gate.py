@@ -37,6 +37,19 @@ class ProductGateResult:
         return "; ".join(self.reasons)
 
 
+def is_whitelisted(play: dict[str, Any], sport: str, settings: Any | None = None) -> bool:
+    """True when (sport, market) is in the configured product whitelist."""
+    settings = settings or get_settings()
+    if not getattr(settings, "product_whitelist_enabled", False):
+        return False
+    pairs = {
+        tuple(x.strip().lower().split(":", 1))
+        for x in (settings.product_whitelist or "").split(",")
+        if ":" in x
+    }
+    return (str(sport).lower(), str(play.get("market") or "").lower()) in pairs
+
+
 def _p_fair(signal: dict[str, Any]) -> float | None:
     pf = signal.get("p_fair")
     if pf is not None:
@@ -196,8 +209,16 @@ def evaluate_product_play(
     edge = play.get("edge")
     if edge is None:
         reasons.append("missing edge")
-    elif float(edge) < settings.product_ev_min:
-        reasons.append(f"EV {float(edge):.1%} < {settings.product_ev_min:.0%} product floor")
+    else:
+        wl = is_whitelisted(play, sport, settings)
+        ev_min = settings.product_whitelist_ev_min if wl else settings.product_ev_min
+        if float(edge) < ev_min:
+            reasons.append(f"EV {float(edge):.1%} < {ev_min:.0%} product floor")
+        ev_max = settings.product_ev_max
+        if not wl and ev_max is not None and float(edge) >= ev_max:
+            reasons.append(
+                f"EV {float(edge):.1%} ≥ {ev_max:.0%} product ceiling (model-tilt outlier)"
+            )
 
     pf = _p_fair(play)
     if pf is None:
@@ -260,7 +281,11 @@ def select_certified_plays(
         if res.ok:
             passed.append(s)
 
-    passed.sort(key=lambda x: float(x.get("edge") or 0), reverse=True)
+    # Whitelisted sport:market pairs rank first, then by edge.
+    passed.sort(
+        key=lambda x: (is_whitelisted(x, sport, settings), float(x.get("edge") or 0)),
+        reverse=True,
+    )
 
     cap = (
         settings.product_max_plays_ncaaf

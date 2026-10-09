@@ -229,3 +229,23 @@ def test_select_certified_caps_and_dedupes():
     assert out[0]["edge"] == 0.08
     keys = {(x["event_id"], x["market"]) for x in out}
     assert len(keys) == len(out)
+
+
+def test_ev_ceiling_rejects_tilt_outliers():
+    r = evaluate_product_play(_sig(edge=0.15), signals=None, sport="nfl")
+    assert not r.ok and any("ceiling" in x for x in r.reasons)
+    assert evaluate_product_play(_sig(edge=0.08), signals=None, sport="nfl").ok
+
+
+def test_ncaaf_totals_whitelist_bypasses_ceiling_and_uses_own_floor():
+    tot = _sig(market="totals", side="over", line=52.5, edge=0.20)
+    assert evaluate_product_play(tot, signals=None, sport="ncaaf").ok
+    assert evaluate_product_play(dict(tot, edge=0.03), signals=None, sport="ncaaf").ok
+    assert not evaluate_product_play(dict(tot, edge=0.015), signals=None, sport="ncaaf").ok
+    # NFL totals are not whitelisted
+    assert not evaluate_product_play(tot, signals=None, sport="nfl").ok
+
+
+def test_moneyline_not_on_product_card():
+    r = evaluate_product_play(_sig(market="h2h", line=None), signals=None, sport="nfl")
+    assert not r.ok and is_shadow_only(r.reasons)

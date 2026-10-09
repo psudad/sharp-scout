@@ -13,6 +13,7 @@ from sharp_scout.qa.gate import (
     QAIssue,
     apply_qa_gate,
     play_commitment_locked,
+    play_eligible_for_qa_promote_lock,
     review_play,
     review_signals,
     _validated_keys,
@@ -108,6 +109,48 @@ def test_mia_ml_quarantined_for_model_conflict():
     assert "not_revalidated" in codes
 
 
+def test_line_gap_conflict_blocks_qa_promote_lock_despite_model_margin_copy():
+    """Regression: promote-lock must not key off display text ('Model spread' vs 'Model margin')."""
+    play = {
+        "market": "spreads",
+        "qa_notes": [
+            {
+                "code": "spread_model_line_conflict",
+                "severity": "quarantine",
+                "message": (
+                    "Model margin: VAN by 4.0 · Market: VAN +9.5 (MISS by 9.5) · "
+                    "Gap 13.5 pts — exceeds 12 pt QA band"
+                ),
+            }
+        ],
+    }
+    assert not play_eligible_for_qa_promote_lock(play)
+
+    legacy = {
+        "market": "spreads",
+        "qa_notes": [
+            {
+                "code": "spread_model_conflict",
+                "severity": "quarantine",
+                "message": "Model margin: VAN by 4.0 · Market: VAN +9.5 · Gap 13.5 pts",
+            }
+        ],
+    }
+    assert not play_eligible_for_qa_promote_lock(legacy)
+
+    prob_only = {
+        "market": "spreads",
+        "qa_notes": [
+            {
+                "code": "spread_model_conflict",
+                "severity": "watchlist",
+                "message": "Cover prob at this line VAN +9.5: model 58.0% vs sharp 49.0% (Δ9%)",
+            }
+        ],
+    }
+    assert play_eligible_for_qa_promote_lock(prob_only)
+
+
 def test_spread_model_conflict_quarantined():
     signals = _base_signals(
         plays=[
@@ -156,7 +199,7 @@ def test_spread_model_conflict_quarantined():
     review = review_play(play, signals, sport="nfl")
     codes = {i.code for i in review.issues}
     assert review.action == "quarantine"
-    assert "spread_model_conflict" in codes
+    assert "spread_model_line_conflict" in codes
 
 
 def test_corroborated_spread_passes():

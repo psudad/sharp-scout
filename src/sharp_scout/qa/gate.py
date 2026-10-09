@@ -78,7 +78,16 @@ def play_eligible_for_qa_promote_lock(play: dict[str, Any]) -> bool:
         msg = iss.get("message") or ""
         if code == "single_book" and market == "totals":
             continue
-        if code == "spread_model_conflict" and "Model spread" not in msg:
+        if code == "spread_model_line_conflict":
+            return False
+        if code == "spread_model_conflict":
+            # Prob-gap only (promotable). Legacy rows used the same code for line-gap copy.
+            if (
+                "Model spread" in msg
+                or "Model margin:" in msg
+                or " vs market home line " in msg
+            ):
+                return False
             continue
         if code == "product_gate" and market == "totals" and "book" in msg.lower():
             if all(
@@ -473,7 +482,7 @@ def review_play(
             if line_gap >= gap_limit:
                 issues.append(
                     QAIssue(
-                        "spread_model_conflict",
+                        "spread_model_line_conflict",
                         "quarantine",
                         spread_line_gap_message(
                             model_spread=float(model_spread),

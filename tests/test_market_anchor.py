@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import numpy as np
 import pandas as pd
 
@@ -101,3 +103,20 @@ def test_sport_configs_carry_anchor_params():
     assert NFL.margin_sd == 13.5 and NCAAF.margin_sd == 17.0
     assert NCAAF.anchor_k_total > NCAAF.anchor_k_spread
     assert NCAAF.spread_model_line_gap > NFL.spread_model_line_gap
+
+
+def test_anchor_tilt_cap_bounds_model_tilt():
+    from sharp_scout.phase3.market import anchor_probability
+
+    assert anchor_probability(0.80, 0.50, 0.3) == pytest.approx(0.59)
+    assert anchor_probability(0.80, 0.50, 0.3, cap=0.03) == pytest.approx(0.53)
+    assert anchor_probability(0.20, 0.50, 0.3, cap=0.03) == pytest.approx(0.47)
+    assert anchor_probability(0.52, 0.50, 0.1, cap=0.03) == pytest.approx(0.502)
+
+
+def test_sport_anchor_defaults():
+    from sharp_scout.sports import NCAAF, NFL
+
+    assert NFL.anchor_k_spread == 0.1 and NFL.anchor_tilt_cap == 0.03
+    assert NCAAF.anchor_k_spread == 0.1 and NCAAF.anchor_k_total == 0.6
+    assert NCAAF.anchor_tilt_cap_totals is False

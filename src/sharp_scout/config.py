@@ -113,7 +113,17 @@ class Settings(BaseSettings):
     product_gate_enabled: bool = True
     product_ev_min: float = 0.04  # 4% anchored EV floor (live card was ~50% at 2%)
     product_p_fair_min: float = 0.50  # sharp no-vig must favor our side at the bet line
-    product_markets: str = "spreads,totals,h2h"
+    product_markets: str = "spreads,totals,h2h"  # h2h stays watchlist-only via product_shadow_markets
+    # EV band: tilt-driven EVs above the ceiling went 77-75 (50.7%) on 2026 graded
+    # candidates; 4-12% (no ML) went 31-13. None disables the ceiling. Re-tune both
+    # bounds whenever anchor_k / anchor_tilt_cap change (EV scale moves with k).
+    product_ev_max: float | None = 0.12
+    # Whitelist "sport:market" pairs (comma-separated) that bypass the EV ceiling,
+    # use their own EV floor, and rank ahead of other plays for the per-sport cap.
+    # NCAAF totals went 45-19 (70.3%) on graded candidates thru Wk6 2026.
+    product_whitelist: str = "ncaaf:totals"
+    product_whitelist_enabled: bool = True
+    product_whitelist_ev_min: float = 0.02
     product_min_books: int = 2  # multi-book corroboration on the same side/line
     # ML (h2h) on the certified card — stricter than spreads/totals (option B).
     product_ml_require_split_board: bool = True
@@ -135,7 +145,8 @@ class Settings(BaseSettings):
     # at -110, so -1% only blocks prices materially worse than the sharp market.
     product_min_price_vs_fair: float = -0.01
     # Markets tracked as watchlist (shadow-graded) but never posted to the LOCKED card.
-    # Moneyline went 8-13 (-4.4u) across NFL+NCAAF through Week 4 2026.
+    # Moneyline went 8-13 (-4.4u) certified through Week 4 2026; 17-31 across all graded
+    # candidates through Week 6. Keep h2h here (= no-ML gate on the LOCKED card).
     product_shadow_markets: str = "h2h"
 
     # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).

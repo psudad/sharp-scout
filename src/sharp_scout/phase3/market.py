@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from sharp_scout.config import get_settings
-from sharp_scout.phase2.monte_carlo import GameSimResult, p_true_for_market
+from sharp_scout.phase2.monte_carlo import GameSimResult, p_push_for_market, p_true_for_market
 from sharp_scout.utils.odds import american_to_implied_prob, expected_value
 
 logger = logging.getLogger(__name__)
@@ -216,7 +216,9 @@ def discover_edges(
                 side = o["side"]
                 line = o.get("point")
                 try:
-                    p_true = p_true_for_market(sim, market, side, line)
+                    p_true = p_true_for_market(
+                        sim, market, side, line, sport=(cfg.key if cfg is not None else None)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("p_true skip %s: %s", o, exc)
                     continue
@@ -261,7 +263,11 @@ def discover_edges(
                         tilt_cap = None
                     p_true = anchor_probability(p_model, p_fair, k_anchor, tilt_cap)
 
-                edge = expected_value(p_true, float(price))
+                # Push-aware EV: p_true is P(win); a push refunds the stake.
+                p_push = p_push_for_market(
+                    sim, market, side, line, sport=(cfg.key if cfg is not None else None)
+                )
+                edge = expected_value(p_true, float(price)) + p_push
                 if k_anchor < 1.0:
                     # Anchored: EV already embeds the sharp reference (line gain + tilt).
                     # Only require that the model does not lean against the play.

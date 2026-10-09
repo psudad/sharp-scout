@@ -91,7 +91,7 @@ def test_review_play_uses_fresh_game_spread_in_message():
     line_msgs = [
         i.message
         for i in review.issues
-        if i.code == "spread_model_conflict" and "Model margin:" in i.message
+        if i.code == "spread_model_line_conflict"
     ]
     assert line_msgs
     assert "OSU by 0.4" in line_msgs[0]

@@ -88,10 +88,9 @@ class Settings(BaseSettings):
     prop_model_market_gap: float = 0.10
     # Only pull player props for games kicking off inside this horizon (API credits).
     prop_horizon_days: float = 8.0
-    # Props run in shadow mode until the projection is calibrated against settled prop
-    # history: artifacts are still written for review, but nothing reaches the ledger or
-    # the public board. Set PROPS_PUBLISH_ENABLED=true to publish.
-    props_publish_enabled: bool = False
+    # Props publish to the ledger and public board (consensus no-vig pricing, #70).
+    # Set PROPS_PUBLISH_ENABLED=false to return to shadow mode.
+    props_publish_enabled: bool = True
     # Pregame run windows (hours before kickoff)
     pregame_windows_hours: str = "12,3,1"
     pregame_window_tolerance_minutes: int = 25

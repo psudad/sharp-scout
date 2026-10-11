@@ -25,7 +25,12 @@ from sharp_scout.copy.explain import (
     STAGE_RECORD_SECTION_NOTE,
     STAGE_RECORD_TIPS,
 )
-from sharp_scout.ledger.tracker import compute_record, load_ledger
+from sharp_scout.ledger.tracker import (
+    PROPS_LEDGER_PATH,
+    compute_record,
+    load_ledger,
+    migrate_props_from_main_ledger,
+)
 from sharp_scout.sports import NCAAF
 from sharp_scout.utils.odds import normalize_team
 from sharp_scout.utils.cfb_calendar import current_cfb_week
@@ -570,8 +575,13 @@ def build_site(
     out = docs_dir or DOCS_DIR
     out.mkdir(parents=True, exist_ok=True)
 
+    migrate_props_from_main_ledger()
     ledger = load_ledger()
     record = compute_record(ledger)
+    props_ledger = load_ledger(PROPS_LEDGER_PATH)
+    props_record = compute_record(props_ledger, path=PROPS_LEDGER_PATH)
+    (out / "props_ledger.json").write_text(json.dumps(props_ledger, indent=2, default=str) + "\n")
+    (out / "props_record.json").write_text(json.dumps(props_record, indent=2, default=str) + "\n")
     if signals_path is not None:
         signals: dict[str, Any] = (
             json.loads(signals_path.read_text()) if signals_path.exists() else {}
@@ -1012,6 +1022,7 @@ def build_site(
         _render_props_page(
             props_payload,
             analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+            props_ledger=props_ledger,
         )
     )
     if props_payload and not props_payload.get("demo"):
@@ -1374,13 +1385,106 @@ def _render_props_rows(rows: list[dict[str, Any]]) -> str:
     return "".join(out)
 
 
+def _props_ledger_row(p: dict[str, Any], *, graded: bool) -> str:
+    market = PROP_MARKET_LABELS.get(str(p.get("market")), str(p.get("market")))
+    side = str(p.get("side") or "").title()
+    line = p.get("line")
+    pick = f"{side} {line:g}" if isinstance(line, (int, float)) else side
+    game = f"{p.get('away_team', '')} @ {p.get('home_team', '')}"
+    st = p.get("status") or "pending"
+    if st == "pending":
+        kick = parse_commence(p.get("kickoff"))
+        started = kick is not None and kick <= datetime.now(timezone.utc)
+        badge = (
+            '<span class="card-result pending">AWAITING FINAL</span>'
+            if started
+            else '<span class="card-result pending">LOCKED</span>'
+        )
+    else:
+        badge = _status_badge(st)
+    actual = p.get("prop_result")
+    actual_txt = f"{actual:g}" if isinstance(actual, (int, float)) else "—"
+    pnl = p.get("pnl_units")
+    pnl_txt = f"{float(pnl):+.2f}u" if pnl is not None else "—"
+    cells = (
+        f'<td data-label="Kickoff">{_esc(format_kickoff_compact(p.get("kickoff")))}</td>'
+        f'<td data-label="Game">{_esc(game)}</td>'
+        f'<td data-label="Player" class="play-pick-cell">{_esc(p.get("player_name"))}</td>'
+        f'<td data-label="Prop">{_esc(market)}</td>'
+        f'<td data-label="Pick"><b>{_esc(pick)}</b></td>'
+        f'<td data-label="Price"><span class="props-price">{_esc(_price(p.get("price")))} '
+        f'<span class="props-book">{_esc(p.get("book", ""))}</span></span></td>'
+        f'<td data-label="Win %">{_pct(p.get("p_true"))}</td>'
+        f'<td data-label="Edge" class="props-edge">{_pct(p.get("edge"))}</td>'
+    )
+    if graded:
+        cells += f'<td data-label="Actual">{actual_txt}</td><td data-label="P/L">{pnl_txt}</td>'
+    return f"<tr>{cells}<td data-label=\"Status\">{badge}</td></tr>"
+
+
+def _props_ledger_table(plays: list[dict[str, Any]], *, graded: bool, empty: str) -> str:
+    if not plays:
+        return f'<p class="empty">{empty}</p>'
+    extra = "<th>Actual</th><th>P/L</th>" if graded else ""
+    body = "".join(_props_ledger_row(p, graded=graded) for p in plays)
+    return (
+        '<div class="table-wrap"><table class="export-table plays-table props-table">'
+        "<thead><tr><th>Kickoff</th><th>Game</th><th>Player</th><th>Prop</th><th>Pick</th>"
+        f"<th>Price</th><th>Win %</th><th>Edge</th>{extra}<th>Status</th></tr></thead>"
+        f"<tbody>{body}</tbody></table></div>"
+    )
+
+
+def _render_props_record(rec: dict[str, Any]) -> str:
+    def card(val: str, lbl: str) -> str:
+        return f'<div class="pr-card"><div class="pr-val">{val}</div><div class="pr-lbl">{lbl}</div></div>'
+
+    wp = rec.get("win_pct")
+    return (
+        '<div class="props-record">'
+        + card(_esc(rec.get("record", "0-0")), "Props record")
+        + card(f"{wp * 100:.1f}%" if wp is not None else "—", "Win rate")
+        + card(f"{float(rec.get('pnl_units') or 0):+.2f}u", "Units")
+        + card(str(rec.get("pending", 0)), "Locked / pending")
+        + "</div>"
+    )
+
+
+def _render_props_ledger_sections(ledger: dict[str, Any] | None) -> tuple[str, str, set[tuple[str, str, str]]]:
+    """(record block, locked + graded sections, keys already locked)."""
+    plays = [p for p in (ledger or {}).get("plays") or [] if p.get("status") != "watchlist"]
+    rec = compute_record(ledger or {"plays": []}, path=PROPS_LEDGER_PATH)
+    pending = [p for p in plays if (p.get("status") or "pending") == "pending"]
+    pending.sort(key=lambda p: str(p.get("kickoff") or ""))
+    done = [p for p in plays if (p.get("status") or "pending") not in ("pending", "quarantined")]
+    done.sort(key=lambda p: str(p.get("settled_at") or ""), reverse=True)
+    sections = (
+        '<h2 class="props-h2">Locked props</h2>'
+        + _props_ledger_table(
+            pending, graded=False, empty="No locked props right now. New props lock in on each run."
+        )
+        + '<h2 class="props-h2">Graded props</h2>'
+        + _props_ledger_table(
+            done, graded=True, empty="No props have been graded yet. Results appear after games go final."
+        )
+    )
+    keys = {(str(p.get("player_name")), str(p.get("market")), str(p.get("side"))) for p in pending}
+    return _render_props_record(rec), sections, keys
+
+
 def _render_props_page(
     payload: dict[str, Any],
     *,
     analytics_head: str,
     now: datetime | None = None,
+    props_ledger: dict[str, Any] | None = None,
 ) -> str:
-    rows = props_board_rows(payload, now=now)
+    record_block, ledger_sections, locked_keys = _render_props_ledger_sections(props_ledger)
+    rows = [
+        r
+        for r in props_board_rows(payload, now=now)
+        if (str(r.get("player_name")), str(r.get("market")), str(r.get("side"))) not in locked_keys
+    ]
     generated = parse_commence(payload.get("generated_at")) if payload else None
     updated = _format_timestamp_et(generated) if generated else "—"
     if rows:
@@ -1392,7 +1496,7 @@ def _render_props_page(
             f"<tbody>{_render_props_rows(rows)}</tbody></table></div>"
         )
     else:
-        table = '<p class="empty">No NFL props for upcoming games yet. Check back after the next pregame run.</p>'
+        table = '<p class="empty">No unlocked NFL props right now. Check back after the next props run.</p>'
     shadow = (
         ""
         if payload.get("publish_enabled")
@@ -1405,6 +1509,8 @@ def _render_props_page(
         analytics_head=analytics_head,
         ssq_logo=_ssq_logo_svg(embedded=True),
         shadow_banner=shadow,
+        record_block=record_block,
+        ledger_sections=ledger_sections,
         updated=_esc(updated),
         n_rows=len(rows),
         table=table,
@@ -1433,6 +1539,11 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
   .props-team, .props-book {{ font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }}
   .props-more {{ font-size: 11px; color: var(--color-text-muted); }}
   .props-edge {{ font-weight: 800; color: #0a5c25; }}
+  .props-h2 {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; }}
+  .props-record {{ display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px 0 6px; }}
+  .props-record .pr-card {{ border: 1px solid var(--color-border, #ddd); border-radius: 8px; padding: 10px 18px; text-align: center; min-width: 110px; }}
+  .props-record .pr-val {{ font-size: 24px; font-weight: 800; }}
+  .props-record .pr-lbl {{ font-size: 11px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; }}
   .props-price {{ text-align: right; overflow-wrap: anywhere; }}
   .props-wrap .table-wrap {{ overflow-x: auto; overflow-y: visible; max-height: none; }}
   .props-wrap .table-wrap thead th {{ position: static; box-shadow: none; }}
@@ -1455,7 +1566,11 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
     <p>Player props ranked by model edge · {n_rows} props · updated {updated}</p>
   </div>
   {shadow_banner}
-  <p class="phase-note">Edge = expected return per $1 at the listed price, using the model's
+  {record_block}
+  {ledger_sections}
+  <h2 class="props-h2">Latest model edges</h2>
+  <p class="phase-note">Props are tracked on their own record and do not count toward the NFL sides record.
+  Edge = expected return per $1 at the listed price, using the model's
   calibrated win probability. Market % is the book's no-vig probability. One row per player
   and prop, at the line and book with the highest edge.
   Games drop off about four hours after kickoff.</p>

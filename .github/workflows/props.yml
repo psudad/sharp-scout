@@ -1,0 +1,74 @@
+name: NFL Props (10 AM ET daily)
+
+# Dedicated props run: scores the full slate, locks new props into data/props_ledger.json,
+# grades finished props, and rebuilds the NFL Props page. Props are tracked separately
+# from the NFL sides card.
+
+on:
+  schedule:
+    # 10:00 AM ET (EDT = UTC-4) on NFL game days: Thu, Sat, Sun, Mon, plus Tue to grade MNF
+    - cron: "0 14 * * 0,1,2,4,6"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: props
+  cancel-in-progress: false
+
+jobs:
+  props:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Configure env
+        run: |
+          echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
+          echo "INACTIVE_PLAYERS=${{ secrets.INACTIVE_PLAYERS }}" >> $GITHUB_ENV
+
+      - name: Run props pipeline
+        run: python scripts/run_props.py
+
+      - name: Settle finished games and rebuild site
+        run: python scripts/settle_now.py --sport nfl
+
+      - name: Commit props ledger + site
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ledger.json data/props_ledger.json docs/
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: props run + settle + site rebuild"
+            git pull --rebase --autostash origin main
+            git push
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: props
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

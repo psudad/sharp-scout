@@ -235,11 +235,9 @@ def run_props_pipeline(
         side = {}
     payload["publish_enabled"] = settings.props_publish_enabled
     side["props"] = payload
-    # Combined plays board: sides + props. In shadow mode props stay out of the board
-    # entirely so an uncalibrated projection cannot swamp the posted side plays.
+    # Props live on their own page and ledger (data/props_ledger.json). They never
+    # appear in the NFL sides plays board, so strip any that an older run left behind.
     combined = [p for p in (side.get("plays") or []) if p.get("play_type") != "prop"]
-    if settings.props_publish_enabled:
-        combined.extend(validated)
     side["plays"] = combined
     side["n_prop_validated"] = len(validated)
     side_path.write_text(json.dumps(side, indent=2, default=str))
@@ -251,10 +249,10 @@ def run_props_pipeline(
             len(validated),
         )
     if update_ledger and validated and settings.props_publish_enabled:
-        from sharp_scout.ledger.tracker import append_signals, compute_record
+        from sharp_scout.ledger.tracker import PROPS_LEDGER_PATH, append_signals, compute_record
 
-        ledger = append_signals(validated, season=season, week=week)
-        payload["record"] = compute_record(ledger)
+        ledger = append_signals(validated, season=season, week=week, path=PROPS_LEDGER_PATH)
+        payload["record"] = compute_record(ledger, path=PROPS_LEDGER_PATH)
 
     if build_pages:
         from sharp_scout.site.build import build_site

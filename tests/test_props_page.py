@@ -42,4 +42,39 @@ def test_page_renders_table_and_shadow_banner():
 
 def test_page_empty_state():
     html = _render_props_page({}, analytics_head="", now=NOW)
-    assert "No NFL props for upcoming games yet" in html
+    assert "No unlocked NFL props right now" in html
+    assert "No locked props right now" in html and "No props have been graded yet" in html
+    assert "0-0" in html
+
+
+def test_page_shows_locked_and_graded_and_hides_locked_from_edges():
+    ledger = {"plays": [
+        {**_prop("Locked", 0.08), "status": "pending", "kickoff": "2099-10-04T20:00:00+00:00"},
+        {**_prop("Won", 0.07), "status": "win", "prop_result": 6, "pnl_units": 1.4,
+         "settled_at": "2026-10-03T00:00:00+00:00"},
+        {**_prop("Lost", 0.07), "status": "loss", "prop_result": 2, "pnl_units": -1.5,
+         "settled_at": "2026-10-03T01:00:00+00:00"},
+    ]}
+    html = _render_props_page(
+        {"generated_at": "2026-10-04T14:00:00+00:00", "plays": [_prop("Locked", 0.08), _prop("Fresh", 0.1)]},
+        analytics_head="", now=NOW, props_ledger=ledger,
+    )
+    assert "LOCKED" in html and "WIN" in html and "LOSS" in html
+    assert "1-1" in html and "Fresh" in html
+    # Locked prop appears in the locked table only, not duplicated in the edges table
+    assert html.count("Locked</td>") == 1
+
+
+def test_props_migrate_out_of_main_ledger(tmp_path):
+    import json
+    from sharp_scout.ledger.tracker import migrate_props_from_main_ledger
+
+    main, props = tmp_path / "ledger.json", tmp_path / "props_ledger.json"
+    main.write_text(json.dumps({"plays": [
+        {"id": "a", "market": "spreads", "status": "pending"},
+        {"id": "b", "market": "player_receptions", "play_type": "prop", "status": "win"},
+    ]}))
+    assert migrate_props_from_main_ledger(main, props) == 1
+    assert [p["id"] for p in json.loads(main.read_text())["plays"]] == ["a"]
+    assert [p["id"] for p in json.loads(props.read_text())["plays"]] == ["b"]
+    assert migrate_props_from_main_ledger(main, props) == 0

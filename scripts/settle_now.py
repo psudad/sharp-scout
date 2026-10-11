@@ -22,8 +22,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.config import DATA_DIR  # noqa: E402
 from sharp_scout.ledger.tracker import (  # noqa: E402
+    PROPS_LEDGER_PATH,
     compute_record,
     load_ledger,
+    migrate_props_from_main_ledger,
     load_scores_from_cfb_schedules,
     load_scores_from_schedules,
     settle_from_scores,
@@ -34,6 +36,17 @@ from sharp_scout.sports import get_sport  # noqa: E402
 
 def _pending(ledger: dict) -> int:
     return sum(1 for p in ledger.get("plays", []) if (p.get("status") or "pending") == "pending")
+
+
+def _settle_props() -> dict:
+    migrate_props_from_main_ledger()
+    before = _pending(load_ledger(path=PROPS_LEDGER_PATH))
+    scores = load_scores_from_schedules(None)
+    ledger = settle_from_scores(scores, path=PROPS_LEDGER_PATH)
+    after = _pending(ledger)
+    rec = compute_record(ledger, path=PROPS_LEDGER_PATH)
+    print(f"[props] newly graded={max(before - after, 0)}  still pending={after}  record={rec['record']}")
+    return {"sport": "props", "graded": max(before - after, 0), "pending": after}
 
 
 def _settle_one(sport_key: str) -> dict:
@@ -68,6 +81,8 @@ def main() -> None:
 
     sports = ["nfl", "ncaaf"] if args.sport == "both" else [args.sport]
     results = [_settle_one(s) for s in sports]
+    if args.sport in ("nfl", "both"):
+        results.append(_settle_props())
 
     build_site()
     print("Rebuilt docs/ from settled ledgers.")
@@ -79,7 +94,7 @@ def main() -> None:
 
     _git("config", "user.name", "sharp-scout-bot")
     _git("config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
-    _git("add", "data/ledger.json", "data/ncaaf_ledger.json", "docs")
+    _git("add", "data/ledger.json", "data/ncaaf_ledger.json", "data/props_ledger.json", "docs")
     if _git("diff", "--staged", "--quiet") == 0:
         print("Nothing changed — no commit needed.")
         return

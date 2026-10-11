@@ -14,6 +14,8 @@ from sharp_scout.config import DATA_DIR, ROOT
 logger = logging.getLogger(__name__)
 
 LEDGER_PATH = DATA_DIR / "ledger.json"
+# NFL player props are graded on their own ledger/record, separate from the sides card.
+PROPS_LEDGER_PATH = DATA_DIR / "props_ledger.json"
 DEFAULT_UNITS = {"play": 1.5, "lean": 1.0, "candidate": 0.5}
 # Mirrors qa.gate.COMMITMENT_LOCK_BEFORE_KICKOFF: the card is frozen once QA can no
 # longer quarantine it, so nothing new can slip on unreviewed.
@@ -216,6 +218,26 @@ def append_signals(
         len(ledger["plays"]),
     )
     return ledger
+
+
+def migrate_props_from_main_ledger(
+    main_path: Path | None = None, props_path: Path | None = None
+) -> int:
+    """Move player-prop rows out of the sides ledger into the props ledger (idempotent)."""
+    from sharp_scout.props.actuals import is_prop_play
+
+    main = load_ledger(main_path)
+    moving = [p for p in main["plays"] if is_prop_play(p)]
+    if not moving:
+        return 0
+    props = load_ledger(props_path or PROPS_LEDGER_PATH)
+    have = {p.get("id") for p in props["plays"]}
+    props["plays"].extend(p for p in moving if p.get("id") not in have)
+    main["plays"] = [p for p in main["plays"] if not is_prop_play(p)]
+    save_ledger(props, props_path or PROPS_LEDGER_PATH)
+    save_ledger(main, main_path)
+    logger.info("Moved %d prop rows to the props ledger", len(moving))
+    return len(moving)
 
 
 def settle_play(

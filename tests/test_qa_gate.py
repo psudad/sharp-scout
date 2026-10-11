@@ -253,18 +253,21 @@ def test_corroborated_spread_passes():
     assert review.action == "approve"
 
 
-def test_committed_play_locked_inside_t2h_window():
+def test_committed_play_locked_inside_t1h_window_nfl_t2h_ncaaf():
     play = {
         "tier": "play",
         "status": "pending",
         "kickoff": "2026-10-12T20:25:00+00:00",
     }
     before = datetime(2026, 10, 12, 17, 0, tzinfo=timezone.utc)
-    at_lock = datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc)
+    at_lock = datetime(2026, 10, 12, 19, 25, tzinfo=timezone.utc)
     after_kick = datetime(2026, 10, 12, 23, 50, tzinfo=timezone.utc)
     assert not play_commitment_locked(play, now=before)
+    assert not play_commitment_locked(play, now=datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc))
     assert play_commitment_locked(play, now=at_lock)
     assert play_commitment_locked(play, now=after_kick)
+    cfb = dict(play, sport="ncaaf")
+    assert play_commitment_locked(cfb, now=datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc))
 
 
 def test_committed_play_not_voided_after_kickoff_when_not_revalidated():

@@ -39,7 +39,8 @@ MIN_BOOKS_FOR_CORROBORATION = 2
 WATCHLIST_SEVERITY = "watchlist"
 DUPLICATE_P_TRUE_MIN_CLUSTER = 5
 COMMITTED_PLAY_TIER = "play"
-COMMITMENT_LOCK_BEFORE_KICKOFF = timedelta(hours=2)
+COMMITMENT_LOCK_BEFORE_KICKOFF = timedelta(hours=1)  # NFL; mirrors tracker.CARD_FREEZE
+NCAAF_COMMITMENT_LOCK_BEFORE_KICKOFF = timedelta(hours=2)
 
 
 def play_commitment_locked(
@@ -56,7 +57,12 @@ def play_commitment_locked(
     if kickoff is None:
         return False
     clock = now or datetime.now(timezone.utc)
-    lock_from = kickoff - COMMITMENT_LOCK_BEFORE_KICKOFF
+    lead = (
+        NCAAF_COMMITMENT_LOCK_BEFORE_KICKOFF
+        if str(play.get("sport") or "").lower() == "ncaaf"
+        else COMMITMENT_LOCK_BEFORE_KICKOFF
+    )
+    lock_from = kickoff - lead
     return clock >= lock_from
 
 
@@ -617,7 +623,7 @@ def review_play(
             QAIssue(
                 "commitment_lock",
                 "warn",
-                "Committed Sharp Play inside T-2h window — QA pullback blocked until settlement",
+                "Committed Sharp Play inside commitment window — QA pullback blocked until settlement",
             )
         )
         action = "approve"

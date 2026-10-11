@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     # as the sides' anchor_k. Unanchored, the biggest model-vs-market gaps were the worst
     # bets (10-20% "edge" bucket went 26-41 in Week 3).
     prop_anchor_k: float = 0.3
+    # Fair price props are anchored/judged against: "consensus" = median no-vig over prob
+    # across books quoting the same player/line (needs prop_consensus_min_books), falling
+    # back to the book's own two-way; "book" = legacy own-book no-vig (structurally ~0
+    # props can clear the EV floor at −110/−110 with k=0.3 and a 10% gap cap).
+    prop_fair_source: str = "consensus"
+    prop_consensus_min_books: int = 3
     # Per-season weight decay for prop usage baselines (0.5 → last season counts double
     # the one before it), so a stale rookie year cannot anchor a current projection.
     prop_season_decay: float = 0.5

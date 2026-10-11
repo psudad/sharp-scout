@@ -383,3 +383,38 @@ def _edge(*, p_true: float, p_mkt: float, ev: float) -> PropEdge:
         model_median=52.0,
         is_alternate=False,
     )
+
+
+def test_consensus_fair_lets_an_off_market_book_show_value(monkeypatch):
+    """Own-book de-vig made −110/−110 props unable to clear the EV floor; consensus fixes it."""
+    from types import SimpleNamespace
+
+    from sharp_scout.config import get_settings
+
+    st = get_settings()
+    monkeypatch.setattr(st, "prop_anchor_k", 0.3)
+    monkeypatch.setattr(st, "prop_consensus_min_books", 3)
+
+    def book(over, under, line=60.5):
+        return {"markets": {"player_reception_yds": [
+            {"name": "Over", "description": "A Player", "point": line, "price": over},
+            {"name": "Under", "description": "A Player", "point": line, "price": under},
+        ]}}
+
+    ev = {"event_id": "x", "home_team": "H", "away_team": "A", "bookmakers": {
+        "b1": book(-120, 100), "b2": book(-120, 100), "b3": book(-118, -102), "soft": book(-105, -115),
+    }}
+    sim = SimpleNamespace(samples=None, mean=66.0, median=65.0, team="H", position="WR", player="A Player")
+    import sharp_scout.props.markets as m
+
+    monkeypatch.setattr(m, "p_true_over_under", lambda _s, side, _l: 0.60 if side == "over" else 0.40)
+    sims = {(m._norm("A Player"), "player_reception_yds"): sim}
+
+    monkeypatch.setattr(st, "prop_fair_source", "book")
+    soft_book = [e for e in m.discover_prop_edges(ev, sims, ev_threshold=-1, calibrate=lambda p, _m: p)
+                 if e.book == "soft" and e.side == "over"][0]
+    monkeypatch.setattr(st, "prop_fair_source", "consensus")
+    soft_cons = [e for e in m.discover_prop_edges(ev, sims, ev_threshold=-1, calibrate=lambda p, _m: p)
+                 if e.book == "soft" and e.side == "over"][0]
+    assert soft_cons.p_mkt > soft_book.p_mkt
+    assert soft_cons.edge > 0.02 > soft_book.edge

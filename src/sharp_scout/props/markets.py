@@ -78,6 +78,34 @@ def discover_prop_edges(
                 key = (_norm(player), market)
                 line_sets.setdefault(key, set()).add(float(point))
 
+    # Cross-book consensus no-vig over probability per (player, market, line). Pricing
+    # each book against its OWN de-vigged price makes EV ≈ p_mkt·dec − 1 ≈ −vig/2, so with
+    # prop_anchor_k=0.3 and the 10% gap filter a −110/−110 prop could never reach the 2%
+    # EV floor (needs gap ≥ 11.4%). Against consensus, a book that is off-market is value.
+    consensus: dict[tuple[str, str, float], float] = {}
+    if settings.prop_fair_source == "consensus":
+        acc: dict[tuple[str, str, float], list[float]] = {}
+        for bm in books.values():
+            for market, outcomes in (bm.get("markets") or {}).items():
+                if not str(market).startswith("player_"):
+                    continue
+                pair: dict[tuple[str, float], dict[str, float]] = {}
+                for o in outcomes:
+                    side = (o.get("name") or o.get("side") or "").lower()
+                    player = o.get("description") or o.get("player") or o.get("name") or ""
+                    if side not in ("over", "under") or o.get("point") is None or o.get("price") is None:
+                        continue
+                    pair.setdefault((_norm(player), float(o["point"])), {})[side] = float(o["price"])
+                for (pk, ln), sd in pair.items():
+                    if "over" in sd and "under" in sd:
+                        fo, _ = fair_probs_from_two_way(sd["over"], sd["under"])
+                        acc.setdefault((pk, market, ln), []).append(fo)
+        consensus = {
+            k: sorted(v)[len(v) // 2] if len(v) % 2 else (sorted(v)[len(v) // 2 - 1] + sorted(v)[len(v) // 2]) / 2
+            for k, v in acc.items()
+            if len(v) >= settings.prop_consensus_min_books
+        }
+
     for book_key, bm in books.items():
         for market, outcomes in (bm.get("markets") or {}).items():
             if not str(market).startswith("player_"):
@@ -115,6 +143,9 @@ def discover_prop_edges(
                 if "over" in sides and "under" in sides:
                     fo, fu = fair_probs_from_two_way(sides["over"]["price"], sides["under"]["price"])
                     fair = {"over": fo, "under": fu}
+                cfo = consensus.get((pkey, market, line))
+                if cfo is not None:
+                    fair = {"over": cfo, "under": 1.0 - cfo}
 
                 main_line = _main_line(line_sets.get((pkey, market), {line}))
                 is_alt = abs(line - main_line) >= 5.0 if market.endswith("_yds") else abs(line - main_line) >= 1.0

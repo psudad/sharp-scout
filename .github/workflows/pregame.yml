@@ -1,4 +1,4 @@
-name: Pregame Windows (T-12 / T-3 / T-1)
+name: Pregame Windows (T-12 / T-4..T-1)
 
 # Uses data/pregame_run_plan.json (built from nflverse weekly schedule) to fire only
 # near real kickoff windows — not every 30 minutes.
@@ -13,7 +13,7 @@ on:
     # Refresh weekly plan: Monday 10:00 UTC (~6am ET)
     - cron: "0 10 * * 1"
     # Hourly on NFL game days (Thu–Mon UTC); most hours exit in seconds via run plan gate
-    - cron: "0 * * * 0,4,5,6,1"
+    - cron: "5,35 * * * 0,4,5,6,1"
   workflow_dispatch:
     inputs:
       demo:

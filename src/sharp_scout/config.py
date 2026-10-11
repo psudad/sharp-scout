@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     # Set PROPS_PUBLISH_ENABLED=false to return to shadow mode.
     props_publish_enabled: bool = True
     # Pregame run windows (hours before kickoff)
-    pregame_windows_hours: str = "12,3,1"
+    pregame_windows_hours: str = "12,4,3,2,1"
     pregame_window_tolerance_minutes: int = 25
     # Fire a missed window late (once) instead of skipping it. See find_due_windows.
     pregame_catchup: bool = True

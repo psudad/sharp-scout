@@ -18,8 +18,11 @@ LEDGER_PATH = DATA_DIR / "ledger.json"
 PROPS_LEDGER_PATH = DATA_DIR / "props_ledger.json"
 DEFAULT_UNITS = {"play": 1.5, "lean": 1.0, "candidate": 0.5}
 # Mirrors qa.gate.COMMITMENT_LOCK_BEFORE_KICKOFF: the card is frozen once QA can no
-# longer quarantine it, so nothing new can slip on unreviewed.
-CARD_FREEZE_BEFORE_KICKOFF = timedelta(hours=2)
+# longer quarantine it, so nothing new can slip on unreviewed. NFL (sides + props)
+# freezes at T-1h so the T-4/3/2h runs can still move the card; NCAAF stays at T-2h
+# (plays posted inside 2h went 21-26 last season).
+CARD_FREEZE_BEFORE_KICKOFF = timedelta(hours=1)
+NCAAF_CARD_FREEZE_BEFORE_KICKOFF = timedelta(hours=2)
 
 
 def _now() -> str:
@@ -104,7 +107,7 @@ def append_signals(
     never shown on the LOCKED card.
 
     Replaces any pending play on the same game/market/side so only the
-    latest best line/book survives across pipeline runs — until T-2h before
+    latest best line/book survives across pipeline runs — until T-1h (NFL) / T-2h (NCAAF) before
     kickoff, when the card freezes (see CARD_FREEZE_BEFORE_KICKOFF).
     """
     from sharp_scout.utils.slate import parse_commence
@@ -116,18 +119,21 @@ def append_signals(
     refreshed = 0
     frozen = 0
     clock = now or datetime.now(timezone.utc)
+    freeze = (
+        NCAAF_CARD_FREEZE_BEFORE_KICKOFF if ledger_sport_from_path(path) == "ncaaf" else CARD_FREEZE_BEFORE_KICKOFF
+    )
     for s in signals:
         if only_validated and not s.get("filter_passed"):
             continue
         if s.get("tier") == "rejected":
             continue
-        # Card freeze: inside the T-2h commitment window nothing may be added, replaced
+        # Card freeze: inside the commitment window nothing may be added, replaced
         # or re-tiered. The QA gate cannot quarantine committed plays in this window, so
         # a gameday rebuild that appended new/re-lined plays here bypassed QA entirely —
         # 47 of 81 decided NCAAF plays this season were written <2h before kickoff and
         # went 21–26, versus 15–11 for plays posted a day or more ahead.
         kick = parse_commence(s.get("kickoff") or s.get("commence_time"))
-        if kick is not None and kick - clock <= CARD_FREEZE_BEFORE_KICKOFF:
+        if kick is not None and kick - clock <= freeze:
             frozen += 1
             continue
         row = {
@@ -214,7 +220,7 @@ def append_signals(
         replaced,
         refreshed,
         frozen,
-        int(CARD_FREEZE_BEFORE_KICKOFF.total_seconds() // 3600),
+        int(freeze.total_seconds() // 3600),
         len(ledger["plays"]),
     )
     return ledger

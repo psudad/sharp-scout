@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sharp_scout.qa.gate import (
     QAIssue,
@@ -220,6 +220,18 @@ def test_corroborated_spread_passes():
             {"event_id": "ev1", "market": "spreads", "side": "home", "line": -3.5, "book": "fanduel"},
         ],
     )
+    signals["split_boards"] = [
+        {
+            "home_team": "LV",
+            "away_team": "MIA",
+            "available": True,
+            "markets": {
+                "spread": {
+                    "sharp_edge": {"available": True, "side": "home", "team": "LV", "diff_pct": 0.15}
+                }
+            },
+        }
+    ]
     play = {
         "id": "spread1",
         "event_id": "ev1",
@@ -234,7 +246,7 @@ def test_corroborated_spread_passes():
         "p_fair": 0.55,
         "edge": 0.05,
         "tier": "play",
-        "kickoff": "2026-10-12T20:25:00+00:00",
+        "kickoff": (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(),
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl")

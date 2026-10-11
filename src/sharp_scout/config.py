@@ -89,6 +89,8 @@ class Settings(BaseSettings):
     # Pregame run windows (hours before kickoff)
     pregame_windows_hours: str = "12,3,1"
     pregame_window_tolerance_minutes: int = 25
+    # Fire a missed window late (once) instead of skipping it. See find_due_windows.
+    pregame_catchup: bool = True
 
     # Optional comma-separated inactive player names for reallocation
     inactive_players: str = ""

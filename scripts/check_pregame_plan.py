@@ -17,6 +17,8 @@ DEFAULT_TOLERANCE_MIN = 25
 def should_run(plan: dict, now: datetime) -> tuple[bool, list[dict]]:
     tolerance = plan.get("tolerance_minutes", DEFAULT_TOLERANCE_MIN)
     tol = timedelta(minutes=tolerance)
+    catchup = plan.get("catchup", os.environ.get("PREGAME_CATCHUP", "true").lower() != "false")
+    lookback = timedelta(hours=float(plan.get("catchup_hours", 6)))
     matched: list[dict] = []
     for r in plan.get("runs") or []:
         try:
@@ -25,7 +27,22 @@ def should_run(plan: dict, now: datetime) -> tuple[bool, list[dict]]:
                 run_at = run_at.replace(tzinfo=timezone.utc)
         except ValueError:
             continue
+        kickoff = None
+        try:
+            kickoff = datetime.fromisoformat(r["kickoff"]) if r.get("kickoff") else None
+            if kickoff is not None and kickoff.tzinfo is None:
+                kickoff = kickoff.replace(tzinfo=timezone.utc)
+        except ValueError:
+            kickoff = None
         if abs(now - run_at) <= tol:
+            matched.append(r)
+        elif (
+            catchup
+            and run_at < now <= run_at + lookback
+            and kickoff is not None
+            and now < kickoff
+        ):
+            # Missed window (cron drift): run late; fired-state dedupes in the pipeline.
             matched.append(r)
     return bool(matched), matched
 

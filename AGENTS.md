@@ -16,14 +16,16 @@ Sharp Scout is a single Python 3.12 package (`src/sharp_scout`, installed editab
 
 ### Run / test / build (all from repo root, venv active)
 - Tests: `pytest -q` (see `README.md`). Fully offline; no keys needed.
-- Pipeline (NFL sides): `python scripts/run_pipeline.py --demo --build-site`
-- Pipeline (NCAAF): `python scripts/run_ncaaf.py --demo --build-site`
-- Props: `python scripts/run_props.py --demo --build-site`
-- API dev server: `uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000 --reload` then hit `GET /api/health`, `POST /api/run?demo=true`, `GET /api/plays`, `GET /api/ncaaf`, `POST /api/run-ncaaf?demo=true`, `GET /` (dashboard UI).
+- **Live vs demo:** If `ODDS_API_KEY` is set (Cursor Cloud environment secrets or a local `.env`), run **live** — omit `--demo` on pipeline scripts and use `POST /api/run` / `POST /api/run-ncaaf` without `demo=true`. Use `--demo` (and/or `--skip-pbp`) only when keys are missing or the user asks for an offline smoke test.
+- Pipeline (NFL sides): `python scripts/run_pipeline.py --build-site` (live) or `--demo --build-site` (offline)
+- Pipeline (NCAAF): `python scripts/run_ncaaf.py --build-site` (live) or `--demo --build-site` (offline)
+- Props: `python scripts/run_props.py --build-site` (live) or `--demo --build-site` (offline). Props default to **shadow mode** (`PROPS_PUBLISH_ENABLED=false`): artifacts land in `artifacts/latest_props.json` but picks do not hit the ledger or combined board until publish is enabled.
+- Scheduled sides + props on GitHub: **Pregame Windows (T-12 / T-3 / T-1)** runs `scripts/run_pregame.py` and commits `docs/` when a kickoff window matches; hourly runs often no-op when outside the plan.
+- API dev server: `uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000 --reload` then hit `GET /api/health`, `POST /api/run`, `GET /api/plays`, `GET /api/ncaaf`, `POST /api/run-ncaaf`, `GET /` (dashboard UI).
 - There is no configured linter (no ruff/flake8 config despite `.ruff_cache` in `.gitignore`); "lint" is not a separate step here.
 
 ### Non-obvious caveats
-- **Always use `--demo` (and/or `--skip-pbp`) without real API keys.** Live mode requires `ODDS_API_KEY` (The Odds API) and optionally `ACTION_NETWORK_TOKEN` / `ACTION_NETWORK_COOKIE`; without them a live run has no market data. `--demo` uses mock odds/splits and neutral ratings so the full pipeline runs offline.
+- **Without `ODDS_API_KEY`, use `--demo` (and/or `--skip-pbp`).** Live mode requires `ODDS_API_KEY` (The Odds API) and optionally `ACTION_NETWORK_TOKEN` / `ACTION_NETWORK_COOKIE`; without them a live run has no market data. `--demo` uses mock odds/splits and neutral ratings so the full pipeline runs offline.
 - **Demo runs mutate git-tracked files**: `data/ledger.json`, `data/ncaaf_ledger.json`, and `docs/` (site + ledger + record) are rewritten and appended each run. After demo/testing, run `git checkout -- data/ledger.json data/ncaaf_ledger.json docs/` to avoid committing generated demo data.
 - In NFL demo mode only the `KC@BUF` matchup is populated, so the Ratings tab shows `0.000` for all other teams and the dashboard "Log" tab notes a missing Action Network cookie — both are expected, not bugs. NCAAF demo only populates `ALA@UGA`.
-- Copy `.env.example` to `.env` for local live runs; env vars are read via `pydantic-settings`.
+- Copy `.env.example` to `.env` for local live runs; env vars are read via `pydantic-settings`. Cursor Cloud injects the same names from environment secrets — a `.env` file is optional there when secrets are configured.

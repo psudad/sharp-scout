@@ -78,3 +78,19 @@ def test_props_migrate_out_of_main_ledger(tmp_path):
     assert [p["id"] for p in json.loads(main.read_text())["plays"]] == ["a"]
     assert [p["id"] for p in json.loads(props.read_text())["plays"]] == ["b"]
     assert migrate_props_from_main_ledger(main, props) == 0
+
+
+def test_espn_boxscore_parse_zero_fills_missing_categories():
+    from sharp_scout.props.espn_box import parse_boxscore
+
+    summary = {"boxscore": {"players": [{"statistics": [
+        {"name": "rushing", "keys": ["rushingAttempts", "rushingYards", "rushingTouchdowns"],
+         "athletes": [{"athlete": {"displayName": "Jacory Croskey-Merritt"}, "stats": ["10", "40", "1"]}]},
+        {"name": "receiving", "keys": ["receptions", "receivingYards", "receivingTouchdowns"],
+         "athletes": [{"athlete": {"displayName": "Some Wr"}, "stats": ["4", "65", "0"]}]},
+    ]}]}}
+    box = parse_boxscore(summary)
+    assert box["jacory croskey-merritt"]["receptions"] == 0.0
+    assert box["jacory croskey-merritt"]["rushing_yards"] == 40.0
+    assert box["jacory croskey-merritt"]["anytime_td"] == 1.0
+    assert box["some wr"]["receiving_yards"] == 65.0

@@ -1,0 +1,193 @@
+{
+  "sport": "ncaaf",
+  "generated_at": "2026-10-06T10:40:46.653151+00:00",
+  "layer1_passed": false,
+  "block_deploy": true,
+  "layer1_issues": [
+    {
+      "code": "demo_mode",
+      "severity": "block",
+      "message": "Pipeline ran in demo mode \u2014 not safe to deploy"
+    },
+    {
+      "code": "low_game_count",
+      "severity": "block",
+      "message": "Only 1 games in slate (need \u226520 for NCAA Football)"
+    },
+    {
+      "code": "flat_ratings_count",
+      "severity": "block",
+      "message": "Only 20 rated teams (need \u226580) \u2014 likely skip-pbp or demo ratings"
+    }
+  ],
+  "approved": 0,
+  "quarantined": 0,
+  "voided": 5,
+  "play_reviews": [
+    {
+      "play_id": "faae4f4c",
+      "matchup": "LSU@UK",
+      "market": "totals",
+      "side": "under",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team UK missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): only 0 book(s) on line (need \u22652); model total off market by 7.1 pts (>5) without sharp-money confirmation"
+        }
+      ]
+    },
+    {
+      "play_id": "3be12193",
+      "matchup": "SCAR@FLA",
+      "market": "totals",
+      "side": "under",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team SCAR missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): only 0 book(s) on line (need \u22652); model total off market by 7.6 pts (>5) without sharp-money confirmation"
+        }
+      ]
+    },
+    {
+      "play_id": "6535feaa",
+      "matchup": "BUFFALO@TOLEDO",
+      "market": "totals",
+      "side": "under",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team TOLEDO missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team BUFFALO missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): price -108 is 1.7% worse than sharp fair (limit 1%) \u2014 starts with negative CLV; only 0 book(s) on line (need \u22652); model total off market by 5.2 pts (>5) without sharp-money confirmation"
+        }
+      ]
+    },
+    {
+      "play_id": "f65a8082",
+      "matchup": "CHARLOTTE@NORTH TEXAS",
+      "market": "totals",
+      "side": "under",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team NORTH TEXAS missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team CHARLOTTE missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): only 0 book(s) on line (need \u22652); model total off market by 6.2 pts (>5) without sharp-money confirmation"
+        }
+      ]
+    },
+    {
+      "play_id": "583d9c8e",
+      "matchup": "OLD DOMINION@APPALACHIAN STATE",
+      "market": "spreads",
+      "side": "away",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team APPALACHIAN STATE missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team OLD DOMINION missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        },
+        {
+          "code": "spread_model_conflict",
+          "severity": "quarantine",
+          "message": "Model margin: OLD DOMINION by 5.1 \u00b7 Market: APPALACHIAN STATE -10.0 (APPALACHIAN STATE by 10) \u00b7 Gap 15.1 pts \u2014 exceeds 12 pt QA band"
+        },
+        {
+          "code": "product_gate",
+          "severity": "quarantine",
+          "message": "Fails product gate (LOCKED card): price -110 is 1.5% worse than sharp fair (limit 1%) \u2014 starts with negative CLV; only 0 book(s) on line (need \u22652)"
+        }
+      ]
+    }
+  ]
+}

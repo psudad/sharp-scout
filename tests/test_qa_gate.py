@@ -18,6 +18,21 @@ from sharp_scout.qa.gate import (
     review_signals,
     _validated_keys,
 )
+from sharp_scout.utils.slate import nfl_display_week_bounds
+
+
+def _kickoff_in_nfl_display_week(hours_ahead: float = 48.0) -> str:
+    """Kickoff inside the current NFL board week, still in the future."""
+    now = datetime.now(timezone.utc)
+    start, end = nfl_display_week_bounds(now)
+    kick = now + timedelta(hours=hours_ahead)
+    if kick > end:
+        kick = end - timedelta(hours=3)
+    if kick <= now:
+        kick = now + timedelta(hours=3)
+    if kick < start:
+        kick = start + timedelta(hours=3)
+    return kick.isoformat()
 
 
 def _base_signals(**overrides) -> dict:
@@ -85,7 +100,18 @@ def test_flat_ratings_block_deploy():
 
 
 def test_mia_ml_quarantined_for_model_conflict():
-    signals = _base_signals()
+    kickoff = _kickoff_in_nfl_display_week()
+    signals = _base_signals(
+        games=[
+            {
+                "event_id": "ev1",
+                "home_team": "LV",
+                "away_team": "MIA",
+                "p_home_win": 0.527,
+                "commence_time": kickoff,
+            }
+        ]
+    )
     play = {
         "id": "abc",
         "event_id": "ev1",
@@ -98,7 +124,7 @@ def test_mia_ml_quarantined_for_model_conflict():
         "price": 180.0,
         "p_true": 0.4482,
         "edge": 0.255,
-        "kickoff": "2026-10-12T20:25:00+00:00",
+        "kickoff": kickoff,
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl", validated_keys=set())
@@ -203,7 +229,17 @@ def test_spread_model_conflict_quarantined():
 
 
 def test_corroborated_spread_passes():
+    kickoff = _kickoff_in_nfl_display_week()
     signals = _base_signals(
+        games=[
+            {
+                "event_id": "ev1",
+                "home_team": "LV",
+                "away_team": "MIA",
+                "p_home_win": 0.527,
+                "commence_time": kickoff,
+            }
+        ],
         plays=[
             {
                 "event_id": "ev1",
@@ -246,7 +282,7 @@ def test_corroborated_spread_passes():
         "p_fair": 0.55,
         "edge": 0.05,
         "tier": "play",
-        "kickoff": (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(),
+        "kickoff": kickoff,
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl")

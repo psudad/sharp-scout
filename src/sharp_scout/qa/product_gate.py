@@ -309,6 +309,36 @@ def _hours_until_kickoff(play: dict[str, Any], *, now: datetime | None = None) -
     return (kick - ref).total_seconds() / 3600.0
 
 
+def has_high_confidence_booster(play: dict[str, Any]) -> bool:
+    """Both money-ticket gap and RLM fired in Phase 4 — ranking only, never certifies alone."""
+    flags = play.get("flags") or {}
+    return bool(flags.get("money_split") and flags.get("rlm"))
+
+
+def apply_high_confidence_flag(play: dict[str, Any]) -> None:
+    """Set or clear ``high_confidence`` on plays that already passed certification checks."""
+    if has_high_confidence_booster(play):
+        play["high_confidence"] = True
+    else:
+        play.pop("high_confidence", None)
+
+
+def _evaluate_narrow_ev_band(play: dict[str, Any], settings: Any, reasons: list[str]) -> None:
+    """Uniform 4–12% EV band on narrow lanes (no whitelist floor)."""
+    edge = play.get("edge")
+    if edge is None:
+        reasons.append("missing edge")
+        return
+    ev_min = settings.product_ev_min
+    if float(edge) < ev_min:
+        reasons.append(f"EV {float(edge):.1%} < {ev_min:.0%} product floor")
+    ev_max = settings.product_ev_max
+    if ev_max is not None and float(edge) >= ev_max:
+        reasons.append(
+            f"EV {float(edge):.1%} ≥ {ev_max:.0%} product ceiling (model-tilt outlier)"
+        )
+
+
 def _evaluate_ev_band(
     play: dict[str, Any], sport: str, settings: Any, reasons: list[str]
 ) -> None:
@@ -345,7 +375,7 @@ def _evaluate_narrow_lane_play(
     if settings.product_play_tier_only and (play.get("tier") or "") != "play":
         reasons.append(f"tier={play.get('tier') or 'lean'} (product requires play)")
 
-    _evaluate_ev_band(play, sport, settings, reasons)
+    _evaluate_narrow_ev_band(play, settings, reasons)
 
     pin_fair = pinnacle_no_vig_fair(play)
     if pin_fair is None:
@@ -464,13 +494,18 @@ def select_certified_plays(
         s["product_certified"] = res.ok
         s["product_gate_notes"] = list(res.reasons) if res.reasons else []
         if res.ok:
+            apply_high_confidence_flag(s)
             passed.append(s)
+        else:
+            s.pop("high_confidence", None)
 
     if settings.product_narrow_lanes_enabled and lanes:
         passed = [p for p in passed if in_narrow_lane(p, sport, lanes)]
-        def _sort_key(x: dict[str, Any]) -> tuple[int, float]:
+
+        def _sort_key(x: dict[str, Any]) -> tuple[int, int, float]:
             rank = narrow_lane_rank(x, sport, lanes)
-            return (rank if rank is not None else 999, -float(x.get("edge") or 0))
+            boost = 0 if x.get("high_confidence") else 1
+            return (rank if rank is not None else 999, boost, -float(x.get("edge") or 0))
 
         passed.sort(key=_sort_key)
     else:

@@ -169,7 +169,7 @@ class Settings(BaseSettings):
     # Priority order is the comma list (first = highest). Replaces spread/total
     # product guardrails and multi-book corroboration for lane plays only.
     product_narrow_lanes_enabled: bool = True
-    product_narrow_lanes: str = "ncaaf:totals,nfl:spreads,ncaaf:spreads"
+    product_narrow_lanes: str = "ncaaf:totals,nfl:spreads"
 
     # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).
     qa_promote_single_book_totals: bool = True

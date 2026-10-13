@@ -160,6 +160,11 @@ def append_signals(
             "p_mkt": s.get("p_mkt"),
             "p_model": s.get("p_model"),
             "p_fair": s.get("p_fair"),
+            "sharp_book": s.get("sharp_book"),
+            "sharp_price": s.get("sharp_price"),
+            "flags": s.get("flags"),
+            "filter_passed": s.get("filter_passed"),
+            "high_confidence": s.get("high_confidence"),
             "line_gain": s.get("line_gain"),
             "model_spread": s.get("model_spread"),
             "model_total": s.get("model_total"),
@@ -189,8 +194,23 @@ def append_signals(
             for p in ledger["plays"]:
                 if (p.get("status") or "pending") == status and _play_key(p) == key:
                     for field in (
-                        "edge", "p_true", "p_mkt", "p_model", "p_fair", "line_gain",
-                        "model_spread", "model_total", "model_mean", "price", "rationale", "sport",
+                        "edge",
+                        "p_true",
+                        "p_mkt",
+                        "p_model",
+                        "p_fair",
+                        "sharp_book",
+                        "sharp_price",
+                        "flags",
+                        "filter_passed",
+                        "high_confidence",
+                        "line_gain",
+                        "model_spread",
+                        "model_total",
+                        "model_mean",
+                        "price",
+                        "rationale",
+                        "sport",
                     ):
                         if row.get(field) is not None:
                             p[field] = row[field]

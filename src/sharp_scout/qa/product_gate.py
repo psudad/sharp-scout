@@ -82,6 +82,69 @@ def pinnacle_no_vig_fair(play: dict[str, Any]) -> float | None:
     return None
 
 
+_LEDGER_PRODUCT_GATE_FIELDS = (
+    "sharp_book",
+    "sharp_price",
+    "p_fair",
+    "p_mkt",
+    "flags",
+    "filter_passed",
+    "high_confidence",
+)
+
+
+def find_matching_signal(
+    signals: dict[str, Any] | None, play: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Best-effort match of a ledger row to a pipeline signal payload."""
+    if not signals:
+        return None
+    eid = str(play.get("event_id") or "")
+    market = str(play.get("market") or "")
+    side = str(play.get("side") or "")
+    line = play.get("line")
+    for s in signals.get("signals") or []:
+        if str(s.get("event_id") or "") != eid:
+            continue
+        if str(s.get("market") or "") != market:
+            continue
+        if str(s.get("side") or "") != side:
+            continue
+        s_line = s.get("line")
+        if line is not None and s_line is not None:
+            try:
+                if float(s_line) != float(line):
+                    continue
+            except (TypeError, ValueError):
+                continue
+        return s
+    return None
+
+
+def play_for_product_gate(
+    play: dict[str, Any],
+    signals: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Merge signal sharp/Pinnacle fields onto a ledger row for product-gate re-checks."""
+    merged = dict(play)
+    if merged.get("sharp_book"):
+        return merged
+    sig = find_matching_signal(signals, play)
+    if not sig:
+        return merged
+    for field in _LEDGER_PRODUCT_GATE_FIELDS:
+        if merged.get(field) is None and sig.get(field) is not None:
+            merged[field] = sig[field]
+    return merged
+
+
+def product_gate_certification_log_message(n_certified: int, n_validated: int) -> str:
+    return (
+        f"Product gate: {n_certified} of {n_validated} display-week validated "
+        "plays certified for ledger"
+    )
+
+
 def apply_board_flags(play: dict[str, Any], *, sport: str = "nfl") -> None:
     """Annotate research-board flags for narrow-lane plays missing Pinnacle."""
     flags: list[str] = list(play.get("board_flags") or [])

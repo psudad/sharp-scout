@@ -324,11 +324,11 @@ def run_pipeline(
         payload["n_shadow"] = len(shadow)
         if shadow:
             append_signals(shadow, season=season, week=week, status="watchlist")
-        elif week_validated:
-            logger.info(
-                "Product gate: 0 of %d display-week validated plays certified for ledger",
-                len(week_validated),
-            )
+        from sharp_scout.qa.product_gate import product_gate_certification_log_message
+
+        logger.info(
+            product_gate_certification_log_message(len(certified), len(week_validated))
+        )
         if stage_cards:
             stage_cards_ledger = [
                 c for c in stage_cards if str(c.get("event_id")) in display_ids

@@ -298,11 +298,9 @@ def run_ncaaf_pipeline(
             append_signals(
                 shadow, season=season, week=week, path=ledger_path, status="watchlist"
             )
-        elif validated:
-            logger.info(
-                "Product gate: 0 of %d validated plays certified for ledger",
-                len(validated),
-            )
+        from sharp_scout.qa.product_gate import product_gate_certification_log_message
+
+        logger.info(product_gate_certification_log_message(len(certified), len(validated)))
         if stage_cards:
             append_stage_cards(stage_cards, season=season, week=week, path=ledger_path)
         payload["record"] = compute_record(path=ledger_path)

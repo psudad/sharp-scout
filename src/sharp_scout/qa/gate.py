@@ -573,9 +573,15 @@ def review_play(
             )
 
     if settings.product_gate_enabled:
-        from sharp_scout.qa.product_gate import evaluate_product_play, is_shadow_only
+        from sharp_scout.qa.product_gate import (
+            evaluate_product_play,
+            is_shadow_only,
+            play_for_product_gate,
+        )
 
-        pg = evaluate_product_play(play, signals=signals, sport=sport)
+        pg = evaluate_product_play(
+            play_for_product_gate(play, signals), signals=signals, sport=sport
+        )
         if not pg.ok:
             book_only_fail = (
                 str(market or "") == "totals"

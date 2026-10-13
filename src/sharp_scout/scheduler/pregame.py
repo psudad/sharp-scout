@@ -158,6 +158,17 @@ def run_due_pregame(
             events = client.fetch_events()
             if not events:
                 events = client.fetch_odds()
+            for ev in events:
+                ev["sport"] = "nfl"
+            try:
+                ncaaf_client = OddsClient(sport="ncaaf")
+                ncaaf_events = ncaaf_client.fetch_odds()
+                for raw in ncaaf_events:
+                    ev = dict(raw)
+                    ev["sport"] = "ncaaf"
+                    events.append(ev)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("NCAAF events for pregame skipped: %s", exc)
         except Exception as exc:  # noqa: BLE001
             logger.error("Failed to load events: %s", exc)
             return {"ok": False, "error": str(exc), "hits": []}
@@ -191,10 +202,15 @@ def run_due_pregame(
     logger.info("Due windows: %s", [h.state_key for h in hits])
     due_ids = {h.event_id for h in hits}
     window_map = {h.event_id: h.window_hours for h in hits}
+    sport_by_event = {str(ev.get("event_id")): ev.get("sport", "nfl") for ev in events}
+    due_nfl = {eid for eid in due_ids if sport_by_event.get(eid, "nfl") == "nfl"}
+    due_ncaaf = {eid for eid in due_ids if sport_by_event.get(eid) == "ncaaf"}
 
     # Full side odds for due games
     from sharp_scout.pipeline.run import run_pipeline
     from sharp_scout.props.pipeline import run_props_pipeline
+
+    ncaaf_result: dict[str, Any] | None = None
 
     if demo or not settings.odds_api_key:
         side = run_pipeline(demo=True, skip_pbp=True, update_ledger=update_ledger, build_pages=False)
@@ -263,14 +279,25 @@ def run_due_pregame(
             skip_pbp=skip_pbp,
             events=prop_events or None,
             update_ledger=update_ledger,
-            build_pages=build_pages,
+            build_pages=build_pages and not due_ncaaf,
             game_context=game_context,
         )
+
+        if due_ncaaf:
+            from sharp_scout.ncaaf.pipeline import run_ncaaf_pipeline
+
+            ncaaf_result = run_ncaaf_pipeline(
+                demo=False,
+                skip_pbp=skip_pbp,
+                update_ledger=update_ledger,
+                build_pages=build_pages,
+            )
 
     mark_fired(hits)
     return {
         "ok": True,
         "ran": True,
+        "ncaaf_ran": bool(due_ncaaf),
         "hits": [
             {
                 "event_id": h.event_id,
@@ -283,4 +310,5 @@ def run_due_pregame(
         ],
         "side_plays": len(side.get("plays") or []),
         "prop_plays": len(props.get("plays") or []),
+        "ncaaf_plays": len((ncaaf_result or {}).get("plays") or []),
     }

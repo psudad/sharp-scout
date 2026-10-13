@@ -25,6 +25,33 @@ def test_parse_kickoff_eastern():
     assert local.day == 7
 
 
+def test_build_run_plan_includes_ncaaf_games():
+    kickoff = datetime(2026, 10, 14, 0, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 10, 13, 12, 0, tzinfo=timezone.utc)
+    ncaaf = [
+        {
+            "game_id": "ncaaf1",
+            "event_id": "ncaaf1",
+            "sport": "ncaaf",
+            "kickoff": kickoff,
+            "home_team": "MTSU",
+            "away_team": "DEL",
+            "matchup": "DEL@MTSU",
+        }
+    ]
+
+    from sharp_scout.scheduler import plan as plan_mod
+
+    plan_mod.upcoming_games_from_schedule = lambda **kwargs: []  # type: ignore[assignment]
+    plan_mod.merge_odds_kickoffs = lambda games: games  # type: ignore[assignment]
+    plan_mod.upcoming_ncaaf_games_for_plan = lambda **kwargs: ncaaf  # type: ignore[assignment]
+
+    plan = build_run_plan(now=now, horizon_days=10, windows_hours=[3, 2, 1])
+    ncaaf_runs = [r for r in plan["runs"] if r.get("sport") == "ncaaf"]
+    assert len(ncaaf_runs) == 3
+    assert {r["window_hours"] for r in ncaaf_runs} == {3, 2, 1}
+
+
 def test_build_run_plan_counts_windows():
     kickoff = datetime(2025, 9, 7, 17, 0, tzinfo=timezone.utc)
     now = kickoff - timedelta(hours=13)
@@ -45,6 +72,7 @@ def test_build_run_plan_counts_windows():
 
     plan_mod.upcoming_games_from_schedule = lambda **kwargs: fake_games  # type: ignore[assignment]
     plan_mod.merge_odds_kickoffs = lambda games: games  # type: ignore[assignment]
+    plan_mod.upcoming_ncaaf_games_for_plan = lambda **kwargs: []  # type: ignore[assignment]
 
     plan = build_run_plan(now=now, horizon_days=14, windows_hours=[12, 3, 1])
     assert plan["n_runs"] == 3

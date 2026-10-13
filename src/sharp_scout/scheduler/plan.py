@@ -150,6 +150,73 @@ def merge_odds_kickoffs(games: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return games
 
 
+def upcoming_ncaaf_games_for_plan(
+    *,
+    now: datetime | None = None,
+    horizon_days: int = 10,
+) -> list[dict[str, Any]]:
+    """NCAAF board games in the current college week (Odds API kickoffs)."""
+    from sharp_scout.scheduler.ncaaf_lines import upcoming_ncaaf_events
+    from sharp_scout.utils.slate import parse_commence
+
+    now = now or datetime.now(timezone.utc)
+    horizon = now + timedelta(days=horizon_days)
+    games: list[dict[str, Any]] = []
+    for ev in upcoming_ncaaf_events(now=now):
+        kickoff = parse_commence(ev.get("commence_time"))
+        if kickoff is None or kickoff <= now or kickoff > horizon:
+            continue
+        home = ev.get("home_team", "")
+        away = ev.get("away_team", "")
+        games.append(
+            {
+                "game_id": ev.get("event_id"),
+                "event_id": ev.get("event_id"),
+                "sport": "ncaaf",
+                "season": None,
+                "week": None,
+                "game_type": "REG",
+                "kickoff": kickoff,
+                "home_team": home,
+                "away_team": away,
+                "matchup": f"{away}@{home}",
+                "kickoff_source": "odds_api",
+            }
+        )
+    if not games:
+        # Fallback: reuse the NCAAF line snapshot plan when Odds API is unavailable.
+        from sharp_scout.scheduler.ncaaf_lines import load_plan as load_ncaaf_line_plan
+
+        line_plan = load_ncaaf_line_plan()
+        for g in line_plan.get("games") or []:
+            kickoff = parse_commence(g.get("kickoff"))
+            if kickoff is None or kickoff <= now or kickoff > horizon:
+                continue
+            matchup = str(g.get("matchup") or "")
+            if "@" in matchup:
+                away, home = matchup.split("@", 1)
+            else:
+                away, home = "", ""
+            eid = g.get("event_id")
+            games.append(
+                {
+                    "game_id": eid,
+                    "event_id": eid,
+                    "sport": "ncaaf",
+                    "season": None,
+                    "week": None,
+                    "game_type": "REG",
+                    "kickoff": kickoff,
+                    "home_team": home,
+                    "away_team": away,
+                    "matchup": matchup,
+                    "kickoff_source": "ncaaf_line_plan",
+                }
+            )
+    games.sort(key=lambda g: g["kickoff"])
+    return games
+
+
 def build_run_plan(
     *,
     now: datetime | None = None,
@@ -157,7 +224,7 @@ def build_run_plan(
     windows_hours: list[float] | None = None,
     tolerance_minutes: int | None = None,
 ) -> dict[str, Any]:
-    """Compute UTC run times at T-12h / T-3h / T-1h (± tolerance) for each upcoming game."""
+    """Compute UTC run times at configured T-Nh windows (± tolerance) for NFL + NCAAF."""
     settings = get_settings()
     now = now or datetime.now(timezone.utc)
     windows = windows_hours or settings.pregame_windows
@@ -165,7 +232,12 @@ def build_run_plan(
         tolerance_minutes if tolerance_minutes is not None else settings.pregame_window_tolerance_minutes
     )
 
-    games = merge_odds_kickoffs(upcoming_games_from_schedule(now=now, horizon_days=horizon_days))
+    nfl_games = upcoming_games_from_schedule(now=now, horizon_days=horizon_days)
+    for g in nfl_games:
+        g["sport"] = "nfl"
+    games = merge_odds_kickoffs(nfl_games)
+    games.extend(upcoming_ncaaf_games_for_plan(now=now, horizon_days=horizon_days))
+    games.sort(key=lambda g: g["kickoff"])
     runs: list[dict[str, Any]] = []
     for g in games:
         kickoff = g["kickoff"]
@@ -177,7 +249,9 @@ def build_run_plan(
                 {
                     "run_at": run_at.isoformat(),
                     "window_hours": w,
+                    "sport": g.get("sport") or "nfl",
                     "game_id": g.get("game_id"),
+                    "event_id": g.get("event_id") or g.get("game_id"),
                     "matchup": g.get("matchup"),
                     "kickoff": kickoff.isoformat(),
                     "season": g.get("season"),
@@ -206,6 +280,8 @@ def build_run_plan(
         "games": [
             {
                 "game_id": g.get("game_id"),
+                "event_id": g.get("event_id") or g.get("game_id"),
+                "sport": g.get("sport") or "nfl",
                 "matchup": g.get("matchup"),
                 "kickoff": g["kickoff"].isoformat(),
                 "kickoff_source": g.get("kickoff_source", "nflverse"),

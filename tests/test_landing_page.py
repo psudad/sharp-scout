@@ -51,11 +51,16 @@ def test_landing_is_much_smaller_than_board(site: Path):
     assert landing < board / 2
 
 
-def test_landing_keeps_timing_and_week1_warning(site: Path):
+def test_landing_keeps_timing_script(site: Path):
     html = (site / "index.html").read_text()
     assert "js-timing" in html or "play-timing" in html
     assert "setInterval(tick" in html
-    assert "WEEK 1" in html
+
+
+def test_landing_hides_early_season_banner_after_week_three(site: Path):
+    """October slate should not show the opening-week caution banner."""
+    html = (site / "index.html").read_text()
+    assert "WEEK 1 — READ THIS FIRST" not in html
 
 
 def test_landing_redirects_legacy_tab_deep_links(site: Path):

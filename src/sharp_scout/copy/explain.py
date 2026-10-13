@@ -127,9 +127,15 @@ BOARD_STAT_TIPS: dict[str, str] = {
     "clv_beat_pct": "Share of graded plays that beat the closing line (price or spread/total).",
     "clv_beat_record": "Win-loss count vs the closing line across graded plays — not the same as bet W-L.",
     "clv_n_plays": "Number of graded plays with a captured closing line (T-1h pre-kick snapshot).",
+    "stage_awaiting_final": (
+        "Picks on the current display-week slate that do not have a final score yet — "
+        "one count per stage per game/market row. Season-to-date W–L above includes all "
+        "settled games; this column is only the open week."
+    ),
+    # Back-compat for older board HTML references
     "stage_ungraded": (
-        "Stage picks still waiting on a final score — one per stage per game/market row. "
-        "Drops after games finish and the settle step runs."
+        "Picks on the current display-week slate still waiting on a final score — "
+        "one per stage per game/market row. Drops after games finish and settle runs."
     ),
     "cfb_record": "Validated Sharp Plays only — our actual bets, not every stage pick on the slate.",
     "cfb_profit": "Net units won or lost on validated Sharp Plays (starting bankroll 100u).",
@@ -416,11 +422,13 @@ def describe_stage_pick(stage: str, pick: dict[str, Any], home: str, away: str) 
     conf_s = f" · {conf * 100:.0f}% confidence" if conf is not None else ""
 
     if stage == "model":
-        spread = pick.get("line")
-        if spread is not None:
+        from sharp_scout.copy.spread_context import format_model_margin, parse_s_mod_from_reason
+
+        mod = parse_s_mod_from_reason(pick.get("reason"))
+        if mod is not None:
             return (
-                f"{intro} {team}{line_s}. Model spread (home) is {float(spread):+.2f} "
-                f"(negative = home favored).{conf_s}"
+                f"{intro} {team}{line_s}. Model margin: "
+                f"{format_model_margin(mod, home, away)}.{conf_s}"
             )
     if stage == "hybrid" and "validated" in str(pick.get("reason") or ""):
         return f"{intro} {team}{line_s}. {pick.get('reason')}{conf_s}"

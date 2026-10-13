@@ -13,11 +13,12 @@ from sharp_scout.data.action_network import mock_splits
 from sharp_scout.data.odds_api import OddsClient, mock_odds_events
 from sharp_scout.data.situational import situational_spread_adj
 from sharp_scout.db.models import Signal, TeamRating, get_session, init_db
-from sharp_scout.phase1.ratings import build_power_ratings, matchup_means, ratings_as_of_now
+from sharp_scout.phase1.ratings import build_nfl_ratings, matchup_means, ratings_as_of_now
 from sharp_scout.phase2.monte_carlo import simulate_game
 from sharp_scout.phase3.market import discover_edges
 from sharp_scout.data.splits_board import prepare_splits_for_filters
 from sharp_scout.phase4.filters import attach_filters
+from sharp_scout.sports import NFL
 from sharp_scout.utils.odds import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ def run_pipeline(
         from sharp_scout.data.nflfastr import load_pbp
 
         pbp = load_pbp(settings.seasons)
-        ratings = build_power_ratings(pbp)
+        ratings = build_nfl_ratings(pbp)
         # QB injuries: INACTIVE_PLAYERS="Caleb Williams,Jaxson Dart" → teams whose
         # current starter is listed get the starter→backup EPA delta applied.
         if settings.inactive_list:
@@ -159,7 +160,7 @@ def run_pipeline(
 
     for ev in events:
         home, away = ev["home_team"], ev["away_team"]
-        situ = situational_spread_adj(home, away)
+        situ = situational_spread_adj(home, away, hfa=NFL.base_hfa)
         means = matchup_means(
             home,
             away,
@@ -305,7 +306,7 @@ def run_pipeline(
             compute_record,
         )
 
-        from sharp_scout.qa.product_gate import select_certified_plays
+        from sharp_scout.qa.product_gate import select_certified_plays, select_shadow_plays
 
         certified = select_certified_plays(
             week_validated, signals=payload, sport="nfl"
@@ -314,13 +315,20 @@ def run_pipeline(
         payload["n_certified"] = len(certified)
         if certified:
             append_signals(certified, season=season, week=week)
+        shadow = select_shadow_plays(week_validated, signals=payload, sport="nfl")
+        payload["n_shadow"] = len(shadow)
+        if shadow:
+            append_signals(shadow, season=season, week=week, status="watchlist")
         elif week_validated:
             logger.info(
                 "Product gate: 0 of %d display-week validated plays certified for ledger",
                 len(week_validated),
             )
         if stage_cards:
-            append_stage_cards(stage_cards, season=season, week=week)
+            stage_cards_ledger = [
+                c for c in stage_cards if str(c.get("event_id")) in display_ids
+            ]
+            append_stage_cards(stage_cards_ledger, season=season, week=week)
 
         # "Why is our model wrong?" — log material model-vs-market disagreements.
         from sharp_scout.analysis.disagreement import build_disagreements

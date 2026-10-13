@@ -49,11 +49,23 @@ class Settings(BaseSettings):
     epa_half_life_weeks: float = 6.0
 
     # Player props
+    # player_rush_attempts dropped: 1-7 live in Week 3 and its overs are the most
+    # over-confident market in the backfit (p 0.7 -> 0.60 realized).
     prop_markets: str = (
-        "player_pass_yds,player_pass_tds,player_rush_yds,player_rush_attempts,"
+        "player_pass_yds,player_pass_tds,player_rush_yds,"
         "player_receptions,player_reception_yds,player_reception_tds,player_anytime_td"
     )
     prop_ev_threshold: float = 0.02
+    # p_true = p_mkt + k·(p_cal − p_mkt) against the two-way no-vig prop price, same idea
+    # as the sides' anchor_k. Unanchored, the biggest model-vs-market gaps were the worst
+    # bets (10-20% "edge" bucket went 26-41 in Week 3).
+    prop_anchor_k: float = 0.3
+    # Fair price props are anchored/judged against: "consensus" = median no-vig over prob
+    # across books quoting the same player/line (needs prop_consensus_min_books), falling
+    # back to the book's own two-way; "book" = legacy own-book no-vig (structurally ~0
+    # props can clear the EV floor at −110/−110 with k=0.3 and a 10% gap cap).
+    prop_fair_source: str = "consensus"
+    prop_consensus_min_books: int = 3
     # Per-season weight decay for prop usage baselines (0.5 → last season counts double
     # the one before it), so a stale rookie year cannot anchor a current projection.
     prop_season_decay: float = 0.5
@@ -76,13 +88,14 @@ class Settings(BaseSettings):
     prop_model_market_gap: float = 0.10
     # Only pull player props for games kicking off inside this horizon (API credits).
     prop_horizon_days: float = 8.0
-    # Props run in shadow mode until the projection is calibrated against settled prop
-    # history: artifacts are still written for review, but nothing reaches the ledger or
-    # the public board. Set PROPS_PUBLISH_ENABLED=true to publish.
-    props_publish_enabled: bool = False
+    # Props publish to the ledger and public board (consensus no-vig pricing, #70).
+    # Set PROPS_PUBLISH_ENABLED=false to return to shadow mode.
+    props_publish_enabled: bool = True
     # Pregame run windows (hours before kickoff)
-    pregame_windows_hours: str = "12,3,1"
+    pregame_windows_hours: str = "12,4,3,2,1"
     pregame_window_tolerance_minutes: int = 25
+    # Fire a missed window late (once) instead of skipping it. See find_due_windows.
+    pregame_catchup: bool = True
 
     # Optional comma-separated inactive player names for reallocation
     inactive_players: str = ""
@@ -94,6 +107,11 @@ class Settings(BaseSettings):
     spread_model_line_gap: float = 4.0  # |model_spread - home market line| in points
     # NCAAF model hygiene (backtested on 2026 Weeks 1–3, see docs/ncaaf-model-review)
     ncaaf_prior_seasons: int = 1  # prior seasons of PBP blended into CFB power ratings
+    # CFB ratings fit (as-of backtest 2025 Wk4–13 → 2026 Wk2–4, FBS-vs-FBS margins)
+    ncaaf_epa_half_life_weeks: float = 10.0
+    ncaaf_epa_ridge_alpha: float = 20.0
+    # NFL sides ratings (as-of backtest 2024–25 Wk4–17: margin corr 0.27 → 0.37)
+    nfl_epa_half_life_weeks: float = 16.0
     ncaaf_ban_ml_dogs: bool = True  # NCAAF moneyline underdogs went 4–12 / 8–12 in every rating variant
     ncaaf_sharp_veto: bool = True  # reject plays where the sharp book's no-vig side is against us
     nfl_sharp_veto: bool = True  # same rule for NFL (model has no edge vs the close; 48.7% over 546 games)
@@ -102,7 +120,17 @@ class Settings(BaseSettings):
     product_gate_enabled: bool = True
     product_ev_min: float = 0.04  # 4% anchored EV floor (live card was ~50% at 2%)
     product_p_fair_min: float = 0.50  # sharp no-vig must favor our side at the bet line
-    product_markets: str = "spreads,totals,h2h"
+    product_markets: str = "spreads,totals,h2h"  # h2h stays watchlist-only via product_shadow_markets
+    # EV band: tilt-driven EVs above the ceiling went 77-75 (50.7%) on 2026 graded
+    # candidates; 4-12% (no ML) went 31-13. None disables the ceiling. Re-tune both
+    # bounds whenever anchor_k / anchor_tilt_cap change (EV scale moves with k).
+    product_ev_max: float | None = 0.12
+    # Whitelist "sport:market" pairs (comma-separated) that bypass the EV ceiling,
+    # use their own EV floor, and rank ahead of other plays for the per-sport cap.
+    # NCAAF totals went 45-19 (70.3%) on graded candidates thru Wk6 2026.
+    product_whitelist: str = "ncaaf:totals"
+    product_whitelist_enabled: bool = True
+    product_whitelist_ev_min: float = 0.02
     product_min_books: int = 2  # multi-book corroboration on the same side/line
     # ML (h2h) on the certified card — stricter than spreads/totals (option B).
     product_ml_require_split_board: bool = True
@@ -112,6 +140,31 @@ class Settings(BaseSettings):
     product_play_tier_only: bool = True  # leans stay research-only in artifacts
     product_max_plays_nfl: int = 5
     product_max_plays_ncaaf: int = 5
+    # Totals on the certified card — don't LOCK a total that fights the sharp-money read.
+    # (Week 4 2026: SEA U43 and NO U48 both locked on model + RLM while the dollars were
+    # on the OVER, and both lost. These rules require money agreement, not RLM alone.)
+    product_total_sharp_guardrail: bool = True
+    product_total_money_gap: float = 0.10  # money-ticket gap on OUR side that counts as confirmation
+    product_total_opposing_gap: float = 0.05  # sharp money this far on the OTHER side vetoes the total
+    product_total_model_market_max_gap: float = 5.0  # |model_total - market line| allowed w/o confirmation
+    # Spreads on the certified card — Phase 4 can pass on RLM alone; product gate needs handle
+    # on our side (Southern Miss +10 locked at T-4h with only +8% spread sharp money).
+    product_spread_sharp_guardrail: bool = True
+    product_spread_money_gap: float = 0.12  # money-ticket gap on OUR spread side (default = filter bar)
+    # Do not post a first-time LOCKED play inside this window before kickoff (hours).
+    # Was 8h (#59). Graded 2026 confirmed candidates (Sep 22-Oct 12): last pre-kick state
+    # <8h before kickoff went 27-19 (58.7%) vs 4-9 at >=8h — splits/RLM mature late, so
+    # the 8h rule removed the better plays and blocked every Sunday-morning NFL run.
+    # 2h still posts before the NFL T-1h card freeze.
+    product_min_certify_lead_hours: float = 2.0
+    # Price vs sharp: p_fair (Pinnacle no-vig at our line) minus our price's implied prob.
+    # A play priced well below sharp fair starts with negative CLV; the vig alone is ~-2.4%
+    # at -110, so -1% only blocks prices materially worse than the sharp market.
+    product_min_price_vs_fair: float = -0.01
+    # Markets tracked as watchlist (shadow-graded) but never posted to the LOCKED card.
+    # Moneyline went 8-13 (-4.4u) certified through Week 4 2026; 17-31 across all graded
+    # candidates through Week 6. Keep h2h here (= no-ML gate on the LOCKED card).
+    product_shadow_markets: str = "h2h"
 
     # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).
     qa_promote_single_book_totals: bool = True

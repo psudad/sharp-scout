@@ -129,6 +129,47 @@ def filter_plays_nfl_display_slate(
     return out
 
 
+def stage_card_kickoff(card: dict[str, Any]) -> datetime | None:
+    return parse_commence(card.get("kickoff") or card.get("commence_time"))
+
+
+def stage_card_in_display_slate(
+    card: dict[str, Any],
+    *,
+    sport: str = "nfl",
+    now: datetime | None = None,
+    events: list[dict[str, Any]] | None = None,
+) -> bool:
+    """True when a stage card's kickoff falls in the board's current display window."""
+    kick = stage_card_kickoff(card)
+    if kick is None:
+        return True
+    sport_key = (sport or "nfl").lower()
+    if sport_key == "ncaaf":
+        start, end = college_week_bounds(now)
+    else:
+        slate_events = events
+        if slate_events is None:
+            slate_events = [{"commence_time": kick}]
+        start, end = nfl_display_week_bounds(now, events=slate_events)
+    return start <= kick <= end
+
+
+def filter_stage_cards_display_slate(
+    cards: list[dict[str, Any]],
+    *,
+    sport: str = "nfl",
+    now: datetime | None = None,
+    events: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Stage cards for the current NFL display week or college week (Tue–Mon ET)."""
+    return [
+        c
+        for c in cards
+        if stage_card_in_display_slate(c, sport=sport, now=now, events=events)
+    ]
+
+
 def nfl_week_label(week_start: datetime, *, season_week: int | None = None) -> str:
     """Human label for an NFL week (Wed–Tue ET), optionally with nflverse week number."""
     start_et = _as_utc(week_start).astimezone(ET)

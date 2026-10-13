@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from sharp_scout.config import get_settings
-from sharp_scout.phase2.monte_carlo import GameSimResult, p_true_for_market
+from sharp_scout.phase2.monte_carlo import GameSimResult, p_push_for_market, p_true_for_market
 from sharp_scout.utils.odds import american_to_implied_prob, expected_value
 
 logger = logging.getLogger(__name__)
@@ -63,11 +63,19 @@ def shift_prob_to_line(
     return float(norm.cdf(z)), gain
 
 
-def anchor_probability(p_model: float, p_fair: float | None, k: float) -> float:
-    """p_true = p_fair + k·(p_model − p_fair); model-only when no sharp reference."""
+def anchor_probability(
+    p_model: float, p_fair: float | None, k: float, cap: float | None = None
+) -> float:
+    """p_true = p_fair + k·(p_model − p_fair); model-only when no sharp reference.
+
+    ``cap`` bounds the model tilt: |p_true − p_fair| ≤ cap.
+    """
     if p_fair is None:
         return p_model
-    return float(min(max(p_fair + k * (p_model - p_fair), 0.001), 0.999))
+    tilt = k * (p_model - p_fair)
+    if cap is not None:
+        tilt = max(-cap, min(cap, tilt))
+    return float(min(max(p_fair + tilt, 0.001), 0.999))
 
 
 def multiplicative_devig(prob_a: float, prob_b: float) -> tuple[float, float]:
@@ -208,7 +216,9 @@ def discover_edges(
                 side = o["side"]
                 line = o.get("point")
                 try:
-                    p_true = p_true_for_market(sim, market, side, line)
+                    p_true = p_true_for_market(
+                        sim, market, side, line, sport=(cfg.key if cfg is not None else None)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("p_true skip %s: %s", o, exc)
                     continue
@@ -248,9 +258,16 @@ def discover_edges(
                     p_fair = p_mkt if k_anchor < 1.0 else None
 
                 if k_anchor < 1.0:
-                    p_true = anchor_probability(p_model, p_fair, k_anchor)
+                    tilt_cap = cfg.anchor_tilt_cap if cfg is not None else None
+                    if cfg is not None and market == "totals" and not cfg.anchor_tilt_cap_totals:
+                        tilt_cap = None
+                    p_true = anchor_probability(p_model, p_fair, k_anchor, tilt_cap)
 
-                edge = expected_value(p_true, float(price))
+                # Push-aware EV: p_true is P(win); a push refunds the stake.
+                p_push = p_push_for_market(
+                    sim, market, side, line, sport=(cfg.key if cfg is not None else None)
+                )
+                edge = expected_value(p_true, float(price)) + p_push
                 if k_anchor < 1.0:
                     # Anchored: EV already embeds the sharp reference (line gain + tilt).
                     # Only require that the model does not lean against the play.

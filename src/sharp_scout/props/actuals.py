@@ -205,6 +205,18 @@ class PropActuals:
                 )
                 self._game_ids[key] = str(row["game_id"])
 
+    def _espn_value(self, play: dict[str, Any], market: str) -> tuple[str, float | None]:
+        """PBP has not caught up with this game: resolve from the ESPN box score."""
+        from sharp_scout.props.espn_box import EspnBox
+
+        if not hasattr(self, "_espn"):
+            self._espn = EspnBox()
+        status, row = self._espn.stats_for(play)
+        if status != "ok" or row is None:
+            return status, None
+        value = actual_for_market(row, market)
+        return ("ok", value) if value is not None else ("void", None)
+
     def _find_game(self, play: dict[str, Any]) -> str | None:
         away = str(play.get("away_team") or "")
         home = str(play.get("home_team") or "")
@@ -229,7 +241,7 @@ class PropActuals:
             return "unknown", None
         game_id = self._find_game(play)
         if game_id is None:
-            return "unknown", None
+            return self._espn_value(play, market)
 
         candidates = self._names.get(_player_key(str(play.get("player_name") or "")), [])
         played = self._players_by_game.get(game_id, set())

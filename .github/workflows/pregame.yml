@@ -1,4 +1,4 @@
-name: Pregame Windows (T-12 / T-3 / T-1)
+name: Pregame Windows (T-12 / T-4..T-1)
 
 # Uses data/pregame_run_plan.json (built from nflverse weekly schedule) to fire only
 # near real kickoff windows — not every 30 minutes.
@@ -13,7 +13,7 @@ on:
     # Refresh weekly plan: Monday 10:00 UTC (~6am ET)
     - cron: "0 10 * * 1"
     # Hourly on NFL game days (Thu–Mon UTC); most hours exit in seconds via run plan gate
-    - cron: "0 * * * 0,4,5,6,1"
+    - cron: "5,35 * * * 0,4,5,6,1"
   workflow_dispatch:
     inputs:
       demo:
@@ -111,12 +111,16 @@ jobs:
           fi
           python scripts/run_pregame.py $ARGS --ledger
 
+      - name: Settle finished games (sides + props) and rebuild site
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
+        run: python scripts/settle_now.py --sport nfl
+
       - name: Commit schedule state + site
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/schedule_state.json data/ledger.json data/line_history.json data/open_lines.json data/calibration.json docs/ 2>/dev/null || git add data/schedule_state.json data/ledger.json docs/ || true
+          git add data/schedule_state.json data/ledger.json data/props_ledger.json data/line_history.json data/open_lines.json data/calibration.json docs/ 2>/dev/null || git add data/schedule_state.json data/ledger.json data/props_ledger.json docs/ || true
           if git diff --staged --quiet; then
             echo "No changes"
           else

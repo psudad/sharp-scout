@@ -45,6 +45,10 @@ def apply_weather_to_usage_mult(
     }
 
 
+def _model_p(edge: PropEdge) -> float:
+    return edge.p_model if edge.p_model is not None else edge.p_true
+
+
 def validate_prop_edge(
     edge: PropEdge,
     *,
@@ -85,11 +89,11 @@ def validate_prop_edge(
         # the only remaining source of 30%+ edges.
         flags["plausible"] = False
         notes.append("no two-way market to price against — cannot validate, reject")
-    elif abs(edge.p_true - edge.p_mkt) > settings.prop_model_market_gap:
+    elif abs(_model_p(edge) - edge.p_mkt) > settings.prop_model_market_gap:
         flags["plausible"] = False
         notes.append(
-            f"model {edge.p_true:.1%} vs no-vig market {edge.p_mkt:.1%} "
-            f"({abs(edge.p_true - edge.p_mkt):.1%} gap > "
+            f"model {_model_p(edge):.1%} vs no-vig market {edge.p_mkt:.1%} "
+            f"({abs(_model_p(edge) - edge.p_mkt):.1%} gap > "
             f"{settings.prop_model_market_gap:.0%}) — projection disagrees with the "
             "market, reject"
         )
@@ -157,6 +161,7 @@ def attach_prop_filters(
                 "price": e.price,
                 "p_true": round(e.p_true, 4),
                 "p_raw": round(e.p_raw, 4) if e.p_raw is not None else None,
+                "p_model": round(e.p_model, 4) if e.p_model is not None else None,
                 "p_mkt": round(e.p_mkt, 4) if e.p_mkt is not None else None,
                 "edge": round(e.edge, 4),
                 "model_mean": round(e.model_mean, 2),

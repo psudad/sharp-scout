@@ -25,9 +25,15 @@ from sharp_scout.copy.explain import (
     STAGE_RECORD_SECTION_NOTE,
     STAGE_RECORD_TIPS,
 )
-from sharp_scout.ledger.tracker import compute_record, load_ledger
+from sharp_scout.ledger.tracker import (
+    PROPS_LEDGER_PATH,
+    compute_record,
+    load_ledger,
+    migrate_props_from_main_ledger,
+)
 from sharp_scout.sports import NCAAF
 from sharp_scout.utils.odds import normalize_team
+from sharp_scout.utils.cfb_calendar import current_cfb_week
 from sharp_scout.utils.slate import (
     ET,
     college_week_bounds,
@@ -63,6 +69,7 @@ _WEEK1_BANNER = (
     "this board, treat it as informational and bet at your own risk."
     "</div>"
 )
+_EARLY_SEASON_WEEKS = 3
 from sharp_scout.utils.teams import matchup_search_blob, ncaaf_display_code
 
 DOCS_DIR = ROOT / "docs"
@@ -100,6 +107,33 @@ def _price(p: Any) -> str:
     return f"+{int(round(n))}" if n > 0 else str(int(round(n)))
 
 
+def show_early_season_banner(season_week: int | None, *, max_week: int = _EARLY_SEASON_WEEKS) -> bool:
+    """True during the first few weeks of a sport's season (banner-worthy)."""
+    return season_week is not None and 1 <= season_week <= max_week
+
+
+def early_season_banner_html(season_week: int | None) -> str:
+    return _WEEK1_BANNER if show_early_season_banner(season_week) else ""
+
+
+def _format_play_line_suffix(p: dict[str, Any]) -> str:
+    """Signed line for spreads; unsigned magnitude for totals."""
+    line = p.get("line")
+    if line is None:
+        return ""
+    market = str(p.get("market") or "")
+    try:
+        fv = float(line)
+    except (TypeError, ValueError):
+        return f" {line}"
+    if market == "totals":
+        fv = abs(fv)
+        return f" {int(fv)}" if fv == int(fv) else f" {fv:g}"
+    if fv == 0:
+        return " 0"
+    return f" {fv:+g}"
+
+
 def _team_for_side(p: dict[str, Any]) -> str:
     side = str(p.get("side") or "").lower()
     if side == "home":
@@ -115,10 +149,7 @@ def _side_label(p: dict[str, Any]) -> str:
         line_s = f" {line}" if line is not None else ""
         mkt = str(p.get("market") or "").replace("player_", "").replace("_", " ")
         return f"{p.get('player_name')} {str(p.get('side', '')).upper()}{line_s} ({mkt}) {_price(p.get('price'))}"
-    line = p.get("line")
-    line_s = ""
-    if line is not None:
-        line_s = f" {float(line):+g}" if float(line) != 0 else " 0"
+    line_s = _format_play_line_suffix(p)
     m = {"spreads": "spread", "totals": "total", "h2h": "ML"}.get(p.get("market"), p.get("market"))
     team = _team_for_side(p)
     return f"{team}{line_s} ({m}) {_price(p.get('price'))}"
@@ -544,8 +575,13 @@ def build_site(
     out = docs_dir or DOCS_DIR
     out.mkdir(parents=True, exist_ok=True)
 
+    migrate_props_from_main_ledger()
     ledger = load_ledger()
     record = compute_record(ledger)
+    props_ledger = load_ledger(PROPS_LEDGER_PATH)
+    props_record = compute_record(props_ledger, path=PROPS_LEDGER_PATH)
+    (out / "props_ledger.json").write_text(json.dumps(props_ledger, indent=2, default=str) + "\n")
+    (out / "props_record.json").write_text(json.dumps(props_record, indent=2, default=str) + "\n")
     if signals_path is not None:
         signals: dict[str, Any] = (
             json.loads(signals_path.read_text()) if signals_path.exists() else {}
@@ -882,7 +918,7 @@ def build_site(
     stage_records_thead = (
         "<thead><tr><th>Stage</th><th>Record</th><th>Win %</th>"
         "<th>Spread</th><th>Total</th><th>ML</th>"
-        + _stage_th("Ungraded", BOARD_STAT_TIPS["stage_ungraded"])
+        + _stage_th("Awaiting final", BOARD_STAT_TIPS["stage_awaiting_final"])
         + "</tr></thead>"
     )
 
@@ -894,16 +930,17 @@ def build_site(
     )
     nfl_week_heading = nfl_section_heading(nfl_games_all or nfl_games_display)
     _nfl_season, nfl_season_week = nfl_display_season_week(nfl_games_all or nfl_games_display)
-    week1_banner_html = (
-        _WEEK1_BANNER if nfl_season_week == 1 else ""
-    )
+    _ncaaf_season, ncaaf_season_week = current_cfb_week()
+    nfl_week1_banner_html = early_season_banner_html(nfl_season_week)
+    ncaaf_week1_banner_html = early_season_banner_html(ncaaf_season_week)
 
     html = SITE_TEMPLATE.format(
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         ssq_logo=_ssq_logo_svg(embedded=True),
         board_updated=board_updated,
         nfl_week_heading=nfl_week_heading,
-        week1_banner_html=week1_banner_html,
+        nfl_week1_banner_html=nfl_week1_banner_html,
+        ncaaf_week1_banner_html=ncaaf_week1_banner_html,
         leans_caps_note=_LEANS_CAPS_NOTE,
         nfl_plays_heading=_render_plays_heading(nfl_locked_summary),
         ncaaf_plays_heading=_render_plays_heading(ncaaf_locked_summary),
@@ -971,6 +1008,8 @@ def build_site(
             nfl_week_pnl=nfl_week_pnl,
             board_updated=board_updated,
             analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+            nfl_season_week=nfl_season_week,
+            ncaaf_season_week=ncaaf_season_week,
         )
     )
     (out / "comments.html").write_text(
@@ -978,6 +1017,18 @@ def build_site(
             analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         )
     )
+    props_payload = _pick_props()
+    (out / "props.html").write_text(
+        _render_props_page(
+            props_payload,
+            analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+            props_ledger=props_ledger,
+        )
+    )
+    if props_payload and not props_payload.get("demo"):
+        published = {k: v for k, v in props_payload.items() if k not in ("props", "events", "plays")}
+        published["plays"] = props_board_rows(props_payload)
+        (out / "latest_props.json").write_text(json.dumps(published, indent=2, default=str))
 
     assets_dir = out / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
@@ -1007,12 +1058,14 @@ def _render_landing_section(
     *,
     sport: str,
     empty_note: str,
+    season_week: int | None = None,
 ) -> str:
     """One sport's block of actual plays on the landing page."""
     count = len(plays)
+    banner = early_season_banner_html(season_week)
     if not plays:
         return (
-            f'<div class="lp-section"><h2>{_esc(title)}</h2>'
+            f'<div class="lp-section">{banner}<h2>{_esc(title)}</h2>'
             f'<p class="lp-empty">{_esc(empty_note)}</p></div>'
         )
     table = _render_play_table(
@@ -1025,6 +1078,7 @@ def _render_landing_section(
     )
     return (
         f'<div class="lp-section">'
+        f"{banner}"
         f'<h2>{_esc(title)} — Locked Plays '
         f'<span class="lp-count">{count} this week</span></h2>'
         f"{table}</div>"
@@ -1041,6 +1095,8 @@ def _render_landing_page(
     nfl_week_pnl: float,
     board_updated: str,
     analytics_head: str,
+    nfl_season_week: int | None = None,
+    ncaaf_season_week: int | None = None,
 ) -> str:
     """Plays-only landing page: just this week's actual recommended plays."""
     total = len(ncaaf_plays) + len(nfl_plays)
@@ -1049,7 +1105,6 @@ def _render_landing_page(
         analytics_head=analytics_head,
         ssq_logo=_ssq_logo_svg(embedded=True),
         board_updated=_esc(board_updated),
-        week1_banner_html=_WEEK1_BANNER,
         total_plays=total,
         week_chips=(
             _landing_week_pill("CFB", ncaaf_week_stats, ncaaf_week_pnl)
@@ -1060,12 +1115,14 @@ def _render_landing_page(
             ncaaf_plays,
             sport="ncaaf",
             empty_note="No locked CFB plays posted for this week yet. Check back after the pipeline runs.",
+            season_week=ncaaf_season_week,
         ),
         nfl_section=_render_landing_section(
             "NFL",
             nfl_plays,
             sport="nfl",
             empty_note="No locked NFL plays posted for this week yet. Check back after the pipeline runs.",
+            season_week=nfl_season_week,
         ),
         timing_script=_TIMING_SCRIPT,
     )
@@ -1170,6 +1227,7 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="board.html#tab-cfb">CFB</a>
   <a class="tab" href="board.html#tab-guide">How to use</a>
   <a class="tab tab-comments" href="comments.html">Comments</a>
+  <a class="tab" href="props.html">NFL Props</a>
 </div>
 <div class="lp-wrap">
   <div class="lp-hero">
@@ -1183,8 +1241,6 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite" style="margin-top:12px"></div>
   </div>
-
-  {week1_banner_html}
 
   <p class="phase-note" style="padding:2px 0 6px">Everything on this page is an actual
   recommended play that we track on the ledger. Use the <b>When to bet</b> column for
@@ -1246,6 +1302,288 @@ def _render_comments_page(*, analytics_head: str) -> str:
     )
 
 
+PROP_MARKET_LABELS = {
+    "player_pass_yds": "Pass yds",
+    "player_pass_tds": "Pass TDs",
+    "player_rush_yds": "Rush yds",
+    "player_rush_attempts": "Rush att",
+    "player_receptions": "Receptions",
+    "player_reception_yds": "Rec yds",
+    "player_reception_tds": "Rec TDs",
+    "player_anytime_td": "Anytime TD",
+}
+PROPS_LIVE_GRACE_HOURS = 4.0
+
+
+def _pick_props() -> dict[str, Any]:
+    """Fresh props run from artifacts/, else the last copy published to docs/."""
+    for path in (ARTIFACTS_DIR / "latest_props.json", DOCS_DIR / "latest_props.json"):
+        if path.exists():
+            try:
+                return json.loads(path.read_text())
+            except json.JSONDecodeError:
+                continue
+    return {}
+
+
+def props_board_rows(payload: dict[str, Any], *, now: datetime | None = None) -> list[dict[str, Any]]:
+    """Validated NFL props for games not yet over, one row per player/prop/side, by edge."""
+    if not payload or payload.get("demo"):
+        return []
+    now = now or datetime.now(timezone.utc)
+    best: dict[tuple[str, str, str], dict[str, Any]] = {}
+    alts: dict[tuple[str, str, str], int] = {}
+    for p in payload.get("plays") or []:
+        kick = parse_commence(p.get("kickoff") or p.get("commence_time"))
+        if kick is not None and (now - kick).total_seconds() > PROPS_LIVE_GRACE_HOURS * 3600:
+            continue
+        key = (str(p.get("player_name")), str(p.get("market")), str(p.get("side")))
+        alts[key] = alts.get(key, 0) + 1
+        if key not in best or float(p.get("edge") or 0) > float(best[key].get("edge") or 0):
+            best[key] = p
+    rows = [dict(p, n_offers=alts[k]) for k, p in best.items()]
+    rows.sort(key=lambda p: float(p.get("edge") or 0), reverse=True)
+    return rows
+
+
+def _pct(x: Any) -> str:
+    try:
+        return f"{float(x) * 100:.1f}%"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _render_props_rows(rows: list[dict[str, Any]]) -> str:
+    out = []
+    for i, p in enumerate(rows, 1):
+        market = PROP_MARKET_LABELS.get(str(p.get("market")), str(p.get("market")))
+        side = str(p.get("side") or "").title()
+        line = p.get("line")
+        pick = f"{side} {line:g}" if isinstance(line, (int, float)) else side
+        game = f"{p.get('away_team', '')} @ {p.get('home_team', '')}"
+        mean = p.get("model_mean")
+        proj = f"{float(mean):.1f}" if isinstance(mean, (int, float)) else "—"
+        offers = int(p.get("n_offers") or 1)
+        more = f'<div class="props-more">+{offers - 1} other line/book</div>' if offers > 1 else ""
+        out.append(
+            "<tr>"
+            f'<td data-label="#">{i}</td>'
+            f'<td data-label="Kickoff">{_esc(format_kickoff_compact(p.get("kickoff")))}</td>'
+            f'<td data-label="Game">{_esc(game)}</td>'
+            f'<td data-label="Player" class="play-pick-cell">{_esc(p.get("player_name"))}'
+            f' <span class="props-team">{_esc(p.get("team", ""))}</span></td>'
+            f'<td data-label="Prop">{_esc(market)}</td>'
+            f'<td data-label="Pick"><b>{_esc(pick)}</b></td>'
+            f'<td data-label="Best price"><span class="props-price">{_esc(_price(p.get("price")))} '
+            f'<span class="props-book">{_esc(p.get("book", ""))}</span>{more}</span></td>'
+            f'<td data-label="Model proj">{proj}</td>'
+            f'<td data-label="Model win %">{_pct(p.get("p_true"))}</td>'
+            f'<td data-label="Market %">{_pct(p.get("p_mkt"))}</td>'
+            f'<td data-label="Edge" class="props-edge">{_pct(p.get("edge"))}</td>'
+            "</tr>"
+        )
+    return "".join(out)
+
+
+def _props_ledger_row(p: dict[str, Any], *, graded: bool) -> str:
+    market = PROP_MARKET_LABELS.get(str(p.get("market")), str(p.get("market")))
+    side = str(p.get("side") or "").title()
+    line = p.get("line")
+    pick = f"{side} {line:g}" if isinstance(line, (int, float)) else side
+    game = f"{p.get('away_team', '')} @ {p.get('home_team', '')}"
+    st = p.get("status") or "pending"
+    if st == "pending":
+        kick = parse_commence(p.get("kickoff"))
+        started = kick is not None and kick <= datetime.now(timezone.utc)
+        badge = (
+            '<span class="card-result pending">AWAITING FINAL</span>'
+            if started
+            else '<span class="card-result pending">LOCKED</span>'
+        )
+    else:
+        badge = _status_badge(st)
+    actual = p.get("prop_result")
+    actual_txt = f"{actual:g}" if isinstance(actual, (int, float)) else "—"
+    pnl = p.get("pnl_units")
+    pnl_txt = f"{float(pnl):+.2f}u" if pnl is not None else "—"
+    cells = (
+        f'<td data-label="Kickoff">{_esc(format_kickoff_compact(p.get("kickoff")))}</td>'
+        f'<td data-label="Game">{_esc(game)}</td>'
+        f'<td data-label="Player" class="play-pick-cell">{_esc(p.get("player_name"))}</td>'
+        f'<td data-label="Prop">{_esc(market)}</td>'
+        f'<td data-label="Pick"><b>{_esc(pick)}</b></td>'
+        f'<td data-label="Price"><span class="props-price">{_esc(_price(p.get("price")))} '
+        f'<span class="props-book">{_esc(p.get("book", ""))}</span></span></td>'
+        f'<td data-label="Win %">{_pct(p.get("p_true"))}</td>'
+        f'<td data-label="Edge" class="props-edge">{_pct(p.get("edge"))}</td>'
+    )
+    if graded:
+        cells += f'<td data-label="Actual">{actual_txt}</td><td data-label="P/L">{pnl_txt}</td>'
+    return f"<tr>{cells}<td data-label=\"Status\">{badge}</td></tr>"
+
+
+def _props_ledger_table(plays: list[dict[str, Any]], *, graded: bool, empty: str) -> str:
+    if not plays:
+        return f'<p class="empty">{empty}</p>'
+    extra = "<th>Actual</th><th>P/L</th>" if graded else ""
+    body = "".join(_props_ledger_row(p, graded=graded) for p in plays)
+    return (
+        '<div class="table-wrap"><table class="export-table plays-table props-table">'
+        "<thead><tr><th>Kickoff</th><th>Game</th><th>Player</th><th>Prop</th><th>Pick</th>"
+        f"<th>Price</th><th>Win %</th><th>Edge</th>{extra}<th>Status</th></tr></thead>"
+        f"<tbody>{body}</tbody></table></div>"
+    )
+
+
+def _render_props_record(rec: dict[str, Any]) -> str:
+    def card(val: str, lbl: str) -> str:
+        return f'<div class="pr-card"><div class="pr-val">{val}</div><div class="pr-lbl">{lbl}</div></div>'
+
+    wp = rec.get("win_pct")
+    return (
+        '<div class="props-record">'
+        + card(_esc(rec.get("record", "0-0")), "Props record")
+        + card(f"{wp * 100:.1f}%" if wp is not None else "—", "Win rate")
+        + card(f"{float(rec.get('pnl_units') or 0):+.2f}u", "Units")
+        + card(str(rec.get("pending", 0)), "Locked / pending")
+        + "</div>"
+    )
+
+
+def _render_props_ledger_sections(ledger: dict[str, Any] | None) -> tuple[str, str, set[tuple[str, str, str]]]:
+    """(record block, locked + graded sections, keys already locked)."""
+    plays = [p for p in (ledger or {}).get("plays") or [] if p.get("status") != "watchlist"]
+    rec = compute_record(ledger or {"plays": []}, path=PROPS_LEDGER_PATH)
+    pending = [p for p in plays if (p.get("status") or "pending") == "pending"]
+    pending.sort(key=lambda p: str(p.get("kickoff") or ""))
+    done = [p for p in plays if (p.get("status") or "pending") not in ("pending", "quarantined")]
+    done.sort(key=lambda p: str(p.get("settled_at") or ""), reverse=True)
+    sections = (
+        '<h2 class="props-h2">Locked props</h2>'
+        + _props_ledger_table(
+            pending, graded=False, empty="No locked props right now. New props lock in on each run."
+        )
+        + '<h2 class="props-h2">Graded props</h2>'
+        + _props_ledger_table(
+            done, graded=True, empty="No props have been graded yet. Results appear after games go final."
+        )
+    )
+    keys = {(str(p.get("player_name")), str(p.get("market")), str(p.get("side"))) for p in pending}
+    return _render_props_record(rec), sections, keys
+
+
+def _render_props_page(
+    payload: dict[str, Any],
+    *,
+    analytics_head: str,
+    now: datetime | None = None,
+    props_ledger: dict[str, Any] | None = None,
+) -> str:
+    record_block, ledger_sections, locked_keys = _render_props_ledger_sections(props_ledger)
+    rows = [
+        r
+        for r in props_board_rows(payload, now=now)
+        if (str(r.get("player_name")), str(r.get("market")), str(r.get("side"))) not in locked_keys
+    ]
+    generated = parse_commence(payload.get("generated_at")) if payload else None
+    updated = _format_timestamp_et(generated) if generated else "—"
+    if rows:
+        table = (
+            '<div class="table-wrap"><table class="export-table plays-table props-table">'
+            "<thead><tr><th>#</th><th>Kickoff</th><th>Game</th><th>Player</th><th>Prop</th>"
+            "<th>Pick</th><th>Best price</th><th>Model proj</th><th>Model win %</th>"
+            "<th>Market %</th><th>Edge</th></tr></thead>"
+            f"<tbody>{_render_props_rows(rows)}</tbody></table></div>"
+        )
+    else:
+        table = '<p class="empty">No unlocked NFL props right now. Check back after the next props run.</p>'
+    shadow = (
+        ""
+        if payload.get("publish_enabled")
+        else '<div class="week1-banner" role="note"><b>SHADOW MODE.</b> Props are still being '
+        "calibrated against settled results. They are not graded on the record and are not "
+        "Sharp Plays. Treat this page as research.</div>"
+    )
+    return PROPS_TEMPLATE.format(
+        site_css=_SITE_CSS,
+        analytics_head=analytics_head,
+        ssq_logo=_ssq_logo_svg(embedded=True),
+        shadow_banner=shadow,
+        record_block=record_block,
+        ledger_sections=ledger_sections,
+        updated=_esc(updated),
+        n_rows=len(rows),
+        table=table,
+    )
+
+
+PROPS_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFL Props · Sharp Scout Quant</title>
+<meta name="description" content="Sharp Scout Quant NFL player props ranked by model edge">
+<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
+<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+{analytics_head}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+{site_css}
+  .props-wrap {{ max-width: 1200px; margin: 0 auto; padding: 0 20px 48px; }}
+  .props-hero {{ text-align: center; padding: 30px 16px 8px; }}
+  .props-hero h1 {{ font-family: var(--font-serif); font-size: 38px; font-weight: 500; margin: 10px 0 4px; }}
+  .props-hero p {{ color: var(--color-text-muted); font-size: 14px; font-weight: 300; }}
+  .props-team, .props-book {{ font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }}
+  .props-more {{ font-size: 11px; color: var(--color-text-muted); }}
+  .props-edge {{ font-weight: 800; color: #0a5c25; }}
+  .props-h2 {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; }}
+  .props-record {{ display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px 0 6px; }}
+  .props-record .pr-card {{ border: 1px solid var(--color-border, #ddd); border-radius: 8px; padding: 10px 18px; text-align: center; min-width: 110px; }}
+  .props-record .pr-val {{ font-size: 24px; font-weight: 800; }}
+  .props-record .pr-lbl {{ font-size: 11px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; }}
+  .props-price {{ text-align: right; overflow-wrap: anywhere; }}
+  .props-wrap .table-wrap {{ overflow-x: auto; overflow-y: visible; max-height: none; }}
+  .props-wrap .table-wrap thead th {{ position: static; box-shadow: none; }}
+  @media (max-width: 640px) {{ .props-hero h1 {{ font-size: 29px; }} }}
+</style>
+</head>
+<body>
+<div class="tabs" role="navigation" aria-label="Sections">
+  <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
+  <a class="tab" href="board.html#tab-plays">NFL</a>
+  <a class="tab" href="board.html#tab-cfb">CFB</a>
+  <a class="tab" href="board.html#tab-guide">How to use</a>
+  <a class="tab tab-comments" href="comments.html">Comments</a>
+  <span class="tab active">NFL Props</span>
+</div>
+<div class="props-wrap">
+  <div class="props-hero">
+    {ssq_logo}
+    <h1>NFL Props</h1>
+    <p>Player props ranked by model edge · {n_rows} props · updated {updated}</p>
+  </div>
+  {shadow_banner}
+  {record_block}
+  {ledger_sections}
+  <h2 class="props-h2">Latest model edges</h2>
+  <p class="phase-note">Props are tracked on their own record and do not count toward the NFL sides record.
+  Edge = expected return per $1 at the listed price, using the model's
+  calibrated win probability. Market % is the book's no-vig probability. One row per player
+  and prop, at the line and book with the highest edge.
+  Games drop off about four hours after kickoff.</p>
+  {table}
+</div>
+<div class="footer">
+  Sharp Scout Quant · research and entertainment only · not betting advice.
+</div>
+</body>
+</html>
+"""
+
+
 COMMENTS_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1305,6 +1643,7 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="board.html#tab-cfb">CFB</a>
   <a class="tab" href="board.html#tab-guide">How to use</a>
   <span class="tab tab-comments active">Comments</span>
+  <a class="tab" href="props.html">NFL Props</a>
 </div>
 <div class="cf-wrap">
   <div class="cf-hero">
@@ -1555,7 +1894,11 @@ def _render_quarantine_section(plays: list[dict], *, sport: str = "nfl") -> str:
         pick = _esc(_side_label(p))
         units = p.get("units") or {"play": 1.5, "lean": 1.0}.get(p.get("tier") or "lean", 0.5)
         notes = p.get("qa_notes") or []
-        reason = notes[0].get("message") if notes else (p.get("rationale") or "QA review")
+        messages = [str(n.get("message") or "").strip() for n in notes if n.get("message")]
+        if messages:
+            reason = " · ".join(messages[:3])
+        else:
+            reason = p.get("rationale") or "QA review"
         st = p.get("shadow_status")
         if st in ("win", "loss", "push"):
             result_html = _status_badge(st)
@@ -1657,6 +2000,9 @@ def _render_play_table(
         if not final:
             status_html += _live_score_html(p, sport=sport)
         rationale = format_play_rationale(p).replace("\n", " · ")
+        posted = ""
+        if mark_locked and p.get("created_at"):
+            posted = format_kickoff_et(p.get("created_at"))
         if mark_locked and not final:
             tr_cls = " class='locked-play-row'"
         elif mark_locked and final:
@@ -1679,16 +2025,22 @@ def _render_play_table(
             f"<td class='pos' data-label='EV'>{edge_s}</td>"
             f"<td data-label='Win %'>{win_cell}</td>"
             f"<td data-label='Book'>{_esc(p.get('book') or '—')}</td>"
-            f"<td class='play-timing-cell' data-label='{_esc(status_hdr)}'>{status_html}</td>"
-            f"<td class='rationale-cell' data-label='Why'>{_esc(rationale)}</td>"
-            "</tr>"
+            + (
+                f"<td data-label='Posted'>{_esc(posted or '—')}</td>"
+                if mark_locked
+                else ""
+            )
+            + f"<td class='play-timing-cell' data-label='{_esc(status_hdr)}'>{status_html}</td>"
+            + f"<td class='rationale-cell' data-label='Why'>{_esc(rationale)}</td>"
+            + "</tr>"
         )
 
     rows: list[str] = [_play_row(p) for p in open_plays]
     if final_plays:
         if open_plays:
+            colspan = "10" if mark_locked else "9"
             rows.append(
-                "<tr class='settled-divider'><td colspan='9'>"
+                f"<tr class='settled-divider'><td colspan='{colspan}'>"
                 "Finished this week — grayed below; full ledger on the History tab</td></tr>"
             )
         rows.extend(_play_row(p, final=True) for p in final_plays)
@@ -1698,7 +2050,9 @@ def _render_play_table(
     return (
         f'<div class="table-wrap"><table class="export-table plays-table{size_cls}"{id_attr}>'
         "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th>"
-        f"<th>EV</th><th>Win %</th><th>Book</th><th>{status_hdr}</th><th>Why</th></tr></thead>"
+        f"<th>EV</th><th>Win %</th><th>Book</th>"
+        + ("<th>Posted</th>" if mark_locked else "")
+        + f"<th>{status_hdr}</th><th>Why</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table></div>"
     )
@@ -2721,38 +3075,18 @@ def _compute_play_record(plays: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _compute_stage_records_from_cards(cards: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    stage_records: dict[str, dict[str, Any]] = {}
-    for card in cards:
-        if str(card.get("event_id") or "").startswith("demo-"):
-            continue
-        for stage, result in (card.get("results") or {}).items():
-            bucket = stage_records.setdefault(
-                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-            )
-            if result == "win":
-                bucket["wins"] += 1
-            elif result == "loss":
-                bucket["losses"] += 1
-            elif result == "push":
-                bucket["pushes"] += 1
-            elif result is not None:
-                bucket["pending"] += 1
-        if card.get("status") in (None, "pending"):
-            for stage, pick in (card.get("picks") or {}).items():
-                if not pick.get("available") or not pick.get("side"):
-                    continue
-                bucket = stage_records.setdefault(
-                    stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-                )
-                existing = (card.get("results") or {}).get(stage)
-                if existing is None and stage not in (card.get("results") or {}):
-                    bucket["pending"] += 1
-    for stage, b in stage_records.items():
-        decided = b["wins"] + b["losses"]
-        b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
-        b["win_pct"] = (b["wins"] / decided) if decided else None
-    return stage_records
+def _compute_stage_records_from_cards(
+    cards: list[dict[str, Any]],
+    *,
+    sport: str = "nfl",
+) -> dict[str, dict[str, Any]]:
+    from sharp_scout.ledger.tracker import aggregate_stage_records
+
+    return aggregate_stage_records(
+        cards,
+        sport=sport,
+        pending_in_display_slate_only=False,
+    )
 
 
 def _render_weekly_lens_scorecard(
@@ -2783,7 +3117,7 @@ def _render_weekly_lens_scorecard(
         "How each lens performed this week if you bet every pick (spread, ML, total). "
         "<b>Sharp Plays</b> = actual posted bets only.</p>"
         '<div class="table-wrap"><table class="weekly-scorecard-table">'
-        "<thead><tr><th>Lens</th><th>Record</th><th>Win %</th><th>Ungraded</th></tr></thead>"
+        "<thead><tr><th>Lens</th><th>Record</th><th>Win %</th><th>Awaiting final</th></tr></thead>"
         f"<tbody>{body}</tbody></table></div>"
     )
 
@@ -3972,11 +4306,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="#tab-cfb" data-tab="cfb">CFB</a>
   <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
   <a class="tab tab-comments" href="comments.html">Comments</a>
+  <a class="tab" href="props.html">NFL Props</a>
 </div>
 </div>
 
 <div id="tab-plays" class="content active">
-  {week1_banner_html}
+  {nfl_week1_banner_html}
   <div class="team-search-wrap">
     <input type="text" id="nfl-team-search" class="team-search-input" placeholder="Search for a team (e.g. Chiefs, KC)..." />
   </div>
@@ -4018,7 +4353,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <div id="tab-cfb" class="content">
-  {week1_banner_html}
+  {ncaaf_week1_banner_html}
   <div class="team-search-wrap">
     <input type="text" id="cfb-team-search" class="team-search-input" placeholder="Search for a team (e.g. Alabama, Crimson Tide)..." />
   </div>
@@ -4155,8 +4490,10 @@ function showTab(name, el) {{
 
       tab.querySelectorAll('table tbody').forEach(function (tbody) {{
         tbody.querySelectorAll('tr').forEach(function (row) {{
+          // Rows inside a game card follow the card; filtering them by text hid the
+          // opponent, Over/Under, and EV rows of the very game that was searched.
           if (row.classList.contains('settled-divider') || row.classList.contains('week-heading') ||
-              row.classList.contains('stage-summary')) {{
+              row.classList.contains('stage-summary') || row.closest('.game-card')) {{
             row.style.display = '';
             return;
           }}

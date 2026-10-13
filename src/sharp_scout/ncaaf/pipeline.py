@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Any
 
 from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR, get_settings
 from sharp_scout.data.action_network import ActionNetworkClient, mock_ncaaf_splits
-from sharp_scout.data.cfbfastr import load_cfb_pbp
+from sharp_scout.data.cfbfastr import NON_FBS_POOL, cfb_rating_plays, load_cfb_pbp
 from sharp_scout.data.odds_api import OddsClient, mock_ncaaf_odds_events
 from sharp_scout.data.situational import NCAAF_STADIUMS, situational_spread_adj
 from sharp_scout.db.models import Signal, TeamRating, get_session, init_db
@@ -41,6 +42,24 @@ def _demo_ratings() -> dict[str, TeamPower]:
     ratings["UGA"] = TeamPower("UGA", 0.04, 0.03, 0.01, 0.01, 0.2, 0.1, 0.05, 0.00, 0.06)
     ratings["OSU"] = TeamPower("OSU", 0.09, 0.04, 0.02, 0.01, 0.45, 0.2, 0.12, 0.02, 0.13)
     ratings["MICH"] = TeamPower("MICH", 0.05, 0.06, 0.01, 0.02, 0.3, 0.25, 0.08, 0.01, 0.11)
+    return ratings
+
+
+def _build_cfb_ratings(pbp, settings) -> dict[str, TeamPower]:
+    """Fit CFB ratings on clean scrimmage plays; every non-FBS team gets the pooled rating."""
+    plays, fbs = cfb_rating_plays(pbp)
+    if plays.empty:
+        return {}
+    ratings = build_power_ratings(
+        plays,
+        half_life_weeks=settings.ncaaf_epa_half_life_weeks,
+        epa_alpha=settings.ncaaf_epa_ridge_alpha,
+    )
+    pool = ratings.pop(NON_FBS_POOL, None)
+    if pool is not None and fbs:
+        seen = set(pbp["posteam"].dropna().astype(str)) | set(pbp["defteam"].dropna().astype(str))
+        for team in seen - fbs - set(ratings):
+            ratings[team] = replace(pool, team=team)
     return ratings
 
 
@@ -83,7 +102,7 @@ def run_ncaaf_pipeline(
             else list(range(season - settings.ncaaf_prior_seasons, season + 1))
         )
         pbp = load_cfb_pbp(pbp_seasons)
-        ratings = build_power_ratings(pbp)
+        ratings = _build_cfb_ratings(pbp, settings)
         if not ratings:
             logger.warning("Empty CFB ratings — falling back to demo priors")
             ratings = _demo_ratings()
@@ -261,13 +280,19 @@ def run_ncaaf_pipeline(
     if update_ledger:
         from sharp_scout.ledger.tracker import append_signals, append_stage_cards, compute_record
 
-        from sharp_scout.qa.product_gate import select_certified_plays
+        from sharp_scout.qa.product_gate import select_certified_plays, select_shadow_plays
 
         certified = select_certified_plays(validated, signals=payload, sport="ncaaf")
         payload["certified_plays"] = certified
         payload["n_certified"] = len(certified)
         if certified:
             append_signals(certified, season=season, week=week, path=ledger_path)
+        shadow = select_shadow_plays(validated, signals=payload, sport="ncaaf")
+        payload["n_shadow"] = len(shadow)
+        if shadow:
+            append_signals(
+                shadow, season=season, week=week, path=ledger_path, status="watchlist"
+            )
         elif validated:
             logger.info(
                 "Product gate: 0 of %d validated plays certified for ledger",

@@ -31,12 +31,20 @@ class SportConfig:
     anchor_k_spread: float = 0.3
     anchor_k_total: float = 0.6
     anchor_k_ml: float = 0.3
+    # Max |p_true - p_fair| the model tilt may add (None = uncapped). Backtest 2026
+    # Wk1-6 graded candidates: p_true log loss 0.871 vs Pinnacle p_fair 0.670; a
+    # +/-0.03 cap gave the best log loss of any k (0.676). Big tilts are model error.
+    anchor_tilt_cap: float | None = None
+    anchor_tilt_cap_totals: bool = True  # apply the cap to totals too
     # QA: |model_spread - market home line| above this quarantines the play. With
     # anchoring, disagreement is already down-weighted, so CFB gets a wide band.
     spread_model_line_gap: float = 4.0
     # Quant Pick (soft hybrid): hide the lean when the model opposes the sharp line
     # and the spread/total disagreement is at least this many points (not anchor_k).
     hybrid_model_market_gap: float = 4.0
+    # Points per EPA/play on the total (None → epa_scale). CFB EPA predicts margin far
+    # better than combined scoring, so totals get a flatter slope.
+    total_epa_scale: float | None = None
 
 
 NFL = SportConfig(
@@ -48,14 +56,16 @@ NFL = SportConfig(
     artifact_name="latest_signals.json",
     ledger_name="ledger.json",
     pbp_cache_prefix="pbp",
-    base_hfa=2.2,
+    base_hfa=1.5,  # fitted 2024–25; 2.2 overstated post-2020 home field
     scoring_base=22.5,
-    epa_scale=28.0,
+    epa_scale=45.0,  # fitted margin slope on clean-play power diff
+    total_epa_scale=28.0,
     margin_sd=13.5,
     total_sd=13.5,
-    anchor_k_spread=0.3,
-    anchor_k_total=0.3,
-    anchor_k_ml=0.3,
+    anchor_k_spread=0.1,  # walk-forward k fit chose 0.1 every week (was 0.3)
+    anchor_k_total=0.1,
+    anchor_k_ml=0.1,
+    anchor_tilt_cap=0.03,
     spread_model_line_gap=4.0,
     hybrid_model_market_gap=4.0,
 )
@@ -70,13 +80,18 @@ NCAAF = SportConfig(
     ledger_name="ncaaf_ledger.json",
     pbp_cache_prefix="cfb_pbp",
     base_hfa=3.0,  # college HFA is typically larger
-    scoring_base=27.5,
-    epa_scale=26.0,
+    scoring_base=26.5,
+    epa_scale=56.0,  # fitted margin slope on scrimmage-EPA power diff
+    total_epa_scale=16.0,
     margin_sd=17.0,
     total_sd=17.0,
-    anchor_k_spread=0.3,
+    anchor_k_spread=0.1,  # walk-forward k fit chose 0.1 every week (was 0.3)
+    # NCAAF totals keep k=0.6 uncapped: their edge is the model tilt (45-19 graded
+    # through Wk6); k=0.1 + cap leaves 0 NCAAF totals at EV>=4%.
     anchor_k_total=0.6,
-    anchor_k_ml=0.2,
+    anchor_k_ml=0.1,
+    anchor_tilt_cap=0.03,
+    anchor_tilt_cap_totals=False,
     spread_model_line_gap=12.0,
     hybrid_model_market_gap=7.0,
 )

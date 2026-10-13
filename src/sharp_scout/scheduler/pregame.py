@@ -79,9 +79,17 @@ def find_due_windows(
         if htk < -0.25:
             continue  # already started / finished
         eid = str(ev.get("event_id"))
-        for w in windows:
-            # Inside [w - tol, w + tol]
-            if abs(htk - w) <= tol_h:
+        ws = sorted(windows, reverse=True)
+        for i, w in enumerate(ws):
+            if settings.pregame_catchup:
+                # Catch-up: GitHub's hourly cron is throttled (runs land every 4-6 h), so
+                # an exact ±tol match misses most windows. A window is due from w+tol
+                # until the next-smaller window takes over (or kickoff for the last one).
+                lower = (ws[i + 1] + tol_h) if i + 1 < len(ws) else -0.25
+                due = lower < htk <= w + tol_h
+            else:
+                due = abs(htk - w) <= tol_h  # legacy: inside [w - tol, w + tol]
+            if due:
                 key = f"{eid}|T-{w:g}h"
                 if key in fired:
                     continue
@@ -214,8 +222,14 @@ def run_due_pregame(
             p["pregame_window"] = p["window"]
         if update_ledger and due_side:
             from sharp_scout.ledger.tracker import append_signals
+            from sharp_scout.qa.product_gate import select_certified_plays, select_shadow_plays
 
-            append_signals(due_side)
+            certified = select_certified_plays(due_side, signals=side, sport="nfl")
+            if certified:
+                append_signals(certified)
+            shadow = select_shadow_plays(due_side, signals=side, sport="nfl")
+            if shadow:
+                append_signals(shadow, status="watchlist")
 
         # Props for due events only
         prop_events = []

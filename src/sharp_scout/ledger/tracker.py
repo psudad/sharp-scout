@@ -14,10 +14,15 @@ from sharp_scout.config import DATA_DIR, ROOT
 logger = logging.getLogger(__name__)
 
 LEDGER_PATH = DATA_DIR / "ledger.json"
+# NFL player props are graded on their own ledger/record, separate from the sides card.
+PROPS_LEDGER_PATH = DATA_DIR / "props_ledger.json"
 DEFAULT_UNITS = {"play": 1.5, "lean": 1.0, "candidate": 0.5}
 # Mirrors qa.gate.COMMITMENT_LOCK_BEFORE_KICKOFF: the card is frozen once QA can no
-# longer quarantine it, so nothing new can slip on unreviewed.
-CARD_FREEZE_BEFORE_KICKOFF = timedelta(hours=2)
+# longer quarantine it, so nothing new can slip on unreviewed. NFL (sides + props)
+# freezes at T-1h so the T-4/3/2h runs can still move the card; NCAAF stays at T-2h
+# (plays posted inside 2h went 21-26 last season).
+CARD_FREEZE_BEFORE_KICKOFF = timedelta(hours=1)
+NCAAF_CARD_FREEZE_BEFORE_KICKOFF = timedelta(hours=2)
 
 
 def _now() -> str:
@@ -94,11 +99,15 @@ def append_signals(
     week: int | None = None,
     path: Path | None = None,
     now: datetime | None = None,
+    status: str = "pending",
 ) -> dict[str, Any]:
     """Append new validated plays to the ledger (deduped).
 
+    ``status="watchlist"`` records shadow-market plays: shadow-graded at settlement,
+    never shown on the LOCKED card.
+
     Replaces any pending play on the same game/market/side so only the
-    latest best line/book survives across pipeline runs — until T-2h before
+    latest best line/book survives across pipeline runs — until T-1h (NFL) / T-2h (NCAAF) before
     kickoff, when the card freezes (see CARD_FREEZE_BEFORE_KICKOFF).
     """
     from sharp_scout.utils.slate import parse_commence
@@ -110,18 +119,21 @@ def append_signals(
     refreshed = 0
     frozen = 0
     clock = now or datetime.now(timezone.utc)
+    freeze = (
+        NCAAF_CARD_FREEZE_BEFORE_KICKOFF if ledger_sport_from_path(path) == "ncaaf" else CARD_FREEZE_BEFORE_KICKOFF
+    )
     for s in signals:
         if only_validated and not s.get("filter_passed"):
             continue
         if s.get("tier") == "rejected":
             continue
-        # Card freeze: inside the T-2h commitment window nothing may be added, replaced
+        # Card freeze: inside the commitment window nothing may be added, replaced
         # or re-tiered. The QA gate cannot quarantine committed plays in this window, so
         # a gameday rebuild that appended new/re-lined plays here bypassed QA entirely —
         # 47 of 81 decided NCAAF plays this season were written <2h before kickoff and
         # went 21–26, versus 15–11 for plays posted a day or more ahead.
         kick = parse_commence(s.get("kickoff") or s.get("commence_time"))
-        if kick is not None and kick - clock <= CARD_FREEZE_BEFORE_KICKOFF:
+        if kick is not None and kick - clock <= freeze:
             frozen += 1
             continue
         row = {
@@ -161,7 +173,7 @@ def append_signals(
             "clv_points": None,
             "clv_prob": None,
             "clv_at": None,
-            "status": "pending",
+            "status": status,
             "home_score": None,
             "away_score": None,
             "prop_result": None,
@@ -175,7 +187,7 @@ def append_signals(
             # when the market line does not, so edge/p_true/tier must never go stale
             # (e.g. a bad-ratings run must be correctable by a later good run).
             for p in ledger["plays"]:
-                if (p.get("status") or "pending") == "pending" and _play_key(p) == key:
+                if (p.get("status") or "pending") == status and _play_key(p) == key:
                     for field in (
                         "edge", "p_true", "p_mkt", "p_model", "p_fair", "line_gain",
                         "model_spread", "model_total", "model_mean", "price", "rationale", "sport",
@@ -192,7 +204,7 @@ def append_signals(
         ledger["plays"] = [
             p
             for p in ledger["plays"]
-            if (p.get("status") or "pending") != "pending" or _logical_play_key(p) != logical
+            if (p.get("status") or "pending") != status or _logical_play_key(p) != logical
         ]
         if len(ledger["plays"]) < before_len:
             replaced += 1
@@ -208,10 +220,30 @@ def append_signals(
         replaced,
         refreshed,
         frozen,
-        int(CARD_FREEZE_BEFORE_KICKOFF.total_seconds() // 3600),
+        int(freeze.total_seconds() // 3600),
         len(ledger["plays"]),
     )
     return ledger
+
+
+def migrate_props_from_main_ledger(
+    main_path: Path | None = None, props_path: Path | None = None
+) -> int:
+    """Move player-prop rows out of the sides ledger into the props ledger (idempotent)."""
+    from sharp_scout.props.actuals import is_prop_play
+
+    main = load_ledger(main_path)
+    moving = [p for p in main["plays"] if is_prop_play(p)]
+    if not moving:
+        return 0
+    props = load_ledger(props_path or PROPS_LEDGER_PATH)
+    have = {p.get("id") for p in props["plays"]}
+    props["plays"].extend(p for p in moving if p.get("id") not in have)
+    main["plays"] = [p for p in main["plays"] if not is_prop_play(p)]
+    save_ledger(props, props_path or PROPS_LEDGER_PATH)
+    save_ledger(main, main_path)
+    logger.info("Moved %d prop rows to the props ledger", len(moving))
+    return len(moving)
 
 
 def settle_play(
@@ -307,6 +339,46 @@ def settle_play(
     return play
 
 
+def ledger_sport_from_path(path: Path | None) -> str:
+    if path and "ncaaf" in path.name:
+        return "ncaaf"
+    return "nfl"
+
+
+def prune_stage_cards_outside_display_slate(
+    ledger: dict[str, Any],
+    *,
+    sport: str,
+    events: list[dict[str, Any]] | None = None,
+) -> int:
+    """Drop pending stage cards outside the current display slate (keeps settled history)."""
+    from sharp_scout.utils.slate import filter_stage_cards_display_slate
+
+    cards = ledger.get("stage_cards") or []
+    if not cards:
+        return 0
+    slate_events = events or [
+        {"commence_time": c.get("kickoff") or c.get("commence_time")} for c in cards
+    ]
+    in_slate = filter_stage_cards_display_slate(
+        cards, sport=sport, events=slate_events
+    )
+    keep_keys = {f"{c.get('event_id')}|{c.get('market')}" for c in in_slate}
+    kept: list[dict[str, Any]] = []
+    pruned = 0
+    for card in cards:
+        key = f"{card.get('event_id')}|{card.get('market')}"
+        if card.get("status") not in (None, "pending"):
+            kept.append(card)
+            continue
+        if key in keep_keys:
+            kept.append(card)
+        else:
+            pruned += 1
+    ledger["stage_cards"] = kept
+    return pruned
+
+
 def append_stage_cards(
     cards: list[dict[str, Any]],
     *,
@@ -315,6 +387,13 @@ def append_stage_cards(
     path: Path | None = None,
 ) -> dict[str, Any]:
     """Upsert per-game stage pick cards (one row per event+market)."""
+    sport = ledger_sport_from_path(path)
+    from sharp_scout.utils.slate import filter_stage_cards_display_slate
+
+    slate_events = [
+        {"commence_time": c.get("kickoff") or c.get("commence_time")} for c in cards
+    ]
+    cards = filter_stage_cards_display_slate(cards, sport=sport, events=slate_events)
     ledger = load_ledger(path)
     existing = {
         f"{c.get('event_id')}|{c.get('market')}": i
@@ -345,6 +424,17 @@ def append_stage_cards(
         else:
             ledger.setdefault("stage_cards", []).append(row)
             existing[key] = len(ledger["stage_cards"]) - 1
+    pruned = prune_stage_cards_outside_display_slate(
+        ledger,
+        sport=sport,
+        events=slate_events,
+    )
+    if pruned:
+        logger.info(
+            "Pruned %d pending stage cards outside current %s display slate",
+            pruned,
+            sport,
+        )
     save_ledger(ledger, path)
     return ledger
 
@@ -664,6 +754,87 @@ def settle_from_scores(
     return ledger
 
 
+def aggregate_stage_records(
+    cards: list[dict[str, Any]],
+    *,
+    sport: str = "nfl",
+    pending_in_display_slate_only: bool = False,
+) -> dict[str, dict[str, Any]]:
+    """Win/loss/push totals per stage lens; optional display-week scope for awaiting-final."""
+    from sharp_scout.utils.slate import filter_stage_cards_display_slate
+
+    pending_card_keys: set[str] | None = None
+    if pending_in_display_slate_only:
+        slate_events = [
+            {"commence_time": c.get("kickoff") or c.get("commence_time")} for c in cards
+        ]
+        in_slate = filter_stage_cards_display_slate(
+            cards, sport=sport, events=slate_events
+        )
+        pending_card_keys = {f"{c.get('event_id')}|{c.get('market')}" for c in in_slate}
+
+    def _counts_awaiting_final(card: dict[str, Any]) -> bool:
+        if card.get("status") not in (None, "pending"):
+            return False
+        if pending_card_keys is None:
+            return True
+        key = f"{card.get('event_id')}|{card.get('market')}"
+        return key in pending_card_keys
+
+    stage_records: dict[str, dict[str, Any]] = {}
+    for card in cards:
+        if str(card.get("event_id") or "").startswith("demo-"):
+            continue
+        for stage, result in (card.get("results") or {}).items():
+            bucket = stage_records.setdefault(
+                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+            )
+            if result == "win":
+                bucket["wins"] += 1
+            elif result == "loss":
+                bucket["losses"] += 1
+            elif result == "push":
+                bucket["pushes"] += 1
+            elif result is not None:
+                bucket["pending"] += 1
+        if not _counts_awaiting_final(card):
+            continue
+        for stage, pick in (card.get("picks") or {}).items():
+            if not pick.get("available") or not pick.get("side"):
+                continue
+            bucket = stage_records.setdefault(
+                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
+            )
+            existing = (card.get("results") or {}).get(stage)
+            if existing is None and stage not in (card.get("results") or {}):
+                bucket["pending"] += 1
+
+    for stage, b in stage_records.items():
+        d = b["wins"] + b["losses"]
+        b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
+        b["win_pct"] = (b["wins"] / d) if d else None
+
+    for stage, b in stage_records.items():
+        b["by_market"] = {}
+    for card in cards:
+        if str(card.get("event_id") or "").startswith("demo-"):
+            continue
+        mkt = str(card.get("market") or "")
+        for stage, result in (card.get("results") or {}).items():
+            if result not in ("win", "loss", "push") or stage not in stage_records:
+                continue
+            mb = stage_records[stage]["by_market"].setdefault(
+                mkt, {"wins": 0, "losses": 0, "pushes": 0}
+            )
+            mb["wins" if result == "win" else "losses" if result == "loss" else "pushes"] += 1
+    for b in stage_records.values():
+        for mb in b["by_market"].values():
+            d = mb["wins"] + mb["losses"]
+            mb["record"] = f"{mb['wins']}-{mb['losses']}" + (f"-{mb['pushes']}" if mb["pushes"] else "")
+            mb["win_pct"] = (mb["wins"] / d) if d else None
+    return stage_records
+
+
 def compute_record(
     ledger: dict[str, Any] | None = None,
     *,
@@ -712,59 +883,11 @@ def compute_record(
     win_pct = (wins / decided) if decided else None
     starting = float(ledger.get("starting_units") or 100)
 
-    # Per-stage ATS/ML records from stage_cards (skip demo/test rows)
-    stage_records: dict[str, dict[str, Any]] = {}
-    for card in ledger.get("stage_cards") or []:
-        if str(card.get("event_id") or "").startswith("demo-"):
-            continue
-        for stage, result in (card.get("results") or {}).items():
-            bucket = stage_records.setdefault(
-                stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-            )
-            if result == "win":
-                bucket["wins"] += 1
-            elif result == "loss":
-                bucket["losses"] += 1
-            elif result == "push":
-                bucket["pushes"] += 1
-            elif result is not None:
-                bucket["pending"] += 1
-        if card.get("status") in (None, "pending"):
-            for stage, pick in (card.get("picks") or {}).items():
-                if not pick.get("available") or not pick.get("side"):
-                    continue
-                bucket = stage_records.setdefault(
-                    stage, {"wins": 0, "losses": 0, "pushes": 0, "pending": 0}
-                )
-                existing = (card.get("results") or {}).get(stage)
-                if existing is None and stage not in (card.get("results") or {}):
-                    bucket["pending"] += 1
-
-    for stage, b in stage_records.items():
-        d = b["wins"] + b["losses"]
-        b["record"] = f"{b['wins']}-{b['losses']}" + (f"-{b['pushes']}" if b["pushes"] else "")
-        b["win_pct"] = (b["wins"] / d) if d else None
-
-    # Per-market split: the moneyline lens is mostly "the favorite won" (~78–80% but at
-    # chalk prices) and inflates the combined number, so surface spread/total separately.
-    for stage, b in stage_records.items():
-        b["by_market"] = {}
-    for card in ledger.get("stage_cards") or []:
-        if str(card.get("event_id") or "").startswith("demo-"):
-            continue
-        mkt = str(card.get("market") or "")
-        for stage, result in (card.get("results") or {}).items():
-            if result not in ("win", "loss", "push") or stage not in stage_records:
-                continue
-            mb = stage_records[stage]["by_market"].setdefault(
-                mkt, {"wins": 0, "losses": 0, "pushes": 0}
-            )
-            mb["wins" if result == "win" else "losses" if result == "loss" else "pushes"] += 1
-    for b in stage_records.values():
-        for mb in b["by_market"].values():
-            d = mb["wins"] + mb["losses"]
-            mb["record"] = f"{mb['wins']}-{mb['losses']}" + (f"-{mb['pushes']}" if mb["pushes"] else "")
-            mb["win_pct"] = (mb["wins"] / d) if d else None
+    stage_records = aggregate_stage_records(
+        ledger.get("stage_cards") or [],
+        sport=ledger_sport_from_path(path),
+        pending_in_display_slate_only=True,
+    )
 
     from sharp_scout.analysis.disagreement import summarize_disagreements
     from sharp_scout.ledger.clv import summarize_clv

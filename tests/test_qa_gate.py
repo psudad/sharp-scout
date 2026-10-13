@@ -7,16 +7,32 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sharp_scout.qa.gate import (
     QAIssue,
     apply_qa_gate,
     play_commitment_locked,
+    play_eligible_for_qa_promote_lock,
     review_play,
     review_signals,
     _validated_keys,
 )
+from sharp_scout.utils.slate import nfl_display_week_bounds
+
+
+def _kickoff_in_nfl_display_week(hours_ahead: float = 48.0) -> str:
+    """Kickoff inside the current NFL board week, still in the future."""
+    now = datetime.now(timezone.utc)
+    start, end = nfl_display_week_bounds(now)
+    kick = now + timedelta(hours=hours_ahead)
+    if kick > end:
+        kick = end - timedelta(hours=3)
+    if kick <= now:
+        kick = now + timedelta(hours=3)
+    if kick < start:
+        kick = start + timedelta(hours=3)
+    return kick.isoformat()
 
 
 def _base_signals(**overrides) -> dict:
@@ -84,7 +100,18 @@ def test_flat_ratings_block_deploy():
 
 
 def test_mia_ml_quarantined_for_model_conflict():
-    signals = _base_signals()
+    kickoff = _kickoff_in_nfl_display_week()
+    signals = _base_signals(
+        games=[
+            {
+                "event_id": "ev1",
+                "home_team": "LV",
+                "away_team": "MIA",
+                "p_home_win": 0.527,
+                "commence_time": kickoff,
+            }
+        ]
+    )
     play = {
         "id": "abc",
         "event_id": "ev1",
@@ -97,7 +124,7 @@ def test_mia_ml_quarantined_for_model_conflict():
         "price": 180.0,
         "p_true": 0.4482,
         "edge": 0.255,
-        "kickoff": "2026-10-12T20:25:00+00:00",
+        "kickoff": kickoff,
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl", validated_keys=set())
@@ -106,6 +133,48 @@ def test_mia_ml_quarantined_for_model_conflict():
     assert "ml_model_conflict" in codes
     assert "cross_market_conflict" in codes
     assert "not_revalidated" in codes
+
+
+def test_line_gap_conflict_blocks_qa_promote_lock_despite_model_margin_copy():
+    """Regression: promote-lock must not key off display text ('Model spread' vs 'Model margin')."""
+    play = {
+        "market": "spreads",
+        "qa_notes": [
+            {
+                "code": "spread_model_line_conflict",
+                "severity": "quarantine",
+                "message": (
+                    "Model margin: VAN by 4.0 · Market: VAN +9.5 (MISS by 9.5) · "
+                    "Gap 13.5 pts — exceeds 12 pt QA band"
+                ),
+            }
+        ],
+    }
+    assert not play_eligible_for_qa_promote_lock(play)
+
+    legacy = {
+        "market": "spreads",
+        "qa_notes": [
+            {
+                "code": "spread_model_conflict",
+                "severity": "quarantine",
+                "message": "Model margin: VAN by 4.0 · Market: VAN +9.5 · Gap 13.5 pts",
+            }
+        ],
+    }
+    assert not play_eligible_for_qa_promote_lock(legacy)
+
+    prob_only = {
+        "market": "spreads",
+        "qa_notes": [
+            {
+                "code": "spread_model_conflict",
+                "severity": "watchlist",
+                "message": "Cover prob at this line VAN +9.5: model 58.0% vs sharp 49.0% (Δ9%)",
+            }
+        ],
+    }
+    assert play_eligible_for_qa_promote_lock(prob_only)
 
 
 def test_spread_model_conflict_quarantined():
@@ -156,11 +225,21 @@ def test_spread_model_conflict_quarantined():
     review = review_play(play, signals, sport="nfl")
     codes = {i.code for i in review.issues}
     assert review.action == "quarantine"
-    assert "spread_model_conflict" in codes
+    assert "spread_model_line_conflict" in codes
 
 
 def test_corroborated_spread_passes():
+    kickoff = _kickoff_in_nfl_display_week()
     signals = _base_signals(
+        games=[
+            {
+                "event_id": "ev1",
+                "home_team": "LV",
+                "away_team": "MIA",
+                "p_home_win": 0.527,
+                "commence_time": kickoff,
+            }
+        ],
         plays=[
             {
                 "event_id": "ev1",
@@ -177,6 +256,18 @@ def test_corroborated_spread_passes():
             {"event_id": "ev1", "market": "spreads", "side": "home", "line": -3.5, "book": "fanduel"},
         ],
     )
+    signals["split_boards"] = [
+        {
+            "home_team": "LV",
+            "away_team": "MIA",
+            "available": True,
+            "markets": {
+                "spread": {
+                    "sharp_edge": {"available": True, "side": "home", "team": "LV", "diff_pct": 0.15}
+                }
+            },
+        }
+    ]
     play = {
         "id": "spread1",
         "event_id": "ev1",
@@ -191,25 +282,28 @@ def test_corroborated_spread_passes():
         "p_fair": 0.55,
         "edge": 0.05,
         "tier": "play",
-        "kickoff": "2026-10-12T20:25:00+00:00",
+        "kickoff": kickoff,
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl")
     assert review.action == "approve"
 
 
-def test_committed_play_locked_inside_t2h_window():
+def test_committed_play_locked_inside_t1h_window_nfl_t2h_ncaaf():
     play = {
         "tier": "play",
         "status": "pending",
         "kickoff": "2026-10-12T20:25:00+00:00",
     }
     before = datetime(2026, 10, 12, 17, 0, tzinfo=timezone.utc)
-    at_lock = datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc)
+    at_lock = datetime(2026, 10, 12, 19, 25, tzinfo=timezone.utc)
     after_kick = datetime(2026, 10, 12, 23, 50, tzinfo=timezone.utc)
     assert not play_commitment_locked(play, now=before)
+    assert not play_commitment_locked(play, now=datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc))
     assert play_commitment_locked(play, now=at_lock)
     assert play_commitment_locked(play, now=after_kick)
+    cfb = dict(play, sport="ncaaf")
+    assert play_commitment_locked(cfb, now=datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc))
 
 
 def test_committed_play_not_voided_after_kickoff_when_not_revalidated():

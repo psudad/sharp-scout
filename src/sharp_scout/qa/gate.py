@@ -39,7 +39,8 @@ MIN_BOOKS_FOR_CORROBORATION = 2
 WATCHLIST_SEVERITY = "watchlist"
 DUPLICATE_P_TRUE_MIN_CLUSTER = 5
 COMMITTED_PLAY_TIER = "play"
-COMMITMENT_LOCK_BEFORE_KICKOFF = timedelta(hours=2)
+COMMITMENT_LOCK_BEFORE_KICKOFF = timedelta(hours=1)  # NFL; mirrors tracker.CARD_FREEZE
+NCAAF_COMMITMENT_LOCK_BEFORE_KICKOFF = timedelta(hours=2)
 
 
 def play_commitment_locked(
@@ -56,7 +57,12 @@ def play_commitment_locked(
     if kickoff is None:
         return False
     clock = now or datetime.now(timezone.utc)
-    lock_from = kickoff - COMMITMENT_LOCK_BEFORE_KICKOFF
+    lead = (
+        NCAAF_COMMITMENT_LOCK_BEFORE_KICKOFF
+        if str(play.get("sport") or "").lower() == "ncaaf"
+        else COMMITMENT_LOCK_BEFORE_KICKOFF
+    )
+    lock_from = kickoff - lead
     return clock >= lock_from
 
 
@@ -78,7 +84,16 @@ def play_eligible_for_qa_promote_lock(play: dict[str, Any]) -> bool:
         msg = iss.get("message") or ""
         if code == "single_book" and market == "totals":
             continue
-        if code == "spread_model_conflict" and "Model spread" not in msg:
+        if code == "spread_model_line_conflict":
+            return False
+        if code == "spread_model_conflict":
+            # Prob-gap only (promotable). Legacy rows used the same code for line-gap copy.
+            if (
+                "Model spread" in msg
+                or "Model margin:" in msg
+                or " vs market home line " in msg
+            ):
+                return False
             continue
         if code == "product_gate" and market == "totals" and "book" in msg.lower():
             if all(
@@ -362,6 +377,9 @@ def review_play(
         )
 
     game = _find_game(signals, play)
+    from sharp_scout.copy.spread_context import sync_play_sim_from_game
+
+    sync_play_sim_from_game(play, game)
     if game is None and not freeze_pipeline_checks:
         issues.append(
             QAIssue("orphan_event", "void", "Game not found in latest pipeline output")
@@ -421,6 +439,7 @@ def review_play(
         )
 
     if market == "spreads":
+        line = play.get("line")
         p_true = play.get("p_true")
         p_mkt = play.get("p_mkt")
         if p_true is not None and p_mkt is not None:
@@ -434,21 +453,34 @@ def review_play(
                         and settings.qa_air_spread_prob_conflict
                         else "quarantine"
                     )
+                    from sharp_scout.copy.spread_context import spread_prob_gap_message
+
                     issues.append(
                         QAIssue(
                             "spread_model_conflict",
                             prob_sev,
-                            f"Model cover prob {float(p_true):.1%} vs sharp market "
-                            f"{float(p_mkt):.1%} (Δ{prob_gap:.0%}) — implausible disagreement",
+                            spread_prob_gap_message(
+                                p_true=float(p_true),
+                                p_mkt=float(p_mkt),
+                                prob_gap=prob_gap,
+                                home=str(home or ""),
+                                away=str(away or ""),
+                                side=str(side or ""),
+                                line=float(line) if line is not None else None,
+                            ),
                         )
                     )
 
         model_spread = play.get("model_spread")
-        if model_spread is None and game is not None:
-            model_spread = game.get("model_spread")
-        line = play.get("line")
         if model_spread is not None and line is not None and side in ("home", "away"):
-            home_line = float(line) if side == "home" else -float(line)
+            from sharp_scout.copy.spread_context import (
+                home_line_from_play,
+                spread_line_gap_message,
+            )
+
+            home_line = home_line_from_play(str(side), line)
+            if home_line is None:
+                home_line = float(line) if side == "home" else -float(line)
             line_gap = abs(float(model_spread) - home_line)
             # Sport-aware: CFB model residual vs the close is ~22 pts, and p_true is
             # already market-anchored, so only truly wild gaps get quarantined there.
@@ -456,10 +488,16 @@ def review_play(
             if line_gap >= gap_limit:
                 issues.append(
                     QAIssue(
-                        "spread_model_conflict",
+                        "spread_model_line_conflict",
                         "quarantine",
-                        f"Model spread {float(model_spread):+.1f} vs market home line "
-                        f"{home_line:+.1f} (Δ{line_gap:.1f} pts) — implausible disagreement",
+                        spread_line_gap_message(
+                            model_spread=float(model_spread),
+                            home_line=home_line,
+                            home=str(home or ""),
+                            away=str(away or ""),
+                            line_gap=line_gap,
+                            gap_limit=gap_limit,
+                        ),
                     )
                 )
     if market == "h2h" and game is not None:
@@ -535,7 +573,7 @@ def review_play(
             )
 
     if settings.product_gate_enabled:
-        from sharp_scout.qa.product_gate import evaluate_product_play
+        from sharp_scout.qa.product_gate import evaluate_product_play, is_shadow_only
 
         pg = evaluate_product_play(play, signals=signals, sport=sport)
         if not pg.ok:
@@ -553,7 +591,9 @@ def review_play(
             )
             if not book_only_fail:
                 pg_sev = "quarantine"
-                if settings.qa_watchlist_enabled and settings.qa_air_product_gate_near_miss:
+                if is_shadow_only(pg.reasons):
+                    pg_sev = WATCHLIST_SEVERITY
+                elif settings.qa_watchlist_enabled and settings.qa_air_product_gate_near_miss:
                     edge = float(play.get("edge") or 0)
                     if edge >= settings.ev_threshold and edge < settings.product_ev_min:
                         pg_sev = WATCHLIST_SEVERITY
@@ -583,7 +623,7 @@ def review_play(
             QAIssue(
                 "commitment_lock",
                 "warn",
-                "Committed Sharp Play inside T-2h window — QA pullback blocked until settlement",
+                "Committed Sharp Play inside commitment window — QA pullback blocked until settlement",
             )
         )
         action = "approve"

@@ -165,6 +165,11 @@ class Settings(BaseSettings):
     # Moneyline went 8-13 (-4.4u) certified through Week 4 2026; 17-31 across all graded
     # candidates through Week 6. Keep h2h here (= no-ML gate on the LOCKED card).
     product_shadow_markets: str = "h2h"
+    # Narrow LOCKED lanes: Phase-4 confirmed + Pinnacle no-vig on our side (≥50%).
+    # Priority order is the comma list (first = highest). Replaces spread/total
+    # product guardrails and multi-book corroboration for lane plays only.
+    product_narrow_lanes_enabled: bool = True
+    product_narrow_lanes: str = "ncaaf:totals,nfl:spreads,ncaaf:spreads"
 
     # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).
     qa_promote_single_book_totals: bool = True

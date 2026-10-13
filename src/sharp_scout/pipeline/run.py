@@ -222,6 +222,11 @@ def run_pipeline(
         all_signals.extend(filtered)
 
     validated = [s for s in all_signals if s["filter_passed"]]
+    from sharp_scout.qa.product_gate import apply_board_flags
+
+    for s in all_signals:
+        if s.get("filter_passed"):
+            apply_board_flags(s, sport="nfl")
     from sharp_scout.copy.explain import collapse_best_signals, format_play_rationale
 
     validated = collapse_best_signals(validated, only_passed=True)

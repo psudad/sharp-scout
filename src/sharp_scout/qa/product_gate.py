@@ -4,6 +4,11 @@ Phase 4 ``filter_passed`` means the model found EV; this layer means the bet is
 structurally defensible (sharp side, corroboration, size cap). ML requires split-board
 spread + moneyline sharp confirmation (option B).
 Research signals and stage leans are unchanged; only ledger posting uses certified.
+
+When ``product_narrow_lanes_enabled``, certification is limited to configured
+``sport:market`` lanes (default: NCAAF totals, NFL spreads, NCAAF spreads). Lane plays
+must be Phase-4 confirmed with a Pinnacle no-vig reference ≥50% on our side; missing
+Pinnacle numbers stay on the research board with a ``no_pinnacle`` flag.
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ from sharp_scout.utils.odds import american_to_implied_prob
 from sharp_scout.utils.slate import parse_commence
 
 SHADOW_MARKET_NOTE = "shadow market"
+PINNACLE_BOOK = "pinnacle"
 
 
 def shadow_markets(settings: Any | None = None) -> set[str]:
@@ -29,6 +35,66 @@ def shadow_markets(settings: Any | None = None) -> set[str]:
 def is_shadow_only(reasons: tuple[str, ...] | list[str]) -> bool:
     """True when the only thing keeping a play off the card is its shadow market."""
     return bool(reasons) and all(r.startswith(SHADOW_MARKET_NOTE) for r in reasons)
+
+
+def parse_narrow_lanes(settings: Any | None = None) -> list[tuple[str, str]]:
+    """Ordered (sport, market) pairs — earlier entries outrank later for the cap."""
+    s = settings or get_settings()
+    out: list[tuple[str, str]] = []
+    for raw in (s.product_narrow_lanes or "").split(","):
+        raw = raw.strip()
+        if ":" not in raw:
+            continue
+        sport, market = raw.split(":", 1)
+        out.append((sport.strip().lower(), market.strip().lower()))
+    return out
+
+
+def narrow_lane_rank(
+    play: dict[str, Any], sport: str, lanes: list[tuple[str, str]] | None = None
+) -> int | None:
+    """Lower rank = higher priority; None if the play is not in any lane."""
+    lanes = lanes if lanes is not None else parse_narrow_lanes()
+    key = (str(sport).lower(), str(play.get("market") or "").lower())
+    for i, lane in enumerate(lanes):
+        if lane == key:
+            return i
+    return None
+
+
+def in_narrow_lane(
+    play: dict[str, Any], sport: str, lanes: list[tuple[str, str]] | None = None
+) -> bool:
+    return narrow_lane_rank(play, sport, lanes) is not None
+
+
+def pinnacle_no_vig_fair(play: dict[str, Any]) -> float | None:
+    """Pinnacle no-vig fair probability at our line, or None if not priced off Pinnacle."""
+    book = str(play.get("sharp_book") or "").strip().lower()
+    if book != PINNACLE_BOOK:
+        return None
+    pf = play.get("p_fair")
+    if pf is not None:
+        return float(pf)
+    pm = play.get("p_mkt")
+    if pm is not None:
+        return float(pm)
+    return None
+
+
+def apply_board_flags(play: dict[str, Any], *, sport: str = "nfl") -> None:
+    """Annotate research-board flags for narrow-lane plays missing Pinnacle."""
+    flags: list[str] = list(play.get("board_flags") or [])
+    if in_narrow_lane(play, sport):
+        if pinnacle_no_vig_fair(play) is None:
+            if "no_pinnacle" not in flags:
+                flags.append("no_pinnacle")
+        else:
+            flags = [f for f in flags if f != "no_pinnacle"]
+    if flags:
+        play["board_flags"] = flags
+    elif "board_flags" in play:
+        play.pop("board_flags", None)
 
 
 @dataclass(frozen=True)
@@ -243,6 +309,57 @@ def _hours_until_kickoff(play: dict[str, Any], *, now: datetime | None = None) -
     return (kick - ref).total_seconds() / 3600.0
 
 
+def _evaluate_ev_band(
+    play: dict[str, Any], sport: str, settings: Any, reasons: list[str]
+) -> None:
+    market = str(play.get("market") or "")
+    edge = play.get("edge")
+    if edge is None:
+        reasons.append("missing edge")
+        return
+    wl = is_whitelisted(play, sport, settings)
+    ev_min = settings.product_whitelist_ev_min if wl else settings.product_ev_min
+    if float(edge) < ev_min:
+        reasons.append(f"EV {float(edge):.1%} < {ev_min:.0%} product floor")
+    ev_max = settings.product_ev_max
+    if not wl and ev_max is not None and float(edge) >= ev_max:
+        reasons.append(
+            f"EV {float(edge):.1%} ≥ {ev_max:.0%} product ceiling (model-tilt outlier)"
+        )
+
+
+def _evaluate_narrow_lane_play(
+    play: dict[str, Any],
+    *,
+    sport: str,
+    settings: Any,
+    now: datetime | None = None,
+) -> ProductGateResult:
+    """Lane path: Phase-4 already confirmed; require Pinnacle ≥50% and EV band only."""
+    reasons: list[str] = []
+    market = str(play.get("market") or "")
+
+    if market in shadow_markets(settings):
+        reasons.append(f"{SHADOW_MARKET_NOTE}: {market} is tracked on the watchlist, not posted")
+
+    if settings.product_play_tier_only and (play.get("tier") or "") != "play":
+        reasons.append(f"tier={play.get('tier') or 'lean'} (product requires play)")
+
+    _evaluate_ev_band(play, sport, settings, reasons)
+
+    pin_fair = pinnacle_no_vig_fair(play)
+    if pin_fair is None:
+        reasons.append("no Pinnacle no-vig line for certification (board: no_pinnacle)")
+    elif pin_fair < settings.product_p_fair_min:
+        reasons.append(
+            f"Pinnacle no-vig {pin_fair:.1%} on our side < {settings.product_p_fair_min:.0%}"
+        )
+
+    if reasons:
+        return ProductGateResult(False, tuple(reasons))
+    return ProductGateResult(True, ())
+
+
 def evaluate_product_play(
     play: dict[str, Any],
     *,
@@ -255,6 +372,16 @@ def evaluate_product_play(
     if not settings.product_gate_enabled:
         return ProductGateResult(True, ())
 
+    if settings.product_narrow_lanes_enabled:
+        if not in_narrow_lane(play, sport):
+            return ProductGateResult(
+                False,
+                (
+                    f"outside narrow LOCKED lanes ({settings.product_narrow_lanes or 'none'})",
+                ),
+            )
+        return _evaluate_narrow_lane_play(play, sport=sport, settings=settings, now=now)
+
     reasons: list[str] = []
     market = str(play.get("market") or "")
     allowed = {m.strip() for m in settings.product_markets.split(",") if m.strip()}
@@ -264,19 +391,7 @@ def evaluate_product_play(
     if settings.product_play_tier_only and (play.get("tier") or "") != "play":
         reasons.append(f"tier={play.get('tier') or 'lean'} (product requires play)")
 
-    edge = play.get("edge")
-    if edge is None:
-        reasons.append("missing edge")
-    else:
-        wl = is_whitelisted(play, sport, settings)
-        ev_min = settings.product_whitelist_ev_min if wl else settings.product_ev_min
-        if float(edge) < ev_min:
-            reasons.append(f"EV {float(edge):.1%} < {ev_min:.0%} product floor")
-        ev_max = settings.product_ev_max
-        if not wl and ev_max is not None and float(edge) >= ev_max:
-            reasons.append(
-                f"EV {float(edge):.1%} ≥ {ev_max:.0%} product ceiling (model-tilt outlier)"
-            )
+    _evaluate_ev_band(play, sport, settings, reasons)
 
     pf = _p_fair(play)
     if pf is None:
@@ -339,21 +454,30 @@ def select_certified_plays(
 ) -> list[dict[str, Any]]:
     """Filter and cap plays for ledger posting (ranked by edge)."""
     settings = get_settings()
+    lanes = parse_narrow_lanes(settings) if settings.product_narrow_lanes_enabled else []
     passed: list[dict[str, Any]] = []
     for s in candidates:
         if not s.get("filter_passed"):
             continue
+        apply_board_flags(s, sport=sport)
         res = evaluate_product_play(s, signals=signals, sport=sport)
         s["product_certified"] = res.ok
         s["product_gate_notes"] = list(res.reasons) if res.reasons else []
         if res.ok:
             passed.append(s)
 
-    # Whitelisted sport:market pairs rank first, then by edge.
-    passed.sort(
-        key=lambda x: (is_whitelisted(x, sport, settings), float(x.get("edge") or 0)),
-        reverse=True,
-    )
+    if settings.product_narrow_lanes_enabled and lanes:
+        passed = [p for p in passed if in_narrow_lane(p, sport, lanes)]
+        def _sort_key(x: dict[str, Any]) -> tuple[int, float]:
+            rank = narrow_lane_rank(x, sport, lanes)
+            return (rank if rank is not None else 999, -float(x.get("edge") or 0))
+
+        passed.sort(key=_sort_key)
+    else:
+        passed.sort(
+            key=lambda x: (is_whitelisted(x, sport, settings), float(x.get("edge") or 0)),
+            reverse=True,
+        )
 
     cap = (
         settings.product_max_plays_ncaaf

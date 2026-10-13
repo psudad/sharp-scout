@@ -197,6 +197,21 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 
 **Circa note:** The Odds API exposes Pinnacle reliably (`eu`). Circa is included in sharp preference order when the aggregator returns it; otherwise Pinnacle is the sharp benchmark.
 
+### LOCKED card (narrow lanes)
+
+Only a subset of Phase-4 **Sharp Plays** are posted to the ledger / **LOCKED PLAYS** board. With `PRODUCT_NARROW_LANES_ENABLED=true` (default), certification uses three lanes in priority order:
+
+1. **NCAAF totals** (primary)
+2. **NFL spreads** (secondary)
+
+Each lane play must be Phase-4 confirmed (`filter_passed`, not sharp-vetoed) and priced off **Pinnacle** with no-vig fair probability ≥ 50% on our side. Plays without a Pinnacle reference remain on the research board with a `no_pinnacle` flag and are not certified. **Moneyline is never locked.** Both lanes use the **4–12% EV band** (no separate 2% NCAAF totals floor on the LOCKED card).
+
+Plays with **both** Phase-4 money-ticket gap and RLM are ranked ahead and flagged `high_confidence`; that booster never creates or certifies a play by itself.
+
+For lane plays, the product gate **replaces** (does not stack on) spread/total handle guardrails, multi-book corroboration, lead-time, and price-vs-fair checks — Phase 4 already enforces confirmation; Pinnacle ≥ 50% replaces generic `p_fair` corroboration.
+
+Configure with `PRODUCT_NARROW_LANES` (comma-separated `sport:market` list).
+
 ## Action Network Pro / auth
 
 Phase 4 uses Action Network public-betting splits (ticket % vs money %).

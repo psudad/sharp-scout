@@ -221,6 +221,11 @@ def run_ncaaf_pipeline(
         all_signals.extend(filtered)
 
     validated = [s for s in all_signals if s["filter_passed"]]
+    from sharp_scout.qa.product_gate import apply_board_flags
+
+    for s in all_signals:
+        if s.get("filter_passed"):
+            apply_board_flags(s, sport="ncaaf")
     validated.sort(key=lambda s: s["edge"], reverse=True)
 
     from sharp_scout.stage_picks import STAGE_MARKETS, build_slate_stage_picks, summarize_stage_slate

@@ -280,6 +280,7 @@ def test_corroborated_spread_passes():
         "price": -110,
         "p_true": 0.58,
         "p_fair": 0.55,
+        "sharp_book": "pinnacle",
         "edge": 0.05,
         "tier": "play",
         "kickoff": kickoff,

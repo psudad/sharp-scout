@@ -4,12 +4,24 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
+from sharp_scout.config import get_settings
 from sharp_scout.qa.product_gate import (
     evaluate_product_play,
     is_shadow_only,
     select_certified_plays,
     select_shadow_plays,
 )
+
+
+@pytest.fixture(autouse=True)
+def _legacy_product_gate_without_narrow_lanes(monkeypatch):
+    """These tests cover the full (non-lane) product gate."""
+    monkeypatch.setenv("PRODUCT_NARROW_LANES_ENABLED", "false")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 def _sig(**kw):

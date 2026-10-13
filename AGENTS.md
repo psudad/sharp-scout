@@ -20,7 +20,7 @@ Sharp Scout is a single Python 3.12 package (`src/sharp_scout`, installed editab
 - Pipeline (NFL sides): `python scripts/run_pipeline.py --build-site` (live) or `--demo --build-site` (offline)
 - Pipeline (NCAAF): `python scripts/run_ncaaf.py --build-site` (live) or `--demo --build-site` (offline)
 - Props: `python scripts/run_props.py --build-site` (live) or `--demo --build-site` (offline). Props default to **shadow mode** (`PROPS_PUBLISH_ENABLED=false`): artifacts land in `artifacts/latest_props.json` but picks do not hit the ledger or combined board until publish is enabled.
-- Scheduled sides + props on GitHub: **Pregame Windows (T-12 / T-3 / T-1)** runs `scripts/run_pregame.py` and commits `docs/` when a kickoff window matches; hourly runs often no-op when outside the plan.
+- Scheduled sides + props on GitHub: **Pregame Windows (T-12 / T-4 / T-3 / T-2 / T-1)** runs `scripts/run_pregame.py` for NFL + NCAAF when `data/pregame_run_plan.json` matches; cron fires daily (gate skips empty hours).
 - API dev server: `uvicorn sharp_scout.api.main:app --host 0.0.0.0 --port 8000 --reload` then hit `GET /api/health`, `POST /api/run`, `GET /api/plays`, `GET /api/ncaaf`, `POST /api/run-ncaaf`, `GET /` (dashboard UI).
 - There is no configured linter (no ruff/flake8 config despite `.ruff_cache` in `.gitignore`); "lint" is not a separate step here.
 

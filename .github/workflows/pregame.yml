@@ -1,6 +1,6 @@
 name: Pregame Windows (T-12 / T-4..T-1)
 
-# Uses data/pregame_run_plan.json (built from nflverse weekly schedule) to fire only
+# Uses data/pregame_run_plan.json (NFL schedule + NCAAF Odds API board) to fire only
 # near real kickoff windows — not every 30 minutes.
 #
 # Secrets (repo Settings → Secrets and variables → Actions → Repository secrets):
@@ -10,10 +10,10 @@ name: Pregame Windows (T-12 / T-4..T-1)
 
 on:
   schedule:
-    # Refresh weekly plan: Monday 10:00 UTC (~6am ET)
-    - cron: "0 10 * * 1"
-    # Hourly on NFL game days (Thu–Mon UTC); most hours exit in seconds via run plan gate
-    - cron: "5,35 * * * 0,4,5,6,1"
+    # Refresh run plan daily (~6am ET) so mid-week NCAAF slates (Tue/Wed) are included
+    - cron: "0 10 * * *"
+    # Every day at :05 and :35 UTC — gate skips hours with no planned games
+    - cron: "5,35 * * * *"
   workflow_dispatch:
     inputs:
       demo:
@@ -48,25 +48,25 @@ jobs:
 
       - name: Gate — skip hour if not in run plan
         id: gate
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'schedule' && github.event.schedule != '0 10 * * *'
         run: python3 scripts/check_pregame_plan.py
 
       - name: Stop — not a planned run hour
-        if: github.event_name == 'schedule' && steps.gate.outputs.run != 'true'
+        if: github.event_name == 'schedule' && github.event.schedule != '0 10 * * *' && steps.gate.outputs.run != 'true'
         run: echo "Skipping — no pregame window scheduled for this hour."
 
       - uses: actions/setup-python@v5
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true' || github.event.schedule == '0 10 * * 1'
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 10 * * *' || steps.gate.outputs.run == 'true'
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true' || github.event.schedule == '0 10 * * 1'
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 10 * * *' || steps.gate.outputs.run == 'true'
         run: pip install -e .
 
       - name: Configure env
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true' || github.event.schedule == '0 10 * * 1'
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 10 * * *' || steps.gate.outputs.run == 'true'
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
           echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
@@ -75,11 +75,11 @@ jobs:
           echo "MONTE_CARLO_SIMS=4000" >> $GITHUB_ENV
 
       - name: Build weekly pregame run plan
-        if: github.event.schedule == '0 10 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.refresh_plan)
+        if: github.event.schedule == '0 10 * * *' || (github.event_name == 'workflow_dispatch' && inputs.refresh_plan)
         run: python scripts/plan_pregame_runs.py
 
       - name: Commit run plan
-        if: github.event.schedule == '0 10 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.refresh_plan)
+        if: github.event.schedule == '0 10 * * *' || (github.event_name == 'workflow_dispatch' && inputs.refresh_plan)
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -87,7 +87,8 @@ jobs:
           if git diff --staged --quiet; then
             echo "No plan changes"
           else
-            git commit -m "chore: refresh pregame run plan from NFL schedule"
+            git commit -m "chore: refresh pregame run plan (NFL + NCAAF)"
+            git pull --rebase origin main || { git rebase --abort; git fetch origin main; git reset --hard origin/main; python scripts/plan_pregame_runs.py; git add data/pregame_run_plan.json; git commit -m "chore: refresh pregame run plan (NFL + NCAAF)"; }
             git push
           fi
 
@@ -111,23 +112,18 @@ jobs:
           fi
           python scripts/run_pregame.py $ARGS --ledger
 
-      - name: Settle finished games (sides + props) and rebuild site
+      - name: Settle finished games (NFL + NCAAF) and rebuild site
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
-        run: python scripts/settle_now.py --sport nfl
+        run: python scripts/settle_now.py
 
       - name: Commit schedule state + site
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/schedule_state.json data/ledger.json data/props_ledger.json data/line_history.json data/open_lines.json data/calibration.json docs/ 2>/dev/null || git add data/schedule_state.json data/ledger.json data/props_ledger.json docs/ || true
-          if git diff --staged --quiet; then
-            echo "No changes"
-          else
-            git commit -m "chore: pregame window update (sides + props)"
-            git pull --rebase --autostash origin main
-            git push
-          fi
+          chmod +x scripts/ci_git_push_retry.sh
+          export ADD_PATHS="data/schedule_state.json data/ledger.json data/ncaaf_ledger.json data/props_ledger.json data/line_history.json data/open_lines.json data/calibration.json docs/"
+          ./scripts/ci_git_push_retry.sh "chore: pregame window update (NFL + NCAAF sides)" bash -c "python scripts/run_pregame.py --ledger && python scripts/settle_now.py"
 
       - name: Upload Pages artifact
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'

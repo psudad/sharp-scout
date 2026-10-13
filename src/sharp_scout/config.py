@@ -152,7 +152,11 @@ class Settings(BaseSettings):
     product_spread_sharp_guardrail: bool = True
     product_spread_money_gap: float = 0.12  # money-ticket gap on OUR spread side (default = filter bar)
     # Do not post a first-time LOCKED play inside this window before kickoff (hours).
-    product_min_certify_lead_hours: float = 8.0
+    # Was 8h (#59). Graded 2026 confirmed candidates (Sep 22-Oct 12): last pre-kick state
+    # <8h before kickoff went 27-19 (58.7%) vs 4-9 at >=8h — splits/RLM mature late, so
+    # the 8h rule removed the better plays and blocked every Sunday-morning NFL run.
+    # 2h still posts before the NFL T-1h card freeze.
+    product_min_certify_lead_hours: float = 2.0
     # Price vs sharp: p_fair (Pinnacle no-vig at our line) minus our price's implied prob.
     # A play priced well below sharp fair starts with negative CLV; the vig alone is ~-2.4%
     # at -110, so -1% only blocks prices materially worse than the sharp market.

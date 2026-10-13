@@ -267,7 +267,7 @@ def test_spread_vetoed_when_sharp_money_gap_below_bar():
 
 def test_spread_blocked_inside_lead_window():
     now = datetime(2026, 10, 6, 20, 0, tzinfo=timezone.utc)
-    kick = (now + timedelta(hours=4)).isoformat()
+    kick = (now + timedelta(hours=1)).isoformat()  # inside the 2h lead window
     signals = _spread_signals()
     play = _sig(kickoff=kick, commence_time=kick)
     r = evaluate_product_play(play, signals=signals, sport="nfl", now=now)

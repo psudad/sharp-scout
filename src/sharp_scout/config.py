@@ -170,6 +170,8 @@ class Settings(BaseSettings):
     # product guardrails and multi-book corroboration for lane plays only.
     product_narrow_lanes_enabled: bool = True
     product_narrow_lanes: str = "ncaaf:totals,nfl:spreads"
+    # Per narrow-lane EV floors as sport:market:min (comma-separated). Unlisted lanes use product_ev_min.
+    product_narrow_lane_ev_mins: str = "nfl:spreads:0.03"
 
     # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).
     qa_promote_single_book_totals: bool = True

@@ -54,6 +54,53 @@ def test_ncaaf_totals_uses_four_percent_floor_not_whitelist(narrow_lanes_on):
     assert not r.ok and "4%" in r.note()
 
 
+def test_ncaaf_total_at_three_point_five_percent_rejected(narrow_lanes_on):
+    r = evaluate_product_play(_sig(edge=0.035), signals=None, sport="ncaaf")
+    assert not r.ok and "4%" in r.note()
+
+
+def test_nfl_spread_at_three_point_four_percent_certifies(narrow_lanes_on):
+    play = _sig(
+        market="spreads",
+        side="away",
+        line=8.0,
+        home_team="KC",
+        away_team="LAC",
+        edge=0.034,
+        p_fair=0.50,
+    )
+    r = evaluate_product_play(play, signals=None, sport="nfl")
+    assert r.ok, r.note()
+
+
+def test_nfl_spread_at_two_point_nine_percent_rejected(narrow_lanes_on):
+    play = _sig(
+        market="spreads",
+        side="away",
+        line=8.0,
+        home_team="KC",
+        away_team="LAC",
+        edge=0.029,
+        p_fair=0.50,
+    )
+    r = evaluate_product_play(play, signals=None, sport="nfl")
+    assert not r.ok and "3%" in r.note()
+
+
+def test_nfl_spread_at_twelve_percent_rejected(narrow_lanes_on):
+    play = _sig(
+        market="spreads",
+        side="away",
+        line=8.0,
+        home_team="KC",
+        away_team="LAC",
+        edge=0.12,
+        p_fair=0.55,
+    )
+    r = evaluate_product_play(play, signals=None, sport="nfl")
+    assert not r.ok and "ceiling" in r.note()
+
+
 def test_ev_ceiling_applies_to_ncaaf_totals_lane(narrow_lanes_on):
     r = evaluate_product_play(_sig(edge=0.15), signals=None, sport="ncaaf")
     assert not r.ok and "ceiling" in r.note()

@@ -50,6 +50,23 @@ def parse_narrow_lanes(settings: Any | None = None) -> list[tuple[str, str]]:
     return out
 
 
+def narrow_lane_ev_min(
+    sport: str, market: str, settings: Any | None = None
+) -> float:
+    """EV floor for a narrow lane; falls back to product_ev_min when not overridden."""
+    s = settings or get_settings()
+    key = (str(sport).lower(), str(market).lower())
+    for raw in (s.product_narrow_lane_ev_mins or "").split(","):
+        raw = raw.strip()
+        parts = raw.split(":")
+        if len(parts) != 3:
+            continue
+        lane_sport, lane_market, ev_s = (p.strip() for p in parts)
+        if (lane_sport.lower(), lane_market.lower()) == key:
+            return float(ev_s)
+    return float(s.product_ev_min)
+
+
 def narrow_lane_rank(
     play: dict[str, Any], sport: str, lanes: list[tuple[str, str]] | None = None
 ) -> int | None:
@@ -386,13 +403,20 @@ def apply_high_confidence_flag(play: dict[str, Any]) -> None:
         play.pop("high_confidence", None)
 
 
-def _evaluate_narrow_ev_band(play: dict[str, Any], settings: Any, reasons: list[str]) -> None:
-    """Uniform 4–12% EV band on narrow lanes (no whitelist floor)."""
+def _evaluate_narrow_ev_band(
+    play: dict[str, Any],
+    *,
+    sport: str,
+    settings: Any,
+    reasons: list[str],
+) -> None:
+    """Per-lane EV floor (see product_narrow_lane_ev_mins) and shared product_ev_max ceiling."""
     edge = play.get("edge")
     if edge is None:
         reasons.append("missing edge")
         return
-    ev_min = settings.product_ev_min
+    market = str(play.get("market") or "")
+    ev_min = narrow_lane_ev_min(sport, market, settings)
     if float(edge) < ev_min:
         reasons.append(f"EV {float(edge):.1%} < {ev_min:.0%} product floor")
     ev_max = settings.product_ev_max
@@ -438,7 +462,7 @@ def _evaluate_narrow_lane_play(
     if settings.product_play_tier_only and (play.get("tier") or "") != "play":
         reasons.append(f"tier={play.get('tier') or 'lean'} (product requires play)")
 
-    _evaluate_narrow_ev_band(play, settings, reasons)
+    _evaluate_narrow_ev_band(play, sport=sport, settings=settings, reasons=reasons)
 
     pin_fair = pinnacle_no_vig_fair(play)
     if pin_fair is None:

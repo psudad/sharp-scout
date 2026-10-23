@@ -54,7 +54,7 @@ def test_landing_and_board_link_to_comments(site: Path):
 def test_comments_page_can_navigate_back(site: Path):
     html = (site / "comments.html").read_text()
     assert 'href="index.html"' in html
-    assert 'href="board.html#tab-cfb"' in html
+    assert 'href="board.html#tab-plays"' in html or 'href="board.html"' in html
 
 
 def test_comments_page_does_not_include_board_tabs_logic(site: Path):

@@ -14,26 +14,28 @@ def _play(kickoff: datetime) -> dict:
 def test_timing_hold_far_from_kickoff():
     kick = datetime.now(timezone.utc) + timedelta(hours=48)
     html = _play_timing_status_html(_play(kick))
-    assert "Don't play yet" in html
-    assert "lock in closer to game time" in html
+    assert "Wait" in html
+    assert "Bet closer to kickoff" in html
 
 
 def test_timing_watch_between_12_and_3_hours():
     kick = datetime.now(timezone.utc) + timedelta(hours=8)
     html = _play_timing_status_html(_play(kick))
-    assert "T-3h" in html
+    assert "Get ready" in html
+    assert "3 hours" in html
 
 
 def test_timing_soon_between_3_and_1_hours():
     kick = datetime.now(timezone.utc) + timedelta(hours=2)
     html = _play_timing_status_html(_play(kick))
-    assert "T-1h" in html
+    assert "Almost time" in html
+    assert "1 hour" in html
 
 
 def test_timing_lock_within_one_hour():
     kick = datetime.now(timezone.utc) + timedelta(minutes=45)
     html = _play_timing_status_html(_play(kick))
-    assert "Lock in now" in html
+    assert "Bet now" in html
 
 
 def test_timing_settled_shows_game_over():

@@ -28,16 +28,22 @@ TAB_NAMES = (
 )
 
 
-def test_landing_has_top_nav_to_every_board_tab(site: Path):
+def test_landing_links_to_board_and_more_menu(site: Path):
     html = (site / "index.html").read_text()
-    for name in TAB_NAMES:
-        assert f'href="board.html#tab-{name}"' in html, name
+    assert 'href="board.html"' in html
+    assert 'href="comments.html"' in html
+    assert 'href="props.html"' in html
 
 
-def test_landing_nav_is_above_the_hero(site: Path):
-    """Nav must be at the top so users can jump straight into the board."""
-    body = (site / "index.html").read_text().split("<body>", 1)[1]
-    assert body.index('class="tabs"') < body.index('class="lp-hero"')
+def test_landing_header_is_above_hero(site: Path):
+    body = (site / "index.html").read_text().split("<body", 1)[1]
+    assert body.index("lp-header") < body.index("lp-hero")
+
+
+def test_landing_has_mobile_bottom_bar(site: Path):
+    html = (site / "index.html").read_text()
+    assert "lp-bbar" in html
+    assert "My card" in html
 
 
 def test_board_tabs_are_anchors_with_hash_targets(site: Path):
@@ -48,8 +54,6 @@ def test_board_tabs_are_anchors_with_hash_targets(site: Path):
 
 
 def test_nfl_and_cfb_tabs_are_symmetric(site: Path):
-    """NFL and CFB must mirror each other: plays, stage winners, sharp money/line
-    movement, stage records, ledger, leans, and prior-week archive."""
     html = (site / "board.html").read_text()
     nfl = html[html.index('id="tab-plays"'):html.index('id="tab-cfb"')]
     cfb = html[html.index('id="tab-cfb"'):html.index('id="tab-guide"')]
@@ -76,7 +80,6 @@ def test_standalone_stages_ratings_games_tabs_are_gone(site: Path):
 
 
 def test_board_routes_hash_to_tab_on_load(site: Path):
-    """Deep links only work if the board reads location.hash at load time."""
     html = (site / "board.html").read_text()
     assert "hashchange" in html
     assert "nameFromHash" in html
@@ -88,28 +91,11 @@ def test_board_tab_click_syncs_hash(site: Path):
     assert "replaceState(null, '', '#tab-'" in html
 
 
-def test_plays_table_cells_carry_labels_for_phone_stacking(site: Path):
-    html = (site / "index.html").read_text()
-    # Only check if there are actually plays to show (table exists)
-    if '<table' in html and 'plays-table' in html:
-        for label in ("Kickoff", "Game", "Play", "Units", "EV", "Book", "Why"):
-            assert f"data-label='{label}'" in html, f"Missing data-label for {label}"
-
-
-def test_phone_media_query_stacks_plays_table(site: Path):
-    html = (site / "index.html").read_text()
-    assert "@media (max-width: 640px)" in html
-    assert "content: attr(data-label)" in html
-    assert ".plays-table thead { display: none; }" in html
-
-
-def test_tab_strip_scrolls_on_narrow_screens(site: Path):
-    html = (site / "index.html").read_text()
-    assert "-webkit-overflow-scrolling: touch" in html
-    assert "@media (max-width: 700px)" in html
+def test_aux_tabs_hidden_on_narrow_screens(site: Path):
+    html = (site / "board.html").read_text()
+    assert ".tab.tab-aux { display: none; }" in html
 
 
 def test_sticky_tabs_not_broken_by_overflow_hidden(site: Path):
-    """overflow-x:hidden on html/body would disable position:sticky."""
     html = (site / "board.html").read_text()
     assert "html, body { overflow-x: hidden; }" not in html

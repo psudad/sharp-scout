@@ -39,17 +39,13 @@ def site(tmp_path: Path, monkeypatch) -> Path:
     return tmp_path
 
 
-def test_landing_explains_ev_in_plain_english(site: Path):
+def test_landing_explains_confidence_in_plain_english(site: Path):
     html = (site / "index.html").read_text()
-    plain = html.replace("</b>", "").replace("<b>", "").replace("</i>", "").replace("<i>", "")
-    # Concise explainer: EV, Win %, and the named confidence tiers.
     assert "How to read a play" in html
-    assert "EV %" in html and "how good the price is" in plain
-    # All four tiers are explained, including the Double Diamond loss caveat.
-    for tier in ("Double Diamond", "Diamond", "Gold", "Silver"):
+    for tier in ("Top pick", "Strong", "Good", "Lean"):
         assert tier in html
-    assert "> 70%" in plain or "&gt; 70%" in html
-    assert "1 in every 3–4" in plain
+    assert "Chance to win" in html
+    assert "Bet size" in html
 
 
 def test_board_headers_stick_on_scroll(site: Path):
@@ -59,11 +55,12 @@ def test_board_headers_stick_on_scroll(site: Path):
     assert ".table-wrap { overflow: auto; max-height: 80vh;" in css
 
 
-def test_landing_scrolls_as_full_page_not_boxed(site: Path):
-    """Landing page tables flow with the page (no capped-height frame / frozen header)."""
+def test_landing_uses_card_layout_not_plays_table(site: Path):
     html = (site / "index.html").read_text()
-    assert ".lp-wrap .table-wrap { overflow-x: auto; overflow-y: visible; max-height: none; }" in html
-    assert ".lp-wrap .table-wrap thead th { position: static;" in html
+    body = html.split("</style>", 1)[-1]
+    assert "lp-card" in body
+    assert 'class="plays-table' not in body
+    assert "<table" not in body
 
 
 def test_all_pages_have_ssq_favicon(site: Path):
@@ -78,18 +75,18 @@ def test_win_pct_cell_tiers():
 
     # Hybrid: high win% + strong EV earns the premium tiers.
     ddiamond = _win_pct_cell(0.74, 0.20)
-    assert "74%" in ddiamond and "conf-ddiamond" in ddiamond and "Double Diamond" in ddiamond
+    assert "74%" in ddiamond and "conf-ddiamond" in ddiamond and "Top pick" in ddiamond
     diamond = _win_pct_cell(0.63, 0.12)
-    assert "conf-diamond" in diamond and ">Diamond" in diamond and "Double" not in diamond
+    assert "conf-diamond" in diamond and "Strong" in diamond and "Top pick" not in diamond
     # Band boundaries (with value clearing the gate)
     assert "conf-diamond" in _win_pct_cell(0.60, 0.06)
     assert "conf-ddiamond" in _win_pct_cell(0.70, 0.10)
     # Gold 55%+ (all posted plays are +EV, no strict value gate here)
     gold = _win_pct_cell(0.57, 0.03)
-    assert "conf-gold" in gold and "Gold" in gold
+    assert "conf-gold" in gold and "Good" in gold
     assert "conf-gold" in _win_pct_cell(0.55, 0.03)
-    # Silver catches everything under 55%, including +EV moneyline dogs under 50%
-    assert "conf-silver" in _win_pct_cell(0.54, 0.30) and "Silver" in _win_pct_cell(0.54, 0.30)
+    # Lean catches everything under 55%, including +EV moneyline dogs under 50%
+    assert "conf-silver" in _win_pct_cell(0.54, 0.30) and "Lean" in _win_pct_cell(0.54, 0.30)
     assert "conf-silver" in _win_pct_cell(0.38, 0.30)
     assert "—" in _win_pct_cell(None)
 
@@ -119,5 +116,4 @@ def test_plays_table_has_win_pct_alongside_ev(site: Path):
     if has_plays_table:
         assert "<th>Win %</th>" in landing, "Landing page has plays table but missing Win % header"
     
-    # Landing EV explainer describes Win % regardless of whether plays are present
-    assert "Win %" in landing and "chance this exact bet cashes" in landing
+    assert "Chance to win" in landing

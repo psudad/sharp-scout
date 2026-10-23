@@ -121,7 +121,7 @@ def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
     assert 'data-tab="cfb"' in html
     assert "NCAAF" in html or "CFB" in html
     assert "This Week — Pregame Stage Winners" in html
-    assert "This Week's Plays" in html
+    assert "Today's plays" in html or "Today's best plays" in (out / "index.html").read_text()
     assert "NCAAF Ledger" in html
     assert "Quant Pick Leans" in html
     assert "lean-row-sharp-play" in html

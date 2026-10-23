@@ -1,4 +1,4 @@
-"""Landing page — plays only, with the full board one click away."""
+"""Landing page — card layout, filters, and My card."""
 
 from __future__ import annotations
 
@@ -26,22 +26,28 @@ def test_landing_and_board_are_both_written(site: Path):
     assert (site / "board.html").exists()
 
 
-def test_landing_shows_both_sports_and_links_to_board(site: Path):
+def test_landing_leads_with_best_plays_and_board_link(site: Path):
     html = (site / "index.html").read_text()
-    assert "This Week's Plays" in html
-    assert "College Football" in html
-    assert ">NFL<" in html or "NFL" in html
+    assert "Today's best plays" in html
     assert 'href="board.html"' in html
-    assert "See the full board" in html
+    assert "See the full research board" in html
+    assert "Official play" in html or "No official plays" in html
+
+
+def test_landing_has_filters_and_my_card(site: Path):
+    html = (site / "index.html").read_text()
+    assert 'data-f="sport"' in html
+    assert "Any confidence" in html
+    assert "Strong or better" in html
+    assert "Add to my card" in html
+    assert "Copy my card" in html
+    assert "ssSlip" in html or "localStorage" in html
 
 
 def test_landing_omits_board_only_sections(site: Path):
-    """The point of the landing page is that it is NOT the whole board."""
     html = (site / "index.html").read_text()
     assert "Pregame Stage Winners" not in html
-    assert "Quant Pick Leans" not in html
     assert "NCAAF Ledger" not in html
-    assert "Stage Records" not in html
     assert "showTab(" not in html
 
 
@@ -58,7 +64,6 @@ def test_landing_keeps_timing_script(site: Path):
 
 
 def test_landing_hides_early_season_banner_after_week_three(site: Path):
-    """October slate should not show the opening-week caution banner."""
     html = (site / "index.html").read_text()
     assert "WEEK 1 — READ THIS FIRST" not in html
 
@@ -72,3 +77,9 @@ def test_landing_redirects_legacy_tab_deep_links(site: Path):
 def test_board_links_back_to_landing(site: Path):
     html = (site / "board.html").read_text()
     assert 'href="index.html"' in html
+
+
+def test_landing_model_leans_section(site: Path):
+    html = (site / "index.html").read_text()
+    assert "Model leans" in html
+    assert "Lean only" in html

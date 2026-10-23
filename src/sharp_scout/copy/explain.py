@@ -266,6 +266,82 @@ def _line_phrase(play: dict[str, Any]) -> str:
     return team
 
 
+def format_play_rationale_short(play: dict[str, Any]) -> str:
+    """One or two short plain-language sentences for the landing page card."""
+    parts: list[str] = []
+    market = str(play.get("market") or "")
+    side = str(play.get("side") or "").lower()
+    line = play.get("line")
+    mkt = _market_label(market)
+    pick = _line_phrase(play)
+
+    p_true = play.get("p_true")
+    if market == "totals" and line is not None and p_true is not None:
+        try:
+            model_total = float(play.get("model_total") or 0)
+        except (TypeError, ValueError):
+            model_total = 0.0
+        if model_total > 0:
+            parts.append(
+                f"Our model expects about {model_total:.0f} total points. "
+                f"The line is {abs(float(line)):g}, so we like the {side.title()}."
+            )
+        else:
+            parts.append(f"We like the {pick} on the {mkt}.")
+    elif market == "spreads" and line is not None and p_true is not None:
+        try:
+            pct = float(p_true) * 100
+        except (TypeError, ValueError):
+            pct = None
+        if pct is not None:
+            parts.append(
+                f"Good price on {pick}, with about a {pct:.0f}% chance to cover."
+            )
+        else:
+            parts.append(f"We like {pick} on the {mkt}.")
+    elif p_true is not None:
+        try:
+            pct = float(p_true) * 100
+        except (TypeError, ValueError):
+            pct = None
+        if pct is not None:
+            parts.append(f"About a {pct:.0f}% chance this {mkt} bet cashes.")
+        else:
+            parts.append(f"We like {pick} on the {mkt}.")
+
+    flags = play.get("flags") or {}
+    if flags.get("money_split"):
+        parts.append("Big bettors are on the same side — handle well above tickets.")
+    if flags.get("rlm"):
+        parts.append("The line moved toward this side even though most tickets went the other way.")
+    if flags.get("steam"):
+        parts.append("Sharp books moved the number quickly toward this side.")
+
+    for note in play.get("filter_notes") or []:
+        text = _translate_filter_note(str(note), play)
+        if not text or text.startswith("We project") or "expected value" in text.lower():
+            continue
+        if "Phase 4" in text or "EV=" in text:
+            continue
+        if text not in parts:
+            parts.append(text)
+            if len(parts) >= 2:
+                break
+
+    if not parts and play.get("rationale"):
+        raw = str(play["rationale"]).strip()
+        if raw and "EV=" not in raw:
+            parts.append(raw.split(" · ")[0][:220])
+
+    if not parts:
+        full = format_play_rationale(play)
+        first = full.split("\n")[0]
+        if first and first != "No rationale recorded.":
+            parts.append(first.split(" — about ")[0][:220])
+
+    return " ".join(parts[:2]) if parts else "Model edge on this number."
+
+
 def format_play_rationale(play: dict[str, Any]) -> str:
     """Multi-line plain English for a play card."""
     lines: list[str] = []

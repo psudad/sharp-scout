@@ -18,7 +18,9 @@ from sharp_scout.copy.explain import (
     format_kickoff_et,
     format_kickoff_compact,
     format_play_rationale,
+    format_play_rationale_short,
     kickoff_sort_key,
+    _signal_rank,
     STAGE_COLUMN_TIPS,
     STAGE_LABELS,
     HYBRID_LEANS_SECTION_NOTE,
@@ -189,16 +191,16 @@ def _hours_until_kickoff(raw: Any, *, now: datetime | None = None) -> float | No
 def _timing_class_text(htk: float | None) -> tuple[str, str]:
     """(css class, guidance) for hours-until-kickoff. Mirrors the JS in _TIMING_SCRIPT."""
     if htk is None:
-        return "hold", "Don't play yet — lock in closer to game time"
+        return "hold", "Wait. Bet closer to kickoff"
     if htk <= 0:
-        return "started", "Game started — too late to bet"
+        return "started", "Game started. Too late to bet."
     if htk <= 1:
-        return "lock", "Lock in now if the number still holds"
+        return "lock", "Bet now if the price still holds"
     if htk <= 3:
-        return "soon", "Almost time — confirm at the T-1h refresh"
+        return "soon", "Almost time. Final check 1 hour before kickoff"
     if htk <= 12:
-        return "watch", "Watch — confirm at the T-3h pregame refresh"
-    return "hold", "Don't play yet — lock in closer to game time"
+        return "watch", "Get ready. Final check 3 hours before kickoff"
+    return "hold", "Wait. Bet closer to kickoff"
 
 
 _LOCKED_PLAY_STATUSES = frozenset({"pending", "win", "loss", "push"})
@@ -999,18 +1001,38 @@ def build_site(
     )
     # The full board lives at board.html; index.html is the plays-only landing page.
     (out / "board.html").write_text(html)
+    from sharp_scout.site.landing_page import landing_lean_plays, render_landing_page
+
+    nfl_landing_leans = landing_lean_plays(
+        nfl_current_stage_cards,
+        sport="nfl",
+        ledger_plays=filter_plays_nfl_display_slate(
+            ledger.get("plays") or [],
+            events=nfl_games_all,
+        ),
+        signal_plays=signals.get("plays") or [],
+    )
+    ncaaf_landing_leans = landing_lean_plays(
+        ncaaf_current_stage_cards,
+        sport="ncaaf",
+        ledger_plays=filter_plays_college_week(ncaaf_ledger.get("plays") or []),
+        signal_plays=ncaaf_signals.get("plays") or [],
+    )
     (out / "index.html").write_text(
-        _render_landing_page(
+        render_landing_page(
+            site_css=_SITE_CSS,
             ncaaf_plays=ncaaf_week_plays_sorted,
             nfl_plays=nfl_week_plays_sorted,
-            ncaaf_week_stats=ncaaf_week_stats,
-            nfl_week_stats=nfl_week_stats,
-            ncaaf_week_pnl=ncaaf_week_pnl,
-            nfl_week_pnl=nfl_week_pnl,
+            ncaaf_leans=ncaaf_landing_leans,
+            nfl_leans=nfl_landing_leans,
+            ncaaf_record=ncaaf_record,
+            nfl_record=record,
             board_updated=board_updated,
             analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
             nfl_season_week=nfl_season_week,
             ncaaf_season_week=ncaaf_season_week,
+            nfl_signal_plays=signals.get("plays") or [],
+            ncaaf_signal_plays=ncaaf_signals.get("plays") or [],
         )
     )
     (out / "comments.html").write_text(
@@ -1040,251 +1062,6 @@ def build_site(
     return out
 
 
-def _landing_week_pill(label: str, stats: dict[str, Any], pnl: float) -> str:
-    """One compact record chip for the landing page header."""
-    graded = int(stats.get("wins") or 0) + int(stats.get("losses") or 0)
-    record = stats.get("record") if graded else "0-0"
-    pnl_s = f"+{pnl:.2f}" if pnl >= 0 else f"{pnl:.2f}"
-    cls = "pos" if pnl >= 0 else "neg"
-    return (
-        f'<div class="lp-chip"><span class="lp-chip-label">{_esc(label)} this week</span>'
-        f'<span class="lp-chip-val">{_esc(str(record))}'
-        f' <span class="lp-chip-pnl {cls}">{pnl_s}u</span></span></div>'
-    )
-
-
-def _render_landing_section(
-    title: str,
-    plays: list[dict[str, Any]],
-    *,
-    sport: str,
-    empty_note: str,
-    season_week: int | None = None,
-) -> str:
-    """One sport's block of actual plays on the landing page."""
-    count = len(plays)
-    banner = early_season_banner_html(season_week)
-    if not plays:
-        return (
-            f'<div class="lp-section">{banner}<h2>{_esc(title)}</h2>'
-            f'<p class="lp-empty">{_esc(empty_note)}</p></div>'
-        )
-    table = _render_play_table(
-        plays,
-        live_fallback=[],
-        sport=sport,
-        large=True,
-        use_timing=True,
-        mark_locked=True,
-    )
-    return (
-        f'<div class="lp-section">'
-        f"{banner}"
-        f'<h2>{_esc(title)} — Locked Plays '
-        f'<span class="lp-count">{count} this week</span></h2>'
-        f"{table}</div>"
-    )
-
-
-def _render_landing_page(
-    *,
-    ncaaf_plays: list[dict[str, Any]],
-    nfl_plays: list[dict[str, Any]],
-    ncaaf_week_stats: dict[str, Any],
-    nfl_week_stats: dict[str, Any],
-    ncaaf_week_pnl: float,
-    nfl_week_pnl: float,
-    board_updated: str,
-    analytics_head: str,
-    nfl_season_week: int | None = None,
-    ncaaf_season_week: int | None = None,
-) -> str:
-    """Plays-only landing page: just this week's actual recommended plays."""
-    total = len(ncaaf_plays) + len(nfl_plays)
-    return LANDING_TEMPLATE.format(
-        site_css=_SITE_CSS,
-        analytics_head=analytics_head,
-        ssq_logo=_ssq_logo_svg(embedded=True),
-        board_updated=_esc(board_updated),
-        total_plays=total,
-        week_chips=(
-            _landing_week_pill("CFB", ncaaf_week_stats, ncaaf_week_pnl)
-            + _landing_week_pill("NFL", nfl_week_stats, nfl_week_pnl)
-        ),
-        cfb_section=_render_landing_section(
-            "College Football",
-            ncaaf_plays,
-            sport="ncaaf",
-            empty_note="No locked CFB plays posted for this week yet. Check back after the pipeline runs.",
-            season_week=ncaaf_season_week,
-        ),
-        nfl_section=_render_landing_section(
-            "NFL",
-            nfl_plays,
-            sport="nfl",
-            empty_note="No locked NFL plays posted for this week yet. Check back after the pipeline runs.",
-            season_week=nfl_season_week,
-        ),
-        timing_script=_TIMING_SCRIPT,
-    )
-
-
-LANDING_TEMPLATE = """<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>This Week's Plays · Sharp Scout Quant</title>
-<meta name="description" content="Sharp Scout Quant — this week's actual recommended NFL and college football plays">
-<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
-<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
-{analytics_head}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script>
-  // Preserve old deep links: anything that used to open a board tab (e.g. /#tab-cfb)
-  // still lands on that tab, now on board.html.
-  (function () {{
-    var h = window.location.hash || '';
-    if (h.indexOf('#tab-') === 0) {{
-      window.location.replace('board.html' + h);
-    }}
-  }})();
-</script>
-<style>
-{site_css}
-  /* The landing page scrolls as one full-length page — no boxed/frozen tables here.
-     (The board keeps the capped-height sticky-header scroll boxes.) */
-  .lp-wrap .table-wrap {{ overflow-x: auto; overflow-y: visible; max-height: none; }}
-  .lp-wrap .table-wrap thead th {{ position: static; box-shadow: none; }}
-  .lp-wrap {{ max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; }}
-  .lp-hero {{ text-align: center; padding: 30px 16px 18px; }}
-  .lp-hero h1 {{ font-family: var(--font-serif); font-size: 40px; font-weight: 500;
-    margin: 10px 0 4px; letter-spacing: -0.01em; }}
-  .lp-hero .lp-sub {{ color: var(--color-text-muted); font-size: 14px; font-weight: 300;
-    letter-spacing: 0.02em; }}
-  .lp-chips {{ display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
-    margin: 16px 0 4px; }}
-  .lp-chip {{ border: 1px solid var(--color-border); border-radius: 4px; padding: 7px 14px;
-    background: #fff; text-align: left; }}
-  .lp-chip-label {{ display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--color-text-muted); }}
-  .lp-chip-val {{ display: block; font-family: var(--font-mono); font-size: 17px;
-    font-weight: 600; margin-top: 2px; }}
-  .lp-chip-pnl {{ font-size: 13px; }}
-  .lp-chip-pnl.pos {{ color: #15803d; }}
-  .lp-chip-pnl.neg {{ color: #b91c1c; }}
-  .lp-section {{ margin: 30px 0 0; }}
-  .lp-section h2 {{ font-family: var(--font-serif); font-size: 27px; font-weight: 500;
-    margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--color-text); }}
-  .lp-count {{ font-family: var(--font-sans); font-size: 11px; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-muted);
-    vertical-align: middle; margin-left: 6px; }}
-  .lp-empty {{ color: var(--color-text-muted); font-size: 14px; font-weight: 300;
-    padding: 14px 0; }}
-  .lp-cta {{ display: block; margin: 34px auto 0; max-width: 460px; text-align: center;
-    border: 1px solid var(--color-border); border-radius: 4px; padding: 16px 18px;
-    text-decoration: none; color: inherit; background: #fff; }}
-  .lp-cta:hover {{ border-color: var(--color-text); }}
-  .lp-cta-main {{ font-size: 15px; font-weight: 700; letter-spacing: 0.04em;
-    text-transform: uppercase; }}
-  .lp-cta-sub {{ display: block; margin-top: 5px; font-size: 12.5px; font-weight: 300;
-    color: var(--color-text-muted); line-height: 1.6; }}
-  .lp-ev {{ margin: 18px 0 6px; padding: 16px 20px; border: 1px solid var(--color-border);
-    border-left: 6px solid #0a7d32; border-radius: 4px; background: #f2fbf4; }}
-  .lp-ev-title {{ font-family: var(--font-serif); font-size: 22px; font-weight: 600;
-    color: var(--color-text); margin-bottom: 8px; }}
-  .lp-ev-tag {{ font-family: var(--font-mono); font-size: 14px; font-weight: 700;
-    background: #0a7d32; color: #fff; padding: 1px 8px; border-radius: 3px;
-    letter-spacing: 0.04em; vertical-align: middle; }}
-  .lp-ev-lead {{ font-size: 15px; line-height: 1.6; color: var(--color-text); margin: 0 0 8px; }}
-  .lp-ev-body {{ font-size: 13.5px; line-height: 1.65; color: var(--color-text-muted); margin: 0 0 10px; }}
-  .lp-ev-list {{ margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6;
-    color: var(--color-text-muted); }}
-  .lp-ev-list li {{ margin: 4px 0; }}
-  .lp-tiers {{ margin-top: 10px; }}
-  .lp-tiers-head {{ font-size: 13.5px; color: var(--color-text); margin-bottom: 6px; }}
-  .lp-tier-list {{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }}
-  .lp-tier-list li {{ font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }}
-  .lp-tier-list .conf {{ display: inline-flex; vertical-align: middle; margin-right: 8px;
-    padding: 2px 8px; }}
-  .lp-tier-list .conf-tier {{ font-size: 9.5px; }}
-  @media (max-width: 640px) {{
-    .lp-hero h1 {{ font-size: 30px; }}
-    .lp-section h2 {{ font-size: 22px; }}
-    .lp-ev-title {{ font-size: 19px; }}
-    .lp-ev-lead {{ font-size: 14px; }}
-  }}
-</style>
-</head>
-<body>
-<div class="tabs" role="navigation" aria-label="Sections">
-  <span class="tab tab-home active">★ This Week's Plays</span>
-  <a class="tab" href="board.html#tab-plays">NFL</a>
-  <a class="tab" href="board.html#tab-cfb">CFB</a>
-  <a class="tab" href="board.html#tab-guide">How to use</a>
-  <a class="tab tab-comments" href="comments.html">Comments</a>
-  <a class="tab" href="props.html">NFL Props</a>
-</div>
-<div class="lp-wrap">
-  <div class="lp-hero">
-    {ssq_logo}
-    <h1>This Week's Plays</h1>
-    <p class="lp-sub">Sharp Scout Quant · {total_plays} locked plays this week (the only bets we posted)</p>
-    <div class="lp-chips">{week_chips}</div>
-    <div class="board-updated-bar" role="status" aria-live="polite" style="justify-content:center;margin-top:14px">
-      <span class="board-updated-label">Picks &amp; prices updated · scores refresh live every 30s</span>
-      <span class="board-updated-time">{board_updated}</span>
-    </div>
-    <div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite" style="margin-top:12px"></div>
-  </div>
-
-  <p class="phase-note" style="padding:2px 0 6px">Everything on this page is an actual
-  recommended play that we track on the ledger. Use the <b>When to bet</b> column for
-  timing — plays are not live until it says to lock them in.</p>
-
-  <div class="lp-ev">
-    <div class="lp-ev-title">How to read a play</div>
-    <p class="lp-ev-lead"><b>EV %</b> = how good the <i>price</i> is vs. what the bet is really
-    worth. Higher EV = better deal. <b>Win %</b> = the model's chance this exact bet cashes
-    ("will it win?"). EV tells you the value; Win % tells you the likelihood.</p>
-    <div class="lp-tiers">
-      <div class="lp-tiers-head"><b>Confidence tier</b> = overall grade (Win % + value):</div>
-      <ul class="lp-tier-list">
-        <li><span class="conf conf-ddiamond"><span class="conf-tier">Double Diamond \U0001F48E\U0001F48E</span></span>
-          Win <b>&gt; 70%</b> and strong value. Our best plays — but 70% still
-          <b>loses about 1 in every 3–4 bets</b>, so it's not a lock.</li>
-        <li><span class="conf conf-diamond"><span class="conf-tier">Diamond \U0001F48E</span></span>
-          Win <b>60%+</b> with solid value. Strong read.</li>
-        <li><span class="conf conf-gold"><span class="conf-tier">Gold</span></span>
-          Win <b>55%+</b>. A real edge.</li>
-        <li><span class="conf conf-silver"><span class="conf-tier">Silver</span></span>
-          Win <b>under 55%</b>. Slight lean — the value is mostly in the price.</li>
-      </ul>
-    </div>
-  </div>
-
-  {cfb_section}
-  {nfl_section}
-
-  <a class="lp-cta" href="board.html">
-    <span class="lp-cta-main">See the full board →</span>
-    <span class="lp-cta-sub">Leans, stage winners by system, sharp money and handle splits,
-    line movement, power ratings, ledger history, and how to use the site.</span>
-  </a>
-</div>
-<div class="footer">
-  Sharp Scout Quant · research and entertainment only · not betting advice.<br>
-  Updated {board_updated}
-</div>
-{timing_script}
-</body>
-</html>
-"""
 
 
 # Where visitor comments are delivered. Static site (GitHub Pages) has no backend,
@@ -1553,11 +1330,10 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
 <div class="tabs" role="navigation" aria-label="Sections">
-  <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
-  <a class="tab" href="board.html#tab-plays">NFL</a>
-  <a class="tab" href="board.html#tab-cfb">CFB</a>
-  <a class="tab" href="board.html#tab-guide">How to use</a>
-  <a class="tab tab-comments" href="comments.html">Comments</a>
+  <a class="tab tab-home" href="index.html">Today's plays</a>
+  <a class="tab" href="board.html#tab-plays">Results</a>
+  <a class="tab" href="board.html#tab-guide">How it works</a>
+  <a class="tab tab-aux" href="comments.html">Comments</a>
   <span class="tab active">NFL Props</span>
 </div>
 <div class="props-wrap">
@@ -1639,12 +1415,11 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
 <div class="tabs" role="navigation" aria-label="Sections">
-  <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
-  <a class="tab" href="board.html#tab-plays">NFL</a>
-  <a class="tab" href="board.html#tab-cfb">CFB</a>
-  <a class="tab" href="board.html#tab-guide">How to use</a>
+  <a class="tab tab-home" href="index.html">Today's plays</a>
+  <a class="tab" href="board.html#tab-plays">Results</a>
+  <a class="tab" href="board.html#tab-guide">How it works</a>
   <span class="tab tab-comments active">Comments</span>
-  <a class="tab" href="props.html">NFL Props</a>
+  <a class="tab tab-aux" href="props.html">NFL Props</a>
 </div>
 <div class="cf-wrap">
   <div class="cf-hero">
@@ -1818,10 +1593,10 @@ def _render_guide_html() -> str:
 #   Silver          under 55%                — slight lean; edge is mostly price
 # Order is strongest→weakest; index 0 = Silver .. 3 = Double Diamond.
 CONF_TIERS = (
-    ("conf-silver", "Silver", ""),
-    ("conf-gold", "Gold", ""),
-    ("conf-diamond", "Diamond", "\U0001F48E"),  # 💎
-    ("conf-ddiamond", "Double Diamond", "\U0001F48E\U0001F48E"),  # 💎💎
+    ("conf-silver", "Lean", ""),
+    ("conf-gold", "Good", ""),
+    ("conf-diamond", "Strong", "\U0001F48E"),  # 💎
+    ("conf-ddiamond", "Top pick", "\U0001F48E\U0001F48E"),  # 💎💎
 )
 # Win-probability floor to *qualify* for each tier index.
 _CONF_WIN_FLOOR = (0.0, 0.55, 0.60, 0.70)
@@ -3411,12 +3186,12 @@ _TIMING_SCRIPT = """<script>
 // even if the static board has not rebuilt since. Mirrors _timing_class_text.
 (function () {
   function classText(htk) {
-    if (htk === null) return ['hold', "Don't play yet — lock in closer to game time"];
-    if (htk <= 0) return ['started', 'Game started — too late to bet'];
-    if (htk <= 1) return ['lock', 'Lock in now if the number still holds'];
-    if (htk <= 3) return ['soon', 'Almost time — confirm at the T-1h refresh'];
-    if (htk <= 12) return ['watch', 'Watch — confirm at the T-3h pregame refresh'];
-    return ['hold', "Don't play yet — lock in closer to game time"];
+    if (htk === null) return ['hold', 'Wait. Bet closer to kickoff'];
+    if (htk <= 0) return ['started', 'Game started. Too late to bet.'];
+    if (htk <= 1) return ['lock', 'Bet now if the price still holds'];
+    if (htk <= 3) return ['soon', 'Almost time. Final check 1 hour before kickoff'];
+    if (htk <= 12) return ['watch', 'Get ready. Final check 3 hours before kickoff'];
+    return ['hold', 'Wait. Bet closer to kickoff'];
   }
   function countdown(ms) {
     if (ms <= 0) return '';
@@ -3734,6 +3509,7 @@ _SITE_CSS = """\
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
     .tab { flex: 0 0 auto; padding: 13px 13px; font-size: 12px; letter-spacing: 0.05em; }
+    .tab.tab-aux { display: none; }
   }
   .content { display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }
   .content.active { display: block; }
@@ -4303,12 +4079,12 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </div>
 <div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite"></div>
 <div class="tabs" role="tablist">
-  <a class="tab tab-home" href="index.html">★ This Week's Plays</a>
+  <a class="tab tab-home" href="index.html">Today's plays</a>
   <a class="tab active" href="#tab-plays" data-tab="plays">NFL</a>
   <a class="tab" href="#tab-cfb" data-tab="cfb">CFB</a>
   <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
-  <a class="tab tab-comments" href="comments.html">Comments</a>
-  <a class="tab" href="props.html">NFL Props</a>
+  <a class="tab tab-aux tab-comments" href="comments.html">Comments</a>
+  <a class="tab tab-aux" href="props.html">Props</a>
 </div>
 </div>
 

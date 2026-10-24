@@ -1,6 +1,6 @@
 name: NBA Shadow (private)
 
-# Paper-trading scan — writes only under data/shadow/ (never docs/ or GitHub Pages).
+# Paper-trading scan — data/shadow/ plus docs/nba.html (testing page only; no football docs).
 
 on:
   schedule:
@@ -46,11 +46,14 @@ jobs:
             python scripts/run_nba_shadow.py
           fi
 
-      - name: Commit shadow artifacts only
+      - name: Build NBA public page
+        run: python -c "from sharp_scout.site.nba_page import build_nba_page; build_nba_page()"
+
+      - name: Commit shadow artifacts and NBA page
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/shadow/
+          git add data/shadow/ docs/nba.html docs/nba_latest_signals.json docs/nba_ledger.json docs/nba_paper_report.json
           if git diff --staged --quiet; then
             echo "No shadow changes"
           else

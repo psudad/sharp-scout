@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Run the private NBA shadow pipeline (game lines + props). Never updates docs/."""
+"""Run the private NBA shadow pipeline (game lines + props).
+
+Shadow data lives under data/shadow/. CI rebuilds docs/nba.html only (see nba-shadow.yml).
+"""
 
 from __future__ import annotations
 

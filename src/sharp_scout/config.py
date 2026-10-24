@@ -188,6 +188,34 @@ class Settings(BaseSettings):
     steam_min_books: int = 2  # minimum sharp books moving together
     steam_score_threshold: float = 1.0  # steam score at/above which we flag steam
 
+    # NBA shadow pipeline (never published to GitHub Pages — see data/shadow/)
+    nba_shadow_enabled: bool = True
+    nba_ev_threshold: float = 0.02
+    nba_prop_ev_threshold: float = 0.02
+    nba_prop_over_extra_ev: float = 0.02  # overs need +2% vs base threshold
+    nba_prop_consensus_min_books: int = 3
+    nba_prop_min_projected_minutes: float = 12.0  # skip unders below this
+    nba_prop_horizon_hours: float = 36.0
+    nba_max_prop_events_per_run: int = 6  # Odds API budget guardrail
+    nba_primary_retail_book: str = "fanduel"
+    nba_secondary_retail_book: str = "draftkings"
+    nba_unit_dollars: float = 10.0
+    nba_kelly_fraction: float = 0.25
+    nba_cap_game_line_units: float = 1.5
+    nba_cap_prop_units: float = 0.75
+    nba_cap_units_per_game: float = 3.0
+    nba_cap_units_per_night: float = 8.0
+    nba_paper_start: str = "2026-11-02"
+    nba_paper_end: str = "2026-12-13"
+    nba_prop_markets: str = (
+        "player_points,player_rebounds,player_assists,player_threes,"
+        "player_points_rebounds_assists"
+    )
+
+    @property
+    def nba_prop_market_list(self) -> list[str]:
+        return [m.strip() for m in self.nba_prop_markets.split(",") if m.strip()]
+
     @property
     def sharp_books(self) -> list[str]:
         return [b.strip() for b in self.sharp_bookmakers.split(",") if b.strip()]

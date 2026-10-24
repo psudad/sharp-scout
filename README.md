@@ -284,6 +284,30 @@ In GA4, open **Reports → User acquisition** (or the home dashboard) and set th
 - `GET /api/ncaaf` — latest NCAAF payload (plays, stages, ratings)
 - `POST /api/run-ncaaf?demo=true&skip_pbp=true` — trigger NCAAF pipeline
 
+## NBA shadow (private paper trading)
+
+NBA is **shadow-only**: outputs live under `data/shadow/` and are **not** copied into `docs/` or GitHub Pages.
+
+- **Game lines:** price scanner vs Pinnacle no-vig (multi-book consensus fallback). FanDuel primary, DraftKings secondary; flag when EV ≥ 2% vs fair.
+- **Player props:** points, rebounds, assists, threes, PRA — minutes × per-minute rates (`data/shadow/nba_player_rates.json`), consensus fair, extra EV margin on overs.
+- **Ledger:** `data/shadow/nba_ledger.json` with closing line + CLV from day one.
+- **Paper window:** Nov 2 – Dec 13, 2026 (`config.py`: `nba_paper_start` / `nba_paper_end`).
+
+```bash
+# Offline demo (no API key)
+python scripts/run_nba_shadow.py --demo
+
+# Live scan (budget: ~7 Odds API credits/run with default prop cap)
+python scripts/run_nba_shadow.py
+
+# Pinnacle props probe (defaults to player_points, 1 event)
+python scripts/probe_nba_pinnacle_props.py
+```
+
+Credit budget notes: `data/shadow/NBA_CREDITS_ESTIMATE.md`. Football CLV audit (no logic changes): `reports/football_clv_audit.md`.
+
+Scheduled CI: workflow **NBA Shadow (private)** — commits only `data/shadow/`.
+
 ## Tests
 
 ```bash

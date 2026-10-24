@@ -1,0 +1,60 @@
+name: NBA Shadow (private)
+
+# Paper-trading scan — writes only under data/shadow/ (never docs/ or GitHub Pages).
+
+on:
+  schedule:
+    # 10:30 AM and 5:30 PM ET (approx; UTC cron — adjust for DST manually if needed)
+    - cron: "30 14,21 * * *"
+  workflow_dispatch:
+    inputs:
+      demo:
+        description: "Use offline demo fixture (no Odds API)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nba-shadow
+  cancel-in-progress: false
+
+jobs:
+  nba-shadow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Configure env
+        run: |
+          echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
+
+      - name: Run NBA shadow pipeline
+        run: |
+          if [ "${{ github.event.inputs.demo }}" = "true" ]; then
+            python scripts/run_nba_shadow.py --demo
+          else
+            python scripts/run_nba_shadow.py
+          fi
+
+      - name: Commit shadow artifacts only
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/shadow/
+          if git diff --staged --quiet; then
+            echo "No shadow changes"
+          else
+            git commit -m "chore(nba): shadow paper-trading scan"
+            git pull --rebase --autostash origin main
+            git push
+          fi

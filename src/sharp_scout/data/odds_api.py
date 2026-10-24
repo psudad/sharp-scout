@@ -31,7 +31,13 @@ class OddsClient:
         self.api_key = api_key or settings.odds_api_key
         self.sharp_books = set(settings.sharp_books)
         self.retail_books = set(settings.retail_books)
-        self.sport = sport if isinstance(sport, SportConfig) else get_sport(sport)
+        if isinstance(sport, SportConfig):
+            self.sport = sport
+        else:
+            try:
+                self.sport = get_sport(sport)
+            except ValueError:
+                raise
         self.sport_key = self.sport.odds_sport_key
         self.norm_sport = self.sport.key
 
@@ -171,9 +177,16 @@ class OddsClient:
         )
         return self._normalize_event(raw)
 
+    def _normalize_team(self, name: str) -> str:
+        if self.norm_sport == "nba":
+            from sharp_scout.nba.teams import normalize_nba_team
+
+            return normalize_nba_team(name)
+        return normalize_team(name, self.norm_sport)
+
     def _normalize_event(self, ev: dict[str, Any]) -> dict[str, Any]:
-        home = normalize_team(ev.get("home_team", ""), self.norm_sport)
-        away = normalize_team(ev.get("away_team", ""), self.norm_sport)
+        home = self._normalize_team(ev.get("home_team", ""))
+        away = self._normalize_team(ev.get("away_team", ""))
         commence = ev.get("commence_time")
         commence_dt = (
             datetime.fromisoformat(commence.replace("Z", "+00:00"))
@@ -197,11 +210,11 @@ class OddsClient:
                     side = name
                     description = o.get("description")
                     if mkey == "h2h":
-                        side = "home" if normalize_team(name, self.norm_sport) == home else "away"
-                        if normalize_team(name, self.norm_sport) not in (home, away):
+                        side = "home" if self._normalize_team(name) == home else "away"
+                        if self._normalize_team(name) not in (home, away):
                             side = name
                     elif mkey == "spreads":
-                        team = normalize_team(name, self.norm_sport)
+                        team = self._normalize_team(name)
                         side = "home" if team == home else "away"
                     elif mkey == "totals":
                         side = name.lower()  # over / under

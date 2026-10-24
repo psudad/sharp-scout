@@ -26,6 +26,43 @@ def empty_nba_ledger() -> dict[str, Any]:
     }
 
 
+def is_demo_nba_row(row: dict[str, Any]) -> bool:
+    if row.get("demo"):
+        return True
+    return str(row.get("event_id") or "").startswith("demo-")
+
+
+def parse_kickoff_utc(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        try:
+            dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def kickoff_still_future(row: dict[str, Any], *, now: datetime | None = None) -> bool:
+    now = now or datetime.now(timezone.utc)
+    kick = parse_kickoff_utc(row.get("kickoff"))
+    if kick is None:
+        return False
+    return kick > now
+
+
+def strip_demo_plays_from_ledger(ledger: dict[str, Any]) -> tuple[dict[str, Any], int]:
+    before = len(ledger.get("plays") or [])
+    plays = [p for p in ledger.get("plays") or [] if not is_demo_nba_row(p)]
+    out = dict(ledger)
+    out["plays"] = plays
+    return out, before - len(plays)
+
+
 def load_nba_ledger(path: Path | None = None) -> dict[str, Any]:
     p = path or nba_paths.NBA_LEDGER_PATH
     if not p.exists():
@@ -134,15 +171,24 @@ def merge_open_ledger_picks(
     signals: list[dict[str, Any]],
     possible_signals: list[dict[str, Any]],
     ledger: dict[str, Any],
+    *,
+    live_scan: bool = True,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Keep paper/pending ledger plays visible as Picks on re-scans the same day."""
+    """Keep open future ledger plays visible as Picks on live re-scans."""
     from sharp_scout.nba.possible import pick_dedupe_key
 
+    if not live_scan:
+        return signals, possible_signals
+
     open_status = {"paper", "pending"}
-    keys = {pick_dedupe_key(s) for s in signals}
-    merged = list(signals)
+    keys = {pick_dedupe_key(s) for s in signals if not is_demo_nba_row(s)}
+    merged = [s for s in signals if not is_demo_nba_row(s)]
     for play in ledger.get("plays") or []:
         if str(play.get("status") or "").lower() not in open_status:
+            continue
+        if is_demo_nba_row(play):
+            continue
+        if not kickoff_still_future(play):
             continue
         sig = ledger_play_to_signal(play)
         key = pick_dedupe_key(sig)
@@ -150,14 +196,30 @@ def merge_open_ledger_picks(
             continue
         merged.append(sig)
         keys.add(key)
-    possible = [p for p in possible_signals if pick_dedupe_key(p) not in keys]
+    possible = [
+        p
+        for p in possible_signals
+        if not is_demo_nba_row(p) and pick_dedupe_key(p) not in keys
+    ]
     return merged, possible
+
+
+def filter_demo_from_signal_lists(
+    signals: list[dict[str, Any]],
+    possible_signals: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return (
+        [s for s in signals if not is_demo_nba_row(s)],
+        [p for p in possible_signals if not is_demo_nba_row(p)],
+    )
 
 
 def units_staked_today(ledger: dict[str, Any], *, day: str | None = None) -> float:
     day = day or datetime.now(timezone.utc).date().isoformat()
     total = 0.0
     for p in ledger.get("plays") or []:
+        if is_demo_nba_row(p):
+            continue
         created = str(p.get("created_at") or "")[:10]
         if created == day and (p.get("status") or "") in ("paper", "pending"):
             total += float(p.get("units") or 0)

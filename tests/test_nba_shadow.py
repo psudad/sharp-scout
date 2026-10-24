@@ -443,14 +443,18 @@ def test_symmetric_prop_consensus_has_near_zero_edge():
 
 
 def test_merge_open_ledger_picks_restores_picks_list():
+    from datetime import datetime, timedelta, timezone
+
     from sharp_scout.nba.ledger import merge_open_ledger_picks
 
+    kick = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
     ledger = {
         "plays": [
             {
                 "id": "abc",
                 "status": "paper",
                 "event_id": "e1",
+                "kickoff": kick,
                 "away_team": "A",
                 "home_team": "B",
                 "play_type": "side",
@@ -476,10 +480,69 @@ def test_merge_open_ledger_picks_restores_picks_list():
             "pick_class": "possible",
         }
     ]
-    picks, poss = merge_open_ledger_picks([], possible, ledger)
+    picks, poss = merge_open_ledger_picks([], possible, ledger, live_scan=True)
     assert len(picks) == 1
     assert picks[0].get("from_ledger") is True
     assert poss == []
+
+
+def test_merge_open_ledger_skips_demo_and_past_kickoff():
+    from datetime import datetime, timedelta, timezone
+
+    from sharp_scout.nba.ledger import merge_open_ledger_picks
+    from sharp_scout.site.nba_page import public_nba_signals
+
+    future = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+    past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    ledger = {
+        "plays": [
+            {
+                "id": "demo",
+                "status": "paper",
+                "event_id": "demo-nba-cha-mia",
+                "kickoff": future,
+                "play_type": "side",
+                "market": "spreads",
+                "side": "away",
+                "line": 5.5,
+                "book": "fanduel",
+                "price": -110,
+                "units": 1.0,
+            },
+            {
+                "id": "old",
+                "status": "paper",
+                "event_id": "live-1",
+                "kickoff": past,
+                "play_type": "side",
+                "market": "totals",
+                "side": "over",
+                "line": 220.5,
+                "book": "fanduel",
+                "price": -110,
+                "units": 1.0,
+            },
+        ]
+    }
+    picks, _ = merge_open_ledger_picks([], [], ledger, live_scan=True)
+    assert picks == []
+
+    payload = {
+        "ok": True,
+        "demo": False,
+        "signals": [
+            {
+                "event_id": "demo-nba-cha-mia",
+                "play_type": "side",
+                "market": "spreads",
+                "side": "away",
+                "line": 5.5,
+            }
+        ],
+        "possible_signals": [],
+    }
+    pub = public_nba_signals(payload)
+    assert pub["signals"] == []
 
 
 def test_run_nba_shadow_includes_prop_diagnostics(tmp_path, monkeypatch):

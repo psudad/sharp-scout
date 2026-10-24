@@ -18,9 +18,11 @@ from sharp_scout.nba.game_lines import (
 )
 from sharp_scout.nba.ledger import (
     append_nba_signals,
+    filter_demo_from_signal_lists,
     load_nba_ledger,
     merge_open_ledger_picks,
     save_nba_ledger,
+    strip_demo_plays_from_ledger,
     units_staked_today,
 )
 from sharp_scout.nba.line_store import record_nba_snapshot
@@ -181,6 +183,11 @@ def run_nba_shadow(
     prop_diagnostics["model_scored"] = prop_scan_stats.get("model_scored", 0)
 
     ledger = load_nba_ledger()
+    if not use_demo:
+        ledger, demo_removed = strip_demo_plays_from_ledger(ledger)
+        if demo_removed:
+            save_nba_ledger(ledger)
+            write_paper_report(ledger, nba_paths.NBA_REPORT_PATH)
     staked_today = units_staked_today(ledger)
     side_candidates = [s for s in signals if (s.get("play_type") or "side") != "prop"]
     prop_candidates = [s for s in signals if (s.get("play_type") or "") == "prop"]
@@ -238,15 +245,28 @@ def run_nba_shadow(
     )
 
     signals_for_ledger = list(signals)
-    signals, possible_signals = merge_open_ledger_picks(signals, possible_signals, ledger)
+    if not use_demo:
+        signals, possible_signals = filter_demo_from_signal_lists(signals, possible_signals)
+        signals, possible_signals = merge_open_ledger_picks(
+            signals, possible_signals, ledger, live_scan=True
+        )
 
     ledger_result = {"added": 0}
     if append_ledger and signals_for_ledger:
         ledger_result = append_nba_signals(signals_for_ledger)
         ledger = ledger_result["ledger"]
+        if not use_demo:
+            ledger, demo_removed = strip_demo_plays_from_ledger(ledger)
+            if demo_removed:
+                save_nba_ledger(ledger)
         finalize_nba_clv(ledger)
         save_nba_ledger(ledger)
-        signals, possible_signals = merge_open_ledger_picks(signals, possible_signals, ledger)
+        if not use_demo:
+            write_paper_report(ledger, nba_paths.NBA_REPORT_PATH)
+            signals, possible_signals = merge_open_ledger_picks(
+                signals, possible_signals, ledger, live_scan=True
+            )
+            signals, possible_signals = filter_demo_from_signal_lists(signals, possible_signals)
 
     payload = {
         "ok": True,

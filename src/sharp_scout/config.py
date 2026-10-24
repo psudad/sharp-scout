@@ -188,6 +188,9 @@ class Settings(BaseSettings):
     steam_min_books: int = 2  # minimum sharp books moving together
     steam_score_threshold: float = 1.0  # steam score at/above which we flag steam
 
+    # NCAAF totals shadow — paper-track EV ≥12% totals (private data/shadow/, zero extra API)
+    ncaaf_totals_shadow_enabled: bool = True
+
     # NBA shadow pipeline (never published to GitHub Pages — see data/shadow/)
     nba_shadow_enabled: bool = True
     nba_ev_threshold: float = 0.02

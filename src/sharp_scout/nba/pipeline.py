@@ -19,6 +19,7 @@ from sharp_scout.nba.game_lines import (
 from sharp_scout.nba.ledger import (
     append_nba_signals,
     filter_demo_from_signal_lists,
+    kickoff_in_horizon,
     load_nba_ledger,
     merge_open_ledger_picks,
     save_nba_ledger,
@@ -52,17 +53,10 @@ def _kickoff_iso(ev: dict[str, Any]) -> str | None:
 
 def _events_in_horizon(events: list[dict[str, Any]], hours: float) -> list[dict[str, Any]]:
     now = datetime.now(timezone.utc)
-    horizon = now + timedelta(hours=hours)
     out = []
     for ev in events:
         ct = ev.get("commence_time")
-        if isinstance(ct, str):
-            ct = datetime.fromisoformat(ct.replace("Z", "+00:00"))
-        if isinstance(ct, datetime) and ct.tzinfo is None:
-            ct = ct.replace(tzinfo=timezone.utc)
-        if ct is None:
-            continue
-        if now <= ct <= horizon:
+        if kickoff_in_horizon(ct, hours, now=now):
             out.append(ev)
     return sorted(out, key=lambda e: e.get("commence_time") or now)
 
@@ -90,9 +84,15 @@ def run_nba_shadow(
 
     record_nba_snapshot(events, sharp_only=True)
 
+    line_events = (
+        events
+        if use_demo
+        else _events_in_horizon(events, settings.nba_prop_horizon_hours)
+    )
+
     signals: list[dict[str, Any]] = []
     scan_rows: list[dict[str, Any]] = []
-    for ev in events:
+    for ev in line_events:
         kick = _kickoff_iso(ev)
         for opp in scan_game_line_opportunities(ev):
             scan_rows.append({**opp, "kickoff": kick})
@@ -103,7 +103,8 @@ def run_nba_shadow(
         "enabled": fetch_props,
         "horizon_hours": settings.nba_prop_horizon_hours,
         "regions": settings.nba_prop_regions,
-        "events_in_horizon": 0,
+        "events_in_horizon": len(line_events) if not use_demo else 0,
+        "game_line_events_in_horizon": len(line_events) if not use_demo else 0,
         "events_fetched": 0,
         "fetch_failures": 0,
         "file_rate_players": len(rates or {}),

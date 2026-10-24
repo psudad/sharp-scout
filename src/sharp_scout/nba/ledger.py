@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +55,21 @@ def kickoff_still_future(row: dict[str, Any], *, now: datetime | None = None) ->
     return kick > now
 
 
+def kickoff_in_horizon(
+    value: Any,
+    hours: float,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """True when kickoff is strictly after *now* and within *hours* (same window as props)."""
+    now = now or datetime.now(timezone.utc)
+    kick = parse_kickoff_utc(value)
+    if kick is None:
+        return False
+    horizon = now + timedelta(hours=hours)
+    return kick > now and kick <= horizon
+
+
 def strip_demo_plays_from_ledger(ledger: dict[str, Any]) -> tuple[dict[str, Any], int]:
     before = len(ledger.get("plays") or [])
     plays = [p for p in ledger.get("plays") or [] if not is_demo_nba_row(p)]
@@ -85,6 +100,8 @@ def append_nba_signals(signals: list[dict[str, Any]], *, path: Path | None = Non
     existing = {_play_key(p) for p in ledger["plays"]}
     added = 0
     for s in signals:
+        if not is_demo_nba_row(s) and not kickoff_still_future(s):
+            continue
         row = {
             "id": str(uuid.uuid4())[:8],
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -175,11 +192,13 @@ def merge_open_ledger_picks(
     live_scan: bool = True,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Keep open future ledger plays visible as Picks on live re-scans."""
+    from sharp_scout.config import get_settings
     from sharp_scout.nba.possible import pick_dedupe_key
 
     if not live_scan:
         return signals, possible_signals
 
+    horizon_hours = get_settings().nba_prop_horizon_hours
     open_status = {"paper", "pending"}
     keys = {pick_dedupe_key(s) for s in signals if not is_demo_nba_row(s)}
     merged = [s for s in signals if not is_demo_nba_row(s)]
@@ -189,6 +208,8 @@ def merge_open_ledger_picks(
         if is_demo_nba_row(play):
             continue
         if not kickoff_still_future(play):
+            continue
+        if not kickoff_in_horizon(play.get("kickoff"), horizon_hours):
             continue
         sig = ledger_play_to_signal(play)
         key = pick_dedupe_key(sig)

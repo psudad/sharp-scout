@@ -447,7 +447,7 @@ def test_merge_open_ledger_picks_restores_picks_list():
 
     from sharp_scout.nba.ledger import merge_open_ledger_picks
 
-    kick = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+    kick = (datetime.now(timezone.utc) + timedelta(hours=20)).isoformat()
     ledger = {
         "plays": [
             {
@@ -570,3 +570,76 @@ def test_nba_config_prop_defaults():
     assert s.nba_max_prop_events_per_run == 10
     assert s.nba_prop_regions == "us,us2"
     assert s.nba_max_props_per_game == 5
+
+
+def test_events_in_horizon_excludes_started_and_far_future():
+    from datetime import datetime, timedelta, timezone
+
+    from sharp_scout.nba.pipeline import _events_in_horizon
+
+    now = datetime.now(timezone.utc)
+    events = [
+        {"event_id": "past", "commence_time": now - timedelta(hours=1)},
+        {"event_id": "live", "commence_time": now},
+        {"event_id": "soon", "commence_time": now + timedelta(hours=12)},
+        {"event_id": "xmas", "commence_time": now + timedelta(days=60)},
+    ]
+    in_window = _events_in_horizon(events, hours=36.0)
+    ids = {e["event_id"] for e in in_window}
+    assert ids == {"soon"}
+
+
+def test_append_nba_signals_refuses_past_kickoff(tmp_path):
+    from datetime import datetime, timedelta, timezone
+
+    from sharp_scout.nba.ledger import append_nba_signals, load_nba_ledger
+
+    ledger_path = tmp_path / "nba_ledger.json"
+    past = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+    result = append_nba_signals(
+        [
+            {
+                "event_id": "late-log",
+                "kickoff": past,
+                "away_team": "MIA",
+                "home_team": "CHA",
+                "market": "h2h",
+                "side": "away",
+                "price": 138,
+                "units": 1.5,
+                "edge": 0.1,
+                "p_true": 0.5,
+                "p_mkt": 0.5,
+            }
+        ],
+        path=ledger_path,
+    )
+    assert result["added"] == 0
+    assert load_nba_ledger(ledger_path)["plays"] == []
+
+
+def test_merge_open_ledger_skips_outside_horizon():
+    from datetime import datetime, timedelta, timezone
+
+    from sharp_scout.nba.ledger import merge_open_ledger_picks
+
+    future = (datetime.now(timezone.utc) + timedelta(days=60)).isoformat()
+    ledger = {
+        "plays": [
+            {
+                "id": "xmas",
+                "status": "paper",
+                "event_id": "christmas",
+                "kickoff": future,
+                "play_type": "side",
+                "market": "h2h",
+                "side": "home",
+                "line": None,
+                "book": "draftkings",
+                "price": -185,
+                "units": 1.5,
+            }
+        ]
+    }
+    picks, _ = merge_open_ledger_picks([], [], ledger, live_scan=True)
+    assert picks == []

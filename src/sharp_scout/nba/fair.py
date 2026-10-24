@@ -152,13 +152,17 @@ def prop_consensus_over_prob(
     line: float,
     *,
     min_books: int | None = None,
+    exclude_books: set[str] | None = None,
 ) -> float | None:
     """Median no-vig over probability for a player prop line across books."""
     settings = get_settings()
     need = settings.nba_prop_consensus_min_books if min_books is None else min_books
+    skip = {b.lower() for b in (exclude_books or set())}
     pk = _norm(player)
     acc: list[float] = []
-    for bm in (event.get("bookmakers") or {}).values():
+    for book_key, bm in (event.get("bookmakers") or {}).items():
+        if book_key.lower() in skip:
+            continue
         outcomes = (bm.get("markets") or {}).get(market) or []
         pair: dict[str, float] = {}
         for o in outcomes:

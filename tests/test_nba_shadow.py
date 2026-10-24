@@ -339,16 +339,147 @@ def test_cap_props_per_game_trims_excess_picks():
     assert kept_possible == []
 
 
-def test_bootstrap_rates_from_prop_markets_enables_scan():
-    from sharp_scout.nba.demo import mock_nba_events
-    from sharp_scout.nba.projections import bootstrap_rates_from_prop_markets
+def test_symmetric_prop_consensus_has_near_zero_edge():
     from sharp_scout.nba.props import scan_prop_opportunities
 
-    ev = mock_nba_events()[0]
-    table = bootstrap_rates_from_prop_markets({}, ev)
-    assert len(table) >= 1
-    opps = scan_prop_opportunities(ev, rates=table)
-    assert opps, "expected prop opportunities after bootstrapping from demo lines"
+    ev = {
+        "event_id": "sym-test",
+        "home_team": "AAA",
+        "away_team": "BBB",
+        "bookmakers": {
+            "fanduel": {
+                "markets": {
+                    "player_points": [
+                        {
+                            "side": "over",
+                            "description": "Test Player",
+                            "price": -110,
+                            "point": 20.5,
+                        },
+                        {
+                            "side": "under",
+                            "description": "Test Player",
+                            "price": -110,
+                            "point": 20.5,
+                        },
+                    ]
+                }
+            },
+            "draftkings": {
+                "markets": {
+                    "player_points": [
+                        {
+                            "side": "over",
+                            "description": "Test Player",
+                            "price": -110,
+                            "point": 20.5,
+                        },
+                        {
+                            "side": "under",
+                            "description": "Test Player",
+                            "price": -110,
+                            "point": 20.5,
+                        },
+                    ]
+                }
+            },
+            "betmgm": {
+                "markets": {
+                    "player_points": [
+                        {
+                            "side": "over",
+                            "description": "Test Player",
+                            "price": -110,
+                            "point": 20.5,
+                        },
+                        {
+                            "side": "under",
+                            "description": "Test Player",
+                            "price": -110,
+                            "point": 20.5,
+                        },
+                    ]
+                }
+            },
+            "espnbet": {
+                "markets": {
+                    "player_points": [
+                        {
+                            "side": "over",
+                            "description": "Test Player",
+                            "price": -110,
+                            "point": 20.5,
+                        },
+                        {
+                            "side": "under",
+                            "description": "Test Player",
+                            "price": -110,
+                            "point": 20.5,
+                        },
+                    ]
+                }
+            },
+        },
+    }
+    from sharp_scout.nba.props import _consensus_only_edge
+
+    for side in ("over", "under"):
+        p_true, edge, skip = _consensus_only_edge(
+            ev,
+            market="player_points",
+            player_name="Test Player",
+            line=20.5,
+            side=side,
+            book_key="fanduel",
+            price=-110.0,
+        )
+        assert skip is None, side
+        assert p_true is not None
+        assert edge is not None
+        assert edge <= 0, side
+
+    opps = scan_prop_opportunities(ev, rates={}, file_rate_keys=set())
+    assert not opps, "symmetric -110/-110 across books should not emit +EV rows"
+
+
+def test_merge_open_ledger_picks_restores_picks_list():
+    from sharp_scout.nba.ledger import merge_open_ledger_picks
+
+    ledger = {
+        "plays": [
+            {
+                "id": "abc",
+                "status": "paper",
+                "event_id": "e1",
+                "away_team": "A",
+                "home_team": "B",
+                "play_type": "side",
+                "market": "totals",
+                "side": "under",
+                "line": 220.5,
+                "book": "fanduel",
+                "price": -110,
+                "units": 1.0,
+                "edge": 0.04,
+            }
+        ]
+    }
+    possible = [
+        {
+            "event_id": "e1",
+            "play_type": "side",
+            "market": "totals",
+            "side": "under",
+            "line": 220.5,
+            "book": "fanduel",
+            "edge": 0.04,
+            "pick_class": "possible",
+        }
+    ]
+    picks, poss = merge_open_ledger_picks([], possible, ledger)
+    assert len(picks) == 1
+    assert picks[0].get("from_ledger") is True
+    assert poss == []
 
 
 def test_run_nba_shadow_includes_prop_diagnostics(tmp_path, monkeypatch):

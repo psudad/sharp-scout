@@ -51,7 +51,7 @@ def test_run_nba_shadow_demo_writes_private_paths(tmp_path, monkeypatch):
         assert play.get("sport") == "nba"
 
 
-def test_public_site_has_no_nba_shadow_content(tmp_path, monkeypatch):
+def test_football_pages_have_no_nba_shadow_content(tmp_path, monkeypatch):
     docs = tmp_path / "docs"
     docs.mkdir()
     monkeypatch.chdir(tmp_path)
@@ -61,3 +61,29 @@ def test_public_site_has_no_nba_shadow_content(tmp_path, monkeypatch):
     combined = html + board
     assert "nba_shadow" not in combined.lower()
     assert "basketball_nba" not in combined
+
+
+def test_nba_public_page_isolated(tmp_path, monkeypatch):
+    from sharp_scout.nba import paths as nba_paths
+
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    monkeypatch.setattr(nba_paths, "SHADOW_DIR", shadow)
+    monkeypatch.setattr(nba_paths, "NBA_LEDGER_PATH", shadow / "nba_ledger.json")
+    monkeypatch.setattr(nba_paths, "NBA_LATEST_SIGNALS_PATH", shadow / "nba_latest_signals.json")
+    monkeypatch.setattr(nba_paths, "NBA_REPORT_PATH", shadow / "nba_paper_report.json")
+    monkeypatch.setattr(nba_paths, "NBA_LINE_HISTORY_PATH", shadow / "nba_line_history.json")
+    monkeypatch.setattr(nba_paths, "NBA_ARTIFACT_DIR", tmp_path / "artifacts")
+
+    run_nba_shadow(demo=True, append_ledger=True)
+    docs = tmp_path / "docs"
+    build_site(docs_dir=docs, signals_path=Path("/workspace/artifacts/latest_signals.json"))
+
+    nba_html = (docs / "nba.html").read_text()
+    nba_body = nba_html.split("<script", 1)[0]
+    assert "This is just for testing." in nba_html
+    assert "lp-card" not in nba_body
+    assert 'class="lp-add"' not in nba_body
+    assert "+ Add to my card" not in nba_body
+    assert "CHA" in nba_html or "LaMelo" in nba_html
+    assert (docs / "nba_latest_signals.json").exists()

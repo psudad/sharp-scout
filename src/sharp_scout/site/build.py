@@ -1063,6 +1063,10 @@ def build_site(
 
     # CNAME placeholder not needed; add .nojekyll for GH Pages
     (out / ".nojekyll").write_text("")
+
+    from sharp_scout.site.nba_page import build_nba_page
+
+    build_nba_page(docs_dir=out)
     return out
 
 

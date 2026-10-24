@@ -33,6 +33,7 @@ def test_landing_links_to_board_and_more_menu(site: Path):
     assert 'href="board.html"' in html
     assert 'href="comments.html"' in html
     assert 'href="props.html"' in html
+    assert 'href="nba.html"' in html
 
 
 def test_landing_header_is_above_hero(site: Path):
@@ -49,7 +50,7 @@ def test_landing_has_bottom_bar(site: Path):
 
 
 def test_all_public_pages_share_bottom_bar(site: Path):
-    for name in ("board.html", "props.html", "comments.html"):
+    for name in ("board.html", "props.html", "comments.html", "nba.html"):
         html = (site / name).read_text()
         assert "lp-bbar" in html, name
         assert "id=\"lp-bbar-slip\"" in html, name

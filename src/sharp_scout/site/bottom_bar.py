@@ -93,6 +93,7 @@ def render_bottom_bar(*, active: BottomBarActive) -> str:
     <a href="board.html#tab-guide">How it works</a>
     <a href="comments.html"{comments_em}>Comments</a>
     <a href="props.html"{props_em}>NFL Props</a>
+    <a href="nba.html">NBA (testing)</a>
   </div>
 </div>
 """

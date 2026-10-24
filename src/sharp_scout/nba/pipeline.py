@@ -16,7 +16,13 @@ from sharp_scout.nba.game_lines import (
     game_line_edge_to_signal,
     scan_game_line_opportunities,
 )
-from sharp_scout.nba.ledger import append_nba_signals, load_nba_ledger, save_nba_ledger, units_staked_today
+from sharp_scout.nba.ledger import (
+    append_nba_signals,
+    load_nba_ledger,
+    merge_open_ledger_picks,
+    save_nba_ledger,
+    units_staked_today,
+)
 from sharp_scout.nba.line_store import record_nba_snapshot
 from sharp_scout.nba import paths as nba_paths
 from sharp_scout.nba.possible import (
@@ -98,17 +104,26 @@ def run_nba_shadow(
         "events_in_horizon": 0,
         "events_fetched": 0,
         "fetch_failures": 0,
-        "player_rates_file": len(rates or {}),
-        "player_rates_after_bootstrap": 0,
+        "file_rate_players": len(rates or {}),
+        "consensus_only_note": (
+            "Players not listed in nba_player_rates.json are graded vs de-vigged "
+            "multi-book consensus (retail book excluded). Bootstrap line projections "
+            "are not used for EV."
+        ),
         "lines_scanned": 0,
         "opportunities_positive_ev": 0,
+        "consensus_unavailable_skips": 0,
+        "consensus_only_scored": 0,
+        "model_scored": 0,
         "qualified_prop_edges": 0,
         "prop_picks_pre_cap": 0,
         "prop_possible_pre_cap": 0,
     }
 
+    file_rate_keys = set((rates or {}).keys())
+    prop_scan_stats: dict[str, int] = {}
+
     prop_events = events
-    table = dict(rates or {})
     if fetch_props and not use_demo:
         horizon_shells = _events_in_horizon(events, settings.nba_prop_horizon_hours)[
             : settings.nba_max_prop_events_per_run
@@ -132,42 +147,60 @@ def run_nba_shadow(
                 continue
             merged.append(detail)
             record_nba_snapshot([detail], sharp_only=False)
-            table = bootstrap_rates_from_prop_markets(table, detail)
         prop_events = merged
         prop_diagnostics["events_fetched"] = len(merged)
     elif use_demo:
         prop_events = events
 
-    prop_diagnostics["player_rates_after_bootstrap"] = len(table)
-
     prop_signals_before_caps = 0
     for ev in prop_events:
         kick = _kickoff_iso(ev)
+        scan_table = dict(rates or {})
         if use_demo:
-            table = bootstrap_rates_from_prop_markets(table, ev)
-        for opp in scan_prop_opportunities(ev, rates=table):
+            scan_table = bootstrap_rates_from_prop_markets(scan_table, ev)
+        for opp in scan_prop_opportunities(
+            ev,
+            rates=scan_table,
+            file_rate_keys=file_rate_keys,
+            stats=prop_scan_stats,
+        ):
             prop_diagnostics["lines_scanned"] += 1
             if float(opp.get("edge") or 0) > 0:
                 prop_diagnostics["opportunities_positive_ev"] += 1
             scan_rows.append({**opp, "kickoff": kick})
-        for edge in discover_prop_edges(ev, rates=table):
+        for edge in discover_prop_edges(
+            ev, rates=scan_table, file_rate_keys=file_rate_keys
+        ):
             prop_diagnostics["qualified_prop_edges"] += 1
             prop_signals_before_caps += 1
             signals.append(prop_edge_to_signal(edge, kickoff=kick))
 
     prop_diagnostics["prop_picks_pre_cap"] = prop_signals_before_caps
+    prop_diagnostics["consensus_unavailable_skips"] = prop_scan_stats.get("consensus_unavailable", 0)
+    prop_diagnostics["consensus_only_scored"] = prop_scan_stats.get("consensus_only_scored", 0)
+    prop_diagnostics["model_scored"] = prop_scan_stats.get("model_scored", 0)
 
     ledger = load_nba_ledger()
-    signals, cap_rejected = apply_portfolio_caps_split(
-        signals, existing_today_units=units_staked_today(ledger)
+    staked_today = units_staked_today(ledger)
+    side_candidates = [s for s in signals if (s.get("play_type") or "side") != "prop"]
+    prop_candidates = [s for s in signals if (s.get("play_type") or "") == "prop"]
+    side_accepted, side_rejected = apply_portfolio_caps_split(
+        side_candidates, existing_today_units=staked_today
     )
+    side_units = sum(float(s.get("units") or 0) for s in side_accepted)
+    prop_accepted, prop_rejected = apply_portfolio_caps_split(
+        prop_candidates, existing_today_units=staked_today + side_units
+    )
+    signals = side_accepted + prop_accepted
+    cap_rejected = side_rejected + prop_rejected
 
     pick_keys = {pick_dedupe_key(s) for s in signals}
+    cap_rejected_keys = {pick_dedupe_key(r) for r in cap_rejected}
     near_pool: list[dict[str, Any]] = []
     for row in scan_rows:
         sig = opportunity_row_to_signal(row)
         key = pick_dedupe_key(sig)
-        if key in pick_keys:
+        if key in pick_keys or key in cap_rejected_keys:
             continue
         reason = row.get("reject_reason")
         if row.get("qualified"):
@@ -204,12 +237,16 @@ def run_nba_shadow(
         [p for p in possible_signals if p.get("play_type") == "prop"]
     )
 
+    signals_for_ledger = list(signals)
+    signals, possible_signals = merge_open_ledger_picks(signals, possible_signals, ledger)
+
     ledger_result = {"added": 0}
-    if append_ledger and signals:
-        ledger_result = append_nba_signals(signals)
+    if append_ledger and signals_for_ledger:
+        ledger_result = append_nba_signals(signals_for_ledger)
         ledger = ledger_result["ledger"]
         finalize_nba_clv(ledger)
         save_nba_ledger(ledger)
+        signals, possible_signals = merge_open_ledger_picks(signals, possible_signals, ledger)
 
     payload = {
         "ok": True,

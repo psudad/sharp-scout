@@ -98,6 +98,62 @@ def append_nba_signals(signals: list[dict[str, Any]], *, path: Path | None = Non
     return {"added": added, "ledger": ledger}
 
 
+def ledger_play_to_signal(play: dict[str, Any]) -> dict[str, Any]:
+    """Shape an open ledger row for the latest-signals Picks list."""
+    return {
+        "event_id": play.get("event_id"),
+        "sport": "nba",
+        "kickoff": play.get("kickoff"),
+        "away_team": play.get("away_team"),
+        "home_team": play.get("home_team"),
+        "play_type": play.get("play_type") or "side",
+        "player_name": play.get("player_name"),
+        "market": play.get("market"),
+        "side": play.get("side"),
+        "line": play.get("line"),
+        "book": play.get("book"),
+        "price": play.get("price"),
+        "units": play.get("units"),
+        "tier": play.get("tier") or "paper",
+        "edge": play.get("edge"),
+        "p_true": play.get("p_true"),
+        "p_mkt": play.get("p_mkt"),
+        "p_fair": play.get("p_fair"),
+        "fair_source": play.get("fair_source"),
+        "sharp_book": play.get("sharp_book"),
+        "model_mean": play.get("model_mean"),
+        "filter_passed": True,
+        "pipeline": play.get("pipeline") or "nba_shadow",
+        "status": play.get("status") or "paper",
+        "ledger_id": play.get("id"),
+        "from_ledger": True,
+    }
+
+
+def merge_open_ledger_picks(
+    signals: list[dict[str, Any]],
+    possible_signals: list[dict[str, Any]],
+    ledger: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Keep paper/pending ledger plays visible as Picks on re-scans the same day."""
+    from sharp_scout.nba.possible import pick_dedupe_key
+
+    open_status = {"paper", "pending"}
+    keys = {pick_dedupe_key(s) for s in signals}
+    merged = list(signals)
+    for play in ledger.get("plays") or []:
+        if str(play.get("status") or "").lower() not in open_status:
+            continue
+        sig = ledger_play_to_signal(play)
+        key = pick_dedupe_key(sig)
+        if key in keys:
+            continue
+        merged.append(sig)
+        keys.add(key)
+    possible = [p for p in possible_signals if pick_dedupe_key(p) not in keys]
+    return merged, possible
+
+
 def units_staked_today(ledger: dict[str, Any], *, day: str | None = None) -> float:
     day = day or datetime.now(timezone.utc).date().isoformat()
     total = 0.0

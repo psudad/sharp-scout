@@ -14,6 +14,12 @@ from sharp_scout.copy.explain import (
 )
 from sharp_scout.utils.teams import normalize_ncaaf
 from sharp_scout.utils.odds import normalize_team
+from sharp_scout.site.bottom_bar import (
+    BOTTOM_BAR_SCRIPT,
+    bottom_bar_css,
+    render_bottom_bar,
+    render_slip_overlay,
+)
 
 
 def _site_build():
@@ -328,7 +334,7 @@ def _season_record_chip(label: str, record: dict[str, Any]) -> str:
 
 
 LANDING_PAGE_CSS = """
-  body.lp-body { padding-bottom: 84px; background: #f5f7fa; }
+  body.lp-body { background: #f5f7fa; }
   .lp-header { background: var(--color-navy, #1e3a5f); color: #fff; position: sticky; top: 0; z-index: 5; }
   .lp-hwrap { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
   .lp-hwrap .ssq-logo { width: 36px; height: 36px; flex-shrink: 0; }
@@ -396,9 +402,7 @@ LANDING_PAGE_CSS = """
     padding: 14px 16px; font-size: 14px; color: var(--color-text-muted); line-height: 1.55; }
   .lp-more { display: block; text-align: center; margin: 18px 0 8px; color: var(--color-navy); font-weight: 600; }
   .lp-slip { display: none; }
-  .lp-slip.open { display: block; position: fixed; left: 0; right: 0; bottom: 62px; background: #fff;
-    border-radius: 18px 18px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.18); padding: 18px; z-index: 7;
-    max-height: 70vh; overflow: auto; }
+  .lp-slip-sidebar { display: none; }
   .lp-slip h2 { font-size: 18px; margin: 0 0 4px; font-family: var(--font-serif); }
   .lp-slip-sub { font-size: 13px; color: var(--color-text-muted); margin-bottom: 10px; }
   .lp-slip ul { list-style: none; margin: 0; padding: 0; }
@@ -407,56 +411,22 @@ LANDING_PAGE_CSS = """
   .lp-slip li small { display: block; color: var(--color-text-muted); font-size: 13px; }
   .lp-slip li button { border: 0; background: none; color: #b91c1c; cursor: pointer; font-size: 13px; }
   .lp-slip .lp-copy { width: 100%; margin-top: 10px; border: 1px solid var(--color-navy); background: #fff;
-    color: var(--color-navy); border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; }
-  .lp-badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: #15803d;
-    color: #fff; font-size: 11px; font-weight: 700; margin-left: 2px; }
-  .lp-bbar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--color-border);
-    display: flex; z-index: 6; padding-bottom: env(safe-area-inset-bottom); }
-  .lp-bbar a, .lp-bbar button { flex: 1; text-align: center; padding: 9px 0 11px; font-size: 12px;
-    color: var(--color-text-muted); text-decoration: none; border: 0; background: #fff; cursor: pointer;
-    font-family: var(--font-sans); }
-  .lp-bbar .on { color: var(--color-navy); font-weight: 700; }
-  .lp-bbar .i { display: block; font-size: 18px; line-height: 1.1; }
-  .lp-more-panel { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 8; }
-  .lp-more-panel.open { display: block; }
-  .lp-more-sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 16px 16px 0 0;
-    padding: 16px 18px 24px; max-height: 70vh; overflow: auto; }
-  .lp-more-sheet a { display: block; padding: 12px 0; color: var(--color-navy); text-decoration: none; font-weight: 600;
-    border-bottom: 1px solid var(--color-border); }
+    color: var(--color-navy); border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); }
   @media (min-width: 900px) {
-    body.lp-body { padding-bottom: 0; }
-    .lp-bbar { display: none; }
     .lp-topnav { display: flex; }
     .lp-hero h1 { font-size: 32px; }
     .lp-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
     .lp-grid.official-grid { grid-template-columns: 1fr; }
     .lp-grid.leans-grid { grid-template-columns: 1fr 1fr; }
-    .lp-slip { display: block; position: sticky; top: 76px; background: #fff; border: 1px solid var(--color-border);
+    .lp-slip.lp-slip-sidebar { display: block; position: sticky; top: 76px; background: #fff; border: 1px solid var(--color-border);
       border-radius: 16px; padding: 16px; }
-    .lp-slip.open { position: sticky; box-shadow: none; bottom: auto; max-height: none; }
   }
 """
 
-LANDING_PAGE_SCRIPT = """
+LANDING_FILTER_SCRIPT = """
 <script>
 (function () {
-  var STORAGE = 'ssSlip';
-  var slip = new Map(JSON.parse(localStorage.getItem(STORAGE) || '[]'));
   var filters = { sport: 'all', conf: 0 };
-
-  function cardMeta(card) {
-    var pick = card.querySelector('.lp-pick');
-    var game = card.querySelector('.lp-game');
-    var kick = card.querySelector('.lp-matchup span:last-child');
-    var price = card.querySelector('.lp-price b');
-    return {
-      id: card.getAttribute('data-play-id'),
-      line: pick ? pick.innerText.replace(/\\s+/g, ' ').trim() : '',
-      game: game ? game.textContent.trim() : '',
-      kick: kick ? kick.textContent.trim() : '',
-      price: price ? price.textContent.trim() : ''
-    };
-  }
 
   function allCards() {
     return Array.prototype.slice.call(document.querySelectorAll('.lp-card'));
@@ -474,88 +444,19 @@ LANDING_PAGE_SCRIPT = """
     if (empty) empty.style.display = vis.some(function (c) { return c.classList.contains('official'); }) ? 'none' : '';
   }
 
-  function syncSlipUi() {
-    var n = slip.size;
-    ['lp-slip-count', 'lp-bbar-count'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.textContent = String(n);
-    });
-    var list = document.getElementById('lp-slip-list');
-    if (!list) return;
-    if (!n) {
-      list.innerHTML = '<li class="lp-slip-none">Nothing saved yet. Tap Add to my card on a play.</li>';
-      return;
-    }
-    list.innerHTML = '';
-    slip.forEach(function (_, id) {
-      var card = document.querySelector('.lp-card[data-play-id="' + id + '"]');
-      if (!card) return;
-      var meta = cardMeta(card);
-      var li = document.createElement('li');
-      li.innerHTML = '<div><strong>' + meta.line + '</strong> (' + meta.price + ')<small>' +
-        meta.game + ' · ' + meta.kick + '</small></div>' +
-        '<button type="button" data-rm="' + id + '">Remove</button>';
-      list.appendChild(li);
-    });
-    localStorage.setItem(STORAGE, JSON.stringify(Array.from(slip.keys()).map(function (k) { return [k, 1]; })));
-    allCards().forEach(function (card) {
-      var id = card.getAttribute('data-play-id');
-      var btn = card.querySelector('.lp-add');
-      if (!btn || !id) return;
-      var on = slip.has(id);
-      btn.classList.toggle('added', on);
-      btn.textContent = on ? '✓ On my card' : '+ Add to my card';
-    });
-  }
-
   document.addEventListener('click', function (e) {
     var chip = e.target.closest('.lp-chip');
-    if (chip) {
-      var f = chip.getAttribute('data-f');
-      var v = chip.getAttribute('data-v');
-      if (f === 'conf') filters.conf = parseInt(v, 10);
-      else filters[f] = v;
-      document.querySelectorAll('.lp-chip[data-f="' + f + '"]').forEach(function (c) {
-        c.classList.toggle('on', c === chip);
-      });
-      applyFilters();
-      return;
-    }
-    var add = e.target.closest('.lp-add');
-    if (add) {
-      var id = add.getAttribute('data-play-id') || add.closest('.lp-card').getAttribute('data-play-id');
-      if (!id) return;
-      if (slip.has(id)) slip.delete(id); else slip.set(id, 1);
-      syncSlipUi();
-      return;
-    }
-    var rm = e.target.closest('[data-rm]');
-    if (rm) {
-      slip.delete(rm.getAttribute('data-rm'));
-      syncSlipUi();
-      return;
-    }
-    if (e.target.closest('#lp-bbar-slip')) {
-      e.preventDefault();
-      document.getElementById('lp-slip').classList.toggle('open');
-      return;
-    }
-    if (e.target.closest('#lp-copy-btn')) {
-      var list = document.getElementById('lp-slip-list');
-      if (list && navigator.clipboard) navigator.clipboard.writeText(list.innerText);
-      return;
-    }
-    if (e.target.closest('#lp-more-open')) {
-      e.preventDefault();
-      document.getElementById('lp-more-panel').classList.add('open');
-      return;
-    }
-    if (e.target.closest('#lp-more-close')) {
-      document.getElementById('lp-more-panel').classList.remove('open');
-    }
+    if (!chip) return;
+    var f = chip.getAttribute('data-f');
+    var v = chip.getAttribute('data-v');
+    if (f === 'conf') filters.conf = parseInt(v, 10);
+    else filters[f] = v;
+    document.querySelectorAll('.lp-chip[data-f="' + f + '"]').forEach(function (c) {
+      c.classList.toggle('on', c === chip);
+    });
+    applyFilters();
   });
 
-  syncSlipUi();
   applyFilters();
 })();
 </script>
@@ -617,6 +518,7 @@ def render_landing_page(
     return LANDING_TEMPLATE.format(
         site_css=site_css,
         landing_css=LANDING_PAGE_CSS,
+        bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
         ssq_logo=b._ssq_logo_svg(embedded=True),
         board_updated=b._esc(board_updated),
@@ -625,7 +527,10 @@ def render_landing_page(
         official_cards=official_html,
         lean_count=len(leans),
         leans_cards=leans_html,
-        landing_script=LANDING_PAGE_SCRIPT,
+        bottom_bar=render_bottom_bar(active="plays"),
+        slip_overlay=render_slip_overlay(),
+        bottom_bar_script=BOTTOM_BAR_SCRIPT,
+        landing_filter_script=LANDING_FILTER_SCRIPT,
         timing_script=b._TIMING_SCRIPT,
     )
 
@@ -652,10 +557,11 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
 </script>
 <style>
 {site_css}
+{bottom_bar_css}
 {landing_css}
 </style>
 </head>
-<body class="lp-body">
+<body class="lp-body ss-bottom-bar">
 <header class="lp-header"><div class="lp-hwrap">
   {ssq_logo}
   <div class="lp-brand">Sharp Scout</div>
@@ -703,7 +609,7 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
       </div>
       <a class="lp-more" href="board.html">See the full research board →</a>
     </section>
-    <aside class="lp-slip" id="lp-slip">
+    <aside class="lp-slip lp-slip-sidebar" id="lp-slip">
       <h2>My card <span class="lp-badge" id="lp-slip-count">0</span></h2>
       <div class="lp-slip-sub">Saved on this phone or computer only.</div>
       <ul id="lp-slip-list"></ul>
@@ -712,30 +618,15 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   </div>
 </main>
 
-<nav class="lp-bbar" aria-label="Mobile">
-  <a class="on" href="index.html"><span class="i">★</span>Plays</a>
-  <button type="button" id="lp-bbar-slip"><span class="i">🧾</span>My card <span class="lp-badge" id="lp-bbar-count">0</span></button>
-  <a href="board.html#tab-plays"><span class="i">📈</span>Results</a>
-  <button type="button" id="lp-more-open"><span class="i">☰</span>More</button>
-</nav>
-<div class="lp-more-panel" id="lp-more-panel">
-  <div class="lp-more-sheet">
-    <button type="button" id="lp-more-close" style="float:right;border:0;background:none;font-size:22px;cursor:pointer">×</button>
-    <h3 style="margin-top:0">More</h3>
-    <a href="board.html">Full board</a>
-    <a href="board.html#tab-plays">NFL board</a>
-    <a href="board.html#tab-cfb">College board</a>
-    <a href="board.html#tab-guide">How it works</a>
-    <a href="comments.html">Comments</a>
-    <a href="props.html">NFL Props</a>
-  </div>
-</div>
-<div class="footer" style="margin-bottom:72px">
+{slip_overlay}
+{bottom_bar}
+<div class="footer">
   Sharp Scout Quant · research and entertainment only · not betting advice.<br>
   Updated {board_updated}
 </div>
 {timing_script}
-{landing_script}
+{bottom_bar_script}
+{landing_filter_script}
 </body>
 </html>
 """

@@ -40,10 +40,21 @@ def test_landing_header_is_above_hero(site: Path):
     assert body.index("lp-header") < body.index("lp-hero")
 
 
-def test_landing_has_mobile_bottom_bar(site: Path):
+def test_landing_has_bottom_bar(site: Path):
     html = (site / "index.html").read_text()
     assert "lp-bbar" in html
     assert "My card" in html
+    assert "body.ss-bottom-bar" in html
+    assert ".lp-bbar { display: none; }" not in html
+
+
+def test_all_public_pages_share_bottom_bar(site: Path):
+    for name in ("board.html", "props.html", "comments.html"):
+        html = (site / name).read_text()
+        assert "lp-bbar" in html, name
+        assert "id=\"lp-bbar-slip\"" in html, name
+        assert "ssSlip" in html, name
+        assert 'class="ss-bottom-bar"' in html, name
 
 
 def test_board_tabs_are_anchors_with_hash_targets(site: Path):

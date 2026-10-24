@@ -58,6 +58,15 @@ def _settle_one(sport_key: str) -> dict:
     else:
         scores = load_scores_from_schedules(None)
     ledger = settle_from_scores(scores, path=ledger_path)
+    if sport.key == "ncaaf":
+        try:
+            from sharp_scout.ncaaf.shadow.report import write_summary_and_report
+            from sharp_scout.ncaaf.shadow.settle import settle_shadow_ledger
+
+            settle_shadow_ledger(scores=scores)
+            write_summary_and_report()
+        except Exception as exc:  # noqa: BLE001
+            print(f"[ncaaf totals shadow] settle skipped: {exc}")
     after = _pending(ledger)
     rec = compute_record(ledger)
     graded = before - after

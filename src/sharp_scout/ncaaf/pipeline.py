@@ -323,6 +323,22 @@ def run_ncaaf_pipeline(
         payload["site"] = str(build_site())
         logger.info("Rebuilt GitHub Pages with NCAAF board")
 
+    try:
+        from sharp_scout.ncaaf.shadow.capture import record_from_pipeline
+        from sharp_scout.ncaaf.shadow.report import write_summary_and_report
+
+        shadow_capture = record_from_pipeline(
+            all_signals,
+            signals_payload=payload,
+            season=season,
+            week=week,
+        )
+        payload["ncaaf_totals_shadow"] = shadow_capture
+        if shadow_capture.get("ok"):
+            write_summary_and_report()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NCAAF totals shadow capture skipped: %s", exc)
+
     return payload
 
 

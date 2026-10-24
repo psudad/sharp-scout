@@ -80,11 +80,11 @@ def _should_skip_prop(
     return None
 
 
-def discover_prop_edges(
+def scan_prop_opportunities(
     event: dict[str, Any],
     *,
     rates: dict[str, PlayerRateRow] | None = None,
-) -> list[PropEdge]:
+) -> list[dict[str, Any]]:
     settings = get_settings()
     table = rates if rates is not None else load_rate_table()
     thr_base = settings.nba_prop_ev_threshold
@@ -112,7 +112,7 @@ def discover_prop_edges(
     for key, counts in line_counts.items():
         main_line[key] = max(counts.items(), key=lambda x: x[1])[0]
 
-    edges: list[PropEdge] = []
+    opportunities: list[dict[str, Any]] = []
     for book_key in retail_order:
         bm = books.get(book_key)
         if not bm:
@@ -165,30 +165,71 @@ def discover_prop_edges(
                     price = float(o["price"])
                     edge = expected_value(p_true, price)
                     thr = thr_base + (settings.nba_prop_over_extra_ev if side == "over" else 0.0)
-                    if edge < thr:
+                    if edge <= 0:
                         continue
                     units = stake_units(p_true, price, play_type="prop")
+                    reasons: list[str] = []
+                    qualified = True
+                    if edge < thr:
+                        qualified = False
+                        reasons.append(f"EV below {thr * 100:.1f}% floor")
                     if units <= 0:
-                        continue
-                    edges.append(
-                        PropEdge(
-                            event_id=str(event.get("event_id")),
-                            home_team=event["home_team"],
-                            away_team=event["away_team"],
-                            player_name=str(player_name),
-                            market=market,
-                            side=side,
-                            line=ln,
-                            book=book_key,
-                            price=price,
-                            p_true=round(p_true, 4),
-                            p_mkt=round(float(p_mkt), 4) if p_mkt is not None else None,
-                            edge=round(edge, 4),
-                            model_mean=round(mean, 2),
-                            units=units,
-                            is_alternate=is_alt,
-                        )
+                        qualified = False
+                        reasons.append("Kelly size below minimum")
+                    opportunities.append(
+                        {
+                            "event_id": str(event.get("event_id")),
+                            "home_team": event["home_team"],
+                            "away_team": event["away_team"],
+                            "play_type": "prop",
+                            "player_name": str(player_name),
+                            "market": market,
+                            "side": side,
+                            "line": ln,
+                            "book": book_key,
+                            "price": price,
+                            "p_true": round(p_true, 4),
+                            "p_mkt": round(float(p_mkt), 4) if p_mkt is not None else None,
+                            "edge": round(edge, 4),
+                            "model_mean": round(mean, 2),
+                            "units": units,
+                            "is_alternate": is_alt,
+                            "qualified": qualified,
+                            "reject_reason": "; ".join(reasons) if reasons else None,
+                        }
                     )
+
+    return opportunities
+
+
+def discover_prop_edges(
+    event: dict[str, Any],
+    *,
+    rates: dict[str, PlayerRateRow] | None = None,
+) -> list[PropEdge]:
+    edges: list[PropEdge] = []
+    for row in scan_prop_opportunities(event, rates=rates):
+        if not row.get("qualified"):
+            continue
+        edges.append(
+            PropEdge(
+                event_id=row["event_id"],
+                home_team=row["home_team"],
+                away_team=row["away_team"],
+                player_name=row["player_name"],
+                market=row["market"],
+                side=row["side"],
+                line=row["line"],
+                book=row["book"],
+                price=row["price"],
+                p_true=row["p_true"],
+                p_mkt=row["p_mkt"],
+                edge=row["edge"],
+                model_mean=row["model_mean"],
+                units=row["units"],
+                is_alternate=row.get("is_alternate", False),
+            )
+        )
 
     best: dict[tuple[str, str, str, float], PropEdge] = {}
     for e in edges:

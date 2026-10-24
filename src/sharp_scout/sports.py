@@ -1,4 +1,4 @@
-"""Sport registry — NFL and NCAAF share the same 4-phase engine."""
+"""Sport registry — NFL and NCAAF share the same 4-phase engine; NBA is shadow-only."""
 
 from __future__ import annotations
 
@@ -96,7 +96,29 @@ NCAAF = SportConfig(
     hybrid_model_market_gap=7.0,
 )
 
-SPORTS = {"nfl": NFL, "ncaaf": NCAAF}
+NBA = SportConfig(
+    key="nba",
+    display="NBA",
+    odds_sport_key="basketball_nba",
+    action_league="nba",
+    action_referer="https://www.actionnetwork.com/nba/public-betting",
+    artifact_name="nba_shadow_latest.json",
+    ledger_name="shadow/nba_ledger.json",
+    pbp_cache_prefix="nba_pbp",
+    base_hfa=2.5,
+    scoring_base=112.0,
+    epa_scale=1.0,
+    margin_sd=11.5,
+    total_sd=12.5,
+    anchor_k_spread=0.0,
+    anchor_k_total=0.0,
+    anchor_k_ml=0.0,
+    anchor_tilt_cap=None,
+    spread_model_line_gap=99.0,
+    hybrid_model_market_gap=99.0,
+)
+
+SPORTS = {"nfl": NFL, "ncaaf": NCAAF, "nba": NBA}
 
 
 def get_sport(key: str) -> SportConfig:

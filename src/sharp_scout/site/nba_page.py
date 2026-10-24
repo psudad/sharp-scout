@@ -132,8 +132,9 @@ def _load_json(path: Path) -> dict[str, Any] | None:
 
 
 def _is_demo_play(play: dict[str, Any]) -> bool:
-    eid = str(play.get("event_id") or "")
-    return eid.startswith("demo-")
+    from sharp_scout.nba.ledger import is_demo_nba_row
+
+    return is_demo_nba_row(play)
 
 
 def has_live_nba_scan(signals_payload: dict[str, Any] | None) -> bool:
@@ -166,9 +167,11 @@ def public_nba_signals(signals_payload: dict[str, Any] | None) -> dict[str, Any]
     picks = [
         s
         for s in (out.get("signals") or [])
-        if (s.get("pick_class") or "pick") != "possible" and not s.get("display_only")
+        if (s.get("pick_class") or "pick") != "possible"
+        and not s.get("display_only")
+        and not _is_demo_play(s)
     ]
-    possible = list(out.get("possible_signals") or [])
+    possible = [p for p in (out.get("possible_signals") or []) if not _is_demo_play(p)]
     from sharp_scout.nba.possible import cap_props_per_game
 
     picks, possible = cap_props_per_game(picks, possible)

@@ -788,10 +788,15 @@
   .nba-rec-val { font-size: 22px; font-weight: 800; margin: 4px 0; }
   .nba-rec-sub { font-size: 11px; color: var(--color-text-muted); }
   .nba-wrap .table-wrap { overflow-x: auto; }
+  .nba-empty-live {
+    border: 2px solid var(--color-border); background: var(--color-bg);
+    text-align: center; font-size: 15px; font-weight: 600; padding: 20px 16px; margin: 16px 0;
+  }
+  .nba-no-live-scan .nba-candidates { display: none; }
   @media (max-width: 640px) { .nba-hero h1 { font-size: 29px; } }
 </style>
 </head>
-<body class="ss-bottom-bar">
+<body class="ss-bottom-bar nba-no-live-scan">
 <div class="nba-test-banner" role="alert">This is just for testing.</div>
 <div class="tabs" role="navigation" aria-label="Sections">
   <a class="tab tab-home" href="index.html">Today's plays</a>
@@ -824,19 +829,22 @@
   <text x="40" y="40" text-anchor="middle" font-family="Inconsolata, monospace" font-size="30" font-weight="700" fill="#ffffff">Q</text>
 </svg>
     <h1>NBA — paper testing</h1>
-    <p>Demo fixture · 2 game lines · 1 props · updated Sat Oct 24, 8:24 AM ET</p>
+    <p>Awaiting live scan · 0 game lines · 0 props · updated —</p>
   </div>
   <p class="nba-note">
     Paper/test plays only — not Sharp Plays, not on the NFL card, and not graded on football records.
     Paper window 2026-11-02 – 2026-12-13. Outside paper window (testing only).
     EV uses quarter-Kelly staking with caps ($10/unit). Retail books: FanDuel first, then DraftKings.
   </p>
+  <div class="nba-empty-live" role="status">No live NBA scan yet. Test plays will appear after the next scan.</div>
   <h2 class="nba-h2">Paper record by bet type</h2>
-  <div class="nba-record-grid"><div class="nba-rec-card"><div class="nba-rec-lbl">Points</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 0.0% · 1 open</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Spreads</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 2.4% · 1 open</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Totals</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 1.2% · 1 open</div></div></div>
+  <p class="empty">No paper ledger yet. Run the NBA shadow scan to log test plays.</p>
+  <div class="nba-candidates">
   <h2 class="nba-h2">Upcoming game lines</h2>
-  <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Market</th><th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Fair %</th><th>Units</th></tr></thead><tbody><tr><td data-label="#">1</td><td data-label="Tip">Sat Oct 24, 8:24 AM ET</td><td data-label="Game">CHA @ MIA</td><td data-label="Player">—</td><td data-label="Market">Spread</td><td data-label="Pick"><b>CHA +5.5</b></td><td data-label="Line">5.5</td><td data-label="Book / price">+100 <span class="nba-book">FanDuel</span></td><td data-label="EV">6.9%</td><td data-label="Fair %">53.5%</td><td data-label="Units">1.50u</td></tr><tr><td data-label="#">2</td><td data-label="Tip">Sat Oct 24, 8:24 AM ET</td><td data-label="Game">CHA @ MIA</td><td data-label="Player">—</td><td data-label="Market">Total</td><td data-label="Pick"><b>Over 223.5</b></td><td data-label="Line">223.5</td><td data-label="Book / price">-105 <span class="nba-book">DraftKings</span></td><td data-label="EV">3.8%</td><td data-label="Fair %">53.2%</td><td data-label="Units">0.75u</td></tr></tbody></table></div>
+  
   <h2 class="nba-h2">Upcoming player props</h2>
-  <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Market</th><th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Fair %</th><th>Units</th></tr></thead><tbody><tr><td data-label="#">1</td><td data-label="Tip">Sat Oct 24, 8:24 AM ET</td><td data-label="Game">CHA @ MIA</td><td data-label="Player">LaMelo Ball</td><td data-label="Market">Points</td><td data-label="Pick"><b>O 20.5 Points</b></td><td data-label="Line">20.5</td><td data-label="Book / price">-105 <span class="nba-book">FanDuel</span></td><td data-label="EV">4.7%</td><td data-label="Fair %">53.6%</td><td data-label="Units">0.75u</td></tr></tbody></table></div>
+  
+  </div>
   <h2 class="nba-h2">Graded paper ledger</h2>
   <p class="empty">No graded paper plays yet. Records appear after games finish and settle.</p>
 </div>

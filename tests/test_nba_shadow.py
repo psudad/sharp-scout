@@ -11,6 +11,7 @@ from sharp_scout.nba.pipeline import run_nba_shadow
 from sharp_scout.nba.props import discover_prop_edges
 from sharp_scout.nba.projections import default_demo_rates
 from sharp_scout.site.build import build_site
+from sharp_scout.site.nba_page import NO_LIVE_SCAN_MESSAGE
 
 
 def test_game_line_scanner_finds_retail_edge():
@@ -85,5 +86,75 @@ def test_nba_public_page_isolated(tmp_path, monkeypatch):
     assert "lp-card" not in nba_body
     assert 'class="lp-add"' not in nba_body
     assert "+ Add to my card" not in nba_body
-    assert "CHA" in nba_html or "LaMelo" in nba_html
-    assert (docs / "nba_latest_signals.json").exists()
+    assert NO_LIVE_SCAN_MESSAGE in nba_html
+    assert "CHA" not in nba_body
+    assert "LaMelo" not in nba_body
+    pub_signals = json.loads((docs / "nba_latest_signals.json").read_text())
+    assert pub_signals.get("signals") == []
+    assert pub_signals.get("demo") is False
+    pub_ledger = json.loads((docs / "nba_ledger.json").read_text())
+    assert pub_ledger.get("plays") == []
+
+
+def test_nba_public_page_shows_live_scan_only(tmp_path, monkeypatch):
+    from sharp_scout.nba import paths as nba_paths
+    from sharp_scout.site.nba_page import NO_LIVE_SCAN_MESSAGE, build_nba_page
+
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    monkeypatch.setattr(nba_paths, "SHADOW_DIR", shadow)
+    monkeypatch.setattr(nba_paths, "NBA_LEDGER_PATH", shadow / "nba_ledger.json")
+    monkeypatch.setattr(nba_paths, "NBA_LATEST_SIGNALS_PATH", shadow / "nba_latest_signals.json")
+    monkeypatch.setattr(nba_paths, "NBA_REPORT_PATH", shadow / "nba_paper_report.json")
+
+    live_signals = {
+        "ok": True,
+        "demo": False,
+        "generated_at": "2026-10-24T18:00:00+00:00",
+        "n_events": 1,
+        "n_signals": 1,
+        "signals": [
+            {
+                "event_id": "live-ev-1",
+                "play_type": "side",
+                "kickoff": "2026-10-25T00:00:00+00:00",
+                "away_team": "BOS",
+                "home_team": "NYK",
+                "market": "spreads",
+                "side": "away",
+                "line": 4.5,
+                "book": "fanduel",
+                "price": -110,
+                "units": 1.0,
+                "edge": 0.03,
+                "p_true": 0.54,
+            }
+        ],
+    }
+    (shadow / "nba_latest_signals.json").write_text(json.dumps(live_signals) + "\n")
+    (shadow / "nba_ledger.json").write_text(
+        json.dumps(
+            {
+                "updated_at": "2026-10-24T18:00:00+00:00",
+                "sport": "nba",
+                "mode": "shadow",
+                "plays": [
+                    {
+                        "event_id": "live-ev-1",
+                        "play_type": "side",
+                        "market": "spreads",
+                        "status": "paper",
+                    }
+                ],
+            }
+        )
+        + "\n"
+    )
+
+    docs = tmp_path / "docs"
+    build_nba_page(docs_dir=docs)
+    html = (docs / "nba.html").read_text()
+    assert NO_LIVE_SCAN_MESSAGE not in html
+    assert "BOS" in html
+    exported = json.loads((docs / "nba_latest_signals.json").read_text())
+    assert len(exported["signals"]) == 1

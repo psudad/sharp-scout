@@ -14,6 +14,10 @@ from sharp_scout.utils.slate import parse_commence
 
 DOCS_DIR = ROOT / "docs"
 
+NO_LIVE_SCAN_MESSAGE = (
+    "No live NBA scan yet. Test plays will appear after the next scan."
+)
+
 NBA_PROP_LABELS = {
     "player_points": "Points",
     "player_rebounds": "Rebounds",
@@ -115,6 +119,73 @@ def _load_json(path: Path) -> dict[str, Any] | None:
         return json.loads(path.read_text())
     except json.JSONDecodeError:
         return None
+
+
+def _is_demo_play(play: dict[str, Any]) -> bool:
+    eid = str(play.get("event_id") or "")
+    return eid.startswith("demo-")
+
+
+def has_live_nba_scan(signals_payload: dict[str, Any] | None) -> bool:
+    """True when the latest shadow scan is a non-demo live run (signals may still be empty)."""
+    if not signals_payload:
+        return False
+    if signals_payload.get("demo"):
+        return False
+    return bool(signals_payload.get("ok", True))
+
+
+def _empty_public_signals() -> dict[str, Any]:
+    return {
+        "ok": False,
+        "demo": False,
+        "generated_at": None,
+        "n_events": 0,
+        "n_signals": 0,
+        "signals": [],
+    }
+
+
+def public_nba_signals(signals_payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not has_live_nba_scan(signals_payload):
+        return _empty_public_signals()
+    out = dict(signals_payload or {})
+    out["demo"] = False
+    out.setdefault("signals", [])
+    return out
+
+
+def public_nba_ledger(ledger: dict[str, Any] | None) -> dict[str, Any]:
+    from sharp_scout.nba.ledger import empty_nba_ledger
+
+    if not ledger:
+        return empty_nba_ledger()
+    plays = [p for p in ledger.get("plays") or [] if not _is_demo_play(p)]
+    out = dict(ledger)
+    out["plays"] = plays
+    return out
+
+
+def public_nba_report(
+    report: dict[str, Any] | None,
+    *,
+    ledger: dict[str, Any] | None,
+    live_scan: bool,
+) -> dict[str, Any]:
+    if not live_scan:
+        settings = get_settings()
+        return {
+            "generated_at": None,
+            "paper_window": {"start": settings.nba_paper_start, "end": settings.nba_paper_end},
+            "in_window": False,
+            "clv_summary": {},
+            "calibration": [],
+            "pass_fail": [],
+            "n_plays": 0,
+        }
+    from sharp_scout.nba.report import build_paper_report
+
+    return build_paper_report(public_nba_ledger(ledger))
 
 
 def _record_by_bet_type(ledger: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -281,29 +352,49 @@ def render_nba_page_html(
     from sharp_scout.site.bottom_bar import BOTTOM_BAR_SCRIPT, bottom_bar_css, render_bottom_bar
     from sharp_scout.site.build import _SITE_CSS, _format_timestamp_et, _ssq_logo_svg
 
-    signals = list((signals_payload or {}).get("signals") or [])
-    demo = bool((signals_payload or {}).get("demo"))
-    generated = parse_commence((signals_payload or {}).get("generated_at"))
+    live_scan = has_live_nba_scan(signals_payload)
+    pub_signals = public_nba_signals(signals_payload)
+    pub_ledger = public_nba_ledger(ledger)
+    pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
+
+    signals = list(pub_signals.get("signals") or [])
+    generated = parse_commence(pub_signals.get("generated_at"))
     updated = _format_timestamp_et(generated) if generated else "—"
     n_game = len([s for s in signals if (s.get("play_type") or "side") != "prop"])
     n_prop = len([s for s in signals if (s.get("play_type") or "") == "prop"])
 
-    game_table = _render_candidate_rows(signals, kind="side")
-    prop_table = _render_candidate_rows(signals, kind="prop")
-    if not game_table:
-        game_table = '<p class="empty">No game-line candidates right now. Check back after the next NBA shadow scan.</p>'
-    if not prop_table:
-        prop_table = '<p class="empty">No player-prop candidates right now.</p>'
+    empty_live_notice = ""
+    body_class = "ss-bottom-bar"
+    if not live_scan:
+        body_class = "ss-bottom-bar nba-no-live-scan"
+        empty_live_notice = (
+            f'<div class="nba-empty-live" role="status">{_esc(NO_LIVE_SCAN_MESSAGE)}</div>'
+        )
+        game_table = ""
+        prop_table = ""
+        mode_note = "Awaiting live scan"
+    else:
+        game_table = _render_candidate_rows(signals, kind="side")
+        prop_table = _render_candidate_rows(signals, kind="prop")
+        if not game_table:
+            game_table = (
+                '<p class="empty">No game-line candidates right now. '
+                "Check back after the next NBA shadow scan.</p>"
+            )
+        if not prop_table:
+            prop_table = '<p class="empty">No player-prop candidates right now.</p>'
+        mode_note = "Live shadow scan"
 
-    record_rows = _record_by_bet_type(ledger)
+    record_rows = _record_by_bet_type(pub_ledger)
     record_block = _render_record_cards(record_rows)
     if not record_block:
-        record_block = '<p class="empty">No paper ledger yet. Run the NBA shadow scan to log test plays.</p>'
-    ledger_table = _render_ledger_rows(ledger)
+        record_block = (
+            '<p class="empty">No paper ledger yet. Run the NBA shadow scan to log test plays.</p>'
+        )
+    ledger_table = _render_ledger_rows(pub_ledger)
 
-    mode_note = "Demo fixture" if demo else "Live shadow scan"
-    in_window = (report or {}).get("in_window")
-    window = (report or {}).get("paper_window") or {}
+    in_window = pub_report.get("in_window")
+    window = pub_report.get("paper_window") or {}
     window_s = ""
     if window.get("start") and window.get("end"):
         window_s = f"Paper window {window['start']} – {window['end']}. "
@@ -314,10 +405,12 @@ def render_nba_page_html(
         bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
         ssq_logo=_ssq_logo_svg(embedded=True),
+        body_class=body_class,
         updated=_esc(updated),
         mode_note=_esc(mode_note),
         n_game=n_game,
         n_prop=n_prop,
+        empty_live_notice=empty_live_notice,
         game_table=game_table,
         prop_table=prop_table,
         record_block=record_block,
@@ -336,13 +429,19 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     signals_payload = _load_json(nba_paths.NBA_LATEST_SIGNALS_PATH)
     ledger = _load_json(nba_paths.NBA_LEDGER_PATH)
     report = _load_json(nba_paths.NBA_REPORT_PATH)
+    live_scan = has_live_nba_scan(signals_payload)
 
-    if signals_payload:
-        (out / "nba_latest_signals.json").write_text(json.dumps(signals_payload, indent=2, default=str) + "\n")
-    if ledger:
-        (out / "nba_ledger.json").write_text(json.dumps(ledger, indent=2, default=str) + "\n")
-    if report:
-        (out / "nba_paper_report.json").write_text(json.dumps(report, indent=2, default=str) + "\n")
+    pub_signals = public_nba_signals(signals_payload)
+    pub_ledger = public_nba_ledger(ledger)
+    pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
+
+    (out / "nba_latest_signals.json").write_text(
+        json.dumps(pub_signals, indent=2, default=str) + "\n"
+    )
+    (out / "nba_ledger.json").write_text(json.dumps(pub_ledger, indent=2, default=str) + "\n")
+    (out / "nba_paper_report.json").write_text(
+        json.dumps(pub_report, indent=2, default=str) + "\n"
+    )
 
     from sharp_scout.site.build import _render_analytics_head
 
@@ -389,10 +488,15 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   .nba-rec-val {{ font-size: 22px; font-weight: 800; margin: 4px 0; }}
   .nba-rec-sub {{ font-size: 11px; color: var(--color-text-muted); }}
   .nba-wrap .table-wrap {{ overflow-x: auto; }}
+  .nba-empty-live {{
+    border: 2px solid var(--color-border); background: var(--color-bg);
+    text-align: center; font-size: 15px; font-weight: 600; padding: 20px 16px; margin: 16px 0;
+  }}
+  .nba-no-live-scan .nba-candidates {{ display: none; }}
   @media (max-width: 640px) {{ .nba-hero h1 {{ font-size: 29px; }} }}
 </style>
 </head>
-<body class="ss-bottom-bar">
+<body class="{body_class}">
 <div class="nba-test-banner" role="alert">This is just for testing.</div>
 <div class="tabs" role="navigation" aria-label="Sections">
   <a class="tab tab-home" href="index.html">Today's plays</a>
@@ -413,12 +517,15 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     {window_note}
     EV uses quarter-Kelly staking with caps ($10/unit). Retail books: FanDuel first, then DraftKings.
   </p>
+  {empty_live_notice}
   <h2 class="nba-h2">Paper record by bet type</h2>
   {record_block}
+  <div class="nba-candidates">
   <h2 class="nba-h2">Upcoming game lines</h2>
   {game_table}
   <h2 class="nba-h2">Upcoming player props</h2>
   {prop_table}
+  </div>
   <h2 class="nba-h2">Graded paper ledger</h2>
   {ledger_table}
 </div>

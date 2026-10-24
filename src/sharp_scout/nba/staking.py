@@ -40,11 +40,21 @@ def apply_portfolio_caps(
     *,
     existing_today_units: float = 0.0,
 ) -> list[dict[str, Any]]:
-    """Enforce per-game and per-night unit caps; drop lowest-edge picks when over."""
+    accepted, _ = apply_portfolio_caps_split(candidates, existing_today_units=existing_today_units)
+    return accepted
+
+
+def apply_portfolio_caps_split(
+    candidates: list[dict[str, Any]],
+    *,
+    existing_today_units: float = 0.0,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Enforce per-game and per-night unit caps; return accepted picks and cap rejections."""
     settings = get_settings()
     night_budget = max(0.0, settings.nba_cap_units_per_night - existing_today_units)
     by_game: dict[str, float] = {}
     out: list[dict[str, Any]] = []
+    rejected: list[dict[str, Any]] = []
     ranked = sorted(candidates, key=lambda c: float(c.get("edge") or 0), reverse=True)
     for c in ranked:
         eid = str(c.get("event_id") or "")
@@ -55,18 +65,20 @@ def apply_portfolio_caps(
         if game_used + u > settings.nba_cap_units_per_game:
             room = max(0.0, settings.nba_cap_units_per_game - game_used)
             if room < 0.05:
+                rejected.append({**c, "reject_reason": "Per-game unit cap reached"})
                 continue
             u = round(room, 3)
             c = {**c, "units": u}
         if u > night_budget:
             if night_budget < 0.05:
+                rejected.append({**c, "reject_reason": "Nightly unit cap reached"})
                 continue
             u = round(night_budget, 3)
             c = {**c, "units": u}
         by_game[eid] = by_game.get(eid, 0.0) + u
         night_budget -= u
         out.append(c)
-    return out
+    return out, rejected
 
 
 def price_vs_fair_implied(price: float, p_fair: float | None) -> float | None:

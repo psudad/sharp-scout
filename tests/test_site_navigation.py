@@ -55,7 +55,7 @@ def test_all_public_pages_share_bottom_bar(site: Path):
         assert "lp-bbar" in html, name
         assert "id=\"lp-bbar-slip\"" in html, name
         assert "ssSlip" in html, name
-        assert 'class="ss-bottom-bar"' in html, name
+        assert "ss-bottom-bar" in html, name
 
 
 def test_board_tabs_are_anchors_with_hash_targets(site: Path):

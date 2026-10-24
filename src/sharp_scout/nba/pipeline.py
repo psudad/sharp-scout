@@ -11,13 +11,23 @@ from sharp_scout.config import get_settings
 from sharp_scout.data.odds_api import OddsClient
 from sharp_scout.nba.clv import finalize_nba_clv
 from sharp_scout.nba.demo import demo_player_rates, mock_nba_events
-from sharp_scout.nba.game_lines import discover_game_line_edges, game_line_edge_to_signal
+from sharp_scout.nba.game_lines import (
+    discover_game_line_edges,
+    game_line_edge_to_signal,
+    scan_game_line_opportunities,
+)
 from sharp_scout.nba.ledger import append_nba_signals, load_nba_ledger, save_nba_ledger, units_staked_today
 from sharp_scout.nba.line_store import record_nba_snapshot
 from sharp_scout.nba import paths as nba_paths
-from sharp_scout.nba.props import discover_prop_edges, prop_edge_to_signal
+from sharp_scout.nba.possible import (
+    POSSIBLE_PICK_LIMIT,
+    finalize_possible_picks,
+    opportunity_row_to_signal,
+    pick_dedupe_key,
+)
+from sharp_scout.nba.props import discover_prop_edges, prop_edge_to_signal, scan_prop_opportunities
 from sharp_scout.nba.report import write_paper_report
-from sharp_scout.nba.staking import apply_portfolio_caps
+from sharp_scout.nba.staking import apply_portfolio_caps_split
 from sharp_scout.sports import NBA
 
 logger = logging.getLogger(__name__)
@@ -71,8 +81,11 @@ def run_nba_shadow(
     record_nba_snapshot(events, sharp_only=True)
 
     signals: list[dict[str, Any]] = []
+    scan_rows: list[dict[str, Any]] = []
     for ev in events:
         kick = _kickoff_iso(ev)
+        for opp in scan_game_line_opportunities(ev):
+            scan_rows.append({**opp, "kickoff": kick})
         for edge in discover_game_line_edges(ev):
             signals.append(game_line_edge_to_signal(edge, kickoff=kick))
 
@@ -105,11 +118,46 @@ def run_nba_shadow(
     table = rates
     for ev in prop_events:
         kick = _kickoff_iso(ev)
+        for opp in scan_prop_opportunities(ev, rates=table):
+            scan_rows.append({**opp, "kickoff": kick})
         for edge in discover_prop_edges(ev, rates=table):
             signals.append(prop_edge_to_signal(edge, kickoff=kick))
 
     ledger = load_nba_ledger()
-    signals = apply_portfolio_caps(signals, existing_today_units=units_staked_today(ledger))
+    signals, cap_rejected = apply_portfolio_caps_split(
+        signals, existing_today_units=units_staked_today(ledger)
+    )
+
+    pick_keys = {pick_dedupe_key(s) for s in signals}
+    near_pool: list[dict[str, Any]] = []
+    for row in scan_rows:
+        sig = opportunity_row_to_signal(row)
+        key = pick_dedupe_key(sig)
+        if key in pick_keys:
+            continue
+        reason = row.get("reject_reason")
+        if row.get("qualified"):
+            reason = reason or "Lower EV vs best qualifying line"
+        elif not reason:
+            reason = "Did not qualify"
+        near_pool.append({**sig, "reject_reason": reason})
+
+    for rej in cap_rejected:
+        if pick_dedupe_key(rej) in pick_keys:
+            continue
+        near_pool.append(
+            {
+                **rej,
+                "reject_reason": rej.get("reject_reason") or "Portfolio unit cap",
+                "filter_passed": True,
+            }
+        )
+
+    side_near = [c for c in near_pool if (c.get("play_type") or "side") != "prop"]
+    prop_near = [c for c in near_pool if (c.get("play_type") or "") == "prop"]
+    possible_signals = finalize_possible_picks(
+        side_near, pick_keys=pick_keys, limit=POSSIBLE_PICK_LIMIT
+    ) + finalize_possible_picks(prop_near, pick_keys=pick_keys, limit=POSSIBLE_PICK_LIMIT)
 
     ledger_result = {"added": 0}
     if append_ledger and signals:
@@ -126,6 +174,8 @@ def run_nba_shadow(
         "n_events": len(events),
         "n_signals": len(signals),
         "signals": signals,
+        "n_possible": len(possible_signals),
+        "possible_signals": possible_signals,
         "ledger_added": ledger_result.get("added", 0),
     }
 

@@ -105,6 +105,16 @@ def _prop_pick(play: dict[str, Any]) -> str:
     return f"{side} {market}"
 
 
+def _possible_lean_line(play: dict[str, Any]) -> str:
+    if play.get("play_type") == "prop":
+        pick = _prop_pick(play)
+    else:
+        pick = _game_pick(play)
+    book = _book_label(play.get("book"))
+    price = _price(play.get("price"))
+    return f"After more testing, we'd pick: {pick} ({book} {price})"
+
+
 def _market_label(play: dict[str, Any]) -> str:
     if play.get("play_type") == "prop":
         return NBA_PROP_LABELS.get(str(play.get("market")), str(play.get("market")))
@@ -143,6 +153,8 @@ def _empty_public_signals() -> dict[str, Any]:
         "n_events": 0,
         "n_signals": 0,
         "signals": [],
+        "n_possible": 0,
+        "possible_signals": [],
     }
 
 
@@ -151,7 +163,16 @@ def public_nba_signals(signals_payload: dict[str, Any] | None) -> dict[str, Any]
         return _empty_public_signals()
     out = dict(signals_payload or {})
     out["demo"] = False
-    out.setdefault("signals", [])
+    picks = [
+        s
+        for s in (out.get("signals") or [])
+        if (s.get("pick_class") or "pick") != "possible" and not s.get("display_only")
+    ]
+    possible = list(out.get("possible_signals") or [])
+    out["signals"] = picks
+    out["n_signals"] = len(picks)
+    out["possible_signals"] = possible
+    out["n_possible"] = len(possible)
     return out
 
 
@@ -266,11 +287,50 @@ def _render_record_cards(rows: list[dict[str, Any]]) -> str:
     return '<div class="nba-record-grid">' + "".join(cards) + "</div>"
 
 
+def _render_possible_rows(rows: list[dict[str, Any]], *, kind: str) -> str:
+    filtered = [s for s in rows if (s.get("play_type") or "side") == kind]
+    filtered = sorted(filtered, key=lambda p: float(p.get("edge") or 0), reverse=True)
+    if not filtered:
+        return '<p class="empty">No near-miss game-line candidates right now.</p>' if kind != "prop" else (
+            '<p class="empty">No near-miss prop candidates right now.</p>'
+        )
+    body = []
+    for i, p in enumerate(filtered, 1):
+        game = f"{p.get('away_team', '')} @ {p.get('home_team', '')}"
+        player = str(p.get("player_name") or "—") if kind == "prop" else "—"
+        lean = _possible_lean_line(p)
+        reason = str(p.get("reject_reason") or "Did not qualify")
+        meta = f"EV {_pct(p.get('edge'))} · {reason} · 0u (display only)"
+        body.append(
+            "<tr>"
+            f'<td data-label="#">{i}</td>'
+            f'<td data-label="Tip">{_esc(format_kickoff_compact(p.get("kickoff")))}</td>'
+            f'<td data-label="Game">{_esc(game)}</td>'
+            f'<td data-label="Player">{_esc(player)}</td>'
+            f'<td data-label="Tentative lean" class="nba-lean-cell">'
+            f'<div class="nba-lean-main"><b>{_esc(lean)}</b></div>'
+            f'<div class="nba-lean-meta">{_esc(meta)}</div></td>'
+            "</tr>"
+        )
+    head = (
+        "<thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th>"
+        "<th>Tentative lean</th></tr></thead>"
+    )
+    return (
+        '<div class="table-wrap"><table class="export-table plays-table nba-table nba-possible-table">'
+        f"{head}<tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
 def _render_candidate_rows(signals: list[dict[str, Any]], *, kind: str) -> str:
     filtered = [s for s in signals if (s.get("play_type") or "side") == kind]
     filtered = sorted(filtered, key=lambda p: kickoff_sort_key(p.get("kickoff")))
     if not filtered:
-        return ""
+        return (
+            '<p class="empty">No qualifying picks right now.</p>'
+            if kind != "prop"
+            else '<p class="empty">No qualifying prop picks right now.</p>'
+        )
     rows = []
     for i, p in enumerate(filtered, 1):
         game = f"{p.get('away_team', '')} @ {p.get('home_team', '')}"
@@ -357,11 +417,14 @@ def render_nba_page_html(
     pub_ledger = public_nba_ledger(ledger)
     pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
 
-    signals = list(pub_signals.get("signals") or [])
+    picks = list(pub_signals.get("signals") or [])
+    possible = list(pub_signals.get("possible_signals") or [])
     generated = parse_commence(pub_signals.get("generated_at"))
     updated = _format_timestamp_et(generated) if generated else "—"
-    n_game = len([s for s in signals if (s.get("play_type") or "side") != "prop"])
-    n_prop = len([s for s in signals if (s.get("play_type") or "") == "prop"])
+    n_game = len([s for s in picks if (s.get("play_type") or "side") != "prop"])
+    n_prop = len([s for s in picks if (s.get("play_type") or "") == "prop"])
+    n_possible_game = len([s for s in possible if (s.get("play_type") or "side") != "prop"])
+    n_possible_prop = len([s for s in possible if (s.get("play_type") or "") == "prop"])
 
     empty_live_notice = ""
     body_class = "ss-bottom-bar"
@@ -370,19 +433,16 @@ def render_nba_page_html(
         empty_live_notice = (
             f'<div class="nba-empty-live" role="status">{_esc(NO_LIVE_SCAN_MESSAGE)}</div>'
         )
-        game_table = ""
-        prop_table = ""
+        game_picks_table = ""
+        game_possible_table = ""
+        prop_picks_table = ""
+        prop_possible_table = ""
         mode_note = "Awaiting live scan"
     else:
-        game_table = _render_candidate_rows(signals, kind="side")
-        prop_table = _render_candidate_rows(signals, kind="prop")
-        if not game_table:
-            game_table = (
-                '<p class="empty">No game-line candidates right now. '
-                "Check back after the next NBA shadow scan.</p>"
-            )
-        if not prop_table:
-            prop_table = '<p class="empty">No player-prop candidates right now.</p>'
+        game_picks_table = _render_candidate_rows(picks, kind="side")
+        game_possible_table = _render_possible_rows(possible, kind="side")
+        prop_picks_table = _render_candidate_rows(picks, kind="prop")
+        prop_possible_table = _render_possible_rows(possible, kind="prop")
         mode_note = "Live shadow scan"
 
     record_rows = _record_by_bet_type(pub_ledger)
@@ -410,9 +470,13 @@ def render_nba_page_html(
         mode_note=_esc(mode_note),
         n_game=n_game,
         n_prop=n_prop,
+        n_possible_game=n_possible_game,
+        n_possible_prop=n_possible_prop,
         empty_live_notice=empty_live_notice,
-        game_table=game_table,
-        prop_table=prop_table,
+        game_picks_table=game_picks_table,
+        game_possible_table=game_possible_table,
+        prop_picks_table=prop_picks_table,
+        prop_possible_table=prop_possible_table,
         record_block=record_block,
         ledger_table=ledger_table,
         window_note=_esc(window_s + window_flag),
@@ -481,6 +545,13 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   .nba-hero p {{ color: var(--color-text-muted); font-size: 14px; font-weight: 300; }}
   .nba-note {{ font-size: 13px; color: var(--color-text-muted); margin: 8px 0 20px; line-height: 1.55; }}
   .nba-h2 {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; }}
+  .nba-h3 {{ font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--color-text-muted); margin: 18px 0 8px; }}
+  .nba-section-note {{ font-size: 12.5px; color: var(--color-text-muted); margin: 0 0 10px; line-height: 1.5; }}
+  .nba-display-only {{ color: var(--color-text-muted); font-size: 12px; font-weight: 600; }}
+  .nba-lean-cell {{ max-width: 520px; }}
+  .nba-lean-main {{ font-size: 14px; line-height: 1.45; margin-bottom: 4px; }}
+  .nba-lean-meta {{ font-size: 12px; color: var(--color-text-muted); line-height: 1.4; }}
   .nba-book {{ font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }}
   .nba-record-grid {{ display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 16px 0; }}
   .nba-rec-card {{ border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 16px; min-width: 140px; text-align: center; }}
@@ -510,7 +581,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   <div class="nba-hero">
     {ssq_logo}
     <h1>NBA — paper testing</h1>
-    <p>{mode_note} · {n_game} game lines · {n_prop} props · updated {updated}</p>
+    <p>{mode_note} · {n_game} line picks · {n_prop} prop picks · {n_possible_game}+{n_possible_prop} possible · updated {updated}</p>
   </div>
   <p class="nba-note">
     Paper/test plays only — not Sharp Plays, not on the NFL card, and not graded on football records.
@@ -521,10 +592,20 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   <h2 class="nba-h2">Paper record by bet type</h2>
   {record_block}
   <div class="nba-candidates">
-  <h2 class="nba-h2">Upcoming game lines</h2>
-  {game_table}
-  <h2 class="nba-h2">Upcoming player props</h2>
-  {prop_table}
+  <h2 class="nba-h2">Game lines</h2>
+  <h3 class="nba-h3">Picks</h3>
+  <p class="nba-section-note">Qualifying paper plays (EV floor, sharp fair, Kelly sizing, and portfolio caps).</p>
+  {game_picks_table}
+  <h3 class="nba-h3">Possible picks</h3>
+  <p class="nba-section-note">Tentative leans with positive EV that did not fully qualify yet. Not logged or graded.</p>
+  {game_possible_table}
+  <h2 class="nba-h2">Player props</h2>
+  <h3 class="nba-h3">Picks</h3>
+  <p class="nba-section-note">Qualifying paper props that pass model, consensus, and staking rules.</p>
+  {prop_picks_table}
+  <h3 class="nba-h3">Possible picks</h3>
+  <p class="nba-section-note">Tentative prop leans — display only until they pass all rules.</p>
+  {prop_possible_table}
   </div>
   <h2 class="nba-h2">Graded paper ledger</h2>
   {ledger_table}

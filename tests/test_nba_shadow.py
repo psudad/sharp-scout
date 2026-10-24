@@ -158,3 +158,95 @@ def test_nba_public_page_shows_live_scan_only(tmp_path, monkeypatch):
     assert "BOS" in html
     exported = json.loads((docs / "nba_latest_signals.json").read_text())
     assert len(exported["signals"]) == 1
+    assert exported.get("possible_signals") == []
+
+
+def test_nba_page_picks_and_possible_sections(tmp_path, monkeypatch):
+    from sharp_scout.nba import paths as nba_paths
+    from sharp_scout.site.nba_page import build_nba_page
+
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    monkeypatch.setattr(nba_paths, "SHADOW_DIR", shadow)
+    monkeypatch.setattr(nba_paths, "NBA_LEDGER_PATH", shadow / "nba_ledger.json")
+    monkeypatch.setattr(nba_paths, "NBA_LATEST_SIGNALS_PATH", shadow / "nba_latest_signals.json")
+    monkeypatch.setattr(nba_paths, "NBA_REPORT_PATH", shadow / "nba_paper_report.json")
+
+    payload = {
+        "ok": True,
+        "demo": False,
+        "generated_at": "2026-10-24T20:00:00+00:00",
+        "n_events": 1,
+        "n_signals": 1,
+        "signals": [
+            {
+                "event_id": "live-ev-1",
+                "play_type": "side",
+                "kickoff": "2026-10-25T00:00:00+00:00",
+                "away_team": "BOS",
+                "home_team": "NYK",
+                "market": "spreads",
+                "side": "away",
+                "line": 4.5,
+                "book": "fanduel",
+                "price": -110,
+                "units": 1.0,
+                "edge": 0.03,
+                "p_true": 0.54,
+                "filter_passed": True,
+            }
+        ],
+        "n_possible": 1,
+        "possible_signals": [
+            {
+                "event_id": "live-ev-1",
+                "play_type": "side",
+                "kickoff": "2026-10-25T00:00:00+00:00",
+                "away_team": "BOS",
+                "home_team": "NYK",
+                "market": "totals",
+                "side": "over",
+                "line": 220.5,
+                "book": "draftkings",
+                "price": -105,
+                "units": 0,
+                "edge": 0.012,
+                "p_true": 0.52,
+                "reject_reason": "EV below 2.0% floor",
+                "pick_class": "possible",
+                "display_only": True,
+            }
+        ],
+    }
+    (shadow / "nba_latest_signals.json").write_text(json.dumps(payload) + "\n")
+
+    docs = tmp_path / "docs"
+    build_nba_page(docs_dir=docs)
+    html = (docs / "nba.html").read_text()
+    assert "Game lines" in html
+    assert "Possible picks" in html
+    assert "After more testing, we'd pick:" in html
+    assert "EV below 2.0% floor" in html
+    assert "display only" in html
+    exported = json.loads((docs / "nba_latest_signals.json").read_text())
+    assert len(exported["possible_signals"]) == 1
+    assert exported["possible_signals"][0]["units"] == 0
+
+
+def test_demo_shadow_populates_possible_without_publishing(tmp_path, monkeypatch):
+    from sharp_scout.nba import paths as nba_paths
+
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    monkeypatch.setattr(nba_paths, "SHADOW_DIR", shadow)
+    monkeypatch.setattr(nba_paths, "NBA_LEDGER_PATH", shadow / "nba_ledger.json")
+    monkeypatch.setattr(nba_paths, "NBA_LATEST_SIGNALS_PATH", shadow / "nba_latest_signals.json")
+    monkeypatch.setattr(nba_paths, "NBA_LINE_HISTORY_PATH", shadow / "nba_line_history.json")
+    monkeypatch.setattr(nba_paths, "NBA_REPORT_PATH", shadow / "nba_paper_report.json")
+    monkeypatch.setattr(nba_paths, "NBA_ARTIFACT_DIR", tmp_path / "artifacts")
+
+    payload = run_nba_shadow(demo=True, append_ledger=False)
+    assert "possible_signals" in payload
+    shadow_payload = json.loads((shadow / "nba_latest_signals.json").read_text())
+    assert shadow_payload.get("demo") is True
+    assert isinstance(shadow_payload.get("possible_signals"), list)

@@ -729,9 +729,60 @@
     .footer { padding: 24px 12px; }
   }
 
+
+  body.ss-bottom-bar { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 12px); }
+  .lp-badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: #15803d;
+    color: #fff; font-size: 11px; font-weight: 700; margin-left: 2px; }
+  .lp-bbar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--color-border);
+    display: flex; z-index: 600; padding-bottom: env(safe-area-inset-bottom); }
+  .lp-bbar a, .lp-bbar button { flex: 1; text-align: center; padding: 9px 0 11px; font-size: 12px;
+    color: var(--color-text-muted); text-decoration: none; border: 0; background: #fff; cursor: pointer;
+    font-family: var(--font-sans); }
+  .lp-bbar .on { color: var(--color-navy); font-weight: 700; }
+  .lp-bbar .i { display: block; font-size: 18px; line-height: 1.1; }
+  .lp-more-panel { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 800; }
+  .lp-more-panel.open { display: block; }
+  .lp-more-sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 16px 16px 0 0;
+    padding: 16px 18px calc(24px + env(safe-area-inset-bottom)); max-height: 70vh; overflow: auto; }
+  .lp-more-sheet a { display: block; padding: 12px 0; color: var(--color-navy); text-decoration: none; font-weight: 600;
+    border-bottom: 1px solid var(--color-border); }
+  .lp-slip-overlay { display: none; }
+  .lp-slip-overlay.open { display: block; position: fixed; left: 0; right: 0; bottom: 62px; background: #fff;
+    border-radius: 18px 18px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.18); padding: 18px; z-index: 700;
+    max-height: min(70vh, calc(100vh - 62px - 24px)); overflow: auto; }
+  .lp-slip-overlay h2 { font-size: 18px; margin: 0 0 4px; font-family: var(--font-serif); }
+  .lp-slip-sub { font-size: 13px; color: var(--color-text-muted); margin-bottom: 10px; }
+  .lp-slip-overlay ul { list-style: none; margin: 0; padding: 0; }
+  .lp-slip-overlay li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0;
+    border-top: 1px solid var(--color-border); font-size: 15px; }
+  .lp-slip-overlay li small { display: block; color: var(--color-text-muted); font-size: 13px; }
+  .lp-slip-overlay li button { border: 0; background: none; color: #b91c1c; cursor: pointer; font-size: 13px; }
+  .lp-slip-overlay .lp-copy { width: 100%; margin-top: 10px; border: 1px solid var(--color-navy); background: #fff;
+    color: var(--color-navy); border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); }
+  @media (min-width: 900px) {
+    .lp-bbar {
+      max-width: min(1180px, 100%);
+      margin: 0 auto;
+      left: 0; right: 0;
+      border-left: 1px solid var(--color-border);
+      border-right: 1px solid var(--color-border);
+      border-radius: 14px 14px 0 0;
+      box-shadow: 0 -4px 24px rgba(16, 24, 40, .08);
+    }
+    .lp-bbar a, .lp-bbar button { font-size: 13px; padding: 11px 0 13px; }
+    .lp-slip-overlay.open {
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: min(480px, calc(100% - 32px));
+      border-radius: 16px;
+      bottom: calc(62px + 12px);
+      box-shadow: 0 12px 40px rgba(0,0,0,.2);
+    }
+  }
+
 </style>
 </head>
-<body>
+<body class="ss-bottom-bar">
 <div class="header">
   <div class="header-inner">
     <div class="header-logo">
@@ -1677,7 +1728,7 @@
   <div class="section-label">Season Overview</div>
   <div class="summary-grid" style="margin-top:6px"><div class="stat-card"><div class="stat-val">54.4%</div><div class="stat-label">Overall Win %<span class="th-tip stat-tip" data-tip="Win rate on all graded Sharp Plays this season." tabindex="0" role="button" aria-label="Win rate on all graded Sharp Plays this season."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="stat-card"><div class="stat-val pos">+7.39u</div><div class="stat-label">Overall Profit<span class="th-tip stat-tip" data-tip="Net units on all graded Sharp Plays this season." tabindex="0" role="button" aria-label="Net units on all graded Sharp Plays this season."><svg class="th-tip-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div></div>
   <div class="plays-heading"><div class="plays-heading-main">LOCKED PLAYS — BET THESE</div><div class="plays-heading-sub">Narrow lanes only: NCAAF totals &amp; spreads, then NFL spreads — each Phase-4 confirmed with Pinnacle no-vig ≥50% on our side (4–12% EV on CFB; NFL spreads 3–12%). <span class='plays-heading-count'><b>2 locked</b> this week · 2 still open</span></div><p class="locked-plays-explainer"><b>This list is the full weekly card.</b> If we recommended a bet, it appears here (and stays here after the game with the result). The stage table below has <span class='lock-badge-inline'>LOCKED</span> on matching rows; <span class='lean-only-badge-inline'>LEAN ONLY</span> everywhere else — research, not a posted play.</p><div class="conf-legend">Confidence &amp; value grade (Win % drives it; premium tiers also need good EV): <span class="conf conf-silver"><span class="conf-tier">Silver</span><span class="conf-pct">&lt;55%</span></span><span class="conf conf-gold"><span class="conf-tier">Gold</span><span class="conf-pct">55–60%</span></span><span class="conf conf-diamond"><span class="conf-tier">Diamond 💎</span><span class="conf-pct">60%+ &amp; EV≥5%</span></span><span class="conf conf-ddiamond"><span class="conf-tier">Double Diamond 💎💎</span><span class="conf-pct">70%+ &amp; EV≥10%</span></span></div></div>
-  <div class="table-wrap"><table class="export-table plays-table plays-table-large"><thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th><th>EV</th><th>Win %</th><th>Book</th><th>Posted</th><th>When to bet</th><th>Why</th></tr></thead><tbody><tr class='locked-play-row' data-team-search="knights northwestern northwestern wildcats nu nw rut rutg rutgers rutgers scarlet knights scarlet wildcats" data-event-id="99932501288d30e4693c828c0ab2455e"><td data-label='Kickoff'>Sat Oct 24, 12:00 PM ET</td><td data-label='Game'>RUT @ NW</td><td class='play-pick-cell' data-label='Play'><span class="lock-badge-inline">LOCKED</span> RUT +16.5 (spread) -110</td><td data-label='Units'>1.5u</td><td class='pos' data-label='EV'>5.2%</td><td data-label='Win %'><span class='conf conf-gold'><span class='conf-tier'>Good</span><span class='conf-pct'>55%</span></span></td><td data-label='Book'>betparx</td><td data-label='Posted'>Sat Oct 24, 8:48 AM ET</td><td class='play-timing-cell' data-label='When to bet'><span class="play-timing js-timing watch" data-kickoff="2026-10-24T16:00:00+00:00">Get ready. Final check 3 hours before kickoff</span><span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="RUT" data-live-home="NW"></span></td><td class='rationale-cell' data-label='Why'>We project RUT +16.5 on the spread at 55.1% true probability vs 54.2% implied at betparx — about 5.2% expected value. · Reverse line movement supports this side — line moved against the public.</td></tr><tr class='locked-play-row' data-team-search="commodores kentucky kentucky wildcats uk van vanderbilt vanderbilt commodores wildcats" data-event-id="cc78a514047b7ed0d2c5a3acdf3cdc1e"><td data-label='Kickoff'>Sat Oct 24, 7:30 PM ET</td><td data-label='Game'>VAN @ UK</td><td class='play-pick-cell' data-label='Play'><span class="lock-badge-inline">LOCKED</span> VAN +11 (spread) -106</td><td data-label='Units'>1.5u</td><td class='pos' data-label='EV'>4.4%</td><td data-label='Win %'><span class='conf conf-silver'><span class='conf-tier'>Lean</span><span class='conf-pct'>53%</span></span></td><td data-label='Book'>matchbook</td><td data-label='Posted'>Sat Oct 24, 8:48 AM ET</td><td class='play-timing-cell' data-label='When to bet'><span class="play-timing js-timing watch" data-kickoff="2026-10-24T23:30:00+00:00">Get ready. Final check 3 hours before kickoff</span><span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="VAN" data-live-home="UK"></span></td><td class='rationale-cell' data-label='Why'>We project VAN +11 on the spread at 52.7% true probability vs 50.9% implied at matchbook — about 4.4% expected value. · Reverse line movement supports this side — line moved against the public.</td></tr></tbody></table></div>
+  <div class="table-wrap"><table class="export-table plays-table plays-table-large"><thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th><th>EV</th><th>Win %</th><th>Book</th><th>Posted</th><th>When to bet</th><th>Why</th></tr></thead><tbody><tr class='locked-play-row' data-team-search="knights northwestern northwestern wildcats nu nw rut rutg rutgers rutgers scarlet knights scarlet wildcats" data-event-id="99932501288d30e4693c828c0ab2455e"><td data-label='Kickoff'>Sat Oct 24, 12:00 PM ET</td><td data-label='Game'>RUT @ NW</td><td class='play-pick-cell' data-label='Play'><span class="lock-badge-inline">LOCKED</span> RUT +16.5 (spread) -110</td><td data-label='Units'>1.5u</td><td class='pos' data-label='EV'>5.2%</td><td data-label='Win %'><span class='conf conf-gold'><span class='conf-tier'>Good</span><span class='conf-pct'>55%</span></span></td><td data-label='Book'>betparx</td><td data-label='Posted'>Sat Oct 24, 8:48 AM ET</td><td class='play-timing-cell' data-label='When to bet'><span class="play-timing js-timing soon" data-kickoff="2026-10-24T16:00:00+00:00">Almost time. Final check 1 hour before kickoff</span><span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="RUT" data-live-home="NW"></span></td><td class='rationale-cell' data-label='Why'>We project RUT +16.5 on the spread at 55.1% true probability vs 54.2% implied at betparx — about 5.2% expected value. · Reverse line movement supports this side — line moved against the public.</td></tr><tr class='locked-play-row' data-team-search="commodores kentucky kentucky wildcats uk van vanderbilt vanderbilt commodores wildcats" data-event-id="cc78a514047b7ed0d2c5a3acdf3cdc1e"><td data-label='Kickoff'>Sat Oct 24, 7:30 PM ET</td><td data-label='Game'>VAN @ UK</td><td class='play-pick-cell' data-label='Play'><span class="lock-badge-inline">LOCKED</span> VAN +11 (spread) -106</td><td data-label='Units'>1.5u</td><td class='pos' data-label='EV'>4.4%</td><td data-label='Win %'><span class='conf conf-silver'><span class='conf-tier'>Lean</span><span class='conf-pct'>53%</span></span></td><td data-label='Book'>matchbook</td><td data-label='Posted'>Sat Oct 24, 8:48 AM ET</td><td class='play-timing-cell' data-label='When to bet'><span class="play-timing js-timing watch" data-kickoff="2026-10-24T23:30:00+00:00">Get ready. Final check 3 hours before kickoff</span><span class="live-score js-live-score" aria-live="polite" data-live-sport="ncaaf" data-live-away="VAN" data-live-home="UK"></span></td><td class='rationale-cell' data-label='Why'>We project VAN +11 on the spread at 52.7% true probability vs 50.9% implied at matchbook — about 4.4% expected value. · Reverse line movement supports this side — line moved against the public.</td></tr></tbody></table></div>
   
   <p class="phase-note" style="padding:8px 0 4px">The table above is the <b>only</b> CFB weekly card we posted (use <b>When to bet</b> for timing on open plays). Research tables below are not the card unless marked <span class="lock-badge-inline">LOCKED</span>.</p>
   <div class="section-label">This Week — Pregame Stage Winners</div>
@@ -6045,6 +6096,189 @@ function downloadTableCsv(tableId, filename) {
   }
   refresh();
   setInterval(refresh, 30000);
+})();
+</script>
+
+
+<aside class="lp-slip-overlay" id="lp-slip-overlay" aria-label="My card">
+  <h2>My card <span class="lp-badge" id="lp-slip-overlay-count">0</span></h2>
+  <div class="lp-slip-sub">Saved on this phone or computer only.</div>
+  <ul id="lp-slip-overlay-list"></ul>
+  <button type="button" class="lp-copy" id="lp-copy-btn-overlay">Copy my card</button>
+</aside>
+
+
+<nav class="lp-bbar" aria-label="Site">
+  <a href="index.html"><span class="i">★</span>Plays</a>
+  <button type="button" id="lp-bbar-slip"><span class="i">🧾</span>My card <span class="lp-badge" id="lp-bbar-count">0</span></button>
+  <a class="on" href="board.html#tab-plays"><span class="i">📈</span>Results</a>
+  <button type="button" id="lp-more-open"><span class="i">☰</span>More</button>
+</nav>
+<div class="lp-more-panel" id="lp-more-panel">
+  <div class="lp-more-sheet">
+    <button type="button" id="lp-more-close" style="float:right;border:0;background:none;font-size:22px;cursor:pointer">×</button>
+    <h3 style="margin-top:0">More</h3>
+    <a href="board.html">Full board</a>
+    <a href="board.html#tab-plays">NFL board</a>
+    <a href="board.html#tab-cfb">College board</a>
+    <a href="board.html#tab-guide">How it works</a>
+    <a href="comments.html">Comments</a>
+    <a href="props.html">NFL Props</a>
+  </div>
+</div>
+
+
+<script>
+(function () {
+  var STORAGE = 'ssSlip';
+
+  function normalizeMeta(v) {
+    if (!v || v === 1) return {};
+    if (typeof v === 'object') return v;
+    return {};
+  }
+
+  function loadSlip() {
+    var m = new Map();
+    try {
+      JSON.parse(localStorage.getItem(STORAGE) || '[]').forEach(function (pair) {
+        if (!pair || !pair.length) return;
+        m.set(String(pair[0]), normalizeMeta(pair[1]));
+      });
+    } catch (e) { /* ignore corrupt storage */ }
+    return m;
+  }
+
+  var slip = loadSlip();
+
+  function cardMetaFromDom(card) {
+    var pick = card.querySelector('.lp-pick');
+    var game = card.querySelector('.lp-game');
+    var kick = card.querySelector('.lp-matchup span:last-child');
+    var price = card.querySelector('.lp-price b');
+    return {
+      line: pick ? pick.innerText.replace(/\s+/g, ' ').trim() : '',
+      game: game ? game.textContent.trim() : '',
+      kick: kick ? kick.textContent.trim() : '',
+      price: price ? price.textContent.trim() : ''
+    };
+  }
+
+  function metaForId(id) {
+    var card = document.querySelector('.lp-card[data-play-id="' + id + '"]');
+    if (card) return cardMetaFromDom(card);
+    return normalizeMeta(slip.get(id));
+  }
+
+  function persistSlip() {
+    var arr = [];
+    slip.forEach(function (meta, id) {
+      arr.push([id, metaForId(id)]);
+    });
+    localStorage.setItem(STORAGE, JSON.stringify(arr));
+  }
+
+  function renderList(listEl) {
+    if (!listEl) return;
+    var n = slip.size;
+    if (!n) {
+      listEl.innerHTML = '<li class="lp-slip-none">Nothing saved yet. Tap <b>Add to my card</b> on a play.</li>';
+      return;
+    }
+    listEl.innerHTML = '';
+    slip.forEach(function (_, id) {
+      var meta = metaForId(id);
+      var li = document.createElement('li');
+      li.innerHTML = '<div><strong>' + (meta.line || 'Saved play') + '</strong>' +
+        (meta.price ? ' (' + meta.price + ')' : '') +
+        '<small>' + (meta.game || '') + (meta.game && meta.kick ? ' · ' : '') + (meta.kick || '') + '</small></div>' +
+        '<button type="button" data-rm="' + id + '">Remove</button>';
+      listEl.appendChild(li);
+    });
+  }
+
+  function syncSlipUi() {
+    var n = slip.size;
+    ['lp-slip-count', 'lp-bbar-count', 'lp-slip-overlay-count'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = String(n);
+    });
+    renderList(document.getElementById('lp-slip-list'));
+    renderList(document.getElementById('lp-slip-overlay-list'));
+    persistSlip();
+    document.querySelectorAll('.lp-card').forEach(function (card) {
+      var id = card.getAttribute('data-play-id');
+      var btn = card.querySelector('.lp-add');
+      if (!btn || !id) return;
+      var on = slip.has(id);
+      btn.classList.toggle('added', on);
+      btn.textContent = on ? '✓ On my card' : '+ Add to my card';
+    });
+  }
+
+  function toggleSlipPanel() {
+    var overlay = document.getElementById('lp-slip-overlay');
+    var inline = document.getElementById('lp-slip');
+    if (window.matchMedia('(min-width: 900px)').matches && inline) {
+      inline.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (overlay) overlay.classList.remove('open');
+      return;
+    }
+    if (overlay) overlay.classList.toggle('open');
+    else if (inline) inline.classList.toggle('open');
+  }
+
+  document.addEventListener('click', function (e) {
+    var add = e.target.closest('.lp-add');
+    if (add) {
+      var id = add.getAttribute('data-play-id') || (add.closest('.lp-card') && add.closest('.lp-card').getAttribute('data-play-id'));
+      if (!id) return;
+      if (slip.has(id)) slip.delete(id);
+      else {
+        var card = add.closest('.lp-card');
+        slip.set(id, card ? cardMetaFromDom(card) : {});
+      }
+      syncSlipUi();
+      return;
+    }
+    var rm = e.target.closest('[data-rm]');
+    if (rm) {
+      slip.delete(rm.getAttribute('data-rm'));
+      syncSlipUi();
+      return;
+    }
+    if (e.target.closest('#lp-bbar-slip')) {
+      e.preventDefault();
+      toggleSlipPanel();
+      return;
+    }
+    if (e.target.closest('#lp-copy-btn') || e.target.closest('#lp-copy-btn-overlay')) {
+      var list = document.getElementById('lp-slip-list') || document.getElementById('lp-slip-overlay-list');
+      if (list && navigator.clipboard) navigator.clipboard.writeText(list.innerText);
+      return;
+    }
+    if (e.target.closest('#lp-more-open')) {
+      e.preventDefault();
+      document.getElementById('lp-more-panel').classList.add('open');
+      return;
+    }
+    if (e.target.closest('#lp-more-close') || e.target.closest('#lp-more-panel') === e.target) {
+      document.getElementById('lp-more-panel').classList.remove('open');
+    }
+    if (e.target.closest('#lp-slip-overlay') && !e.target.closest('button') && !e.target.closest('[data-rm]')) {
+      /* keep panel open when clicking inside */
+    }
+  });
+
+  window.addEventListener('storage', function (ev) {
+    if (ev.key === STORAGE) {
+      slip = loadSlip();
+      syncSlipUi();
+    }
+  });
+
+  syncSlipUi();
+  window.ssSlipSync = syncSlipUi;
 })();
 </script>
 

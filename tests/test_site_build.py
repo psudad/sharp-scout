@@ -50,7 +50,7 @@ def test_early_season_banner_weeks_one_through_three_only():
     assert early_season_banner_html(5) == ""
 
 
-def test_pick_signals_prefers_fresher_artifacts_on_equal_game_count(tmp_path, monkeypatch):
+def test_pick_signals_prefers_fresher_on_equal_game_count(tmp_path, monkeypatch):
     monkeypatch.setattr(site_build, "ARTIFACTS_DIR", tmp_path / "artifacts")
     monkeypatch.setattr(site_build, "DOCS_DIR", tmp_path / "docs")
     art = tmp_path / "artifacts"
@@ -59,8 +59,8 @@ def test_pick_signals_prefers_fresher_artifacts_on_equal_game_count(tmp_path, mo
     doc.mkdir(parents=True)
     stale = {
         "generated_at": "2026-09-03T22:00:00+00:00",
-        "n_games": 90,
-        "games": [{}] * 90,
+        "n_games": 80,
+        "games": [{}] * 80,
         "label": "stale",
     }
     fresh = {
@@ -73,6 +73,31 @@ def test_pick_signals_prefers_fresher_artifacts_on_equal_game_count(tmp_path, mo
     (art / "latest_ncaaf_signals.json").write_text(json.dumps(fresh))
     picked = _pick_signals(("latest_ncaaf_signals.json",))
     assert picked["label"] == "fresh"
+
+
+def test_pick_signals_prefers_fullest_board_over_partial_artifact(tmp_path, monkeypatch):
+    monkeypatch.setattr(site_build, "ARTIFACTS_DIR", tmp_path / "artifacts")
+    monkeypatch.setattr(site_build, "DOCS_DIR", tmp_path / "docs")
+    art = tmp_path / "artifacts"
+    doc = tmp_path / "docs"
+    art.mkdir(parents=True)
+    doc.mkdir(parents=True)
+    full_docs = {
+        "generated_at": "2026-09-03T22:00:00+00:00",
+        "n_games": 90,
+        "games": [{}] * 90,
+        "label": "full_docs",
+    }
+    partial_art = {
+        "generated_at": "2026-09-04T01:38:00+00:00",
+        "n_games": 80,
+        "games": [{}] * 80,
+        "label": "partial_art",
+    }
+    (doc / "latest_ncaaf_signals.json").write_text(json.dumps(full_docs))
+    (art / "latest_ncaaf_signals.json").write_text(json.dumps(partial_art))
+    picked = _pick_signals(("latest_ncaaf_signals.json",))
+    assert picked["label"] == "full_docs"
 
 
 def test_locked_sharp_play_keys_include_graded_wins():

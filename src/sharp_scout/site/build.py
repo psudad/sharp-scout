@@ -438,35 +438,28 @@ def _live_score_html(play: dict[str, Any], *, sport: str) -> str:
 def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
     """Load the best signals JSON for site generation.
 
-    After a pipeline run, ``artifacts/`` holds the fresh board — prefer it whenever
-    it has games. Fall back to the fullest committed ``docs/`` copy for local dev.
+    Prefer whichever copy (``artifacts/`` or committed ``docs/``) has the most
+    games, then the newest ``generated_at``. A stale partial artifact must not
+    beat a full ``docs/`` board after a Refresh Board run.
     """
-    for name in path_names:
-        art_path = ARTIFACTS_DIR / name
-        if art_path.exists():
-            try:
-                data = json.loads(art_path.read_text())
-            except json.JSONDecodeError:
-                continue
-            n = int(data.get("n_games") or len(data.get("games") or []))
-            if n > 0:
-                return data
-
     best: dict[str, Any] = {}
     best_rank: tuple[int, float] = (-1, 0.0)
     for name in path_names:
-        path = DOCS_DIR / name
-        if not path.exists():
-            continue
-        try:
-            data = json.loads(path.read_text())
-        except json.JSONDecodeError:
-            continue
-        n = int(data.get("n_games") or len(data.get("games") or []))
-        ts = parse_commence(data.get("generated_at"))
-        rank = (n, ts.timestamp() if ts else 0.0)
-        if rank > best_rank:
-            best, best_rank = data, rank
+        for base in (ARTIFACTS_DIR, DOCS_DIR):
+            path = base / name
+            if not path.exists():
+                continue
+            try:
+                data = json.loads(path.read_text())
+            except json.JSONDecodeError:
+                continue
+            n = int(data.get("n_games") or len(data.get("games") or []))
+            if n <= 0:
+                continue
+            ts = parse_commence(data.get("generated_at"))
+            rank = (n, ts.timestamp() if ts else 0.0)
+            if rank > best_rank:
+                best, best_rank = data, rank
     return best
 
 
@@ -937,7 +930,18 @@ def build_site(
     nfl_week1_banner_html = early_season_banner_html(nfl_season_week)
     ncaaf_week1_banner_html = early_season_banner_html(ncaaf_season_week)
 
+    from sharp_scout.site.bottom_bar import (
+        BOTTOM_BAR_SCRIPT,
+        bottom_bar_css,
+        render_bottom_bar,
+        render_slip_overlay,
+    )
+
     html = SITE_TEMPLATE.format(
+        bottom_bar_css=bottom_bar_css(),
+        slip_overlay=render_slip_overlay(),
+        bottom_bar=render_bottom_bar(active="board"),
+        bottom_bar_script=BOTTOM_BAR_SCRIPT,
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         ssq_logo=_ssq_logo_svg(embedded=True),
         board_updated=board_updated,
@@ -1071,12 +1075,23 @@ COMMENTS_TO_EMAIL = "jasoneger@gmail.com"
 
 def _render_comments_page(*, analytics_head: str) -> str:
     """Standalone Comments page: name + email + comment, delivered by email."""
+    from sharp_scout.site.bottom_bar import (
+        BOTTOM_BAR_SCRIPT,
+        bottom_bar_css,
+        render_bottom_bar,
+        render_slip_overlay,
+    )
+
     return COMMENTS_TEMPLATE.format(
         site_css=_SITE_CSS,
+        bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
         ssq_logo=_ssq_logo_svg(embedded=True),
         to_email=COMMENTS_TO_EMAIL,
         to_email_js=json.dumps(COMMENTS_TO_EMAIL),
+        slip_overlay=render_slip_overlay(),
+        bottom_bar=render_bottom_bar(active="comments"),
+        bottom_bar_script=BOTTOM_BAR_SCRIPT,
     )
 
 
@@ -1282,8 +1297,16 @@ def _render_props_page(
         "calibrated against settled results. They are not graded on the record and are not "
         "Sharp Plays. Treat this page as research.</div>"
     )
+    from sharp_scout.site.bottom_bar import (
+        BOTTOM_BAR_SCRIPT,
+        bottom_bar_css,
+        render_bottom_bar,
+        render_slip_overlay,
+    )
+
     return PROPS_TEMPLATE.format(
         site_css=_SITE_CSS,
+        bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
         ssq_logo=_ssq_logo_svg(embedded=True),
         shadow_banner=shadow,
@@ -1292,6 +1315,9 @@ def _render_props_page(
         updated=_esc(updated),
         n_rows=len(rows),
         table=table,
+        slip_overlay=render_slip_overlay(),
+        bottom_bar=render_bottom_bar(active="props"),
+        bottom_bar_script=BOTTOM_BAR_SCRIPT,
     )
 
 
@@ -1310,6 +1336,7 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 {site_css}
+{bottom_bar_css}
   .props-wrap {{ max-width: 1200px; margin: 0 auto; padding: 0 20px 48px; }}
   .props-hero {{ text-align: center; padding: 30px 16px 8px; }}
   .props-hero h1 {{ font-family: var(--font-serif); font-size: 38px; font-weight: 500; margin: 10px 0 4px; }}
@@ -1328,7 +1355,7 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
   @media (max-width: 640px) {{ .props-hero h1 {{ font-size: 29px; }} }}
 </style>
 </head>
-<body>
+<body class="ss-bottom-bar">
 <div class="tabs" role="navigation" aria-label="Sections">
   <a class="tab tab-home" href="index.html">Today's plays</a>
   <a class="tab" href="board.html#tab-plays">Results</a>
@@ -1356,6 +1383,9 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
 <div class="footer">
   Sharp Scout Quant · research and entertainment only · not betting advice.
 </div>
+{slip_overlay}
+{bottom_bar}
+{bottom_bar_script}
 </body>
 </html>
 """
@@ -1376,6 +1406,7 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 {site_css}
+{bottom_bar_css}
   .cf-wrap {{ max-width: 640px; margin: 0 auto; padding: 0 20px 48px; }}
   .cf-hero {{ text-align: center; padding: 30px 16px 8px; }}
   .cf-hero h1 {{ font-family: var(--font-serif); font-size: 38px; font-weight: 500; margin: 10px 0 4px; }}
@@ -1413,7 +1444,7 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
   }}
 </style>
 </head>
-<body>
+<body class="ss-bottom-bar">
 <div class="tabs" role="navigation" aria-label="Sections">
   <a class="tab tab-home" href="index.html">Today's plays</a>
   <a class="tab" href="board.html#tab-plays">Results</a>
@@ -1492,6 +1523,9 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
     }});
   }})();
 </script>
+{slip_overlay}
+{bottom_bar}
+{bottom_bar_script}
 </body>
 </html>
 """
@@ -4057,9 +4091,10 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 {site_css}
+{bottom_bar_css}
 </style>
 </head>
-<body>
+<body class="ss-bottom-bar">
 <div class="header">
   <div class="header-inner">
     <div class="header-logo">
@@ -4394,6 +4429,9 @@ function downloadTableCsv(tableId, filename) {{
 }})();
 </script>
 {timing_script}
+{slip_overlay}
+{bottom_bar}
+{bottom_bar_script}
 </body>
 </html>
 """

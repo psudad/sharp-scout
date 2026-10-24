@@ -250,3 +250,129 @@ def test_demo_shadow_populates_possible_without_publishing(tmp_path, monkeypatch
     shadow_payload = json.loads((shadow / "nba_latest_signals.json").read_text())
     assert shadow_payload.get("demo") is True
     assert isinstance(shadow_payload.get("possible_signals"), list)
+
+
+def test_cap_props_per_game_picks_first_then_possible():
+    from sharp_scout.nba.possible import cap_props_per_game
+
+    eid = "game-1"
+    picks = [
+        {
+            "event_id": eid,
+            "play_type": "prop",
+            "player_name": "A",
+            "market": "player_points",
+            "side": "over",
+            "line": 20.5,
+            "edge": 0.05,
+        },
+        {
+            "event_id": eid,
+            "play_type": "prop",
+            "player_name": "B",
+            "market": "player_rebounds",
+            "side": "over",
+            "line": 5.5,
+            "edge": 0.04,
+        },
+        {
+            "event_id": eid,
+            "play_type": "prop",
+            "player_name": "C",
+            "market": "player_assists",
+            "side": "over",
+            "line": 6.5,
+            "edge": 0.03,
+        },
+    ]
+    possible = [
+        {
+            "event_id": eid,
+            "play_type": "prop",
+            "player_name": "D",
+            "market": "player_threes",
+            "side": "over",
+            "line": 2.5,
+            "edge": 0.09,
+        },
+        {
+            "event_id": eid,
+            "play_type": "prop",
+            "player_name": "E",
+            "market": "player_points",
+            "side": "under",
+            "line": 25.5,
+            "edge": 0.08,
+        },
+    ]
+    kept_picks, kept_possible = cap_props_per_game(
+        picks + [{"event_id": eid, "play_type": "side", "market": "spreads", "side": "home", "edge": 0.1}],
+        possible,
+        max_per_game=5,
+    )
+    prop_picks = [p for p in kept_picks if p.get("play_type") == "prop"]
+    assert len(prop_picks) == 3
+    assert len([p for p in kept_possible if p.get("play_type") == "prop"]) == 2
+    assert prop_picks[0]["player_name"] == "A"
+    names = {p["player_name"] for p in kept_possible if p.get("play_type") == "prop"}
+    assert names == {"D", "E"}
+
+
+def test_cap_props_per_game_trims_excess_picks():
+    from sharp_scout.nba.possible import cap_props_per_game
+
+    eid = "game-2"
+    picks = [
+        {
+            "event_id": eid,
+            "play_type": "prop",
+            "player_name": f"P{i}",
+            "market": "player_points",
+            "side": "over",
+            "line": 20.5 + i,
+            "edge": 0.01 * (10 - i),
+        }
+        for i in range(7)
+    ]
+    kept_picks, kept_possible = cap_props_per_game(picks, [], max_per_game=5)
+    assert len([p for p in kept_picks if p.get("play_type") == "prop"]) == 5
+    assert kept_possible == []
+
+
+def test_bootstrap_rates_from_prop_markets_enables_scan():
+    from sharp_scout.nba.demo import mock_nba_events
+    from sharp_scout.nba.projections import bootstrap_rates_from_prop_markets
+    from sharp_scout.nba.props import scan_prop_opportunities
+
+    ev = mock_nba_events()[0]
+    table = bootstrap_rates_from_prop_markets({}, ev)
+    assert len(table) >= 1
+    opps = scan_prop_opportunities(ev, rates=table)
+    assert opps, "expected prop opportunities after bootstrapping from demo lines"
+
+
+def test_run_nba_shadow_includes_prop_diagnostics(tmp_path, monkeypatch):
+    from sharp_scout.nba import paths as nba_paths
+
+    shadow = tmp_path / "shadow"
+    shadow.mkdir()
+    monkeypatch.setattr(nba_paths, "SHADOW_DIR", shadow)
+    monkeypatch.setattr(nba_paths, "NBA_LEDGER_PATH", shadow / "nba_ledger.json")
+    monkeypatch.setattr(nba_paths, "NBA_LATEST_SIGNALS_PATH", shadow / "nba_latest_signals.json")
+    monkeypatch.setattr(nba_paths, "NBA_LINE_HISTORY_PATH", shadow / "nba_line_history.json")
+    monkeypatch.setattr(nba_paths, "NBA_REPORT_PATH", shadow / "nba_paper_report.json")
+    monkeypatch.setattr(nba_paths, "NBA_ARTIFACT_DIR", tmp_path / "artifacts")
+
+    payload = run_nba_shadow(demo=True, append_ledger=False)
+    diag = payload.get("prop_diagnostics") or {}
+    assert "lines_scanned" in diag
+    assert diag.get("lines_scanned", 0) >= 1
+
+
+def test_nba_config_prop_defaults():
+    from sharp_scout.config import Settings
+
+    s = Settings()
+    assert s.nba_max_prop_events_per_run == 10
+    assert s.nba_prop_regions == "us,us2"
+    assert s.nba_max_props_per_game == 5

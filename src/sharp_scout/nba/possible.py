@@ -78,6 +78,72 @@ def finalize_possible_picks(
     return out
 
 
+def cap_props_per_game(
+    signals: list[dict[str, Any]],
+    possible_signals: list[dict[str, Any]],
+    *,
+    max_per_game: int | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Keep at most N prop rows per game across picks and possible (picks first, then EV)."""
+    settings = get_settings()
+    cap = max_per_game if max_per_game is not None else settings.nba_max_props_per_game
+    if cap <= 0:
+        non_props = [s for s in signals if (s.get("play_type") or "side") != "prop"]
+        non_prop_possible = [
+            p for p in possible_signals if (p.get("play_type") or "side") != "prop"
+        ]
+        return non_props, non_prop_possible
+
+    prop_picks = [s for s in signals if (s.get("play_type") or "") == "prop"]
+    prop_possible = [p for p in possible_signals if (p.get("play_type") or "") == "prop"]
+
+    by_event: set[str] = set()
+    for row in prop_picks + prop_possible:
+        eid = str(row.get("event_id") or "")
+        if eid:
+            by_event.add(eid)
+
+    kept_pick_keys: set[tuple[Any, ...]] = set()
+    kept_possible_keys: set[tuple[Any, ...]] = set()
+
+    for eid in by_event:
+        game_picks = sorted(
+            [p for p in prop_picks if str(p.get("event_id") or "") == eid],
+            key=lambda x: float(x.get("edge") or 0),
+            reverse=True,
+        )
+        kept = game_picks[:cap]
+        for p in kept:
+            kept_pick_keys.add(pick_dedupe_key(p))
+        slots = cap - len(kept)
+        if slots <= 0:
+            continue
+        pick_keys_here = {pick_dedupe_key(p) for p in kept}
+        extras = sorted(
+            [
+                p
+                for p in prop_possible
+                if str(p.get("event_id") or "") == eid and pick_dedupe_key(p) not in pick_keys_here
+            ],
+            key=lambda x: float(x.get("edge") or 0),
+            reverse=True,
+        )
+        for p in extras[:slots]:
+            kept_possible_keys.add(pick_dedupe_key(p))
+
+    out_signals = [
+        s
+        for s in signals
+        if (s.get("play_type") or "side") != "prop" or pick_dedupe_key(s) in kept_pick_keys
+    ]
+    out_possible = [
+        p
+        for p in possible_signals
+        if (p.get("play_type") or "side") != "prop" or pick_dedupe_key(p) in kept_possible_keys
+    ]
+    return out_signals, out_possible
+
+
 def split_possible_by_kind(
     possible: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:

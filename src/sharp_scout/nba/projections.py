@@ -93,6 +93,66 @@ def project_mean(row: PlayerRateRow, market: str, table: dict[str, PlayerRateRow
     return mins * rate
 
 
+def bootstrap_rates_from_prop_markets(
+    table: dict[str, PlayerRateRow],
+    event: dict[str, Any],
+    *,
+    default_minutes: float = 32.0,
+) -> dict[str, PlayerRateRow]:
+    """Seed missing player rows from modal prop lines on this event (live scans)."""
+    from sharp_scout.config import get_settings
+
+    settings = get_settings()
+    books = event.get("bookmakers") or {}
+    line_counts: dict[tuple[str, str], dict[float, int]] = {}
+    display_name: dict[str, str] = {}
+
+    for bm in books.values():
+        for market, outcomes in (bm.get("markets") or {}).items():
+            if market not in settings.nba_prop_market_list:
+                continue
+            for o in outcomes:
+                player = o.get("description") or o.get("player") or o.get("name") or ""
+                pt = o.get("point")
+                if not player or pt is None:
+                    continue
+                pk = _norm(player)
+                display_name.setdefault(pk, str(player))
+                key = (pk, market)
+                ln = float(pt)
+                line_counts.setdefault(key, {})
+                line_counts[key][ln] = line_counts[key].get(ln, 0) + 1
+
+    main_line: dict[tuple[str, str], float] = {}
+    for key, counts in line_counts.items():
+        main_line[key] = max(counts.items(), key=lambda x: x[1])[0]
+
+    out = dict(table)
+    for (pk, market), ln in main_line.items():
+        row = out.get(pk)
+        if row is None:
+            row = PlayerRateRow(
+                player_name=display_name.get(pk, pk),
+                team="",
+                minutes=default_minutes,
+            )
+            out[pk] = row
+        mins = max(float(row.minutes or default_minutes), 1.0)
+        if market == "player_points":
+            row.pts_per_min = ln / mins
+        elif market == "player_rebounds":
+            row.reb_per_min = ln / mins
+        elif market == "player_assists":
+            row.ast_per_min = ln / mins
+        elif market == "player_threes":
+            row.fg3_per_min = ln / mins
+        elif market == "player_points_rebounds_assists":
+            combined = ln / mins
+            third = combined / 3.0
+            row.pts_per_min = row.reb_per_min = row.ast_per_min = third
+    return out
+
+
 def default_demo_rates() -> dict[str, PlayerRateRow]:
     """Deterministic rates for offline demo (MIA @ CHA fixture)."""
     return {

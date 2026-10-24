@@ -21,10 +21,12 @@ from sharp_scout.nba.line_store import record_nba_snapshot
 from sharp_scout.nba import paths as nba_paths
 from sharp_scout.nba.possible import (
     POSSIBLE_PICK_LIMIT,
+    cap_props_per_game,
     finalize_possible_picks,
     opportunity_row_to_signal,
     pick_dedupe_key,
 )
+from sharp_scout.nba.projections import bootstrap_rates_from_prop_markets, load_rate_table
 from sharp_scout.nba.props import discover_prop_edges, prop_edge_to_signal, scan_prop_opportunities
 from sharp_scout.nba.report import write_paper_report
 from sharp_scout.nba.staking import apply_portfolio_caps_split
@@ -76,7 +78,7 @@ def run_nba_shadow(
         rates = demo_player_rates()
     else:
         events = client.fetch_odds(markets="h2h,spreads,totals", regions="us,us2,eu")
-        rates = None
+        rates = load_rate_table()
 
     record_nba_snapshot(events, sharp_only=True)
 
@@ -89,13 +91,31 @@ def run_nba_shadow(
         for edge in discover_game_line_edges(ev):
             signals.append(game_line_edge_to_signal(edge, kickoff=kick))
 
+    prop_diagnostics: dict[str, Any] = {
+        "enabled": fetch_props,
+        "horizon_hours": settings.nba_prop_horizon_hours,
+        "regions": settings.nba_prop_regions,
+        "events_in_horizon": 0,
+        "events_fetched": 0,
+        "fetch_failures": 0,
+        "player_rates_file": len(rates or {}),
+        "player_rates_after_bootstrap": 0,
+        "lines_scanned": 0,
+        "opportunities_positive_ev": 0,
+        "qualified_prop_edges": 0,
+        "prop_picks_pre_cap": 0,
+        "prop_possible_pre_cap": 0,
+    }
+
     prop_events = events
+    table = dict(rates or {})
     if fetch_props and not use_demo:
-        prop_events = _events_in_horizon(events, settings.nba_prop_horizon_hours)[
+        horizon_shells = _events_in_horizon(events, settings.nba_prop_horizon_hours)[
             : settings.nba_max_prop_events_per_run
         ]
+        prop_diagnostics["events_in_horizon"] = len(horizon_shells)
         merged: list[dict[str, Any]] = []
-        for shell in prop_events:
+        for shell in horizon_shells:
             eid = shell.get("event_id")
             if not eid:
                 continue
@@ -103,25 +123,39 @@ def run_nba_shadow(
                 detail = client.fetch_event_props(
                     str(eid),
                     markets=",".join(settings.nba_prop_market_list),
-                    regions="us,us2,eu",
+                    regions=settings.nba_prop_regions,
                     sport=NBA.odds_sport_key,
                 )
             except Exception as exc:  # noqa: BLE001
+                prop_diagnostics["fetch_failures"] += 1
                 logger.warning("NBA props fetch skipped for %s: %s", eid, exc)
                 continue
             merged.append(detail)
             record_nba_snapshot([detail], sharp_only=False)
+            table = bootstrap_rates_from_prop_markets(table, detail)
         prop_events = merged
+        prop_diagnostics["events_fetched"] = len(merged)
     elif use_demo:
         prop_events = events
 
-    table = rates
+    prop_diagnostics["player_rates_after_bootstrap"] = len(table)
+
+    prop_signals_before_caps = 0
     for ev in prop_events:
         kick = _kickoff_iso(ev)
+        if use_demo:
+            table = bootstrap_rates_from_prop_markets(table, ev)
         for opp in scan_prop_opportunities(ev, rates=table):
+            prop_diagnostics["lines_scanned"] += 1
+            if float(opp.get("edge") or 0) > 0:
+                prop_diagnostics["opportunities_positive_ev"] += 1
             scan_rows.append({**opp, "kickoff": kick})
         for edge in discover_prop_edges(ev, rates=table):
+            prop_diagnostics["qualified_prop_edges"] += 1
+            prop_signals_before_caps += 1
             signals.append(prop_edge_to_signal(edge, kickoff=kick))
+
+    prop_diagnostics["prop_picks_pre_cap"] = prop_signals_before_caps
 
     ledger = load_nba_ledger()
     signals, cap_rejected = apply_portfolio_caps_split(
@@ -159,6 +193,17 @@ def run_nba_shadow(
         side_near, pick_keys=pick_keys, limit=POSSIBLE_PICK_LIMIT
     ) + finalize_possible_picks(prop_near, pick_keys=pick_keys, limit=POSSIBLE_PICK_LIMIT)
 
+    prop_diagnostics["prop_possible_pre_cap"] = len(
+        [c for c in prop_near if float(c.get("edge") or 0) > 0]
+    )
+
+    signals, possible_signals = cap_props_per_game(signals, possible_signals)
+
+    prop_diagnostics["prop_picks"] = len([s for s in signals if s.get("play_type") == "prop"])
+    prop_diagnostics["prop_possible"] = len(
+        [p for p in possible_signals if p.get("play_type") == "prop"]
+    )
+
     ledger_result = {"added": 0}
     if append_ledger and signals:
         ledger_result = append_nba_signals(signals)
@@ -177,6 +222,7 @@ def run_nba_shadow(
         "n_possible": len(possible_signals),
         "possible_signals": possible_signals,
         "ledger_added": ledger_result.get("added", 0),
+        "prop_diagnostics": prop_diagnostics,
     }
 
     nba_paths.NBA_ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)

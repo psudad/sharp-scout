@@ -70,9 +70,9 @@ def _should_skip_prop(
     for bad in BLOCKED_MARKET_SUBSTRINGS:
         if bad in ml:
             return f"blocked_market:{bad}"
+    mins = projected_minutes(row, table) if row is not None else 0.0
     if row is None:
-        return "no_projection"
-    mins = projected_minutes(row, table)
+        return None
     if side == "under" and mins < settings.nba_prop_min_projected_minutes:
         return "under_low_minutes"
     if is_alternate and side == "under":

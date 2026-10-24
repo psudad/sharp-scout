@@ -199,12 +199,13 @@ The public site shows **open plays**, **W–L record**, **unit PnL / bankroll**,
 
 ### LOCKED card (narrow lanes)
 
-Only a subset of Phase-4 **Sharp Plays** are posted to the ledger / **LOCKED PLAYS** board. With `PRODUCT_NARROW_LANES_ENABLED=true` (default), certification uses three lanes in priority order:
+Only a subset of Phase-4 **Sharp Plays** are posted to the ledger / **LOCKED PLAYS** board. With `PRODUCT_NARROW_LANES_ENABLED=true` (default), certification uses these lanes in priority order:
 
 1. **NCAAF totals** (primary)
-2. **NFL spreads** (secondary)
+2. **NCAAF spreads**
+3. **NFL spreads**
 
-Each lane play must be Phase-4 confirmed (`filter_passed`, not sharp-vetoed) and priced off **Pinnacle** with no-vig fair probability ≥ 50% on our side. Plays without a Pinnacle reference remain on the research board with a `no_pinnacle` flag and are not certified. **Moneyline is never locked.** Both lanes use the **4–12% EV band** (no separate 2% NCAAF totals floor on the LOCKED card).
+Each lane play must be Phase-4 confirmed (`filter_passed`, not sharp-vetoed) and priced off **Pinnacle** with no-vig fair probability ≥ 50% on our side. Plays without a Pinnacle reference remain on the research board with a `no_pinnacle` flag and are not certified. **Moneyline is never locked.** **NCAAF totals and spreads** use the **4–12% EV band**. **NFL spreads** use **3–12%** (`PRODUCT_NARROW_LANE_EV_MINS`).
 
 Plays with **both** Phase-4 money-ticket gap and RLM are ranked ahead and flagged `high_confidence`; that booster never creates or certifies a play by itself.
 

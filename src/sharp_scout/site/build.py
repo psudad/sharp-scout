@@ -322,8 +322,8 @@ def _render_plays_heading(summary: dict[str, Any]) -> str:
     return (
         '<div class="plays-heading">'
         '<div class="plays-heading-main">LOCKED PLAYS — BET THESE</div>'
-        '<div class="plays-heading-sub">Narrow lanes only: NCAAF totals, then NFL spreads — '
-        "each Phase-4 confirmed with Pinnacle no-vig ≥50% on our side (4–12% EV). "
+        '<div class="plays-heading-sub">Narrow lanes only: NCAAF totals &amp; spreads, then NFL spreads — '
+        "each Phase-4 confirmed with Pinnacle no-vig ≥50% on our side (4–12% EV on CFB; NFL spreads 3–12%). "
         f"<span class='plays-heading-count'>{status_html}</span></div>"
         '<p class="locked-plays-explainer">'
         "<b>This list is the full weekly card.</b> If we recommended a bet, it appears here "
@@ -1556,7 +1556,7 @@ def _render_guide_html() -> str:
     <li><b>Compares to the market</b> — sharp books and the wider board — to see where the price offers value vs our fair number.</li>
     <li><b>Checks betting splits</b> (tickets vs money, line movement) as a second opinion: is the public piled on one side while dollars lean the other?</li>
     <li><b>Filters</b> candidates so only plays that clear our bar show up as validated <b>Sharp Plays</b> (Phase 4: EV plus RLM / handle gap / steam).</li>
-    <li><b>LOCKED card</b> — a narrower slice of those Sharp Plays only: <b>NCAAF totals</b>, then <b>NFL spreads</b>. Each must be Phase-4 confirmed and carry a <b>Pinnacle</b> no-vig line favoring our side (≥50%), with EV in the <b>4–12%</b> band. Rows without a Pinnacle reference stay on the research board tagged <b>no_pinnacle</b> and are not posted. Moneyline is never locked. When both money-ticket gap and RLM fired, the play is ranked ahead and tagged <b>high_confidence</b> (ranking only — never certifies by itself).</li>
+    <li><b>LOCKED card</b> — a narrower slice of those Sharp Plays only: <b>NCAAF totals and spreads</b>, then <b>NFL spreads</b>. Each must be Phase-4 confirmed and carry a <b>Pinnacle</b> no-vig line favoring our side (≥50%), with EV in the product band (CFB totals/spreads <b>4–12%</b>; NFL spreads <b>3–12%</b>). Rows without a Pinnacle reference stay on the research board tagged <b>no_pinnacle</b> and are not posted. Moneyline is never locked. When both money-ticket gap and RLM fired, the play is ranked ahead and tagged <b>high_confidence</b> (ranking only — never certifies by itself).</li>
   </ul>
   <p>We do not publish every internal threshold. Treat the board as the output of that process, not a black-box tip sheet.</p>
 </div>

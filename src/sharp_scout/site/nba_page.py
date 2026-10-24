@@ -169,6 +169,9 @@ def public_nba_signals(signals_payload: dict[str, Any] | None) -> dict[str, Any]
         if (s.get("pick_class") or "pick") != "possible" and not s.get("display_only")
     ]
     possible = list(out.get("possible_signals") or [])
+    from sharp_scout.nba.possible import cap_props_per_game
+
+    picks, possible = cap_props_per_game(picks, possible)
     out["signals"] = picks
     out["n_signals"] = len(picks)
     out["possible_signals"] = possible

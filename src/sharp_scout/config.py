@@ -199,7 +199,9 @@ class Settings(BaseSettings):
     nba_prop_consensus_min_books: int = 3
     nba_prop_min_projected_minutes: float = 12.0  # skip unders below this
     nba_prop_horizon_hours: float = 36.0
-    nba_max_prop_events_per_run: int = 6  # Odds API budget guardrail
+    nba_max_prop_events_per_run: int = 10  # Odds API budget guardrail
+    nba_prop_regions: str = "us,us2"  # props omit eu (Pinnacle not on NBA props feed)
+    nba_max_props_per_game: int = 5  # picks + possible props combined, per event
     nba_primary_retail_book: str = "fanduel"
     nba_secondary_retail_book: str = "draftkings"
     nba_unit_dollars: float = 10.0

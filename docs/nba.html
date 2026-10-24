@@ -781,6 +781,13 @@
   .nba-hero p { color: var(--color-text-muted); font-size: 14px; font-weight: 300; }
   .nba-note { font-size: 13px; color: var(--color-text-muted); margin: 8px 0 20px; line-height: 1.55; }
   .nba-h2 { font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; }
+  .nba-h3 { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--color-text-muted); margin: 18px 0 8px; }
+  .nba-section-note { font-size: 12.5px; color: var(--color-text-muted); margin: 0 0 10px; line-height: 1.5; }
+  .nba-display-only { color: var(--color-text-muted); font-size: 12px; font-weight: 600; }
+  .nba-lean-cell { max-width: 520px; }
+  .nba-lean-main { font-size: 14px; line-height: 1.45; margin-bottom: 4px; }
+  .nba-lean-meta { font-size: 12px; color: var(--color-text-muted); line-height: 1.4; }
   .nba-book { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }
   .nba-record-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 16px 0; }
   .nba-rec-card { border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 16px; min-width: 140px; text-align: center; }
@@ -796,7 +803,7 @@
   @media (max-width: 640px) { .nba-hero h1 { font-size: 29px; } }
 </style>
 </head>
-<body class="ss-bottom-bar nba-no-live-scan">
+<body class="ss-bottom-bar">
 <div class="nba-test-banner" role="alert">This is just for testing.</div>
 <div class="tabs" role="navigation" aria-label="Sections">
   <a class="tab tab-home" href="index.html">Today's plays</a>
@@ -829,21 +836,31 @@
   <text x="40" y="40" text-anchor="middle" font-family="Inconsolata, monospace" font-size="30" font-weight="700" fill="#ffffff">Q</text>
 </svg>
     <h1>NBA — paper testing</h1>
-    <p>Awaiting live scan · 0 game lines · 0 props · updated —</p>
+    <p>Live shadow scan · 4 line picks · 0 prop picks · 5+0 possible · updated Sat Oct 24, 10:32 AM ET</p>
   </div>
   <p class="nba-note">
     Paper/test plays only — not Sharp Plays, not on the NFL card, and not graded on football records.
     Paper window 2026-11-02 – 2026-12-13. Outside paper window (testing only).
     EV uses quarter-Kelly staking with caps ($10/unit). Retail books: FanDuel first, then DraftKings.
   </p>
-  <div class="nba-empty-live" role="status">No live NBA scan yet. Test plays will appear after the next scan.</div>
+  
   <h2 class="nba-h2">Paper record by bet type</h2>
-  <p class="empty">No paper ledger yet. Run the NBA shadow scan to log test plays.</p>
+  <div class="nba-record-grid"><div class="nba-rec-card"><div class="nba-rec-lbl">H2H</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 17.7% · 2 open</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Totals</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV -2.4% · 2 open</div></div></div>
   <div class="nba-candidates">
-  <h2 class="nba-h2">Upcoming game lines</h2>
-  
-  <h2 class="nba-h2">Upcoming player props</h2>
-  
+  <h2 class="nba-h2">Game lines</h2>
+  <h3 class="nba-h3">Picks</h3>
+  <p class="nba-section-note">Qualifying paper plays (EV floor, sharp fair, Kelly sizing, and portfolio caps).</p>
+  <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Market</th><th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Fair %</th><th>Units</th></tr></thead><tbody><tr><td data-label="#">1</td><td data-label="Tip">Sat Oct 24, 9:10 PM ET</td><td data-label="Game">NOP @ DEN</td><td data-label="Player">—</td><td data-label="Market">Total</td><td data-label="Pick"><b>Over 238.5</b></td><td data-label="Line">238.5</td><td data-label="Book / price">-110 <span class="nba-book">FanDuel</span></td><td data-label="EV">4.8%</td><td data-label="Fair %">54.9%</td><td data-label="Units">1.27u</td></tr><tr><td data-label="#">2</td><td data-label="Tip">Sat Oct 24, 10:10 PM ET</td><td data-label="Game">GSW @ PHX</td><td data-label="Player">—</td><td data-label="Market">H2H</td><td data-label="Pick"><b>Away</b></td><td data-label="Line">None</td><td data-label="Book / price">+330 <span class="nba-book">FanDuel</span></td><td data-label="EV">6.2%</td><td data-label="Fair %">24.7%</td><td data-label="Units">0.47u</td></tr><tr><td data-label="#">3</td><td data-label="Tip">Fri Dec 25, 2:30 PM ET</td><td data-label="Game">MIA @ BOS</td><td data-label="Player">—</td><td data-label="Market">H2H</td><td data-label="Pick"><b>Home</b></td><td data-label="Line">None</td><td data-label="Book / price">-185 <span class="nba-book">DraftKings</span></td><td data-label="EV">5.6%</td><td data-label="Fair %">68.5%</td><td data-label="Units">1.50u</td></tr><tr><td data-label="#">4</td><td data-label="Tip">Fri Dec 25, 10:30 PM ET</td><td data-label="Game">DEN @ GSW</td><td data-label="Player">—</td><td data-label="Market">Total</td><td data-label="Pick"><b>Under 240.5</b></td><td data-label="Line">240.5</td><td data-label="Book / price">-115 <span class="nba-book">DraftKings</span></td><td data-label="EV">7.7%</td><td data-label="Fair %">57.6%</td><td data-label="Units">1.50u</td></tr></tbody></table></div>
+  <h3 class="nba-h3">Possible picks</h3>
+  <p class="nba-section-note">Tentative leans with positive EV that did not fully qualify yet. Not logged or graded.</p>
+  <div class="table-wrap"><table class="export-table plays-table nba-table nba-possible-table"><thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Tentative lean</th></tr></thead><tbody><tr><td data-label="#">1</td><td data-label="Tip">Sat Oct 24, 9:10 PM ET</td><td data-label="Game">NOP @ DEN</td><td data-label="Player">—</td><td data-label="Tentative lean" class="nba-lean-cell"><div class="nba-lean-main"><b>After more testing, we'd pick: Away (FanDuel +400)</b></div><div class="nba-lean-meta">EV 3.6% · Lower EV vs best qualifying line · 0u (display only)</div></td></tr><tr><td data-label="#">2</td><td data-label="Tip">Sat Oct 24, 7:40 PM ET</td><td data-label="Game">MIL @ PHI</td><td data-label="Player">—</td><td data-label="Tentative lean" class="nba-lean-cell"><div class="nba-lean-main"><b>After more testing, we'd pick: Away (DraftKings +490)</b></div><div class="nba-lean-meta">EV 3.4% · Lower EV vs best qualifying line · 0u (display only)</div></td></tr><tr><td data-label="#">3</td><td data-label="Tip">Fri Dec 25, 5:00 PM ET</td><td data-label="Game">PHI @ LAL</td><td data-label="Player">—</td><td data-label="Tentative lean" class="nba-lean-cell"><div class="nba-lean-main"><b>After more testing, we'd pick: Under 237.5 (DraftKings -110)</b></div><div class="nba-lean-meta">EV 3.1% · Lower EV vs best qualifying line · 0u (display only)</div></td></tr><tr><td data-label="#">4</td><td data-label="Tip">Sat Oct 24, 8:10 PM ET</td><td data-label="Game">SAS @ DAL</td><td data-label="Player">—</td><td data-label="Tentative lean" class="nba-lean-cell"><div class="nba-lean-main"><b>After more testing, we'd pick: Home (FanDuel +460)</b></div><div class="nba-lean-meta">EV 2.8% · Lower EV vs best qualifying line · 0u (display only)</div></td></tr><tr><td data-label="#">5</td><td data-label="Tip">Sat Oct 24, 8:10 PM ET</td><td data-label="Game">WAS @ CHI</td><td data-label="Player">—</td><td data-label="Tentative lean" class="nba-lean-cell"><div class="nba-lean-main"><b>After more testing, we'd pick: Under 245.5 (DraftKings -110)</b></div><div class="nba-lean-meta">EV 2.4% · Lower EV vs best qualifying line · 0u (display only)</div></td></tr></tbody></table></div>
+  <h2 class="nba-h2">Player props</h2>
+  <h3 class="nba-h3">Picks</h3>
+  <p class="nba-section-note">Qualifying paper props that pass model, consensus, and staking rules.</p>
+  <p class="empty">No qualifying prop picks right now.</p>
+  <h3 class="nba-h3">Possible picks</h3>
+  <p class="nba-section-note">Tentative prop leans — display only until they pass all rules.</p>
+  <p class="empty">No near-miss prop candidates right now.</p>
   </div>
   <h2 class="nba-h2">Graded paper ledger</h2>
   <p class="empty">No graded paper plays yet. Records appear after games finish and settle.</p>

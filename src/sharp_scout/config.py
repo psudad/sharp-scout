@@ -193,8 +193,12 @@ class Settings(BaseSettings):
 
     # NFL simulation totals (board / measurement — not on LOCKED card unless enabled below)
     nfl_totals_sim_count: int = 8000
-    # Weight on sim median vs Pinnacle total when blending (0 = market only).
+    # Weight on sim median vs Pinnacle total when blending (0 = auto from OOS history).
     nfl_totals_blend_weight_sim: float = 0.0
+    # When blend weight is 0, pick weight via walk-forward choose_blend_weight on prior weeks.
+    nfl_totals_blend_auto: bool = True
+    # OOS training rows for live walk-forward bias / blend (season backtest CSV).
+    nfl_totals_calibration_csv: str = "reports/nfl_totals_sim_backtest_2026.csv"
     # When True, NFL totals may certify to the LOCKED card if the sim lean matches first.
     product_nfl_totals_card_enabled: bool = False
 

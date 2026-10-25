@@ -11,9 +11,10 @@ from sharp_scout.config import get_settings
 from sharp_scout.data.nflfastr import load_pbp
 from sharp_scout.data.situational import situational_spread_adj
 from sharp_scout.nfl.totals.backtest import market_line_from_event
-from sharp_scout.nfl.totals.blend import blend_total
+from sharp_scout.nfl.totals.live_calibration import infer_slate_week, resolve_live_calibration
+from sharp_scout.nfl.totals.live_project import apply_live_calibration
 from sharp_scout.nfl.totals.rates import build_team_drive_rates, team_rates
-from sharp_scout.nfl.totals.simulate import sim_result_to_dict, simulate_nfl_total
+from sharp_scout.nfl.totals.simulate import simulate_nfl_total
 from sharp_scout.phase3.market import sharp_consensus
 from sharp_scout.sports import NFL
 
@@ -38,7 +39,16 @@ def project_nfl_totals_for_slate(
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Return per-event totals projection payloads and slate meta."""
     settings = get_settings()
-    w_sim = float(settings.nfl_totals_blend_weight_sim)
+
+    slate_week = infer_slate_week(events)
+    cal = resolve_live_calibration(before_week=slate_week)
+    logger.info(
+        "nfl totals live cal: bias=%.2f w_sim=%.2f n_train=%s (%s)",
+        cal.bias,
+        cal.blend_weight_sim,
+        cal.n_training_games,
+        cal.source,
+    )
 
     if skip_pbp or pbp is None:
         if skip_pbp:
@@ -71,26 +81,29 @@ def project_nfl_totals_for_slate(
             rest_adj=float(situ.get("total_adj") or 0.0),
             n_sims=settings.nfl_totals_sim_count,
         )
-        blended = (
-            blend_total(sim.sim_median, market, weight_sim=w_sim)
-            if market is not None
-            else sim.sim_median
+        payload = apply_live_calibration(
+            sim,
+            bias=cal.bias,
+            blend_weight_sim=cal.blend_weight_sim,
+            market_line=market,
         )
-        lean = "over" if blended >= (market or blended) else "under"
-        if market is None:
-            lean = sim.sim_lean
-
-        payload = {
-            **sim_result_to_dict(sim, blended=blended),
-            "projection_total": round(blended, 2),
-            "sim_lean": lean,
-            "label": "simulation_total",
-            "home_team": home,
-            "away_team": away,
-            "event_id": eid,
-            "market_line": market,
-        }
+        payload.update(
+            {
+                "label": "simulation_total",
+                "home_team": home,
+                "away_team": away,
+                "event_id": eid,
+                "market_line": market,
+                "week": ev.get("week") or slate_week,
+            }
+        )
         by_event[eid] = payload
 
-    meta = {"blend_weight_sim": w_sim, "n_events": len(by_event)}
+    meta = {
+        "blend_weight_sim": cal.blend_weight_sim,
+        "walk_forward_bias": cal.bias,
+        "calibration_training_games": cal.n_training_games,
+        "calibration_source": cal.source,
+        "n_events": len(by_event),
+    }
     return by_event, meta

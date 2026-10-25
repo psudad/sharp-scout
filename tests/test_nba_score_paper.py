@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sharp_scout.nba.score_model.model_filter import alignment_for_play, model_view_for_event
+from sharp_scout.nba.score_model.model_filter import (
+    _model_pick_margin,
+    alignment_for_play,
+    model_view_for_event,
+)
+from sharp_scout.nba.score_model.injury_lag import load_store, record_injury_lag_scan, save_store as save_injury_store
+from sharp_scout.nba.score_model.player_impact import example_impacts, margin_impact_pts
 from sharp_scout.nba.score_model.paper import (
     load_paper_store,
     record_score_model_scan,
@@ -54,6 +60,86 @@ def _mock_event(
             },
         },
     }
+
+
+def test_spread_sign_home_favored_agrees_with_home_pick():
+    """Positive proj_margin = home ahead; home spread -4.5 needs ~+4.5 to take home."""
+    spread = -4.5
+    proj = 5.0
+    assert _model_pick_margin(proj, spread) == "home"
+    view = {
+        "proj_margin": proj,
+        "model_spread_side": "home",
+        "margin_edge_pts": proj + spread,
+    }
+    assert alignment_for_play({"market": "spreads", "side": "home"}, view)["model_alignment"] == "agree"
+    assert alignment_for_play({"market": "spreads", "side": "away"}, view)["model_alignment"] == "disagree"
+
+
+def test_spread_sign_model_favors_dog_when_proj_below_market():
+    """BOS -4.5 with proj_margin +2 → edge negative → model side away (matches smoke)."""
+    spread = -4.5
+    proj = 2.0
+    assert _model_pick_margin(proj, spread) == "away"
+    view = {"proj_margin": proj, "model_spread_side": "away", "margin_edge_pts": proj + spread}
+    assert alignment_for_play({"market": "spreads", "side": "away"}, view)["model_alignment"] == "agree"
+
+
+def test_margin_impact_star_not_raw_points():
+    row = {
+        "player_name": "LaMelo Ball",
+        "team": "CHA",
+        "minutes": 32.0,
+        "pts_per_min": 0.72,
+        "reb_per_min": 0.18,
+        "ast_per_min": 0.22,
+        "usage_share": 0.28,
+    }
+    impact = margin_impact_pts(row)
+    assert 2.0 <= impact <= 8.0
+    assert impact < 12.0
+
+
+def test_injury_first_scan_seeds_without_entry(tmp_path, monkeypatch):
+    store_path = tmp_path / "injury.json"
+    monkeypatch.setattr("sharp_scout.nba.score_model.injury_lag.PAPER_PATH", store_path)
+    monkeypatch.setattr(
+        "sharp_scout.nba.score_model.injury_lag.fetch_espn_nba_injuries",
+        lambda: [{"player": "LaMelo Ball", "team": "CHA", "status": "Out"}],
+    )
+    n = record_injury_lag_scan([_mock_event(home="CHA", away="MIA", eid="e2")])
+    assert n == 0
+    store = load_store(store_path)
+    assert len(store["entries"]) == 0
+    assert store["player_status"]["CHA|lamelo ball"] == "out"
+
+
+def test_injury_logs_transition_with_prior_lines(tmp_path, monkeypatch):
+    store_path = tmp_path / "injury.json"
+    monkeypatch.setattr("sharp_scout.nba.score_model.injury_lag.PAPER_PATH", store_path)
+    ev = _mock_event(home="CHA", away="MIA", eid="e2")
+    monkeypatch.setattr(
+        "sharp_scout.nba.score_model.injury_lag.fetch_espn_nba_injuries",
+        lambda: [],
+    )
+    record_injury_lag_scan([ev])
+    store = load_store(store_path)
+    store["player_status"]["CHA|lamelo ball"] = "questionable"
+    save_injury_store(store, store_path)
+    monkeypatch.setattr(
+        "sharp_scout.nba.score_model.injury_lag.fetch_espn_nba_injuries",
+        lambda: [{"player": "LaMelo Ball", "team": "CHA", "status": "Out"}],
+    )
+    n = record_injury_lag_scan([ev])
+    assert n == 1
+    store = load_store(store_path)
+    assert store["entries"][0]["line_at_prior_scan"]
+    assert store["entries"][0]["line_at_detection"]
+
+
+def test_example_impacts_ten_players():
+    ex = example_impacts(10)
+    assert len(ex) == 10
 
 
 def test_model_alignment_spread_agree():

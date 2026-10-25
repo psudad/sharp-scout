@@ -72,6 +72,16 @@ def build_paper_report(ledger: dict[str, Any]) -> dict[str, Any]:
     settings = get_settings()
     plays = ledger.get("plays") or []
     kinds = sorted({_kind(p) for p in plays})
+    model_filter: dict[str, Any] = {}
+    score_model_paper: dict[str, Any] = {}
+    try:
+        from sharp_scout.nba.score_model.model_filter import summarize_model_filter
+        from sharp_scout.nba.score_model.paper import load_paper_store, summarize_score_paper
+
+        model_filter = summarize_model_filter(ledger)
+        score_model_paper = summarize_score_paper(load_paper_store())
+    except Exception:  # noqa: BLE001
+        pass
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "paper_window": {"start": settings.nba_paper_start, "end": settings.nba_paper_end},
@@ -80,6 +90,8 @@ def build_paper_report(ledger: dict[str, Any]) -> dict[str, Any]:
         "calibration": calibration_buckets(plays),
         "pass_fail": [pass_fail_for_type(plays, kind=k) for k in kinds],
         "n_plays": len(plays),
+        "model_filter": model_filter,
+        "score_model_paper": score_model_paper,
     }
 
 

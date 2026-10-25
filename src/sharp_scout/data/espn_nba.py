@@ -187,3 +187,43 @@ def fetch_espn_nba_box_scores(event_ids: list[str]) -> dict[str, dict[str, dict[
             except Exception as exc:  # noqa: BLE001
                 logger.warning("ESPN NBA box parse failed for %s: %s", eid, exc)
     return result
+
+
+ESPN_NBA_INJURIES = (
+    "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries"
+)
+
+
+def fetch_espn_nba_injuries() -> list[dict[str, Any]]:
+    """Free ESPN injury report: player, team code, status text."""
+    try:
+        payload = _get_json(ESPN_NBA_INJURIES)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ESPN NBA injuries fetch failed: %s", exc)
+        return []
+    if not isinstance(payload, dict):
+        return []
+    out: list[dict[str, Any]] = []
+    for team_block in payload.get("injuries") or []:
+        team_info = team_block.get("team") or {}
+        team_raw = team_info.get("abbreviation") or team_info.get("displayName") or ""
+        team = ESPN_NBA_ABBREV.get(str(team_raw).upper(), str(team_raw).upper())
+        team = normalize_nba_team(team)
+        for item in team_block.get("injuries") or []:
+            athlete = item.get("athlete") or {}
+            name = athlete.get("displayName") or athlete.get("shortName") or ""
+            status = item.get("status") or item.get("type") or item.get("details", {}).get("type")
+            if isinstance(status, dict):
+                status = status.get("description") or status.get("name")
+            if not name:
+                continue
+            out.append(
+                {
+                    "player": str(name).strip(),
+                    "team": team,
+                    "status": str(status or "").strip(),
+                    "detail": item.get("shortComment") or item.get("longComment") or "",
+                }
+            )
+    logger.info("ESPN NBA injuries: %d rows", len(out))
+    return out

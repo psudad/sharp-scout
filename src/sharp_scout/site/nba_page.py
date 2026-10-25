@@ -115,6 +115,67 @@ def _possible_lean_line(play: dict[str, Any]) -> str:
     return f"After more testing, we'd pick: {pick} ({book} {price})"
 
 
+def _model_alignment_tag(play: dict[str, Any]) -> str:
+    al = str(play.get("model_alignment") or "").lower()
+    if al == "agree":
+        return '<span class="nba-model-tag nba-model-agree">Agrees</span>'
+    if al == "disagree":
+        return '<span class="nba-model-tag nba-model-disagree">Disagrees</span>'
+    if al == "neutral":
+        return '<span class="nba-model-tag nba-model-neutral">Neutral</span>'
+    return '<span class="nba-model-tag">—</span>'
+
+
+def _render_score_model_block(rows: list[dict[str, Any]]) -> str:
+    if not rows:
+        return '<p class="empty">No score-model projections yet (logged on live scans).</p>'
+    body = []
+    for r in rows:
+        game = f"{r.get('away', '')} @ {r.get('home', '')}"
+        score = f"{r.get('away_pts', '—')}-{r.get('home_pts', '—')}"
+        lines = r.get("lines") or {}
+        spr = lines.get("consensus_spread_home")
+        tot = lines.get("consensus_total")
+        body.append(
+            "<tr>"
+            f'<td data-label="Tip">{_esc(format_kickoff_compact(r.get("kickoff")))}</td>'
+            f'<td data-label="Game">{_esc(game)}</td>'
+            f'<td data-label="Proj score">{_esc(score)}</td>'
+            f'<td data-label="Margin">{float(r.get("margin") or 0):+.1f}</td>'
+            f'<td data-label="Total">{float(r.get("total") or 0):.1f}</td>'
+            f'<td data-label="Consensus">{_esc(spr)} / {_esc(tot)}</td>'
+            "</tr>"
+        )
+    return (
+        '<div class="table-wrap"><table class="export-table plays-table nba-table">'
+        "<thead><tr><th>Tip</th><th>Game</th><th>Proj score</th><th>Margin</th><th>Total</th>"
+        "<th>Consensus spr/tot</th></tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
+def _render_injury_lag_block(entries: list[dict[str, Any]]) -> str:
+    if not entries:
+        return '<p class="empty">No open injury-lag leans.</p>'
+    body = []
+    for e in entries:
+        body.append(
+            "<tr>"
+            f'<td data-label="When">{_esc(format_kickoff_compact(e.get("detected_at")))}</td>'
+            f'<td data-label="Player">{_esc(e.get("player"))} ({_esc(e.get("team"))})</td>'
+            f'<td data-label="Status">{_esc(e.get("status"))}</td>'
+            f'<td data-label="Impact">{float(e.get("impact_pts") or 0):.1f} pts</td>'
+            f'<td data-label="Expected move">{float(e.get("expected_move_pts") or 0):.1f}</td>'
+            "</tr>"
+        )
+    return (
+        '<div class="table-wrap"><table class="export-table plays-table nba-table">'
+        "<thead><tr><th>When</th><th>Player</th><th>Status</th><th>Impact</th><th>Expected move</th>"
+        "</tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
 def _market_label(play: dict[str, Any]) -> str:
     if play.get("play_type") == "prop":
         return NBA_PROP_LABELS.get(str(play.get("market")), str(play.get("market")))
@@ -349,6 +410,7 @@ def _render_candidate_rows(signals: list[dict[str, Any]], *, kind: str) -> str:
         units = p.get("units")
         units_s = f"{float(units):.2f}u" if isinstance(units, (int, float)) else "—"
         fair = p.get("p_true") if p.get("p_true") is not None else p.get("p_fair")
+        model_tag = _model_alignment_tag(p)
         rows.append(
             "<tr>"
             f'<td data-label="#">{i}</td>'
@@ -363,11 +425,13 @@ def _render_candidate_rows(signals: list[dict[str, Any]], *, kind: str) -> str:
             f'<td data-label="EV">{_pct(p.get("edge"))}</td>'
             f'<td data-label="Fair %">{_pct(fair)}</td>'
             f'<td data-label="Units">{units_s}</td>'
+            f'<td data-label="Model">{model_tag}</td>'
             "</tr>"
         )
     head = (
         "<thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Market</th>"
         "<th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Fair %</th><th>Units</th>"
+        "<th>Model</th>"
         "</tr></thead>"
     )
     return (
@@ -414,6 +478,8 @@ def render_nba_page_html(
     ledger: dict[str, Any] | None,
     report: dict[str, Any] | None,
     analytics_head: str,
+    score_model_rows: list[dict[str, Any]] | None = None,
+    injury_lag_rows: list[dict[str, Any]] | None = None,
 ) -> str:
     from sharp_scout.site.bottom_bar import BOTTOM_BAR_SCRIPT, bottom_bar_css, render_bottom_bar
     from sharp_scout.site.build import _SITE_CSS, _format_timestamp_et, _ssq_logo_svg
@@ -458,6 +524,15 @@ def render_nba_page_html(
             '<p class="empty">No paper ledger yet. Run the NBA shadow scan to log test plays.</p>'
         )
     ledger_table = _render_ledger_rows(pub_ledger)
+    score_block = _render_score_model_block(score_model_rows or []) if live_scan else ""
+    injury_block = _render_injury_lag_block(injury_lag_rows or []) if live_scan else ""
+    mf = pub_report.get("model_filter") or {}
+    mf_bits = []
+    for key in ("agree", "disagree", "neutral"):
+        row = mf.get(key)
+        if row and row.get("n"):
+            mf_bits.append(f"{key}: {row.get('record')} ({row.get('units')}u)")
+    model_filter_note = " · ".join(mf_bits) if mf_bits else "Model filter splits appear after graded side/total plays."
 
     in_window = pub_report.get("in_window")
     window = pub_report.get("paper_window") or {}
@@ -485,6 +560,9 @@ def render_nba_page_html(
         prop_possible_table=prop_possible_table,
         record_block=record_block,
         ledger_table=ledger_table,
+        score_model_block=score_block,
+        injury_lag_block=injury_block,
+        model_filter_note=_esc(model_filter_note),
         window_note=_esc(window_s + window_flag),
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
@@ -512,14 +590,32 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     (out / "nba_paper_report.json").write_text(
         json.dumps(pub_report, indent=2, default=str) + "\n"
     )
+    for src_name in ("nba_score_model.json", "nba_injury_lag.json"):
+        src = nba_paths.PAPER_DIR / src_name
+        if src.exists():
+            (out / src_name).write_text(src.read_text())
 
     from sharp_scout.site.build import _render_analytics_head
+
+    score_model_rows: list[dict[str, Any]] = []
+    injury_lag_rows: list[dict[str, Any]] = []
+    if live_scan:
+        try:
+            from sharp_scout.nba.score_model.injury_lag import open_entries_for_page
+            from sharp_scout.nba.score_model.paper import slate_projections_for_page
+
+            score_model_rows = slate_projections_for_page()
+            injury_lag_rows = open_entries_for_page()
+        except Exception:  # noqa: BLE001
+            pass
 
     html = render_nba_page_html(
         signals_payload=signals_payload,
         ledger=ledger,
         report=report,
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+        score_model_rows=score_model_rows,
+        injury_lag_rows=injury_lag_rows,
     )
     (out / "nba.html").write_text(html)
     return out / "nba.html"
@@ -570,6 +666,10 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     text-align: center; font-size: 15px; font-weight: 600; padding: 20px 16px; margin: 16px 0;
   }}
   .nba-no-live-scan .nba-candidates {{ display: none; }}
+  .nba-model-tag {{ font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }}
+  .nba-model-agree {{ background: #dcfce7; color: #166534; }}
+  .nba-model-disagree {{ background: #fee2e2; color: #991b1b; }}
+  .nba-model-neutral {{ background: #f3f4f6; color: #374151; }}
   @media (max-width: 640px) {{ .nba-hero h1 {{ font-size: 29px; }} }}
 </style>
 </head>
@@ -597,6 +697,13 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   {empty_live_notice}
   <h2 class="nba-h2">Paper record by bet type</h2>
   {record_block}
+  <p class="nba-section-note">Price-gap plays vs score model (side-by-side): {model_filter_note}</p>
+  <h2 class="nba-h2">Score model paper track</h2>
+  <p class="nba-section-note">Stage-3 possession ridge projections vs consensus/Pinnacle — frozen at tip, graded after ESPN finals.</p>
+  {score_model_block}
+  <h2 class="nba-h2">Injury lag (paper)</h2>
+  <p class="nba-section-note">ESPN Out/Doubtful changes where the line may not have fully adjusted yet.</p>
+  {injury_lag_block}
   <div class="nba-candidates">
   <h2 class="nba-h2">Game lines</h2>
   <h3 class="nba-h3">Picks</h3>

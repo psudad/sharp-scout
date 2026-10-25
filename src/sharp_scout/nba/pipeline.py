@@ -85,6 +85,19 @@ def run_nba_shadow(
 
     record_nba_snapshot(events, sharp_only=True)
 
+    score_engine = None
+    if not use_demo:
+        try:
+            from sharp_scout.nba.score_model.injury_lag import record_injury_lag_scan
+            from sharp_scout.nba.score_model.paper import record_score_model_scan
+            from sharp_scout.nba.score_model.state import ensure_score_engine
+
+            score_engine = ensure_score_engine()
+            record_score_model_scan(events, engine=score_engine)
+            record_injury_lag_scan(events)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("NBA score/injury paper tracking skipped: %s", exc)
+
     line_events = (
         events
         if use_demo
@@ -247,6 +260,15 @@ def run_nba_shadow(
     prop_diagnostics["prop_possible"] = len(
         [p for p in possible_signals if p.get("play_type") == "prop"]
     )
+
+    if not use_demo and score_engine is not None:
+        try:
+            from sharp_scout.nba.score_model.model_filter import annotate_signals_with_model
+
+            annotate_signals_with_model(events, signals, engine=score_engine)
+            annotate_signals_with_model(events, possible_signals, engine=score_engine)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("NBA model filter annotation skipped: %s", exc)
 
     signals_for_ledger = list(signals)
     if not use_demo:

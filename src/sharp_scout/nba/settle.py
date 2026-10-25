@@ -197,5 +197,19 @@ def settle_nba_ledger(
         save_nba_ledger(ledger, path or nba_paths.NBA_LEDGER_PATH)
     except Exception as exc:  # noqa: BLE001
         logger.warning("NBA settle: could not persist ledger: %s", exc)
+
+    if not scores:
+        scores = []
+    try:
+        from sharp_scout.nba.score_model.injury_lag import grade_injury_lag_entries
+        from sharp_scout.nba.score_model.paper import grade_score_model_paper
+        from sharp_scout.nba.score_model.state import ensure_score_engine
+
+        grade_score_model_paper(scores=scores)
+        grade_injury_lag_entries()
+        ensure_score_engine(lookback_days=100)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NBA paper score/injury grade skipped: %s", exc)
+
     logger.info("NBA ledger: settled %d plays", settled)
     return ledger

@@ -58,7 +58,19 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/shadow/ docs/nba.html docs/nba_latest_signals.json docs/nba_ledger.json docs/nba_paper_report.json
+          chmod +x scripts/ci_git_add_paths.sh
+          scripts/ci_git_add_paths.sh \
+            data/shadow/ \
+            data/paper/nba_score_model.json \
+            data/paper/nba_score_model_priors.json \
+            data/paper/nba_score_model_state.json \
+            data/paper/nba_injury_lag.json \
+            docs/nba.html \
+            docs/nba_latest_signals.json \
+            docs/nba_ledger.json \
+            docs/nba_paper_report.json \
+            docs/nba_score_model.json \
+            docs/nba_injury_lag.json
           if git diff --staged --quiet; then
             echo "No shadow changes"
           else

@@ -116,17 +116,31 @@ def simulate_nfl_total(
     )
 
 
+def _drive_outcome_probs(rates: TeamDriveRates) -> tuple[float, float, float]:
+    """(p_td, p_fg, p_empty) with E[points] ≈ pts_per_drive."""
+    mu = float(rates.pts_per_drive)
+    p_td = float(np.clip(rates.rz_td_rate * 0.22, 0.06, 0.28))
+    rem = mu - 7.0 * p_td
+    p_fg = float(np.clip(rem / 3.0, 0.08, 0.42))
+    if p_td + p_fg > 0.92:
+        scale = 0.92 / (p_td + p_fg)
+        p_td *= scale
+        p_fg *= scale
+    return p_td, p_fg, max(0.0, 1.0 - p_td - p_fg)
+
+
 def _simulate_team_score(rates: TeamDriveRates, n_drives: float, rng: np.random.Generator) -> float:
     n = int(max(1, rng.poisson(n_drives)))
+    p_td, p_fg, p_empty = _drive_outcome_probs(rates)
     score = 0.0
-    ppd_mu = rates.pts_per_drive
     for _ in range(n):
-        pts = rng.normal(ppd_mu, 0.85)
-        if rng.random() < 0.08:
-            pts = 0.0
-        elif rng.random() < rates.rz_td_rate * 0.35:
-            pts = 7.0 if rng.random() < 0.93 else 6.0
-        score += max(0.0, pts)
+        u = rng.random()
+        if u < p_td:
+            score += 7.0 if rng.random() < 0.93 else 6.0
+        elif u < p_td + p_fg:
+            score += 3.0
+        else:
+            score += 0.0
     return score
 
 

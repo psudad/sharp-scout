@@ -7,7 +7,6 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from sharp_scout.data.nflfastr import nfl_rating_plays
 from sharp_scout.phase1.ratings import _recency_weights
 from sharp_scout.utils.odds import normalize_team
 
@@ -36,10 +35,25 @@ def _drive_points(drive_plays: pd.DataFrame) -> float:
     if "field_goal_result" in drive_plays.columns:
         fgs = (drive_plays["field_goal_result"] == "made").sum()
         pts += 3.0 * fgs
+    elif "play_type" in drive_plays.columns:
+        # nflverse marks attempts on the field_goal row only
+        fgs = (drive_plays["play_type"] == "field_goal").sum()
+        pts += 3.0 * fgs
     if "safety" in drive_plays.columns:
         saf = drive_plays["safety"].fillna(0).astype(float).sum()
         pts += 2.0 * saf
     return float(pts)
+
+
+def _totals_pbp_plays(pbp: pd.DataFrame) -> pd.DataFrame:
+    """Scoring-relevant plays for totals (includes FGs; no EPA filter)."""
+    if pbp.empty:
+        return pbp
+    df = pbp.copy()
+    if "play_type" in df.columns:
+        scoring_types = ("pass", "run", "qb_kneel", "qb_spike", "field_goal")
+        df = df[df["play_type"].isin(scoring_types) | df["play_type"].isna()]
+    return df[df["posteam"].notna() & df["fixed_drive"].notna()].copy()
 
 
 def build_team_drive_rates(pbp: pd.DataFrame) -> dict[str, TeamDriveRates]:
@@ -47,8 +61,7 @@ def build_team_drive_rates(pbp: pd.DataFrame) -> dict[str, TeamDriveRates]:
     if pbp.empty or "fixed_drive" not in pbp.columns:
         return _league_defaults_only()
 
-    df = nfl_rating_plays(pbp)
-    df = df[df["posteam"].notna() & df["fixed_drive"].notna()].copy()
+    df = _totals_pbp_plays(pbp)
     if df.empty:
         return _league_defaults_only()
 
@@ -70,11 +83,12 @@ def build_team_drive_rates(pbp: pd.DataFrame) -> dict[str, TeamDriveRates]:
                 "team": team,
                 "game_id": grp["game_id"].iloc[0],
                 "w": w,
-                "pts": pts * w,
-                "drives": w,
-                "plays": n_plays * w,
-                "rz_td": rz_td * w,
-                "rz": w if not rz.empty else 0.0,
+                "pts_w": pts * w,
+                "drive_w": w,
+                "drive_count": 1.0,
+                "plays_w": n_plays * w,
+                "rz_td_w": rz_td * w,
+                "rz_w": w if not rz.empty else 0.0,
             }
         )
 
@@ -82,24 +96,25 @@ def build_team_drive_rates(pbp: pd.DataFrame) -> dict[str, TeamDriveRates]:
         return _league_defaults_only()
 
     ddf = pd.DataFrame(drive_rows)
-    # Drives per game: average weighted drives per team-game
-    game_drives = ddf.groupby(["team", "game_id"], as_index=False)["drives"].sum()
-    dpg = game_drives.groupby("team")["drives"].mean()
+    # Drives per game: unweighted count (recency weights apply to rate stats, not volume)
+    game_drives = ddf.groupby(["team", "game_id"], as_index=False)["drive_count"].sum()
+    dpg = game_drives.groupby("team")["drive_count"].mean()
 
     agg = ddf.groupby("team", as_index=False).sum()
     out: dict[str, TeamDriveRates] = {}
     for _, r in agg.iterrows():
         team = str(r["team"])
-        drives = float(r["drives"]) or 1.0
-        plays = float(r["plays"]) or drives * LEAGUE_DEFAULTS["plays_per_drive"]
-        rz = float(r["rz"]) or drives * 0.35
+        drive_w = float(r["drive_w"]) or 1.0
+        plays_w = float(r["plays_w"]) or drive_w * LEAGUE_DEFAULTS["plays_per_drive"]
+        rz_w = float(r["rz_w"]) or drive_w * 0.35
         dpg_val = float(dpg.get(team, LEAGUE_DEFAULTS["drives_per_game"]))
+        ppd = float(r["pts_w"]) / drive_w
         out[team] = TeamDriveRates(
             team=team,
-            drives_per_game=float(np.clip(dpg_val, 8.5, 14.0)),
-            pts_per_drive=float(np.clip(float(r["pts"]) / drives, 1.2, 2.8)),
-            rz_td_rate=float(np.clip(float(r["rz_td"]) / max(rz, 1.0), 0.35, 0.75)),
-            plays_per_drive=float(np.clip(plays / drives, 4.0, 8.0)),
+            drives_per_game=float(np.clip(dpg_val, 9.0, 14.0)),
+            pts_per_drive=float(np.clip(ppd, 1.45, 2.85)),
+            rz_td_rate=float(np.clip(float(r["rz_td_w"]) / max(rz_w, 1.0), 0.35, 0.75)),
+            plays_per_drive=float(np.clip(plays_w / drive_w, 4.0, 8.0)),
         )
     return out
 

@@ -9,10 +9,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from sharp_scout.data.nflfastr import load_pbp, load_schedules
 from sharp_scout.nfl.totals.blend import blend_total, choose_blend_weight
+from sharp_scout.nfl.totals.calibrate import (
+    mean_signed_vs_close,
+    walk_forward_total_bias,
+)
 from sharp_scout.nfl.totals.rates import build_team_drive_rates, team_rates
 from sharp_scout.nfl.totals.simulate import simulate_nfl_total
 from sharp_scout.utils.odds import american_to_implied_prob, normalize_team
@@ -282,7 +287,8 @@ def run_walk_forward_backtest(
         pbp = load_pbp([2025, 2026])
 
     rates_cache: dict[tuple[int, int], Any] = {}
-    hist_sim: list[float] = []
+    hist_sim_raw: list[float] = []
+    hist_sim_cal: list[float] = []
     hist_mkt: list[float] = []
     hist_fin: list[float] = []
 
@@ -297,30 +303,49 @@ def run_walk_forward_backtest(
         hr = team_rates(rates, gi.home)
         ar = team_rates(rates, gi.away)
 
-        if len(hist_sim) >= min_blend_history:
-            w_sim, _, _, _ = choose_blend_weight(hist_sim, hist_mkt, hist_fin)
+        bias = walk_forward_total_bias(hist_sim_raw, hist_fin)
+
+        if len(hist_sim_cal) >= min_blend_history:
+            w_sim, _, _, _ = choose_blend_weight(hist_sim_cal, hist_mkt, hist_fin)
         else:
             w_sim = 0.0
 
         seed = gi.week * 10000 + hash(f"{gi.away}@{gi.home}") % 10000
+        scan_line = gi.scan_line if gi.scan_line is not None else gi.close_line
+        scan_price = gi.scan_price if gi.scan_price is not None else -110
         sim = simulate_nfl_total(
             home_team=gi.home,
             away_team=gi.away,
             home_rates=hr,
             away_rates=ar,
-            market_line=gi.close_line,
+            market_line=scan_line,
             n_sims=n_sims,
             seed=seed,
         )
-        blended = blend_total(sim.sim_median, gi.close_line, weight_sim=w_sim)
-        sim_side = "over" if sim.sim_median >= gi.close_line else "under"
+        sim_median_raw = float(sim.sim_median)
+        sim_median_cal = sim_median_raw - bias
+        blended = blend_total(sim_median_cal, gi.close_line, weight_sim=w_sim)
+        sim_side = "over" if sim_median_cal >= gi.close_line else "under"
         blend_side = "over" if blended >= gi.close_line else "under"
-        sim_p = float(sim.p_over if sim_side == "over" else (sim.p_under or 0))
+        if sim.total_samples is not None:
+            totals = sim.total_samples - bias
+            sim_p_close = float(
+                np.mean(totals > gi.close_line)
+                if sim_side == "over"
+                else np.mean(totals < gi.close_line)
+            )
+            sim_p_scan = float(
+                np.mean(totals > scan_line)
+                if sim_side == "over"
+                else np.mean(totals < scan_line)
+            )
+        else:
+            sim_p_close = float(sim.p_over if sim_side == "over" else (sim.p_under or 0))
+            sim_p_scan = sim_p_close
         close_price = gi.close_price if gi.close_price is not None else -110
 
         sim_res = _grade(sim_side, gi.close_line, gi.final_total)
         blend_res = _grade(blend_side, gi.close_line, gi.final_total)
-        scan_line = gi.scan_line if gi.scan_line is not None else gi.close_line
         sim_res_scan = _grade(sim_side, scan_line, gi.final_total)
         blend_res_scan = _grade(blend_side, scan_line, gi.final_total)
 
@@ -330,13 +355,23 @@ def run_walk_forward_backtest(
         )
 
         gap = blended - gi.close_line
-        sim_gap = sim.sim_median - gi.close_line
+        sim_gap = sim_median_cal - gi.close_line
+        sim_side_scan = "over" if sim_median_cal >= scan_line else "under"
+        if sim.total_samples is not None:
+            totals = sim.total_samples - bias
+            sim_p_scan_side = float(
+                np.mean(totals > scan_line)
+                if sim_side_scan == "over"
+                else np.mean(totals < scan_line)
+            )
+        else:
+            sim_p_scan_side = sim_p_scan
 
-        ev_close = _ev(sim_p, close_price)
+        ev_scan = _ev(sim_p_scan_side, scan_price)
         card_pass = (
-            sim_p >= 0.50
-            and 0.04 <= ev_close <= 0.12
-            and sim_side in ("over", "under")
+            sim_p_scan_side >= 0.50
+            and 0.04 <= ev_scan <= 0.12
+            and sim_side_scan in ("over", "under")
         )
 
         row = {
@@ -350,13 +385,17 @@ def run_walk_forward_backtest(
             "pinnacle_close_price": close_price,
             "scan_line": scan_line,
             "scan_price": gi.scan_price,
+            "walk_forward_bias": round(bias, 3),
             "blend_weight_sim": round(w_sim, 3),
-            "sim_median": round(sim.sim_median, 2),
-            "sim_mean": round(sim.sim_mean, 2),
+            "sim_median_raw": round(sim_median_raw, 2),
+            "sim_median": round(sim_median_cal, 2),
+            "sim_mean_raw": round(sim.sim_mean, 2),
             "blended_projection": round(blended, 2),
             "sim_lean": sim_side,
+            "sim_lean_scan": sim_side_scan,
             "blend_lean": blend_side,
-            "sim_p_side": round(sim_p, 4),
+            "sim_p_side_close": round(sim_p_close, 4),
+            "sim_p_side": round(sim_p_scan_side, 4),
             "sim_gap_pts": round(sim_gap, 2),
             "blend_gap_pts": round(gap, 2),
             "sim_result_close": sim_res,
@@ -373,15 +412,18 @@ def run_walk_forward_backtest(
             "old_units_close_110": _units(old_res, -110) if old_res else None,
             "old_units_close_actual": gi.old_units_close,
             "card_gate_pass": card_pass,
-            "card_ev_at_close": round(ev_close, 4),
+            "card_ev_at_scan": round(ev_scan, 4),
         }
         per_game.append(row)
 
-        hist_sim.append(sim.sim_median)
+        hist_sim_raw.append(sim_median_raw)
+        hist_sim_cal.append(sim_median_cal)
         hist_mkt.append(gi.close_line)
         hist_fin.append(gi.final_total)
 
     finals = [g.final_total for g in games]
+    closes = [g.close_line for g in games]
+    sim_meds_raw = [r["sim_median_raw"] for r in per_game]
     sim_meds = [r["sim_median"] for r in per_game]
     blend_proj = [r["blended_projection"] for r in per_game]
     mkt_lines = [g.close_line for g in games]
@@ -391,6 +433,30 @@ def run_walk_forward_backtest(
     ]
 
     card_rows = [r for r in per_game if r["card_gate_pass"]]
+
+    def _card_gate_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        w = l = p = 0
+        u110 = 0.0
+        for r in rows:
+            res = r.get("sim_result_scan")
+            if res == "W":
+                w += 1
+            elif res == "L":
+                l += 1
+            elif res == "P":
+                p += 1
+            price = r.get("scan_price") if r.get("scan_price") is not None else -110
+            u110 += _units(str(res), -110) if res else 0.0
+        return {
+            "record_vs_scan_line_at_110": f"{w}-{l}-{p}",
+            "units_at_110_vs_scan": round(u110, 2),
+        }
+    signed_error = {
+        "raw_sim_minus_final": round(mean_signed_vs_close(sim_meds_raw, finals), 3),
+        "raw_sim_minus_close": round(mean_signed_vs_close(sim_meds_raw, closes), 3),
+        "cal_sim_minus_final": round(mean_signed_vs_close(sim_meds, finals), 3),
+        "cal_sim_minus_close": round(mean_signed_vs_close(sim_meds, closes), 3),
+    }
 
     def _by_side(lean_key: str, res_prefix: str) -> dict[str, Any]:
         out: dict[str, Any] = {}
@@ -442,7 +508,10 @@ def run_walk_forward_backtest(
 
     summary = {
         "n_games": len(per_game),
+        "mean_signed_error": signed_error,
         "mae": {
+            "sim_median_raw": round(_mae(sim_meds_raw, finals), 2),
+            "sim_median_calibrated": round(_mae(sim_meds, finals), 2),
             "sim_median": round(_mae(sim_meds, finals), 2),
             "blended": round(_mae(blend_proj, finals), 2),
             "market_close": round(_mae(mkt_lines, finals), 2),
@@ -461,7 +530,12 @@ def run_walk_forward_backtest(
         "card_gate": {
             "n_pass": len(card_rows),
             **_summarize_records(card_rows, "sim"),
-            "note": "Approximate product gate: sim_p>=50%, EV 4-12% vs Pinnacle close (no Phase-4/splits)",
+            **_card_gate_summary(card_rows),
+            "note": (
+                "Approximate product gate: sim_p>=50%, EV 4-12% vs scan-time "
+                "line (market_total) and pinnacle_price_at_scan when present; "
+                "no Phase-4/splits"
+            ),
         },
     }
     return per_game, summary

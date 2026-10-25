@@ -140,6 +140,8 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
         "qb_scramble",
         "down",
         "play_type",
+        "field_goal_result",
+        "safety",
         "fixed_drive",
         "game_date",
         "spread_line",
@@ -154,7 +156,9 @@ def _normalize_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
 
     if "play_type" in df.columns:
         df = df[
-            df["play_type"].isin(["pass", "run", "qb_kneel", "qb_spike"])
+            df["play_type"].isin(
+                ["pass", "run", "qb_kneel", "qb_spike", "field_goal"]
+            )
             | df["play_type"].isna()
         ]
     if "epa" in df.columns:

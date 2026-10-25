@@ -743,6 +743,10 @@ def build_site(
         nfl_signals_list,
         sport="nfl",
     )
+    nfl_totals_board_html = _render_nfl_totals_board(
+        signals.get("nfl_totals_by_event") or {},
+        nfl_games_display,
+    )
 
     ncaaf_pending = [p for p in ncaaf_ledger["plays"] if (p.get("status") or "pending") == "pending"]
     ncaaf_week_all = filter_plays_college_week(ncaaf_ledger["plays"])
@@ -971,6 +975,7 @@ def build_site(
         stage_record_rows=stage_record_rows,
         disagreement_rows=disagreement_rows,
         games_html=games_html,
+        nfl_totals_board_html=nfl_totals_board_html,
         fade_n=fade_n,
         rlm_n=rlm_n,
         stage_highlights_html=stage_highlights_html,
@@ -2168,6 +2173,48 @@ def _render_stage_mini(card: dict | None, home: str, away: str) -> str:
     )
 
 
+def _render_nfl_totals_board(
+    totals_by_event: dict[str, dict[str, Any]],
+    games: list[dict[str, Any]],
+) -> str:
+    if not games:
+        return '<div class="empty">No NFL games on the display slate.</div>'
+    rows: list[str] = []
+    for g in sorted(games, key=lambda x: kickoff_sort_key(x.get("commence_time"))):
+        eid = str(g.get("event_id"))
+        tr = totals_by_event.get(eid) or g.get("simulation_total") or {}
+        away, home = g.get("away_team"), g.get("home_team")
+        kick = format_kickoff_et(g.get("commence_time"))
+        proj = tr.get("projection_total")
+        med = tr.get("sim_median")
+        line = tr.get("market_line")
+        lean = tr.get("sim_lean") or "—"
+        p_sim = None
+        if lean == "over":
+            p_sim = tr.get("p_over")
+        elif lean == "under":
+            p_sim = tr.get("p_under")
+        p_s = f"{float(p_sim) * 100:.1f}%" if p_sim is not None else "—"
+        proj_s = f"{float(proj):.1f}" if proj is not None else "—"
+        med_s = f"{float(med):.1f}" if med is not None else "—"
+        line_s = f"{float(line):.1f}" if line is not None else "—"
+        rows.append(
+            f"<tr><td>{_esc(kick)}</td><td>{_esc(away)} @ {_esc(home)}</td>"
+            f"<td><b>{_esc(str(lean).title())}</b></td>"
+            f"<td>{proj_s}</td><td>{med_s}</td><td>{line_s}</td><td>{p_s}</td></tr>"
+        )
+    if not rows:
+        return '<div class="empty">Simulation totals populate on the next NFL pipeline run.</div>'
+    return (
+        '<div class="table-wrap"><table class="export-table" id="nfl-sim-totals">'
+        "<thead><tr><th>Kickoff</th><th>Game</th><th>Sim lean</th>"
+        "<th>Simulation total</th><th>Sim median</th><th>Market line</th><th>P(sim lean)</th>"
+        "</tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table></div>"
+    )
+
+
 def _render_games_pipeline(
     games: list[dict],
     split_boards: list[dict],
@@ -2223,10 +2270,10 @@ def _render_games_pipeline(
           {_live_score_html(g, sport=sport)}
         </div>
         <div class="phase-block">
-          <div class="phase-label">Model line</div>
-          <p class="phase-note">Model spread (home): <b>{spread_s}</b> ·
-            total <b>{total_s}</b> · P(home win) <b>{p_hw_s}</b></p>
-          <p class="phase-note" style="font-size:11px">Negative model spread = home favored.</p>
+          <div class="phase-label">Simulation total</div>
+          <p class="phase-note">Spread (home): <b>{spread_s}</b> ·
+            <b>Simulation total</b> <b>{total_s}</b> · P(home win) <b>{p_hw_s}</b></p>
+          <p class="phase-note" style="font-size:11px">Simulation total blends drive-based sim with Pinnacle (see NFL Totals board). Negative spread = home favored.</p>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
@@ -2553,6 +2600,15 @@ def _hybrid_pick_rank(pick: dict[str, Any] | None) -> int:
     return 1
 
 
+def _stage_card_kickoff_passed(card: dict[str, Any]) -> bool:
+    from datetime import datetime, timezone
+
+    kick = parse_commence(card.get("kickoff") or card.get("commence_time"))
+    if kick is None:
+        return False
+    return kick <= datetime.now(timezone.utc)
+
+
 def _merge_stage_picks(
     old_picks: dict[str, Any],
     new_picks: dict[str, Any],
@@ -2596,6 +2652,14 @@ def _merge_stage_cards(
             old = merged[key]
             row = {**old, **card, "created_at": old.get("created_at") or card.get("created_at")}
             row["picks"] = _merge_stage_picks(old.get("picks") or {}, card.get("picks") or {})
+            if _stage_card_kickoff_passed(row) and row.get("market") == "total":
+                old_model = (old.get("picks") or {}).get("model")
+                if old_model:
+                    picks = dict(row.get("picks") or {})
+                    picks["model"] = old_model
+                    row["picks"] = picks
+                if old.get("sim_projection") is not None:
+                    row["sim_projection"] = old["sim_projection"]
             hybrid = (row["picks"].get("hybrid") or {})
             old_hybrid = (old.get("picks") or {}).get("hybrid") or {}
             if _is_validated_hybrid(old_hybrid) and hybrid.get("team") == old_hybrid.get("team"):
@@ -4144,6 +4208,9 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   {leans_caps_note}
   <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET). Three rows per game (spread, ML, total). <b>Quant Pick</b>: <span class="lock-badge-inline">LOCKED</span> = on the card above; <span class="lean-only-badge-inline">LEAN ONLY</span> = not a posted bet.</p>
   {nfl_stage_weeks_html}
+  <div class="section-label">{nfl_week_heading} — Simulation totals (every game)</div>
+  <p class="phase-note" style="padding:4px 0 10px">Drive-based simulation blended toward Pinnacle. <b>Simulation total</b> is frozen at kickoff; lean and sim probability come first, then price/EV on the pipeline tab below.</p>
+  {nfl_totals_board_html}
   <div class="section-label">{nfl_week_heading} — Public &amp; Sharp Money &amp; Line Movement</div>
   <p class="phase-note" style="padding:4px 0 10px">Every NFL game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>
   {games_html}

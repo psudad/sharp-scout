@@ -58,6 +58,13 @@ def main() -> None:
         scores = load_scores_from_schedules(args.season or None)
 
     ledger = settle_from_scores(scores, path=ledger_path)
+    if sport.key == "nfl":
+        try:
+            from sharp_scout.nfl.totals.settle import grade_totals_board
+
+            grade_totals_board(scores)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[nfl totals board] settle skipped: {exc}", file=sys.stderr)
     if sport.key == "ncaaf":
         try:
             from sharp_scout.ncaaf.shadow.report import write_summary_and_report

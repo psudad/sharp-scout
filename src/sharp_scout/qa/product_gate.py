@@ -445,16 +445,35 @@ def _evaluate_ev_band(
         )
 
 
+def _nfl_totals_sim_lean_matches(
+    play: dict[str, Any], signals: dict[str, Any] | None
+) -> bool:
+    if not signals:
+        return False
+    eid = str(play.get("event_id") or "")
+    row = (signals.get("nfl_totals_by_event") or {}).get(eid) or {}
+    lean = str(row.get("sim_lean") or "").lower()
+    side = str(play.get("side") or "").lower()
+    return lean in ("over", "under") and lean == side
+
+
 def _evaluate_narrow_lane_play(
     play: dict[str, Any],
     *,
     sport: str,
     settings: Any,
     now: datetime | None = None,
+    signals: dict[str, Any] | None = None,
 ) -> ProductGateResult:
     """Lane path: Phase-4 already confirmed; require Pinnacle ≥50% and EV band only."""
     reasons: list[str] = []
     market = str(play.get("market") or "")
+
+    if sport == "nfl" and market == "totals":
+        if not settings.product_nfl_totals_card_enabled:
+            reasons.append("NFL totals card disabled (product_nfl_totals_card_enabled=false)")
+        elif not _nfl_totals_sim_lean_matches(play, signals):
+            reasons.append("NFL totals require simulation lean on same side before price/EV")
 
     if market in shadow_markets(settings):
         reasons.append(f"{SHADOW_MARKET_NOTE}: {market} is tracked on the watchlist, not posted")
@@ -490,14 +509,22 @@ def evaluate_product_play(
         return ProductGateResult(True, ())
 
     if settings.product_narrow_lanes_enabled:
-        if not in_narrow_lane(play, sport):
+        market = str(play.get("market") or "")
+        nfl_totals_lane = (
+            sport == "nfl"
+            and market == "totals"
+            and settings.product_nfl_totals_card_enabled
+        )
+        if not in_narrow_lane(play, sport) and not nfl_totals_lane:
             return ProductGateResult(
                 False,
                 (
                     f"outside narrow LOCKED lanes ({settings.product_narrow_lanes or 'none'})",
                 ),
             )
-        return _evaluate_narrow_lane_play(play, sport=sport, settings=settings, now=now)
+        return _evaluate_narrow_lane_play(
+            play, sport=sport, settings=settings, now=now, signals=signals
+        )
 
     reasons: list[str] = []
     market = str(play.get("market") or "")

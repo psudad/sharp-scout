@@ -16,6 +16,7 @@ from sharp_scout.nba.score_model.paper import (
     record_score_model_scan,
     save_paper_store,
     summarize_score_paper,
+    void_score_paper_outside_horizon,
 )
 from sharp_scout.nba.score_model.engine import V2Engine, V2Params
 
@@ -178,6 +179,48 @@ def test_record_score_model_scan_tmp(tmp_path, monkeypatch):
 
 def test_summarize_score_paper_empty():
     assert summarize_score_paper({"games": []}) == {"n_graded": 0}
+
+
+def test_void_score_paper_outside_horizon(tmp_path):
+    store_path = tmp_path / "paper.json"
+    scan_at = datetime(2026, 10, 25, 12, 0, tzinfo=timezone.utc)
+    store = {
+        "games": [
+            {
+                "event_id": "near",
+                "home": "BOS",
+                "away": "NYK",
+                "kickoff": "2026-10-26T23:00:00+00:00",
+                "scans": [{"at": scan_at.isoformat(), "margin": 1.0, "total": 220.0}],
+            },
+            {
+                "event_id": "xmas",
+                "home": "LAL",
+                "away": "GSW",
+                "kickoff": "2026-12-25T17:00:00+00:00",
+                "scans": [{"at": scan_at.isoformat(), "margin": 2.0, "total": 230.0}],
+            },
+        ]
+    }
+    n = void_score_paper_outside_horizon(store, horizon_hours=36.0, now=scan_at)
+    assert n == 1
+    assert store["games"][1]["exclude_reason"] == "kickoff_outside_horizon"
+    assert summarize_score_paper(store)["n_graded"] == 0
+
+
+def test_record_score_model_skips_far_kickoff(tmp_path, monkeypatch):
+    store_path = tmp_path / "paper.json"
+    monkeypatch.setattr("sharp_scout.nba.score_model.paper.PAPER_PATH", store_path)
+    engine = V2Engine(params=V2Params(), stage=3)
+    now = datetime(2026, 10, 25, 12, 0, tzinfo=timezone.utc)
+    near = _mock_event(eid="near", home="BOS", away="NYK")
+    far = _mock_event(eid="far", home="LAL", away="GSW")
+    far["commence_time"] = datetime(2026, 12, 25, 17, 0, tzinfo=timezone.utc)
+    record_score_model_scan([near, far], engine=engine, now=now, horizon_hours=36.0)
+    store = load_paper_store(store_path)
+    ids = {g["event_id"] for g in store["games"]}
+    assert "near" in ids
+    assert "far" not in ids
 
 
 def test_model_view_uses_engine():

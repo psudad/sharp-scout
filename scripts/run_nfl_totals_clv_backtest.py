@@ -224,12 +224,14 @@ def main() -> None:
     if combined.get("meaningful") and (combined.get("avg_clv_points") or 0) > 0:
         meaningful.append(("combined_momentum_plus_sim", combined))
 
+    mom_stats = signal_results.get("pinnacle_momentum_follow") or {}
     md.append(
-        "**Beat-the-close vs make-money:** Momentum-follow shows **~43%** of scans beat the "
-        "Pinnacle close by points (avg CLV **+1.5** pts) but **109-78** vs final at -110 — "
-        "closing-line value here does **not** translate to winning bets on outcomes. "
-        "Sim-vs-line and WF-gated combined rules look strong on CLV but overlap scans on the "
-        "same games and the WF gate is **not** a clean OOS test (small train window)."
+        f"**Beat-the-close vs make-money:** Momentum-follow shows "
+        f"**{mom_stats.get('pct_beat_close_points', '?')}%** of scans beat the Pinnacle close "
+        f"by points (avg CLV **{mom_stats.get('avg_clv_points', '?')}** pts) with record "
+        f"**{mom_stats.get('record_final', '?')}** vs final — modest CLV on ~40% of scans "
+        f"does not imply profitable outcome bets. Combined rules overlap scans on the same "
+        f"games; the WF gate is a weak OOS filter (small train window)."
     )
     md.append("")
     if combined_open.get("meaningful"):

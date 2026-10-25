@@ -408,6 +408,33 @@ ESPN_NBA_INJURIES = (
 )
 
 
+def _injury_team_code(team_block: dict[str, Any], athlete: dict[str, Any] | None = None) -> str:
+    """Resolve franchise code from ESPN injury payload (block and/or athlete team)."""
+    from sharp_scout.nba.teams import NBA_ALIASES
+
+    candidates: list[str] = []
+    for blob in (team_block.get("team") or {}, (athlete or {}).get("team") or {}):
+        if not isinstance(blob, dict):
+            continue
+        for key in ("abbreviation", "displayName", "shortDisplayName", "name"):
+            raw = blob.get(key)
+            if raw:
+                candidates.append(str(raw))
+    display = str(team_block.get("displayName") or "").strip().upper()
+    if display:
+        candidates.append(display)
+    for raw in candidates:
+        key = raw.strip().upper()
+        mapped = NBA_ALIASES.get(key)
+        if mapped:
+            return mapped
+        code = ESPN_NBA_ABBREV.get(key, key)
+        norm = normalize_nba_team(code)
+        if norm and len(norm) <= 4:
+            return norm
+    return ""
+
+
 def fetch_espn_nba_injuries() -> list[dict[str, Any]]:
     """Free ESPN injury report: player, team code, status text."""
     try:
@@ -419,12 +446,9 @@ def fetch_espn_nba_injuries() -> list[dict[str, Any]]:
         return []
     out: list[dict[str, Any]] = []
     for team_block in payload.get("injuries") or []:
-        team_info = team_block.get("team") or {}
-        team_raw = team_info.get("abbreviation") or team_info.get("displayName") or ""
-        team = ESPN_NBA_ABBREV.get(str(team_raw).upper(), str(team_raw).upper())
-        team = normalize_nba_team(team)
         for item in team_block.get("injuries") or []:
             athlete = item.get("athlete") or {}
+            team = _injury_team_code(team_block, athlete)
             name = athlete.get("displayName") or athlete.get("shortName") or ""
             status = item.get("status") or item.get("type") or item.get("details", {}).get("type")
             if isinstance(status, dict):

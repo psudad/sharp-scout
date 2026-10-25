@@ -93,8 +93,13 @@ def run_nba_shadow(
             from sharp_scout.nba.score_model.state import ensure_score_engine
 
             score_engine = ensure_score_engine()
-            record_score_model_scan(events, engine=score_engine)
-            record_injury_lag_scan(events)
+            horizon_events = _events_in_horizon(events, settings.nba_prop_horizon_hours)
+            record_score_model_scan(
+                horizon_events,
+                engine=score_engine,
+                horizon_hours=settings.nba_prop_horizon_hours,
+            )
+            record_injury_lag_scan(horizon_events)
         except Exception as exc:  # noqa: BLE001
             logger.warning("NBA score/injury paper tracking skipped: %s", exc)
 

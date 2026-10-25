@@ -7,12 +7,12 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sharp_scout.config import DATA_DIR
+from sharp_scout.config import DATA_DIR, get_settings
 from sharp_scout.nba.score_model.engine import V2Engine, p_cover_home, p_over
 from sharp_scout.nba.score_model.lines import snapshot_game_lines
 from sharp_scout.nba.score_model.state import ensure_score_engine
 from sharp_scout.nba.teams import normalize_nba_team
-from sharp_scout.utils.kickoff import parse_kickoff_utc
+from sharp_scout.utils.kickoff import kickoff_in_horizon, parse_kickoff_utc
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,48 @@ def _find_game(store: dict[str, Any], event_id: str) -> dict[str, Any] | None:
     return None
 
 
+def _game_excluded(g: dict[str, Any]) -> bool:
+    return bool(g.get("excluded")) or g.get("exclude_reason") == "kickoff_outside_horizon"
+
+
+def _first_scan_at(g: dict[str, Any]) -> datetime | None:
+    scans = g.get("scans") or []
+    if not scans:
+        return None
+    return parse_kickoff_utc(scans[0].get("at"))
+
+
+def void_score_paper_outside_horizon(
+    store: dict[str, Any],
+    *,
+    horizon_hours: float | None = None,
+    now: datetime | None = None,
+) -> int:
+    """Void score-model games logged outside nba_prop_horizon_hours (same rules as ledger)."""
+    settings = get_settings()
+    hours = horizon_hours if horizon_hours is not None else settings.nba_prop_horizon_hours
+    now = now or datetime.now(timezone.utc)
+    voided = 0
+    for g in store.get("games") or []:
+        if _game_excluded(g) or g.get("graded"):
+            continue
+        created = _first_scan_at(g) or parse_kickoff_utc(g.get("kickoff"))
+        kick = parse_kickoff_utc(g.get("kickoff"))
+        if kick is None or created is None:
+            continue
+        outside = kick > created + timedelta(hours=hours + 1) or not kickoff_in_horizon(
+            g.get("kickoff"), hours, now=created
+        )
+        if outside:
+            g["excluded"] = True
+            g["exclude_reason"] = "kickoff_outside_horizon"
+            g["voided_at"] = now.isoformat()
+            voided += 1
+    if voided:
+        store["summary"] = summarize_score_paper(store)
+    return voided
+
+
 def _proj_row(engine: V2Engine, ev: dict[str, Any], *, at: str, lines: dict[str, float | None]) -> dict[str, Any]:
     home = normalize_nba_team(str(ev.get("home_team") or ""))
     away = normalize_nba_team(str(ev.get("away_team") or ""))
@@ -87,16 +129,23 @@ def record_score_model_scan(
     engine: V2Engine | None = None,
     store: dict[str, Any] | None = None,
     now: datetime | None = None,
+    horizon_hours: float | None = None,
 ) -> dict[str, Any]:
     """Append scan projections for each event (reuses scan snapshot — no extra API)."""
-    if not events:
-        return store or load_paper_store()
     now = now or datetime.now(timezone.utc)
     at = now.isoformat()
     store = store or load_paper_store()
+    settings = get_settings()
+    hours = horizon_hours if horizon_hours is not None else settings.nba_prop_horizon_hours
+    void_score_paper_outside_horizon(store, horizon_hours=hours, now=now)
+    if not events:
+        save_paper_store(store)
+        return store
     engine = engine or ensure_score_engine()
 
     for ev in events:
+        if not kickoff_in_horizon(ev.get("commence_time"), hours, now=now):
+            continue
         eid = str(ev.get("event_id") or "")
         if not eid:
             continue
@@ -132,7 +181,7 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
     now = now or datetime.now(timezone.utc)
     frozen = 0
     for g in store.get("games") or []:
-        if g.get("frozen") or g.get("graded"):
+        if _game_excluded(g) or g.get("frozen") or g.get("graded"):
             continue
         kick = parse_kickoff_utc(g.get("kickoff"))
         if kick is None or kick > now:
@@ -186,6 +235,7 @@ def grade_score_model_paper(
     from sharp_scout.data.espn_nba import fetch_espn_nba_scores
 
     store = store or load_paper_store()
+    void_score_paper_outside_horizon(store)
     freeze_and_close_lines(store)
     if scores is None:
         try:
@@ -197,7 +247,7 @@ def grade_score_model_paper(
     index = {f"{normalize_nba_team(r['away_team'])}@{normalize_nba_team(r['home_team'])}": r for r in scores}
 
     for g in store.get("games") or []:
-        if g.get("graded"):
+        if _game_excluded(g) or g.get("graded"):
             continue
         key = f"{g['away']}@{g['home']}"
         row = index.get(key)
@@ -250,7 +300,8 @@ def grade_score_model_paper(
 
 
 def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
-    graded = [g["graded"] for g in store.get("games") or [] if g.get("graded")]
+    active = [g for g in store.get("games") or [] if not _game_excluded(g)]
+    graded = [g["graded"] for g in active if g.get("graded")]
     if not graded:
         return {"n_graded": 0}
 
@@ -263,7 +314,7 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
     for thresh in (1.0, 2.0, 3.0):
         mw = ml = mp = 0
         ow = ol = op = 0
-        for g in store.get("games") or []:
+        for g in active:
             gr = g.get("graded")
             if not gr:
                 continue
@@ -300,7 +351,7 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
             "units_at_110": round(_ats_units(ow, ol, op), 2),
         }
 
-    clv_hits = [g["graded"]["clv_line_move_toward_model_margin"] for g in store.get("games") or [] if g.get("graded")]
+    clv_hits = [g["graded"]["clv_line_move_toward_model_margin"] for g in active if g.get("graded")]
     clv_n = sum(1 for x in clv_hits if x is not None)
     clv_yes = sum(1 for x in clv_hits if x)
 
@@ -325,7 +376,7 @@ def slate_projections_for_page(store: dict[str, Any] | None = None) -> list[dict
     now = datetime.now(timezone.utc)
     out: list[dict[str, Any]] = []
     for g in store.get("games") or []:
-        if g.get("graded"):
+        if _game_excluded(g) or g.get("graded"):
             continue
         kick = parse_kickoff_utc(g.get("kickoff"))
         if kick and kick < now - timedelta(hours=3):

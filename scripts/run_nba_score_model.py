@@ -33,9 +33,11 @@ def main() -> None:
     ap.add_argument("--report-stamp", default=datetime.now(timezone.utc).strftime("%Y%m%d"))
     args = ap.parse_args()
 
-    games = load_all_games(args.sbr_path, espn_cache=ESPN_CACHE, refresh_espn=args.refresh_espn)
+    games, data_meta = load_all_games(args.sbr_path, espn_cache=ESPN_CACHE, refresh_espn=args.refresh_espn)
     if len(games) < 500:
         raise SystemExit(f"Too few graded games ({len(games)}); check SBR path and ESPN cache.")
+    print("Yahoo joined", data_meta["yahoo_joined"], "/", data_meta["yahoo_rows"], "rejected", data_meta["yahoo_rejected_no_match"])
+    print("OOS line QA", data_meta.get("line_diagnostics_oos"))
 
     params = tune_params(games)
     ev = walk_forward(games, params)
@@ -62,6 +64,12 @@ def main() -> None:
         last_played[g["away"]] = dt
 
     summary = summarize(ev.preds, blend_w)
+    summary["data_quality"] = data_meta
+    summary["bugs_fixed_in_this_run"] = [
+        "Yahoo↔ESPN score join used undated away@home fallback (latest rematch), pairing wrong finals to closing lines.",
+        "ESPN cache keyed by kickoff date with sparse coverage; rebuilt as scoreboard-request-date keys only (v2).",
+        "Yahoo scores now require spread_home_won / total_over_won agreement (±1 day date shift allowed).",
+    ]
     summary["params"] = {
         "recency_half_life_days": params.recency_half_life_days,
         "hca_points": params.hca_points,
@@ -72,7 +80,7 @@ def main() -> None:
     summary["n_all_games"] = len(games)
     summary["generated_at"] = datetime.now(timezone.utc).isoformat()
 
-    slate = project_tonight_slate(engine, shadow_history=SHADOW_HIST)
+    slate = project_tonight_slate(engine, shadow_history=SHADOW_HIST, last_played=last_played)
     summary["tonight_slate"] = slate
 
     report_dir = ROOT / "reports"

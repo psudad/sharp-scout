@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from sharp_scout.research.nba_score_model.data_loader import load_all_games, load_board_lines_from_shadow
+from sharp_scout.research.nba_score_model.data_loader import load_board_lines_from_shadow
 from sharp_scout.research.nba_score_model.ratings import ModelParams, RatingEngine, p_cover_home, p_over
 
 
@@ -369,19 +369,33 @@ def render_markdown(summary: dict[str, Any], slate: list[dict[str, Any]]) -> str
         "",
         f"Games: **{summary['n_oos_games']}**",
         "",
-        "### Mean absolute error",
-        "",
-        "| Target | Model | Market close | Model⊕market blend |",
-        "|--------|-------|--------------|-------------------|",
-        f"| Margin | {mm['model']} | {mm['market']} | {mm['blend']} (w={summary['blend_weight_margin']:.2f}) |",
-        f"| Total | {tm['model']} | {tm['market']} | {tm['blend']} |",
-        "",
-        "### ATS / O-U when projection beats close by ≥ N points (flat -110)",
-        "",
-        "_Note: |model−market| ≥1pt selects ~93% of OOS games; flat units below are **not** "
-        "independent proof of betting edge (use MAE + calibration; paper-trade CLV before any live use)._",
-        "",
     ]
+    dq = summary.get("data_quality") or {}
+    lq = dq.get("line_diagnostics_oos") or {}
+    if lq.get("n"):
+        lines.extend(
+            [
+                f"Line join QA (OOS): mean(margin+home_spread)={lq.get('mean_margin_plus_home_spread')}, "
+                f"share |net|<3pt={lq.get('share_abs_net_under_3')}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "### Mean absolute error",
+            "",
+            "| Target | Model | Market close | Model⊕market blend |",
+            "|--------|-------|--------------|-------------------|",
+            f"| Margin | {mm['model']} | {mm['market']} | {mm['blend']} (w={summary['blend_weight_margin']:.2f}) |",
+            f"| Total | {tm['model']} | {tm['market']} | {tm['blend']} |",
+            "",
+            "### ATS / O-U when projection beats close by ≥ N points (flat -110)",
+            "",
+        ]
+    )
+    bugs = summary.get("bugs_fixed_in_this_run") or []
+    if bugs:
+        lines.extend(["### Data fixes in this report", ""] + [f"- {b}" for b in bugs] + [""])
     for th, rec in summary.get("ats_by_edge_pts", {}).items():
         lines.append(f"- **ATS ≥{th}pt edge:** {rec['record']} ({rec['units_at_110']}u, n={rec['n']})")
     lines.append("")
@@ -426,8 +440,9 @@ def _verdict(summary: dict[str, Any]) -> str:
             "that proves OOS ATS/O-U edge after vig."
         )
     if mm["model"] <= mm["market"]:
+        gap = round(mm["market"] - mm["model"], 2)
         return (
-            "Margin MAE is **modestly below** the closing line OOS (~0.26 pts); totals lag the market slightly. "
+            f"Margin MAE is **modestly below** the closing line OOS (~{gap} pts); totals lag the market slightly. "
             "That is research-grade signal, not a license to bet: possession-level PBP, injury/minutes, "
             "multi-book closes, and paper-trade CLV at realistic thresholds would be required before the NBA lane."
         )
@@ -437,7 +452,12 @@ def _verdict(summary: dict[str, Any]) -> str:
     )
 
 
-def project_tonight_slate(engine: RatingEngine, *, shadow_history: Path) -> list[dict[str, Any]]:
+def project_tonight_slate(
+    engine: RatingEngine,
+    *,
+    shadow_history: Path,
+    last_played: dict[str, datetime] | None = None,
+) -> list[dict[str, Any]]:
     from sharp_scout.data import espn_nba as espn
 
     today = datetime.now(timezone.utc)
@@ -469,7 +489,9 @@ def project_tonight_slate(engine: RatingEngine, *, shadow_history: Path) -> list
         away, home = teams.get("away"), teams.get("home")
         if not away or not home:
             continue
-        proj = engine.project(home, away, game_date=today)
+        hr = _rest_days(home, today, last_played or {})
+        ar = _rest_days(away, today, last_played or {})
+        proj = engine.project(home, away, game_date=today, home_rest=hr, away_rest=ar)
         eid = eid_map.get((away, home)) or str(ev.get("id"))
         lines = board.get(eid, {})
         out.append(

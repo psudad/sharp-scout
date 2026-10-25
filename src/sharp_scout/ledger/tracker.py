@@ -564,15 +564,29 @@ def settle_from_scores(
     sport = "ncaaf" if path and "ncaaf" in path.name else "nfl"
     index: dict[str, dict[str, Any]] = {}
 
+    def _kickoff_date(row: dict[str, Any]) -> str | None:
+        kick = parse_commence(row.get("kickoff") or row.get("commence_time") or row.get("gameday"))
+        if kick is None:
+            gd = row.get("gameday")
+            if gd:
+                return str(gd)[:10]
+            return None
+        return kick.astimezone(timezone.utc).date().isoformat()
+
     def _index_score_row(row: dict[str, Any], away: str, home: str) -> None:
         season = row.get("season")
         week = row.get("week")
         base = f"{away}@{home}"
         index[base] = row
+        kdate = _kickoff_date(row)
+        if kdate:
+            index[f"{kdate}:{base}"] = row
         if season is not None:
             index[f"{season}:{base}"] = row
             if week is not None:
                 index[f"{season}:{week}:{base}"] = row
+                if kdate:
+                    index[f"{season}:{week}:{kdate}:{base}"] = row
         rev = {
             **row,
             "away_team": home,
@@ -582,6 +596,8 @@ def settle_from_scores(
         }
         rev_base = f"{home}@{away}"
         index[rev_base] = rev
+        if kdate:
+            index[f"{kdate}:{rev_base}"] = rev
         if season is not None:
             index[f"{season}:{rev_base}"] = rev
             if week is not None:
@@ -606,16 +622,23 @@ def settle_from_scores(
         base = f"{away}@{home}"
         season = row.get("season")
         week = row.get("week")
+        kdate = _kickoff_date(row)
+        if season is not None and week is not None and kdate:
+            hit = index.get(f"{season}:{week}:{kdate}:{base}")
+            if hit:
+                return hit
         if season is not None and week is not None:
             hit = index.get(f"{season}:{week}:{base}")
+            if hit:
+                return hit
+        if kdate:
+            hit = index.get(f"{kdate}:{base}")
             if hit:
                 return hit
         if season is not None:
             hit = index.get(f"{season}:{base}")
             if hit:
                 return hit
-        # Without season on the play, only match if the score row season matches the
-        # kickoff year (when known) — blocks cross-season team-pair collisions.
         hit = index.get(base)
         if not hit:
             return None
@@ -623,7 +646,6 @@ def settle_from_scores(
         score_season = hit.get("season")
         if kick is not None and score_season is not None:
             kick_year = kick.astimezone(timezone.utc).year
-            # NFL season spans calendar years (Jan playoffs); allow season or season+1.
             if int(score_season) not in (kick_year, kick_year - 1):
                 return None
         return hit
@@ -1012,6 +1034,11 @@ def load_scores_from_schedules(seasons: list[int] | None = None) -> list[dict[st
             if hs is None or as_ is None or (isinstance(hs, float) and hs != hs):
                 continue
             try:
+                gameday = r.get("gameday")
+                if hasattr(gameday, "isoformat"):
+                    gameday = gameday.isoformat()[:10]
+                elif gameday is not None:
+                    gameday = str(gameday)[:10]
                 row = {
                     "home_team": r.get("home_team"),
                     "away_team": r.get("away_team"),
@@ -1020,6 +1047,7 @@ def load_scores_from_schedules(seasons: list[int] | None = None) -> list[dict[st
                     "season": int(r["season"]) if r.get("season") == r.get("season") else None,
                     "week": int(r["week"]) if r.get("week") == r.get("week") else None,
                     "game_id": r.get("game_id"),
+                    "gameday": gameday,
                 }
             except (TypeError, ValueError):
                 continue

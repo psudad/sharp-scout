@@ -191,6 +191,13 @@ class Settings(BaseSettings):
     # NCAAF totals shadow — paper-track EV ≥12% totals (private data/shadow/, zero extra API)
     ncaaf_totals_shadow_enabled: bool = True
 
+    # NFL simulation totals (board / measurement — not on LOCKED card unless enabled below)
+    nfl_totals_sim_count: int = 8000
+    # Weight on sim median vs Pinnacle total when blending (0 = market only).
+    nfl_totals_blend_weight_sim: float = 0.0
+    # When True, NFL totals may certify to the LOCKED card if the sim lean matches first.
+    product_nfl_totals_card_enabled: bool = False
+
     # NBA shadow pipeline (never published to GitHub Pages — see data/shadow/)
     nba_shadow_enabled: bool = True
     nba_ev_threshold: float = 0.02

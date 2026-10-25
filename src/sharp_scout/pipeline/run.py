@@ -153,6 +153,18 @@ def run_pipeline(
         except Exception as exc:  # noqa: BLE001
             logger.warning("Matchup engine skipped: %s", exc)
 
+    # ── NFL simulation totals (drive-based, blend toward market) ──
+    nfl_totals_by_event: dict[str, dict[str, Any]] = {}
+    nfl_totals_meta: dict[str, Any] = {}
+    try:
+        from sharp_scout.nfl.totals.project import project_nfl_totals_for_slate
+
+        nfl_totals_by_event, nfl_totals_meta = project_nfl_totals_for_slate(
+            events, skip_pbp=skip_pbp
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NFL totals simulation skipped: %s", exc)
+
     # ── Phases 2–4 per event ─────────────────────────────────
     game_results: list[dict[str, Any]] = []
     all_signals: list[dict[str, Any]] = []
@@ -190,6 +202,9 @@ def run_pipeline(
         filtered = attach_filters(edges, splits, sport="nfl")
         sims_by_event[str(ev.get("event_id"))] = sim
 
+        eid_str = str(ev.get("event_id"))
+        totals_row = nfl_totals_by_event.get(eid_str) or {}
+        projection_total = totals_row.get("projection_total")
         game_results.append(
             {
                 "event_id": ev.get("event_id"),
@@ -202,7 +217,11 @@ def run_pipeline(
                 "mu_home": means["mu_home"],
                 "mu_away": means["mu_away"],
                 "model_spread": round(sim.model_spread, 2),
-                "model_total": round(sim.model_total, 2),
+                "model_total": round(projection_total, 2)
+                if projection_total is not None
+                else round(sim.model_total, 2),
+                "epa_model_total": round(sim.model_total, 2),
+                "simulation_total": totals_row,
                 "p_home_win": sim.p_home_win,
                 "matchup_residual": means.get("matchup_residual"),
                 "situational": situ,
@@ -257,6 +276,33 @@ def run_pipeline(
     from sharp_scout.stage_picks import STAGE_MARKETS, build_slate_stage_picks, summarize_stage_slate
 
     stage_cards = build_slate_stage_picks(events, sims_by_event, splits, validated, markets=STAGE_MARKETS)
+    for card in stage_cards:
+        if card.get("market") != "total":
+            continue
+        tr = nfl_totals_by_event.get(str(card.get("event_id"))) or {}
+        if not tr:
+            continue
+        card["simulation_total"] = tr
+        card["sim_projection"] = tr.get("projection_total")
+        picks = dict(card.get("picks") or {})
+        model = dict(picks.get("model") or {})
+        line = tr.get("market_line")
+        proj = tr.get("projection_total")
+        lean = tr.get("sim_lean")
+        if proj is not None and line is not None and lean in ("over", "under"):
+            model["side"] = lean
+            model["team"] = "Over" if lean == "over" else "Under"
+            model["line"] = line
+            model["confidence"] = tr.get("p_over" if lean == "over" else "p_under") or model.get(
+                "confidence"
+            )
+            model["reason"] = (
+                f"Sim total {proj:.1f} (median {tr.get('sim_median', proj):.1f}) vs market {float(line):.1f}; "
+                f"P({lean})={float(model.get('confidence') or 0):.1%}"
+            )
+            model["available"] = True
+            picks["model"] = model
+            card["picks"] = picks
     stage_summary = summarize_stage_slate(stage_cards)
 
     from sharp_scout.data.splits_board import build_slate_split_boards
@@ -294,7 +340,29 @@ def run_pipeline(
         "stage_picks": stage_cards,
         "stage_summary": stage_summary,
         "split_boards": split_boards,
+        "nfl_totals_by_event": nfl_totals_by_event,
+        "nfl_totals_meta": nfl_totals_meta,
     }
+
+    if nfl_totals_by_event and update_ledger:
+        from sharp_scout.nfl.totals.tracker import upsert_totals_rows
+
+        totals_rows = []
+        for g in game_results:
+            tr = g.get("simulation_total") or {}
+            if not tr:
+                continue
+            totals_rows.append(
+                {
+                    **tr,
+                    "kickoff": g.get("commence_time"),
+                    "season": season,
+                    "week": week,
+                    "status": "pending",
+                }
+            )
+        if totals_rows:
+            upsert_totals_rows(totals_rows)
 
     out_path = ARTIFACTS_DIR / "latest_signals.json"
     out_path.write_text(json.dumps(payload, indent=2, default=str))

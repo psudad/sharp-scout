@@ -110,6 +110,7 @@ def append_signals(
     latest best line/book survives across pipeline runs — until T-1h (NFL) / T-2h (NCAAF) before
     kickoff, when the card freezes (see CARD_FREEZE_BEFORE_KICKOFF).
     """
+    from sharp_scout.utils.kickoff import kickoff_still_future
     from sharp_scout.utils.slate import parse_commence
 
     ledger = load_ledger(path)
@@ -118,6 +119,7 @@ def append_signals(
     replaced = 0
     refreshed = 0
     frozen = 0
+    past_kickoff = 0
     clock = now or datetime.now(timezone.utc)
     freeze = (
         NCAAF_CARD_FREEZE_BEFORE_KICKOFF if ledger_sport_from_path(path) == "ncaaf" else CARD_FREEZE_BEFORE_KICKOFF
@@ -126,6 +128,9 @@ def append_signals(
         if only_validated and not s.get("filter_passed"):
             continue
         if s.get("tier") == "rejected":
+            continue
+        if not kickoff_still_future(s, now=clock):
+            past_kickoff += 1
             continue
         # Card freeze: inside the commitment window nothing may be added, replaced
         # or re-tiered. The QA gate cannot quarantine committed plays in this window, so
@@ -235,12 +240,13 @@ def append_signals(
     save_ledger(ledger, path)
     logger.info(
         "Ledger: added %d plays, replaced %d pending, refreshed %d pending, "
-        "%d frozen (inside T-%dh) (total %d)",
+        "%d frozen (inside T-%dh), %d past kickoff (total %d)",
         added,
         replaced,
         refreshed,
         frozen,
         int(freeze.total_seconds() // 3600),
+        past_kickoff,
         len(ledger["plays"]),
     )
     return ledger

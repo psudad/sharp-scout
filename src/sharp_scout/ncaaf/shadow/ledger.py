@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from sharp_scout.ncaaf.shadow import paths
+from sharp_scout.utils.kickoff import kickoff_still_future, logged_at_or_after_kickoff
 
 
 def _now() -> str:
@@ -37,6 +38,26 @@ def load_ledger(path: Path | None = None) -> dict[str, Any]:
     data = json.loads(p.read_text())
     data.setdefault("plays", [])
     return data
+
+
+def flag_logged_after_kickoff(ledger: dict[str, Any]) -> int:
+    """Mark rows whose first log time is at/after kickoff (excluded from bucket stats)."""
+    flagged = 0
+    for row in ledger.get("plays") or []:
+        if logged_at_or_after_kickoff(row, logged_at_field="first_seen_at"):
+            flags = dict(row.get("integrity_flags") or {})
+            if not flags.get("logged_after_kickoff"):
+                flags["logged_after_kickoff"] = True
+                row["integrity_flags"] = flags
+                flagged += 1
+        elif row.get("integrity_flags", {}).get("logged_after_kickoff"):
+            flags = dict(row["integrity_flags"])
+            flags.pop("logged_after_kickoff", None)
+            if flags:
+                row["integrity_flags"] = flags
+            else:
+                row.pop("integrity_flags", None)
+    return flagged
 
 
 def save_ledger(ledger: dict[str, Any], path: Path | None = None) -> Path:
@@ -80,8 +101,10 @@ def upsert_signals(
     ledger = load_ledger(path)
     index = {play_key(p.get("event_id"), p.get("side"), bucket=p.get("bucket") or ""): p for p in ledger["plays"]}
     at = captured_at or _now()
+    clock = datetime.now(timezone.utc)
     added = 0
     updated = 0
+    skipped_past_kickoff = 0
 
     for s in signals:
         eid = str(s.get("event_id") or "")
@@ -96,6 +119,10 @@ def upsert_signals(
             for field, val in snap.items():
                 row[field] = val
             updated += 1
+            continue
+
+        if not kickoff_still_future(s, now=clock):
+            skipped_past_kickoff += 1
             continue
 
         row = {
@@ -129,5 +156,11 @@ def upsert_signals(
         index[key] = row
         added += 1
 
+    flag_logged_after_kickoff(ledger)
     save_ledger(ledger, path)
-    return {"added": added, "updated": updated, "total": len(ledger["plays"])}
+    return {
+        "added": added,
+        "updated": updated,
+        "skipped_past_kickoff": skipped_past_kickoff,
+        "total": len(ledger["plays"]),
+    }

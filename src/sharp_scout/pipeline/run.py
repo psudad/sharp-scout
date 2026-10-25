@@ -344,6 +344,12 @@ def run_pipeline(
             append_disagreements(disagreements)
 
         payload["record"] = compute_record()
+        try:
+            from sharp_scout.ledger.clv import refresh_ledger_closing_lines
+
+            refresh_ledger_closing_lines()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("CLV refresh skipped: %s", exc)
 
     from sharp_scout.qa.gate import apply_qa_gate
 

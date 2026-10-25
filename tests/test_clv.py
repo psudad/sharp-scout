@@ -30,6 +30,54 @@ def test_clv_prob_positive_when_price_shortens():
     assert v is not None and v > 0
 
 
+def test_clv_prob_skipped_when_line_differs():
+    play = {
+        "market": "totals",
+        "side": "over",
+        "line": 39.5,
+        "price": -110,
+    }
+    from sharp_scout.ledger.clv import compute_clv_for_play
+
+    compute_clv_for_play(play, 51.5, -110, close_book="pinnacle", at="2026-10-24T23:00:00+00:00")
+    assert play["clv_points"] == 12.0
+    assert play["clv_prob"] is None
+    assert play["clv_basis"] == "points"
+
+
+def test_finalize_refreshes_before_kickoff_then_freezes():
+    from datetime import datetime, timezone
+
+    from sharp_scout.ledger.clv import finalize_closing_lines
+
+    ledger = {
+        "plays": [
+            {
+                "event_id": "e1",
+                "market": "spreads",
+                "side": "away",
+                "line": -2.5,
+                "price": -110,
+                "kickoff": "2026-09-10T00:00:00+00:00",
+                "clv_at": "2026-09-09T18:00:00+00:00",
+                "close_line": -2.5,
+                "close_price": -110,
+                "close_book": "pinnacle",
+            }
+        ]
+    }
+    history = {
+        "e1|spreads|away": [
+            {"ts": "2026-09-09T18:00:00+00:00", "book": "pinnacle", "line": -2.5, "price": -110},
+            {"ts": "2026-09-09T23:30:00+00:00", "book": "pinnacle", "line": -4.0, "price": -108},
+        ]
+    }
+    now = datetime(2026, 9, 9, 20, 0, tzinfo=timezone.utc)
+    assert finalize_closing_lines(ledger, history=history, now=now) == 1
+    assert ledger["plays"][0]["close_line"] == -4.0
+    assert finalize_closing_lines(ledger, history=history, now=now) == 0
+
+
 def test_finalize_and_summary_with_history():
     ledger = {
         "plays": [

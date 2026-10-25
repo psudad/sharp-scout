@@ -11,11 +11,17 @@ from sharp_scout.ncaaf.shadow.buckets import BUCKET_CERT_MISS, BUCKET_EV_12_16, 
 from sharp_scout.ncaaf.shadow.ledger import load_ledger
 
 
-def _record_stats(plays: list[dict[str, Any]]) -> dict[str, Any]:
+def _excluded_from_stats(p: dict[str, Any]) -> bool:
+    return bool((p.get("integrity_flags") or {}).get("logged_after_kickoff"))
+
+
+def _record_stats(plays: list[dict[str, Any]], *, respect_exclusion: bool = True) -> dict[str, Any]:
     wins = losses = pushes = pending = 0
     units = 0.0
     clv_probs: list[float] = []
     for p in plays:
+        if respect_exclusion and _excluded_from_stats(p):
+            continue
         st = p.get("status") or "pending"
         if st == "win":
             wins += 1
@@ -43,9 +49,18 @@ def _record_stats(plays: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def build_summary(ledger: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_summary(
+    ledger: dict[str, Any] | None = None,
+    *,
+    exclude_logged_after_kickoff: bool = True,
+) -> dict[str, Any]:
     ledger = ledger or load_ledger()
     plays = ledger.get("plays") or []
+
+    def stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        if exclude_logged_after_kickoff:
+            return _record_stats(rows)
+        return _record_stats(rows, respect_exclusion=False)
     by_bucket: dict[str, list[dict[str, Any]]] = {
         BUCKET_EV_12_16: [],
         BUCKET_EV_16_PLUS: [],
@@ -64,20 +79,26 @@ def build_summary(ledger: dict[str, Any] | None = None) -> dict[str, Any]:
             if side in by_side_bucket[b]:
                 by_side_bucket[b][side].append(p)
 
-    high_only = [p for p in plays if p.get("bucket") in HIGH_BUCKETS]
+    high_all = [p for p in plays if p.get("bucket") in HIGH_BUCKETS]
+    high_only = high_all if not exclude_logged_after_kickoff else [p for p in high_all if not _excluded_from_stats(p)]
+    excluded = [p for p in high_all if _excluded_from_stats(p)]
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "sport": "ncaaf",
         "market": "totals",
         "mode": "shadow_high_ev",
-        "overall_high_ev": _record_stats(high_only),
-        "by_bucket": {b: _record_stats(rows) for b, rows in by_bucket.items()},
+        "overall_high_ev": stats(high_only if exclude_logged_after_kickoff else high_all),
+        "by_bucket": {b: stats(rows) for b, rows in by_bucket.items()},
         "by_bucket_side": {
-            b: {side: _record_stats(rows) for side, rows in sides.items()}
+            b: {side: stats(rows) for side, rows in sides.items()}
             for b, sides in by_side_bucket.items()
         },
         "n_plays_total": len(plays),
+        "excluded_logged_after_kickoff": {
+            "n": len(excluded),
+            "record": _record_stats(excluded, respect_exclusion=False).get("record"),
+        },
     }
 
 

@@ -126,7 +126,7 @@ BOARD_STAT_TIPS: dict[str, str] = {
     "clv_avg_pts": "Average closing-line value in points vs the line we bet. Positive means we beat the close.",
     "clv_beat_pct": "Share of graded plays that beat the closing line (price or spread/total).",
     "clv_beat_record": "Win-loss count vs the closing line across graded plays — not the same as bet W-L.",
-    "clv_n_plays": "Number of graded plays with a captured closing line (T-1h pre-kick snapshot).",
+    "clv_n_plays": "Number of graded plays with a captured closing line (last Pinnacle-preferred sample at/before kickoff from line history).",
     "stage_awaiting_final": (
         "Picks on the current display-week slate that do not have a final score yet — "
         "one count per stage per game/market row. Season-to-date W–L above includes all "

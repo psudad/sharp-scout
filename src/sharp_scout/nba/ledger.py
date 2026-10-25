@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +12,7 @@ from sharp_scout.ledger.tracker import _play_key
 from sharp_scout.nba.clv import finalize_nba_clv
 from sharp_scout.nba import paths as nba_paths
 from sharp_scout.nba.staking import price_vs_fair_implied
+from sharp_scout.utils.kickoff import kickoff_in_horizon, kickoff_still_future, parse_kickoff_utc
 
 
 def empty_nba_ledger() -> dict[str, Any]:
@@ -30,44 +31,6 @@ def is_demo_nba_row(row: dict[str, Any]) -> bool:
     if row.get("demo"):
         return True
     return str(row.get("event_id") or "").startswith("demo-")
-
-
-def parse_kickoff_utc(value: Any) -> datetime | None:
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        dt = value
-    else:
-        try:
-            dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        except ValueError:
-            return None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt
-
-
-def kickoff_still_future(row: dict[str, Any], *, now: datetime | None = None) -> bool:
-    now = now or datetime.now(timezone.utc)
-    kick = parse_kickoff_utc(row.get("kickoff"))
-    if kick is None:
-        return False
-    return kick > now
-
-
-def kickoff_in_horizon(
-    value: Any,
-    hours: float,
-    *,
-    now: datetime | None = None,
-) -> bool:
-    """True when kickoff is strictly after *now* and within *hours* (same window as props)."""
-    now = now or datetime.now(timezone.utc)
-    kick = parse_kickoff_utc(value)
-    if kick is None:
-        return False
-    horizon = now + timedelta(hours=hours)
-    return kick > now and kick <= horizon
 
 
 def strip_demo_plays_from_ledger(ledger: dict[str, Any]) -> tuple[dict[str, Any], int]:

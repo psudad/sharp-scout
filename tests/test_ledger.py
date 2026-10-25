@@ -242,6 +242,7 @@ def test_ledger_append_dedupe(tmp_path: Path):
         "tier": "play",
         "filter_passed": True,
         "rationale": "test",
+        "kickoff": "2099-01-01T18:00:00+00:00",
     }
     append_signals([sig], path=path, season=2025, week=1)
     append_signals([sig], path=path, season=2025, week=1)
@@ -264,6 +265,7 @@ def test_ledger_replaces_pending_same_side_different_book(tmp_path: Path):
         "tier": "play",
         "filter_passed": True,
         "rationale": "first",
+        "kickoff": "2099-01-01T18:00:00+00:00",
     }
     append_signals([{**base, "line": 1.5, "book": "draftkings"}], path=path)
     append_signals([{**base, "line": 2.5, "book": "fanduel", "edge": 0.08, "rationale": "better"}], path=path)
@@ -292,9 +294,13 @@ def test_record_and_site(tmp_path: Path, monkeypatch):
             "tier": "play",
             "filter_passed": True,
             "rationale": "edge",
+            "kickoff": "2099-01-01T18:00:00+00:00",
         }
     ]
     append_signals(sigs, path=path, season=2025, week=1)
+    ledger = load_ledger(path)
+    ledger["plays"][0]["kickoff"] = "2020-01-01T18:00:00+00:00"
+    save_ledger(ledger, path)
     settle_from_scores(
         [{"away_team": "KC", "home_team": "BUF", "away_score": 20, "home_score": 17}],
         path=path,

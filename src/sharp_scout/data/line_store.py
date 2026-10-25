@@ -201,8 +201,9 @@ def closing_sample(
     ko = _parse_ts(kickoff)
     eligible = samples
     if ko is not None:
-        before = [s for s in samples if (_parse_ts(s.get("ts")) or ko) <= ko]
-        eligible = before or samples  # if nothing before kickoff, use what we have
+        eligible = [s for s in samples if (_parse_ts(s.get("ts")) or ko) <= ko]
+        if not eligible:
+            return None
 
     pref = preferred_books or (get_settings().sharp_books + ["circa"])
 

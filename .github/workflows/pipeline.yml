@@ -109,7 +109,11 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ledger.json data/props_ledger.json data/line_history.json data/line_history_archive.json data/paper/nfl_totals_momentum_follow.json data/open_lines.json data/calibration.json docs/
+          chmod +x scripts/ci_git_add_paths.sh
+          scripts/ci_git_add_paths.sh \
+            data/ledger.json data/props_ledger.json data/line_history.json \
+            data/line_history_archive.json data/paper/nfl_totals_momentum_follow.json \
+            data/open_lines.json data/calibration.json docs/
           if git diff --staged --quiet; then
             echo "No NFL ledger/site changes"
           else

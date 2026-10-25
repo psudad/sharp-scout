@@ -15,7 +15,7 @@ attempt=1
 while (( attempt <= MAX_ATTEMPTS )); do
   if [[ -n "$ADD_PATHS" ]]; then
     # shellcheck disable=SC2086
-    git add $ADD_PATHS 2>/dev/null || true
+    "$(dirname "$0")/ci_git_add_paths.sh" $ADD_PATHS
   fi
   if git diff --staged --quiet; then
     echo "No staged changes to commit"

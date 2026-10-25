@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from sharp_scout.config import get_settings
 from sharp_scout.ledger.tracker import _play_key
 from sharp_scout.nba.clv import finalize_nba_clv
 from sharp_scout.nba import paths as nba_paths
@@ -59,11 +60,15 @@ def save_nba_ledger(ledger: dict[str, Any], path: Path | None = None) -> Path:
 
 
 def append_nba_signals(signals: list[dict[str, Any]], *, path: Path | None = None) -> dict[str, Any]:
+    settings = get_settings()
+    horizon = settings.nba_prop_horizon_hours
     ledger = load_nba_ledger(path)
     existing = {_play_key(p) for p in ledger["plays"]}
     added = 0
     for s in signals:
         if not is_demo_nba_row(s) and not kickoff_still_future(s):
+            continue
+        if not is_demo_nba_row(s) and not kickoff_in_horizon(s.get("kickoff"), horizon):
             continue
         row = {
             "id": str(uuid.uuid4())[:8],

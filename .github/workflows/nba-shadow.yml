@@ -40,6 +40,9 @@ jobs:
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
 
+      - name: Settle NBA paper ledger
+        run: python scripts/settle_nba.py || echo 'NBA settle failed (non-fatal)'
+
       - name: Run NBA shadow pipeline
         run: |
           if [ "${{ github.event.inputs.demo }}" = "true" ]; then

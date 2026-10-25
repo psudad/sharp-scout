@@ -12,13 +12,12 @@ from sharp_scout.research.nba_score_model.box_scores import attach_box_stats_to_
 from sharp_scout.research.nba_score_model.data_loader import load_all_games
 from sharp_scout.research.nba_score_model.evaluate import project_tonight_slate
 from sharp_scout.research.nba_score_model.ratings import RatingEngine
+from sharp_scout.research.nba_score_model.sbr_clv import line_move_clv
 from sharp_scout.research.nba_score_model.staged_eval import (
-    market_move_analysis,
     render_v2_markdown,
     run_all_stages,
     summarize_stage,
     tune_v2_params,
-    walk_forward_v2,
 )
 from sharp_scout.research.nba_score_model.v2_engine import V2Engine, V2Params
 
@@ -100,7 +99,9 @@ def main() -> None:
     v2_params = tune_v2_params(games, stage=3)
     stage_results = run_all_stages(games, v2_params)
     stage_summaries = [summarize_stage(sr) for sr in stage_results]
-    market = market_move_analysis(stage_results[-1].preds)
+    # CLV on true SBR openers (2010-11 – 2020-21), walk-forward stage-3 engine
+    stage3_preds = stage_results[3].preds
+    sbr_clv = line_move_clv(stage3_preds)
 
     engine, last_played = _rebuild_final_engine(games, v2_params)
     # Tonight uses v2 stage-4 via RatingEngine adapter — project_tonight expects v1; use simple v2 project on scoreboard
@@ -112,7 +113,8 @@ def main() -> None:
         "v2_params": v2_params.__dict__,
         "data_quality": data_meta,
         "stages": stage_summaries,
-        "market_move_analysis": market,
+        "sbr_clv_analysis": sbr_clv,
+        "yahoo_clv_note": "Yahoo pregame≈close; 90% move hits were artifact — use SBR block only.",
         "tonight_slate": slate,
     }
 
@@ -121,7 +123,7 @@ def main() -> None:
     stem = f"nba_score_model_{args.report_stamp}"
     md_path = report_dir / f"{stem}.md"
     json_path = report_dir / f"{stem}.json"
-    md_path.write_text(render_v2_markdown(stage_summaries, market, slate))
+    md_path.write_text(render_v2_markdown(stage_summaries, sbr_clv, slate))
     json_path.write_text(json.dumps(summary, indent=2))
 
     final = stage_summaries[-1]

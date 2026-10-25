@@ -37,6 +37,7 @@ class GamePred:
     open_spread_home: float | None = None
     open_total: float | None = None
     yahoo_spread_stake_pct: float | None = None
+    source: str | None = None
 
 
 @dataclass
@@ -93,6 +94,7 @@ def walk_forward(games: list[dict[str, Any]], params: ModelParams) -> EvalResult
                 sd_margin=proj["sd_margin"],
                 sd_total=proj["sd_total"],
                 month=dt.month,
+                source=g.get("source"),
             )
         )
 

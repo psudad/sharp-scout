@@ -116,6 +116,7 @@ class V2Engine:
     _team_index: dict[str, int] = field(default_factory=dict)
     _cached_off: dict[str, float] = field(default_factory=dict)
     _cached_def: dict[str, float] = field(default_factory=dict)
+    _ridge_intercept: float = LEAGUE_ORTG
     _refit_cooldown: int = 0
 
     def _idx(self, team: str) -> int:
@@ -195,6 +196,8 @@ class V2Engine:
         tmap = {t: i for i, t in enumerate(teams)}
         n_t = len(teams)
         sched_cols = 0  # schedule handled in projection layer (stage 3+), not ridge
+        # Intercept (unpenalized) + off/def: without μ, ridge shrinks off+def toward 0 and breaks totals.
+        n_feat = 1 + 2 * n_t + sched_cols
         rows: list[np.ndarray] = []
         y: list[float] = []
         w: list[float] = []
@@ -204,11 +207,12 @@ class V2Engine:
                 (row.away, row.home, row.away_ortg, 0.0, row.away_b2b, row.away_3in4, row.away_travel, row.away_alt),
             )
             for att, opp, ortg, is_home, b2b, three4, trav, alt in pairs:
-                feat = np.zeros(2 * n_t + sched_cols)
-                feat[tmap[att]] = 1.0
-                feat[n_t + tmap[opp]] = 1.0
+                feat = np.zeros(n_feat)
+                feat[0] = 1.0
+                feat[1 + tmap[att]] = 1.0
+                feat[1 + n_t + tmap[opp]] = 1.0
                 if sched_cols:
-                    base = 2 * n_t
+                    base = 1 + 2 * n_t
                     feat[base] = is_home
                     feat[base + 1] = b2b
                     feat[base + 2] = three4
@@ -224,9 +228,13 @@ class V2Engine:
         Xw = X * sw
         yw = yv * np.sqrt(wv)
         lam = p.ridge_lambda
-        beta = np.linalg.solve(Xw.T @ Xw + lam * np.eye(X.shape[1]), Xw.T @ yw)
-        off = {t: float(beta[tmap[t]]) for t in teams}
-        def_ = {t: float(beta[n_t + tmap[t]]) for t in teams}
+        reg = lam * np.eye(n_feat)
+        reg[0, 0] = 0.0
+        beta = np.linalg.solve(Xw.T @ Xw + reg, Xw.T @ yw)
+        intercept = float(beta[0])
+        off = {t: float(beta[1 + tmap[t]]) for t in teams}
+        def_ = {t: float(beta[1 + n_t + tmap[t]]) for t in teams}
+        self._ridge_intercept = intercept
         self._cached_off, self._cached_def = off, def_
         self._refit_cooldown = max(p.refit_every_games - 1, 0)
         return off, def_
@@ -250,21 +258,22 @@ class V2Engine:
 
         pace = (self._effective_rating(home, "pace") + self._effective_rating(away, "pace")) / 2.0
 
-        def _pick(team: str, kind: str, fit: dict[str, float]) -> float:
-            eff = self._effective_rating(team, kind)
-            if fit.get(team) is not None:
-                return 0.65 * fit[team] + 0.35 * eff
-            return eff
+        h_off = self._effective_rating(home, "off")
+        a_off = self._effective_rating(away, "off")
+        h_def_allow = self._effective_rating(home, "def")  # pts allowed per 100
+        a_def_allow = self._effective_rating(away, "def")
 
-        h_off = _pick(home, "off", off_fit)
-        a_def = _pick(away, "def", def_fit)
-        a_off = _pick(away, "off", off_fit)
-        h_def = _pick(home, "def", def_fit)
-        # Ridge target y is ORtg; coefficients sum to expected ORtg for that offense.
-        home_ortg = h_off + a_def
-        away_ortg = a_off + h_def
-        home_pts = pace * home_ortg / 100.0
-        away_pts = pace * away_ortg / 100.0
+        mu = getattr(self, "_ridge_intercept", LEAGUE_ORTG)
+        if off_fit and home in off_fit and away in off_fit:
+            # Ridge: ORtg ~ μ + off_att + def_opp (μ unpenalized — fixes totals vs raw off+def ridge).
+            home_ortg = mu + off_fit[home] + def_fit.get(away, 0.0)
+            away_ortg = mu + off_fit[away] + def_fit.get(home, 0.0)
+        else:
+            # Multiplicative matchup when ridge not ready (team_def is allowed ORtg, not ridge coeff).
+            home_ortg = h_off * a_def_allow / LEAGUE_ORTG
+            away_ortg = a_off * h_def_allow / LEAGUE_ORTG
+        home_pts_base = pace * home_ortg / 100.0
+        away_pts_base = pace * away_ortg / 100.0
         h_adj, a_adj = self._schedule_adj(
             home,
             away,
@@ -275,18 +284,21 @@ class V2Engine:
             home_travel_mi=home_travel_mi,
             away_travel_mi=away_travel_mi,
         )
-        home_pts += h_adj
-        away_pts += a_adj
+        # Schedule layer is for margin / sides; close totals already embed pace/fatigue.
+        home_pts = home_pts_base + h_adj
+        away_pts = away_pts_base + a_adj
 
+        margin = home_pts - away_pts
+        total = home_pts_base + away_pts_base
+
+        # Stage 4: optional margin-only injury proxy (does not deflate totals).
         if self.stage >= 4 and home_player_mins and away_player_mins:
             ht = self.player_track.setdefault(home, PlayerTracker())
             at = self.player_track.setdefault(away, PlayerTracker())
             scale = self.params.player_ppm_scale
-            home_pts -= min(scale * ht.missing_pts(home_player_mins), 12.0)
-            away_pts -= min(scale * at.missing_pts(away_player_mins), 12.0)
-
-        margin = home_pts - away_pts
-        total = home_pts + away_pts
+            home_miss = min(scale * ht.missing_pts(home_player_mins), 8.0)
+            away_miss = min(scale * at.missing_pts(away_player_mins), 8.0)
+            margin -= home_miss - away_miss
         sd_m = self._sd(self.margin_residuals)
         sd_t = self._sd(self.total_residuals)
         return {
@@ -343,12 +355,6 @@ class V2Engine:
             # Defensive quality: points allowed per 100 (opponent ORtg in this game)
             self.team_def[team] = (1 - w) * self.team_def.get(team, LEAGUE_ORTG) + w * opp_ortg
             self.team_pace[team] = (1 - w) * self.team_pace.get(team, LEAGUE_PACE) + w * poss
-
-        if self._cached_off:
-            for t, v in self._cached_off.items():
-                self.team_off[t] = 0.35 * v + 0.65 * self.team_off.get(t, LEAGUE_ORTG)
-            for t, v in self._cached_def.items():
-                self.team_def[t] = 0.35 * v + 0.65 * self.team_def.get(t, LEAGUE_ORTG)
 
         if self.stage >= 4:
             hp = game.get("home_player_mins") or {}

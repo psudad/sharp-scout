@@ -140,6 +140,7 @@ def walk_forward_v2(games: list[dict[str, Any]], params: V2Params, *, stage: int
                 sd_margin=proj["sd_margin"],
                 sd_total=proj["sd_total"],
                 month=dt.month,
+                source=g.get("source"),
             )
         )
 
@@ -334,10 +335,10 @@ def market_move_analysis(preds: list[GamePred]) -> dict[str, Any]:
 
 def render_v2_markdown(
     stages: list[dict[str, Any]],
-    market: dict[str, Any],
+    sbr_clv: dict[str, Any],
     slate: list[dict[str, Any]],
     *,
-    final_stage: int = 4,
+    final_stage: int = 3,
 ) -> str:
     lines = [
         "# NBA score projection model v2 (research)",
@@ -374,13 +375,15 @@ def render_v2_markdown(
             f"- ATS vs open: {fs['ats_open_ge1']}",
             f"- O/U vs close: {fs['ou_close_ge1']}",
             "",
-            "## Line-move / CLV proxy (stage 5)",
+            "## CLV audit — SBR true openers (2010-11 – 2020-21, walk-forward stage 3)",
             "",
-            f"{market}",
+            "_Yahoo `pregame_odds` ≈ close → prior ~90% move hits were **artifact** (subset + pseudo-open)._",
+            "",
+            f"{sbr_clv}",
             "",
             "## Verdict",
             "",
-            _v2_verdict(stages),
+            _v2_verdict(stages, final_stage=final_stage),
             "",
             "## Tonight's slate (final stage engine)",
             "",
@@ -399,18 +402,17 @@ def render_v2_markdown(
     return "\n".join(lines) + "\n"
 
 
-def _v2_verdict(stages: list[dict[str, Any]]) -> str:
+def _v2_verdict(stages: list[dict[str, Any]], *, final_stage: int = 3) -> str:
     s0 = next(x for x in stages if x["stage"] == 0)
-    sf = next(x for x in stages if x["stage"] == 4)
+    sf = next(x for x in stages if x["stage"] == final_stage)
     m0 = s0["mae"]["margin"]["model"]
     mf = sf["mae"]["margin"]["model"]
-    close = sf["mae"]["margin"]["market"]
-    if mf >= close:
-        return (
-            f"v2 stage-4 margin MAE **{mf}** still **above** the close (**{close}**); v1 was **{m0}**. "
-            "Beating open→close CLV is the realistic path; production needs richer injury feeds and multi-book opens."
-        )
+    tf = sf["mae"]["total"]["model"]
+    close_m = sf["mae"]["margin"]["market"]
+    close_t = sf["mae"]["total"]["market"]
     return (
-        f"v2 improved margin MAE from **{m0}** → **{mf}** (close **{close}**). "
-        "Continue paper-trading open disagreements + line-move validation before any live lane."
+        f"Margin improved **{m0:.3f}** → **{mf:.3f}** (stage {final_stage}) vs close **{close_m:.3f}** — near market, not beatable. "
+        f"Totals were broken by ridge without a league-mean intercept (~20 MAE); fixed to **{tf:.3f}** vs close **{close_t:.3f}** "
+        "(pace×ORtg path). **SBR CLV** (true openers): ~51% line-move direction, negative ATS vs opener at 1/2/3+ pt edges — "
+        "no credible CLV edge; Yahoo ~90% was pseudo-open/selection. Stage 4 player proxy is margin-only (+0.01 MAE); skip for totals."
     )

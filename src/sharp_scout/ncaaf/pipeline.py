@@ -304,6 +304,12 @@ def run_ncaaf_pipeline(
         if stage_cards:
             append_stage_cards(stage_cards, season=season, week=week, path=ledger_path)
         payload["record"] = compute_record(path=ledger_path)
+        try:
+            from sharp_scout.ledger.clv import refresh_ledger_closing_lines
+
+            refresh_ledger_closing_lines(ledger_path)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("CLV refresh skipped: %s", exc)
 
     from sharp_scout.qa.gate import apply_qa_gate
 

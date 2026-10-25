@@ -9,7 +9,7 @@ from typing import Any
 from sharp_scout.ledger.clv import finalize_closing_lines
 from sharp_scout.ledger.tracker import load_scores_from_cfb_schedules, settle_play
 from sharp_scout.ncaaf.shadow import paths
-from sharp_scout.ncaaf.shadow.ledger import load_ledger, save_ledger
+from sharp_scout.ncaaf.shadow.ledger import flag_logged_after_kickoff, load_ledger, save_ledger
 from sharp_scout.utils.slate import parse_commence
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,8 @@ def settle_shadow_ledger(
         )
         graded += 1
 
-    clv_updated = finalize_closing_lines(ledger)
+    flag_logged_after_kickoff(ledger)
+    clv_updated = finalize_closing_lines(ledger, force=False)
     save_ledger(ledger, ledger_path)
     logger.info("NCAAF totals shadow: graded=%d clv_updated=%d", graded, clv_updated)
     return {"graded": graded, "clv_updated": clv_updated, "ledger": ledger}

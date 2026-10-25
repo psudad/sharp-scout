@@ -17,7 +17,7 @@ def _sample_totals_signal(**overrides):
         "event_id": "evt1",
         "away_team": "AAA",
         "home_team": "BBB",
-        "kickoff": "2026-10-24T20:00:00+00:00",
+        "kickoff": "2027-10-24T20:00:00+00:00",
         "market": "totals",
         "side": "over",
         "line": 52.5,
@@ -44,9 +44,9 @@ def test_record_dedupes_by_event_side_and_updates_snapshot(tmp_path, monkeypatch
     monkeypatch.setattr(shadow_paths, "MARKDOWN_REPORT_PATH", tmp_path / "reports" / "r.md")
 
     s1 = _sample_totals_signal(edge=0.14, price=-105)
-    record_from_pipeline([s1], signals_payload={"generated_at": "2026-10-24T11:00:00+00:00"}, season=2026, week=8)
+    record_from_pipeline([s1], signals_payload={"generated_at": "2027-10-24T11:00:00+00:00"}, season=2026, week=8)
     s2 = _sample_totals_signal(edge=0.15, price=-100, book="fanduel")
-    record_from_pipeline([s2], signals_payload={"generated_at": "2026-10-24T12:00:00+00:00"}, season=2026, week=8)
+    record_from_pipeline([s2], signals_payload={"generated_at": "2027-10-24T12:00:00+00:00"}, season=2026, week=8)
 
     ledger = load_ledger(shadow / "ledger.json")
     assert len(ledger["plays"]) == 1

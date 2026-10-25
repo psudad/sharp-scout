@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sharp_scout.nba.franchises import NBA_FRANCHISES, is_nba_franchise
+
 NBA_ALIASES: dict[str, str] = {
     "ATLANTA HAWKS": "ATL",
     "BOSTON CELTICS": "BOS",
@@ -42,7 +44,7 @@ def normalize_nba_team(name: str) -> str:
     key = (name or "").strip().upper()
     if key in NBA_ALIASES:
         return NBA_ALIASES[key]
-    if len(key) <= 4 and key.isalpha():
+    if len(key) <= 4 and key.isalpha() and is_nba_franchise(key):
         return key
     # Last resort: first token initialism (e.g. "Miami Heat" -> MIA from alias miss)
     parts = key.split()

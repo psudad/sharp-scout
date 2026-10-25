@@ -10,6 +10,7 @@ from typing import Any
 
 from sharp_scout.config import DATA_DIR
 from sharp_scout.data.espn_nba import fetch_espn_nba_finals_by_event, fetch_game_possessions
+from sharp_scout.nba.franchises import is_nba_franchise, is_nba_regular_matchup
 from sharp_scout.nba.score_model.engine import V2Engine, V2Params, TeamPrior
 from sharp_scout.nba.score_model.teams_geo import travel_miles
 from sharp_scout.nba.teams import normalize_nba_team
@@ -65,6 +66,8 @@ def _games_from_scores(
         hs, as_ = float(row["home_score"]), float(row["away_score"])
         home = normalize_nba_team(str(row["home_team"]))
         away = normalize_nba_team(str(row["away_team"]))
+        if not is_nba_regular_matchup(home, away):
+            continue
         eid = str(row.get("event_id") or "")
         poss = poss_cache.get(eid) if eid else None
         if poss is None:
@@ -110,6 +113,8 @@ def apply_committed_priors(engine: V2Engine, raw: dict[str, Any]) -> None:
     priors: dict[str, TeamPrior] = {}
     for team, p in teams.items():
         code = normalize_nba_team(str(team))
+        if not is_nba_franchise(code):
+            continue
         priors[code] = TeamPrior(
             off=float(p["off"]),
             def_=float(p["def_"] if "def_" in p else p.get("def", 112)),
@@ -178,6 +183,45 @@ def engine_from_state(raw: dict[str, Any]) -> tuple[V2Engine, set[str], dict[str
     return engine, processed, poss_cache, last_dt
 
 
+def _strip_non_franchise(engine: V2Engine) -> bool:
+    """Remove exhibition / international teams from engine dicts. Returns True if anything removed."""
+    removed = False
+
+    def _clean(d: dict[str, Any]) -> None:
+        nonlocal removed
+        for k in list(d.keys()):
+            if not is_nba_franchise(k):
+                del d[k]
+                removed = True
+
+    _clean(engine.team_off)
+    _clean(engine.team_def)
+    _clean(engine.team_pace)
+    _clean(engine.team_games)
+    _clean(engine._team_index)
+    _clean(engine.season_priors)  # type: ignore[arg-type]
+    _clean(engine.end_season_priors)  # type: ignore[arg-type]
+    for k in list(engine.player_track.keys()):
+        if not is_nba_franchise(k):
+            del engine.player_track[k]
+            removed = True
+    return removed
+
+
+def _reset_engine_to_committed_priors(engine: V2Engine) -> bool:
+    raw = load_committed_priors()
+    if not raw:
+        return False
+    apply_committed_priors(engine, raw)
+    engine.history = []
+    engine.margin_residuals = []
+    engine.total_residuals = []
+    engine._cached_off = {}
+    engine._cached_def = {}
+    engine._refit_cooldown = 0
+    return True
+
+
 def _replay_games(engine: V2Engine, games: list[dict[str, Any]], processed: set[str]) -> date | None:
     last_played: dict[str, datetime] = {}
     team_last_site: dict[str, str] = {}
@@ -191,8 +235,15 @@ def _replay_games(engine: V2Engine, games: list[dict[str, Any]], processed: set[
             continue
         season = g["season"]
         if current_season and season != current_season:
-            engine.end_season()
-            engine.start_new_season()
+            committed = load_committed_priors()
+            if committed and str(committed.get("for_season") or "") == season:
+                apply_committed_priors(engine, committed)
+            else:
+                engine.end_season()
+                engine.start_new_season()
+            engine.history = []
+            engine._cached_off = {}
+            engine._cached_def = {}
         current_season = season
 
         dt: datetime = g["date"]
@@ -289,6 +340,12 @@ def ensure_score_engine(*, lookback_days: int | None = None) -> V2Engine:
 
     if raw and raw.get("version") in (1, 2):
         engine, processed, poss_cache, last_processed_date = engine_from_state(raw)
+        if _strip_non_franchise(engine):
+            logger.warning("score engine: dropped non-NBA teams from state — full replay from priors")
+            processed = set()
+            last_processed_date = None
+            if not _reset_engine_to_committed_priors(engine):
+                logger.warning("score engine: could not reload committed priors after sanitize")
     else:
         engine = V2Engine(params=V2Params(), stage=3)
         priors = load_committed_priors()

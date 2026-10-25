@@ -35,6 +35,8 @@ class V2Params:
     player_ppm_scale: float = 0.85
     history_cap: int = 900
     refit_every_games: int = 4
+    ridge_min_team_games: int = 10
+    ridge_min_history_games: int = 60
     margin_sd_base: float = 11.0
     total_sd_base: float = 14.5
 
@@ -194,7 +196,7 @@ class V2Engine:
         p = self.params
         hist = self.history[-p.history_cap :]
         teams = sorted(self._team_index.keys())
-        if len(hist) < 60 or not teams:
+        if len(hist) < p.ridge_min_history_games or not teams:
             return {}, {}
         tmap = {t: i for i, t in enumerate(teams)}
         n_t = len(teams)
@@ -267,7 +269,14 @@ class V2Engine:
         a_def_allow = self._effective_rating(away, "def")
 
         mu = getattr(self, "_ridge_intercept", LEAGUE_ORTG)
-        if off_fit and home in off_fit and away in off_fit:
+        min_team_g = min(self.team_games.get(home, 0), self.team_games.get(away, 0))
+        ridge_ok = (
+            off_fit
+            and home in off_fit
+            and away in off_fit
+            and min_team_g >= self.params.ridge_min_team_games
+        )
+        if ridge_ok:
             # Ridge: ORtg ~ μ + off_att + def_opp (μ unpenalized — fixes totals vs raw off+def ridge).
             home_ortg = mu + off_fit[home] + def_fit.get(away, 0.0)
             away_ortg = mu + off_fit[away] + def_fit.get(home, 0.0)

@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 from sharp_scout.data.espn_cfb import _BROWSER_HEADERS, _FINAL_STATUSES, _get_json
+from sharp_scout.nba.franchises import is_nba_regular_matchup
 from sharp_scout.nba.teams import normalize_nba_team
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,36 @@ def _team_code(team: dict[str, Any]) -> str:
     return normalize_nba_team(code)
 
 
+def _season_type(event: dict[str, Any]) -> int | None:
+    season = event.get("season") or {}
+    raw = season.get("type")
+    if raw is None:
+        comp = (event.get("competitions") or [{}])[0]
+        season = comp.get("season") or season
+        raw = season.get("type")
+    try:
+        return int(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_regular_season_event(event: dict[str, Any]) -> bool:
+    """ESPN season type 2 = regular season (exclude preseason, All-Star, most exhibitions)."""
+    st = _season_type(event)
+    if st is not None and st != 2:
+        return False
+    slug = str((event.get("season") or {}).get("slug") or "").lower()
+    if any(x in slug for x in ("preseason", "all-star", "allstar", "off-season", "offseason")):
+        return False
+    name = str(event.get("name") or event.get("shortName") or "").lower()
+    if "all-star" in name or "rising stars" in name:
+        return False
+    return True
+
+
 def _parse_event(event: dict[str, Any]) -> dict[str, Any] | None:
+    if not _is_regular_season_event(event):
+        return None
     comps = event.get("competitions") or []
     if not comps:
         return None
@@ -65,6 +95,8 @@ def _parse_event(event: dict[str, Any]) -> dict[str, Any] | None:
             away_team, away_score = code, score
 
     if not home_team or not away_team or home_score is None or away_score is None:
+        return None
+    if not is_nba_regular_matchup(home_team, away_team):
         return None
 
     kickoff = comp.get("date") or event.get("date")
@@ -95,7 +127,45 @@ def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
         parsed = _parse_event(event)
         if parsed:
             rows.append(parsed)
+        elif _parse_scheduled_event(event):
+            pass  # scheduled handled elsewhere
     return rows
+
+
+def _parse_event_raw_final(event: dict[str, Any]) -> dict[str, Any] | None:
+    """Final score row without season/franchise filter (internal / tests)."""
+    comps = event.get("competitions") or []
+    if not comps:
+        return None
+    comp = comps[0]
+    status = ((comp.get("status") or {}).get("type") or {}).get("name") or ""
+    if status not in _FINAL_STATUSES:
+        return None
+    home_team = away_team = None
+    home_score = away_score = None
+    for side in comp.get("competitors") or []:
+        team = side.get("team") or {}
+        code = _team_code(team)
+        try:
+            score = int(side.get("score") or 0)
+        except (TypeError, ValueError):
+            return None
+        if side.get("homeAway") == "home":
+            home_team, home_score = code, score
+        else:
+            away_team, away_score = code, score
+    if not home_team or not away_team or home_score is None or away_score is None:
+        return None
+    kickoff = comp.get("date") or event.get("date")
+    return {
+        "event_id": str(event.get("id") or comp.get("id") or ""),
+        "home_team": home_team,
+        "away_team": away_team,
+        "home_score": home_score,
+        "away_score": away_score,
+        "kickoff": kickoff,
+        "source": "espn",
+    }
 
 
 def fetch_espn_nba_scores(*, lookback_days: int = 10) -> list[dict[str, Any]]:
@@ -209,6 +279,8 @@ def fetch_game_possessions(event_id: str) -> float | None:
 
 
 def _parse_scheduled_event(event: dict[str, Any]) -> dict[str, Any] | None:
+    if not _is_regular_season_event(event):
+        return None
     comps = event.get("competitions") or []
     if not comps:
         return None
@@ -225,6 +297,8 @@ def _parse_scheduled_event(event: dict[str, Any]) -> dict[str, Any] | None:
         else:
             away_team = code
     if not home_team or not away_team:
+        return None
+    if not is_nba_regular_matchup(home_team, away_team):
         return None
     kickoff = comp.get("date") or event.get("date")
     return {

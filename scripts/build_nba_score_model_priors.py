@@ -22,9 +22,9 @@ DEFAULT_OUT = DATA_DIR / "paper" / "nba_score_model_priors.json"
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--season-start", default="2024-10-01", help="ISO date (inclusive)")
-    parser.add_argument("--season-end", default="2025-06-30", help="ISO date (inclusive)")
-    parser.add_argument("--for-season", default="2025-26", help="Label for priors target season")
+    parser.add_argument("--season-start", default="2025-10-01", help="ISO date (inclusive)")
+    parser.add_argument("--season-end", default="2026-06-30", help="ISO date (inclusive)")
+    parser.add_argument("--for-season", default="2026-27", help="Label for priors target season")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args()
 

@@ -63,6 +63,7 @@ jobs:
           if [ "${{ inputs.nfl }}" = "true" ]; then
             python scripts/settle_plays.py
           fi
+          python scripts/settle_nba.py
 
       - name: Refresh NFL signals
         if: inputs.nfl

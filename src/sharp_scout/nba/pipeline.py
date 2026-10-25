@@ -38,6 +38,7 @@ from sharp_scout.nba.possible import (
 from sharp_scout.nba.projections import bootstrap_rates_from_prop_markets, load_rate_table
 from sharp_scout.nba.props import discover_prop_edges, prop_edge_to_signal, scan_prop_opportunities
 from sharp_scout.nba.report import write_paper_report
+from sharp_scout.nba.settle import settle_nba_ledger
 from sharp_scout.nba.staking import apply_portfolio_caps_split
 from sharp_scout.sports import NBA
 
@@ -185,6 +186,8 @@ def run_nba_shadow(
 
     ledger = load_nba_ledger()
     if not use_demo:
+        settle_nba_ledger(ledger)
+        ledger = load_nba_ledger()
         ledger, demo_removed = strip_demo_plays_from_ledger(ledger)
         if demo_removed:
             save_nba_ledger(ledger)

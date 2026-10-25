@@ -63,6 +63,9 @@ def main() -> None:
             from sharp_scout.nfl.totals.settle import grade_totals_board
 
             grade_totals_board(scores)
+            from sharp_scout.nfl.totals.paper_momentum import grade_paper_momentum_entries
+
+            grade_paper_momentum_entries(scores)
         except Exception as exc:  # noqa: BLE001
             print(f"[nfl totals board] settle skipped: {exc}", file=sys.stderr)
     if sport.key == "ncaaf":

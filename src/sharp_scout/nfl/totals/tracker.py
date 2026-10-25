@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from sharp_scout.config import DATA_DIR
+from sharp_scout.data.odds_api import DEMO_NFL_EVENT_ID, is_demo_nfl_event
 from sharp_scout.utils.slate import parse_commence
 
 logger = logging.getLogger(__name__)
@@ -42,18 +43,39 @@ def _kickoff_passed(kickoff: Any, *, now: datetime | None = None) -> bool:
     return kick <= ref
 
 
+def purge_demo_games(board: dict[str, Any] | None = None, *, path: Path | None = None) -> int:
+    """Remove offline mock ``demo-kc-buf`` rows from the measurement board."""
+    data = board if board is not None else load_totals_board(path)
+    before = len(data.get("games") or [])
+    data["games"] = [
+        g
+        for g in (data.get("games") or [])
+        if str(g.get("event_id") or "") != DEMO_NFL_EVENT_ID
+    ]
+    removed = before - len(data["games"])
+    if removed and board is None:
+        save_totals_board(data, path)
+    return removed
+
+
 def upsert_totals_rows(
     rows: list[dict[str, Any]],
     *,
     path: Path | None = None,
     now: datetime | None = None,
+    allow_demo_events: bool = False,
 ) -> dict[str, Any]:
     """Upsert by event_id; freeze pregame projection at kickoff (bug A)."""
     board = load_totals_board(path)
+    purge_demo_games(board, path=path)
     existing = {str(g.get("event_id")): g for g in board.get("games") or []}
     for row in rows:
         eid = str(row.get("event_id") or "")
         if not eid:
+            continue
+        if not allow_demo_events and (
+            eid == DEMO_NFL_EVENT_ID or is_demo_nfl_event(row)
+        ):
             continue
         kick = row.get("kickoff") or row.get("commence_time")
         old = existing.get(eid)

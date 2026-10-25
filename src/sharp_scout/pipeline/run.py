@@ -120,12 +120,18 @@ def run_pipeline(
     else:
         splits = []
 
-    # Record timestamped sharp line snapshot (feeds CLV closing lines + steam).
+    # Record timestamped line snapshot (all books on spreads/totals — same Odds API payload).
     if not (demo and not manual_mode):
         try:
             from sharp_scout.data.line_store import record_snapshot
 
-            record_snapshot(events)
+            history = record_snapshot(events, skip_demo_events=not demo)
+            try:
+                from sharp_scout.nfl.totals.paper_momentum import record_paper_momentum_scans
+
+                record_paper_momentum_scans(events, history=history)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("paper momentum log skipped: %s", exc)
         except Exception as exc:  # noqa: BLE001
             logger.warning("line snapshot skipped: %s", exc)
 
@@ -362,7 +368,7 @@ def run_pipeline(
                 }
             )
         if totals_rows:
-            upsert_totals_rows(totals_rows)
+            upsert_totals_rows(totals_rows, allow_demo_events=demo and not manual_mode)
 
     out_path = ARTIFACTS_DIR / "latest_signals.json"
     out_path.write_text(json.dumps(payload, indent=2, default=str))

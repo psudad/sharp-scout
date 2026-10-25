@@ -67,13 +67,17 @@ def upsert_totals_rows(
                 for key in (
                     "projection_total",
                     "sim_median",
+                    "sim_median_raw",
                     "sim_mean",
+                    "sim_mean_raw",
                     "market_line",
                     "sim_lean",
                     "p_over",
                     "p_under",
                     "p_push",
                     "blended_total",
+                    "walk_forward_bias",
+                    "blend_weight_sim",
                 ):
                     if old.get(key) is not None:
                         merged[key] = old[key]

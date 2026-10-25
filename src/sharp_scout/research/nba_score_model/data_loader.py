@@ -6,6 +6,7 @@ import csv
 import io
 import json
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 YAHOO_RAW = "https://raw.githubusercontent.com/csdurfee/scrape_yahoo_odds/main/yahoo_scrapes"
 YAHOO_FOLDERS = {"2021-22": "2021", "2022-23": "2022", "2023-24": "2023", "2024-25": "2024"}
 
-ESPN_SCORE_CACHE_VERSION = 2
+ESPN_SCORE_CACHE_VERSION = 3
 
 YAHOO_TEAM = {
     "Atlanta": "ATL",
@@ -143,6 +144,8 @@ def load_sbr_games(path: Path) -> list[dict[str, Any]]:
             continue
         spread_home = _float(g.get("home_close_spread"))
         total = _float(g.get("close_over_under"))
+        open_spread = _float(g.get("home_open_spread"))
+        open_total = _float(g.get("open_over_under"))
         if spread_home is None or total is None:
             continue
         out.append(
@@ -153,6 +156,8 @@ def load_sbr_games(path: Path) -> list[dict[str, Any]]:
                 "home": home,
                 "away_pts": as_,
                 "home_pts": hs,
+                "open_spread_home": open_spread if open_spread is not None else spread_home,
+                "open_total": open_total if open_total is not None else total,
                 "close_spread_home": spread_home,
                 "close_total": total,
                 "source": "sbr",
@@ -177,6 +182,7 @@ def load_yahoo_games() -> list[dict[str, Any]]:
             home = YAHOO_TEAM.get(r.get("home_team", "").strip(), normalize_nba_team(r["home_team"]))
             spread_home = _float(r.get("spread_home_points"))
             total = _float(r.get("total_over_points"))
+            open_spread, open_total = _parse_yahoo_pregame(r.get("pregame_odds", ""))
             if spread_home is None or total is None:
                 continue
             out.append(
@@ -187,15 +193,28 @@ def load_yahoo_games() -> list[dict[str, Any]]:
                     "home": home,
                     "away_pts": None,
                     "home_pts": None,
+                    "open_spread_home": open_spread if open_spread is not None else spread_home,
+                    "open_total": open_total if open_total is not None else total,
                     "close_spread_home": spread_home,
                     "close_total": total,
                     "source": "yahoo",
                     "game_id": r.get("game_id"),
                     "spread_home_won": _bool_csv(r.get("spread_home_won")),
                     "total_over_won": _bool_csv(r.get("total_over_won")),
+                    "yahoo_spread_stake_pct": _float(r.get("spread_home_stake_percentage")),
+                    "yahoo_spread_wager_pct": _float(r.get("spread_home_wager_percentage")),
                 }
             )
     return out
+
+
+def _parse_yahoo_pregame(raw: str) -> tuple[float | None, float | None]:
+    if not raw:
+        return None, None
+    m = re.search(r"([-\d.]+)\s*,\s*O/U\s*([\d.]+)", str(raw), re.I)
+    if not m:
+        return None, None
+    return float(m.group(1)), float(m.group(2))
 
 
 def _float(v: Any) -> float | None:
@@ -271,6 +290,8 @@ def enrich_yahoo_with_espn_scores(games: list[dict[str, Any]], score_index: dict
                 g["home_pts"] = hit["home"]
                 g["away_pts"] = hit["away"]
                 g["score_date"] = dstr
+                if hit.get("event_id"):
+                    g["event_id"] = hit["event_id"]
                 matched = True
                 break
         if not matched:
@@ -278,16 +299,16 @@ def enrich_yahoo_with_espn_scores(games: list[dict[str, Any]], score_index: dict
             g["away_pts"] = None
 
 
-def build_espn_score_index(*, lookback_days: int = 2200, cache_path: Path | None = None) -> dict[str, dict[str, int]]:
-    """Final scores keyed by ``YYYY-MM-DD|AWY@HOM`` (scoreboard request date, not undated)."""
+def build_espn_score_index(*, lookback_days: int = 2200, cache_path: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Final scores keyed by ``YYYY-MM-DD|AWY@HOM`` (+ optional ``event_id``)."""
     if cache_path and cache_path.exists():
         payload = json.loads(cache_path.read_text())
         if isinstance(payload, dict) and payload.get("version") == ESPN_SCORE_CACHE_VERSION:
-            return {k: {"home": int(v["home"]), "away": int(v["away"])} for k, v in payload["index"].items()}
+            return {k: dict(v) for k, v in payload["index"].items()}
 
     from sharp_scout.data import espn_nba as espn
 
-    idx: dict[str, dict[str, int]] = {}
+    idx: dict[str, dict[str, Any]] = {}
     now = datetime.now(timezone.utc)
     for offset in range(lookback_days + 1):
         day = now - timedelta(days=offset)
@@ -301,7 +322,11 @@ def build_espn_score_index(*, lookback_days: int = 2200, cache_path: Path | None
         for row in day_rows:
             away, home = row["away_team"], row["home_team"]
             hs, as_ = int(row["home_score"]), int(row["away_score"])
-            idx[f"{dstr}|{_matchup_key(away, home)}"] = {"home": hs, "away": as_}
+            idx[f"{dstr}|{_matchup_key(away, home)}"] = {
+                "home": hs,
+                "away": as_,
+                "event_id": row.get("event_id"),
+            }
 
     if cache_path:
         cache_path.parent.mkdir(parents=True, exist_ok=True)

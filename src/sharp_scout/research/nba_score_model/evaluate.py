@@ -34,6 +34,9 @@ class GamePred:
     sd_margin: float
     sd_total: float
     month: int
+    open_spread_home: float | None = None
+    open_total: float | None = None
+    yahoo_spread_stake_pct: float | None = None
 
 
 @dataclass

@@ -122,7 +122,7 @@ jobs:
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           chmod +x scripts/ci_git_push_retry.sh
-          export ADD_PATHS="data/schedule_state.json data/ledger.json data/ncaaf_ledger.json data/props_ledger.json data/line_history.json data/open_lines.json data/calibration.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
+          export ADD_PATHS="data/schedule_state.json data/ledger.json data/ncaaf_ledger.json data/props_ledger.json data/line_history.json data/line_history_archive.json data/paper/nfl_totals_momentum_follow.json data/open_lines.json data/calibration.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
           ./scripts/ci_git_push_retry.sh "chore: pregame window update (NFL + NCAAF sides)" bash -c "python scripts/run_pregame.py --ledger && python scripts/settle_now.py"
 
       - name: Upload Pages artifact

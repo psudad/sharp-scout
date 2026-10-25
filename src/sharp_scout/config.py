@@ -202,6 +202,11 @@ class Settings(BaseSettings):
     # When True, NFL totals may certify to the LOCKED card if the sim lean matches first.
     product_nfl_totals_card_enabled: bool = False
 
+    # Line history: store every book on spreads/totals from existing Odds API responses.
+    line_history_all_books: bool = True
+    line_history_retain_after: str = "2026-06-01T00:00:00+00:00"
+    paper_nfl_totals_momentum_min_move: float = 0.5
+
     # NBA shadow pipeline (never published to GitHub Pages — see data/shadow/)
     nba_shadow_enabled: bool = True
     nba_ev_threshold: float = 0.02

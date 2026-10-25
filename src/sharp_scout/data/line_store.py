@@ -1,24 +1,4 @@
-"""Timestamped line-history store — shared by CLV (closing lines) and steam detection.
-
-`line_memory.py` keeps a single first-seen "open" line per game/market for RLM. This
-module instead keeps an **append-only, timestamped** series of sharp-book lines per
-event/market/side so we can measure:
-
-* the **closing line** (last sample at/before kickoff) → Closing Line Value, and
-* **steam** (magnitude × speed × number of sharp books moving) in a pre-kick window.
-
-Samples are written to ``data/line_history.json`` as::
-
-    {
-      "<event_id>|<market>|<side>": [
-        {"ts": ISO8601, "book": "pinnacle", "line": -2.5, "price": -110},
-        ...
-      ]
-    }
-
-The store is intentionally file-based (no DB) to match the rest of the repo and to keep
-GitHub Actions runs cheap and stateless-friendly (committed alongside the ledger).
-"""
+"""Timestamped line-history store — shared by CLV (closing lines) and steam detection."""
 
 from __future__ import annotations
 
@@ -29,13 +9,15 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from sharp_scout.config import DATA_DIR, get_settings
+from sharp_scout.data.odds_api import is_demo_nfl_event
 
 logger = logging.getLogger(__name__)
 
 LINE_HISTORY_PATH = DATA_DIR / "line_history.json"
+LINE_HISTORY_ARCHIVE_PATH = DATA_DIR / "line_history_archive.json"
 
-# Markets we track lines for (spreads/totals carry a point; h2h is price-only).
 TRACKED_MARKETS = ("spreads", "totals", "h2h")
+ALL_BOOKS_MARKETS = ("spreads", "totals")
 
 
 def _now_iso() -> str:
@@ -71,6 +53,20 @@ def load_history(path: Path | None = None) -> dict[str, list[dict[str, Any]]]:
     return data
 
 
+def load_history_merged(
+    path: Path | None = None, archive_path: Path | None = None
+) -> dict[str, list[dict[str, Any]]]:
+    """Active file plus archived samples (read-only analytics)."""
+    main = load_history(path)
+    archive = load_history(archive_path or LINE_HISTORY_ARCHIVE_PATH)
+    if not archive:
+        return main
+    merged: dict[str, list[dict[str, Any]]] = {k: list(v) for k, v in archive.items()}
+    for key, samples in main.items():
+        merged.setdefault(key, []).extend(samples)
+    return merged
+
+
 def save_history(history: dict[str, list[dict[str, Any]]], path: Path | None = None) -> Path:
     p = path or LINE_HISTORY_PATH
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -83,40 +79,86 @@ def _sharp_book_set() -> set[str]:
 
 
 def _dedupe_last(samples: list[dict[str, Any]], book: str, line: Any, price: Any) -> bool:
-    """True if the most recent sample for this book already has the same line+price."""
     for s in reversed(samples):
         if s.get("book") == book:
             return s.get("line") == line and s.get("price") == price
     return False
 
 
+def _should_record_book(market: str, book_key: str, bm: dict[str, Any], *, sharp_only: bool) -> bool:
+    sharp_books = _sharp_book_set()
+    is_sharp = bool(bm.get("is_sharp") or book_key in sharp_books)
+    if market in ALL_BOOKS_MARKETS:
+        if sharp_only:
+            return is_sharp
+        return True
+    # h2h: sharp books only (smaller file; CLV uses spreads/totals)
+    return is_sharp
+
+
+def prune_history_to_archive(
+    history: dict[str, list[dict[str, Any]]],
+    *,
+    retain_after: datetime | None = None,
+    archive_path: Path | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    """Move older samples to ``line_history_archive.json``; return trimmed active history."""
+    settings = get_settings()
+    cutoff_raw = getattr(settings, "line_history_retain_after", "2026-06-01T00:00:00+00:00")
+    cutoff = retain_after or _parse_ts(cutoff_raw) or datetime(2026, 6, 1, tzinfo=timezone.utc)
+    archive_p = archive_path or LINE_HISTORY_ARCHIVE_PATH
+    archive = load_history(archive_p)
+    active: dict[str, list[dict[str, Any]]] = {}
+    moved = 0
+    for key, samples in history.items():
+        keep: list[dict[str, Any]] = []
+        for s in samples:
+            ts = _parse_ts(s.get("ts"))
+            if ts is not None and ts < cutoff:
+                archive.setdefault(key, []).append(s)
+                moved += 1
+            else:
+                keep.append(s)
+        if keep:
+            active[key] = keep
+    if moved:
+        save_history(archive, archive_p)
+        logger.info("line_store: archived %d samples before %s", moved, cutoff.date())
+    return active
+
+
 def record_snapshot(
     events: Iterable[dict[str, Any]],
     *,
-    sharp_only: bool = True,
+    sharp_only: bool | None = None,
     now: datetime | None = None,
     path: Path | None = None,
+    skip_demo_events: bool = True,
 ) -> dict[str, list[dict[str, Any]]]:
-    """Append current sharp-book lines from Odds API events to the history store.
+    """Append lines from Odds API events (same payload as existing fetches — no extra credits).
 
-    Only records a new sample when the line or price changed for that book (so polling
-    every few minutes stays compact). ``sharp_only`` restricts to Pinnacle/Circa/etc.
+    Default: **all books** for spreads/totals; sharp books only for h2h. Dedupes unchanged
+    line+price per book. Prunes samples older than ``line_history_retain_after`` to archive.
     """
+    settings = get_settings()
+    if sharp_only is None:
+        sharp_only = not bool(getattr(settings, "line_history_all_books", True))
     history = load_history(path)
     ts = (now or datetime.now(timezone.utc)).isoformat()
-    sharp_books = _sharp_book_set()
     added = 0
 
     for ev in events:
+        if skip_demo_events and is_demo_nfl_event(ev):
+            continue
         eid = ev.get("event_id")
         if eid is None:
             continue
         books = ev.get("bookmakers") or {}
         for book_key, bm in books.items():
-            if sharp_only and not (bm.get("is_sharp") or book_key in sharp_books):
-                continue
             markets = bm.get("markets") or {}
             for market in TRACKED_MARKETS:
+                if not _should_record_book(market, book_key, bm, sharp_only=sharp_only):
+                    continue
                 for o in markets.get(market) or []:
                     side = o.get("side")
                     price = o.get("price")
@@ -133,6 +175,7 @@ def record_snapshot(
                     added += 1
 
     if added:
+        history = prune_history_to_archive(history)
         save_history(history, path)
         logger.info("line_store: recorded %d new line samples", added)
     return history
@@ -159,11 +202,6 @@ def opening_sample(
     path: Path | None = None,
     history: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any] | None:
-    """Earliest sample we ever recorded — the opening line we first saw.
-
-    Prefers a sharp benchmark book so "open → now" compares like with like; falls back
-    to the oldest sample from any book.
-    """
     samples = samples_for(event_id, market, side, path=path, history=history)
     if not samples:
         return None
@@ -189,11 +227,6 @@ def closing_sample(
     path: Path | None = None,
     history: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any] | None:
-    """Latest sample at/before kickoff — the closing line for CLV.
-
-    Prefers a sharp benchmark book (Pinnacle → Circa → …) when multiple books have a
-    final sample; falls back to the single most recent sample otherwise.
-    """
     samples = samples_for(event_id, market, side, path=path, history=history)
     if not samples:
         return None

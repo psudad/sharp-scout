@@ -117,7 +117,9 @@ def steam_signal(
     if not samples:
         return result
 
+    sharp_books = set(get_settings().sharp_books) | {"circa", "betfair_ex_eu"}
     moves = _book_moves(samples, market, side, window_start)
+    moves = {b: m for b, m in moves.items() if b in sharp_books}
     if not moves:
         result["note"] = "no book moved within window"
         return result

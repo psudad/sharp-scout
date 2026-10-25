@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.the-odds-api.com/v4"
 SPORT = NFL.odds_sport_key
+DEMO_NFL_EVENT_ID = "demo-kc-buf"
 SPORT_PRESEASON = "americanfootball_nfl_preseason"
 NFL_SPORT_KEYS = (SPORT, SPORT_PRESEASON)
 
@@ -267,12 +268,18 @@ class OddsClient:
         return None
 
 
+def is_demo_nfl_event(event: dict[str, Any] | None) -> bool:
+    if not event:
+        return False
+    return str(event.get("event_id") or "") == DEMO_NFL_EVENT_ID
+
+
 def mock_odds_events() -> list[dict[str, Any]]:
     """Deterministic fixture for offline / demo runs."""
     now = datetime.now(timezone.utc)
     return [
         {
-            "event_id": "demo-kc-buf",
+            "event_id": DEMO_NFL_EVENT_ID,
             "sport_key": SPORT,
             "sport": "nfl",
             "commence_time": now,

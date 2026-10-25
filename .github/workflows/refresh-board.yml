@@ -63,7 +63,7 @@ jobs:
           if [ "${{ inputs.nfl }}" = "true" ]; then
             python scripts/settle_plays.py
           fi
-          python scripts/settle_nba.py
+          python scripts/settle_nba.py || echo 'NBA settle failed (non-fatal)'
 
       - name: Refresh NFL signals
         if: inputs.nfl

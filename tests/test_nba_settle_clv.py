@@ -204,6 +204,34 @@ def test_long_dog_scan_marks_possible_not_qualified():
     assert not any(o.get("qualified") for o in opps)
 
 
+def test_settle_survives_espn_scores_outage(monkeypatch):
+    ledger = {
+        "plays": [
+            {
+                "id": "open1",
+                "status": "paper",
+                "kickoff": "2020-01-01T00:00:00+00:00",
+                "away_team": "BOS",
+                "home_team": "NYK",
+                "market": "h2h",
+                "side": "away",
+                "price": 150,
+                "units": 1.0,
+            }
+        ]
+    }
+
+    def _boom(**kwargs):
+        raise RuntimeError("ESPN down")
+
+    from sharp_scout.nba import settle as nba_settle
+
+    monkeypatch.setattr(nba_settle, "fetch_espn_nba_scores", _boom)
+    out = settle_nba_ledger(dict(ledger), scores=None, path=Path("/tmp/nba_settle_test_unused.json"))
+    assert out["plays"][0]["status"] == "paper"
+    assert out["plays"][0].get("pnl_units") is None
+
+
 def test_finalize_nba_clv_applies_sanity(tmp_path, monkeypatch):
     from sharp_scout.nba import paths as nba_paths
 

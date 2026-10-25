@@ -105,7 +105,12 @@ def fetch_espn_nba_scores(*, lookback_days: int = 10) -> list[dict[str, Any]]:
     for offset in range(lookback_days + 1):
         day = now - timedelta(days=offset)
         d = day.strftime("%Y%m%d")
-        for row in _fetch_scoreboard({"dates": d, "limit": 200}):
+        try:
+            day_rows = _fetch_scoreboard({"dates": d, "limit": 200})
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("ESPN NBA scoreboard failed for %s: %s", d, exc)
+            continue
+        for row in day_rows:
             by_key[f"{row['away_team']}@{row['home_team']}"] = row
 
     logger.info("ESPN NBA: %d final scores loaded", len(by_key))
@@ -177,5 +182,8 @@ def fetch_espn_nba_box_scores(event_ids: list[str]) -> dict[str, dict[str, dict[
             logger.warning("ESPN NBA summary failed for %s: %s", eid, exc)
             continue
         if isinstance(summary, dict):
-            result[str(eid)] = _player_stat_map(summary)
+            try:
+                result[str(eid)] = _player_stat_map(summary)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("ESPN NBA box parse failed for %s: %s", eid, exc)
     return result

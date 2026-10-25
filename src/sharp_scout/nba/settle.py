@@ -124,12 +124,25 @@ def settle_nba_ledger(
     scores: list[dict[str, Any]] | None = None,
     path: Any = None,
 ) -> dict[str, Any]:
-    """Settle open NBA paper plays; returns updated ledger."""
-    ledger = ledger if ledger is not None else load_nba_ledger(path)
-    now = datetime.now(timezone.utc)
-    void_plays_outside_horizon(ledger, now=now)
+    """Settle open NBA paper plays; returns updated ledger (never raises)."""
+    try:
+        ledger = ledger if ledger is not None else load_nba_ledger(path)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NBA settle: could not load ledger: %s", exc)
+        return {"plays": []}
 
-    scores = scores if scores is not None else fetch_espn_nba_scores()
+    now = datetime.now(timezone.utc)
+    try:
+        void_plays_outside_horizon(ledger, now=now)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NBA settle: horizon void pass failed: %s", exc)
+
+    if scores is None:
+        try:
+            scores = fetch_espn_nba_scores()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("NBA settle: ESPN scores unavailable (%s); leaving plays open", exc)
+            scores = []
     index = _build_score_index(scores)
 
     pending = [
@@ -144,27 +157,45 @@ def settle_nba_ledger(
         g = _lookup_play(p, index)
         if g and g.get("event_id"):
             event_ids.append(str(g["event_id"]))
-    box_by_event = fetch_espn_nba_box_scores(sorted(set(event_ids))) if event_ids else {}
+    box_by_event: dict[str, dict[str, dict[str, float]]] = {}
+    if event_ids:
+        try:
+            box_by_event = fetch_espn_nba_box_scores(sorted(set(event_ids)))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("NBA settle: box score fetch failed (%s); props may stay open", exc)
 
     settled = 0
     for play in pending:
         if str(play.get("status") or "").lower() not in _OPEN:
             continue
-        g = _lookup_play(play, index)
-        if not g or g.get("home_score") is None or g.get("away_score") is None:
-            continue
-        hs, as_ = int(g["home_score"]), int(g["away_score"])
-        is_prop = (play.get("play_type") == "prop") or str(play.get("market") or "").startswith("player_")
-        if is_prop:
-            val = _prop_value(play, box_by_event, g)
-            if val is None:
+        try:
+            g = _lookup_play(play, index)
+            if not g or g.get("home_score") is None or g.get("away_score") is None:
                 continue
-            settle_play(play, hs, as_, prop_value=val)
-        else:
-            settle_play(play, hs, as_)
-        settled += 1
+            hs, as_ = int(g["home_score"]), int(g["away_score"])
+            is_prop = (play.get("play_type") == "prop") or str(play.get("market") or "").startswith(
+                "player_"
+            )
+            if is_prop:
+                val = _prop_value(play, box_by_event, g)
+                if val is None:
+                    continue
+                settle_play(play, hs, as_, prop_value=val)
+            else:
+                settle_play(play, hs, as_)
+            settled += 1
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "NBA settle: skipped play %s (%s): %s",
+                play.get("id"),
+                play.get("event_id"),
+                exc,
+            )
 
-    recompute_nba_clv_summary_fields(ledger)
-    save_nba_ledger(ledger, path or nba_paths.NBA_LEDGER_PATH)
+    try:
+        recompute_nba_clv_summary_fields(ledger)
+        save_nba_ledger(ledger, path or nba_paths.NBA_LEDGER_PATH)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NBA settle: could not persist ledger: %s", exc)
     logger.info("NBA ledger: settled %d plays", settled)
     return ledger

@@ -804,6 +804,12 @@
   .nba-model-agree { background: #dcfce7; color: #166534; }
   .nba-model-disagree { background: #fee2e2; color: #991b1b; }
   .nba-model-neutral { background: #f3f4f6; color: #374151; }
+  .nba-tag-stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .nba-sharp-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .nba-sharp-with { background: #dbeafe; color: #1e40af; }
+  .nba-sharp-against { background: #ffedd5; color: #9a3412; }
+  .nba-sharp-none { background: #f3f4f6; color: #4b5563; }
+  .nba-sharp-nodata { background: transparent; color: #9ca3af; font-weight: 600; }
   @media (max-width: 640px) { .nba-hero h1 { font-size: 29px; } }
 </style>
 </head>
@@ -851,6 +857,9 @@
   <h2 class="nba-h2">Paper record by bet type</h2>
   <div class="nba-record-grid"><div class="nba-rec-card"><div class="nba-rec-lbl">3PM</div><div class="nba-rec-val">0-1</div><div class="nba-rec-sub">Units -0.18u · CLV 1.6%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Assists</div><div class="nba-rec-val">0-1</div><div class="nba-rec-sub">Units -0.75u · CLV 0.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">H2H</div><div class="nba-rec-val">0-3</div><div class="nba-rec-sub">Units -1.06u · CLV 1.7%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">PRA</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 1.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Points</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 0.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Spreads</div><div class="nba-rec-val">0-1</div><div class="nba-rec-sub">Units -1.50u · CLV -3.4% · 1 open</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Totals</div><div class="nba-rec-val">1-0</div><div class="nba-rec-sub">Units +1.16u · CLV -2.4% · 4 open</div></div></div>
   <p class="nba-section-note">Price-gap plays vs score model (side-by-side): Model filter splits appear after graded side/total plays.</p>
+  <h2 class="nba-h2">Sharp money (display only)</h2>
+  <p class="nba-section-note">Action Network bet% vs money% — Sharp-money tag uses latest Action Network snapshot before tip (display only). Gap ≥10 pts tags &ldquo;with sharps&rdquo; on your side or &ldquo;against sharps&rdquo; when the other side shows sharp action. Does not change picks or sizing.</p>
+  <p class="empty">Sharp-money splits appear after graded side/total plays are tagged.</p>
   <h2 class="nba-h2">Score model paper track</h2>
   <p class="nba-section-note">Stage-3 possession ridge projections vs consensus/Pinnacle — frozen at tip, graded after ESPN finals.</p>
   <p class="empty">No score-model projections yet (logged on live scans).</p>
@@ -861,7 +870,7 @@
   <h2 class="nba-h2">Game lines</h2>
   <h3 class="nba-h3">Picks</h3>
   <p class="nba-section-note">Qualifying paper plays (EV floor, sharp fair, Kelly sizing, and portfolio caps).</p>
-  <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Market</th><th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Fair %</th><th>Units</th><th>Model</th></tr></thead><tbody><tr><td data-label="#">1</td><td data-label="Tip">Sun Oct 25, 7:40 PM ET</td><td data-label="Game">DET @ PHI</td><td data-label="Player">—</td><td data-label="Market">Spread</td><td data-label="Pick"><b>DET +1.5</b></td><td data-label="Line">1.5</td><td data-label="Book / price">-115 <span class="nba-book">FanDuel</span></td><td data-label="EV">7.0%</td><td data-label="Fair %">57.2%</td><td data-label="Units">1.50u</td><td data-label="Model"><span class="nba-model-tag">—</span></td></tr><tr><td data-label="#">2</td><td data-label="Tip">Sun Oct 25, 9:00 PM ET</td><td data-label="Game">MEM @ SAC</td><td data-label="Player">—</td><td data-label="Market">Total</td><td data-label="Pick"><b>Under 236.5</b></td><td data-label="Line">236.5</td><td data-label="Book / price">-115 <span class="nba-book">DraftKings</span></td><td data-label="EV">5.6%</td><td data-label="Fair %">56.5%</td><td data-label="Units">1.50u</td><td data-label="Model"><span class="nba-model-tag">—</span></td></tr></tbody></table></div>
+  <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Market</th><th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Fair %</th><th>Units</th><th>Model / sharp</th></tr></thead><tbody><tr><td data-label="#">1</td><td data-label="Tip">Sun Oct 25, 7:40 PM ET</td><td data-label="Game">DET @ PHI</td><td data-label="Player">—</td><td data-label="Market">Spread</td><td data-label="Pick"><b>DET +1.5</b></td><td data-label="Line">1.5</td><td data-label="Book / price">-115 <span class="nba-book">FanDuel</span></td><td data-label="EV">7.0%</td><td data-label="Fair %">57.2%</td><td data-label="Units">1.50u</td><td data-label="Model / sharp"><span class="nba-tag-stack"><span class="nba-model-tag">—</span><span class="nba-sharp-tag nba-sharp-nodata">No data</span></span></td></tr><tr><td data-label="#">2</td><td data-label="Tip">Sun Oct 25, 9:00 PM ET</td><td data-label="Game">MEM @ SAC</td><td data-label="Player">—</td><td data-label="Market">Total</td><td data-label="Pick"><b>Under 236.5</b></td><td data-label="Line">236.5</td><td data-label="Book / price">-115 <span class="nba-book">DraftKings</span></td><td data-label="EV">5.6%</td><td data-label="Fair %">56.5%</td><td data-label="Units">1.50u</td><td data-label="Model / sharp"><span class="nba-tag-stack"><span class="nba-model-tag">—</span><span class="nba-sharp-tag nba-sharp-nodata">No data</span></span></td></tr></tbody></table></div>
   <h3 class="nba-h3">Possible picks</h3>
   <p class="nba-section-note">Tentative leans with positive EV that did not fully qualify yet. Not logged or graded.</p>
   <p class="empty">No near-miss game-line candidates right now.</p>

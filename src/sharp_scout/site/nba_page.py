@@ -126,6 +126,25 @@ def _model_alignment_tag(play: dict[str, Any]) -> str:
     return '<span class="nba-model-tag">—</span>'
 
 
+def _sharp_money_tag(play: dict[str, Any]) -> str:
+    tag = str(play.get("sharp_money_tag") or "").lower()
+    if tag == "with_sharps":
+        return '<span class="nba-sharp-tag nba-sharp-with">With sharps</span>'
+    if tag == "against_sharps":
+        return '<span class="nba-sharp-tag nba-sharp-against">Against sharps</span>'
+    if tag == "no_signal":
+        return '<span class="nba-sharp-tag nba-sharp-none">No signal</span>'
+    if tag == "no_data":
+        return '<span class="nba-sharp-tag nba-sharp-nodata">No data</span>'
+    return '<span class="nba-sharp-tag">—</span>'
+
+
+def _model_sharp_tags(play: dict[str, Any]) -> str:
+    return (
+        f'<span class="nba-tag-stack">{_model_alignment_tag(play)}{_sharp_money_tag(play)}</span>'
+    )
+
+
 def _render_score_model_block(rows: list[dict[str, Any]]) -> str:
     if not rows:
         return '<p class="empty">No score-model projections yet (logged on live scans).</p>'
@@ -331,6 +350,37 @@ def _record_by_bet_type(ledger: dict[str, Any] | None) -> list[dict[str, Any]]:
     return out
 
 
+def _render_sharp_money_table(sharp: dict[str, Any]) -> str:
+    labels = {
+        "with_sharps": "With sharps",
+        "against_sharps": "Against sharps",
+        "no_signal": "No signal",
+    }
+    body = []
+    for key in ("with_sharps", "against_sharps", "no_signal"):
+        row = sharp.get(key) or {}
+        n = int(row.get("n") or 0)
+        if not n:
+            continue
+        body.append(
+            "<tr>"
+            f'<td data-label="Tag">{_esc(labels[key])}</td>'
+            f'<td data-label="Graded">{n}</td>'
+            f'<td data-label="Record">{_esc(row.get("record") or "—")}</td>'
+            f'<td data-label="Units">{float(row.get("units") or 0):+.2f}u</td>'
+            "</tr>"
+        )
+    if not body:
+        return (
+            '<p class="empty">Sharp-money splits appear after graded side/total plays are tagged.</p>'
+        )
+    return (
+        '<div class="table-wrap"><table class="export-table plays-table nba-table nba-sharp-table">'
+        "<thead><tr><th>Tag</th><th>Graded</th><th>Record</th><th>Units</th></tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
 def _render_record_cards(rows: list[dict[str, Any]]) -> str:
     if not rows:
         return ""
@@ -410,7 +460,7 @@ def _render_candidate_rows(signals: list[dict[str, Any]], *, kind: str) -> str:
         units = p.get("units")
         units_s = f"{float(units):.2f}u" if isinstance(units, (int, float)) else "—"
         fair = p.get("p_true") if p.get("p_true") is not None else p.get("p_fair")
-        model_tag = _model_alignment_tag(p)
+        tags = _model_sharp_tags(p)
         rows.append(
             "<tr>"
             f'<td data-label="#">{i}</td>'
@@ -425,13 +475,13 @@ def _render_candidate_rows(signals: list[dict[str, Any]], *, kind: str) -> str:
             f'<td data-label="EV">{_pct(p.get("edge"))}</td>'
             f'<td data-label="Fair %">{_pct(fair)}</td>'
             f'<td data-label="Units">{units_s}</td>'
-            f'<td data-label="Model">{model_tag}</td>'
+            f'<td data-label="Model / sharp">{tags}</td>'
             "</tr>"
         )
     head = (
         "<thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Market</th>"
         "<th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Fair %</th><th>Units</th>"
-        "<th>Model</th>"
+        "<th>Model / sharp</th>"
         "</tr></thead>"
     )
     return (
@@ -486,6 +536,16 @@ def render_nba_page_html(
 
     live_scan = has_live_nba_scan(signals_payload)
     pub_signals = public_nba_signals(signals_payload)
+    if live_scan:
+        try:
+            from sharp_scout.nba.sharp_splits.filter import annotate_signals_with_sharp_money
+
+            pool = list(pub_signals.get("signals") or []) + list(
+                pub_signals.get("possible_signals") or []
+            )
+            annotate_signals_with_sharp_money([], pool)
+        except Exception:  # noqa: BLE001
+            pass
     pub_ledger = public_nba_ledger(ledger)
     pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
 
@@ -533,6 +593,22 @@ def render_nba_page_html(
         if row and row.get("n"):
             mf_bits.append(f"{key}: {row.get('record')} ({row.get('units')}u)")
     model_filter_note = " · ".join(mf_bits) if mf_bits else "Model filter splits appear after graded side/total plays."
+    sm = pub_report.get("sharp_money") or {}
+    sharp_money_block = _render_sharp_money_table(sm) if live_scan else ""
+    sm_bits = []
+    for key, label in (
+        ("with_sharps", "with sharps"),
+        ("against_sharps", "against sharps"),
+        ("no_signal", "no signal"),
+    ):
+        row = sm.get(key)
+        if row and row.get("n"):
+            sm_bits.append(f"{label}: {row.get('record')} ({row.get('units')}u)")
+    sharp_money_note = (
+        " · ".join(sm_bits)
+        if sm_bits
+        else "Sharp-money tag uses latest Action Network snapshot before tip (display only)."
+    )
 
     in_window = pub_report.get("in_window")
     window = pub_report.get("paper_window") or {}
@@ -563,6 +639,8 @@ def render_nba_page_html(
         score_model_block=score_block,
         injury_lag_block=injury_block,
         model_filter_note=_esc(model_filter_note),
+        sharp_money_block=sharp_money_block,
+        sharp_money_note=_esc(sharp_money_note),
         window_note=_esc(window_s + window_flag),
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
@@ -577,6 +655,16 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     signals_payload = _load_json(nba_paths.NBA_LATEST_SIGNALS_PATH)
     ledger = _load_json(nba_paths.NBA_LEDGER_PATH)
     report = _load_json(nba_paths.NBA_REPORT_PATH)
+    try:
+        from sharp_scout.nba.ledger import load_nba_ledger, save_nba_ledger
+        from sharp_scout.nba.sharp_splits.filter import refresh_open_ledger_sharp_tags
+
+        led = load_nba_ledger()
+        if refresh_open_ledger_sharp_tags(led):
+            save_nba_ledger(led)
+            ledger = led
+    except Exception:  # noqa: BLE001
+        pass
     live_scan = has_live_nba_scan(signals_payload)
 
     pub_signals = public_nba_signals(signals_payload)
@@ -670,6 +758,12 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   .nba-model-agree {{ background: #dcfce7; color: #166534; }}
   .nba-model-disagree {{ background: #fee2e2; color: #991b1b; }}
   .nba-model-neutral {{ background: #f3f4f6; color: #374151; }}
+  .nba-tag-stack {{ display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }}
+  .nba-sharp-tag {{ font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }}
+  .nba-sharp-with {{ background: #dbeafe; color: #1e40af; }}
+  .nba-sharp-against {{ background: #ffedd5; color: #9a3412; }}
+  .nba-sharp-none {{ background: #f3f4f6; color: #4b5563; }}
+  .nba-sharp-nodata {{ background: transparent; color: #9ca3af; font-weight: 600; }}
   @media (max-width: 640px) {{ .nba-hero h1 {{ font-size: 29px; }} }}
 </style>
 </head>
@@ -698,6 +792,9 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   <h2 class="nba-h2">Paper record by bet type</h2>
   {record_block}
   <p class="nba-section-note">Price-gap plays vs score model (side-by-side): {model_filter_note}</p>
+  <h2 class="nba-h2">Sharp money (display only)</h2>
+  <p class="nba-section-note">Action Network bet% vs money% — {sharp_money_note} Gap ≥10 pts tags &ldquo;with sharps&rdquo; on your side or &ldquo;against sharps&rdquo; when the other side shows sharp action. Does not change picks or sizing.</p>
+  {sharp_money_block}
   <h2 class="nba-h2">Score model paper track</h2>
   <p class="nba-section-note">Stage-3 possession ridge projections vs consensus/Pinnacle — frozen at tip, graded after ESPN finals.</p>
   {score_model_block}

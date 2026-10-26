@@ -223,8 +223,9 @@ def test_nba_page_picks_and_possible_sections(tmp_path, monkeypatch):
     docs = tmp_path / "docs"
     build_nba_page(docs_dir=docs)
     html = (docs / "nba.html").read_text()
-    assert "Game lines" in html
-    assert "Possible picks" in html
+    assert "Price-edge picks" in html
+    assert "Model details" in html
+    assert "Near-miss candidates" in html
     assert "After more testing, we'd pick:" in html
     assert "EV below 2.0% floor" in html
     assert "display only" in html

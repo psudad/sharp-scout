@@ -780,11 +780,13 @@
   .nba-hero h1 { font-family: var(--font-serif); font-size: 38px; font-weight: 500; margin: 10px 0 4px; }
   .nba-hero p { color: var(--color-text-muted); font-size: 14px; font-weight: 300; }
   .nba-note { font-size: 13px; color: var(--color-text-muted); margin: 8px 0 20px; line-height: 1.55; }
-  .nba-h2 { font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; }
+  .nba-h2 { font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
   .nba-h3 { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: var(--color-text-muted); margin: 18px 0 8px; }
+  .nba-h4 { font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--color-text-muted); margin: 14px 0 6px; }
   .nba-section-note { font-size: 12.5px; color: var(--color-text-muted); margin: 0 0 10px; line-height: 1.5; }
-  .nba-display-only { color: var(--color-text-muted); font-size: 12px; font-weight: 600; }
+  .nba-section-record { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
   .nba-lean-cell { max-width: 520px; }
   .nba-lean-main { font-size: 14px; line-height: 1.45; margin-bottom: 4px; }
   .nba-lean-meta { font-size: 12px; color: var(--color-text-muted); line-height: 1.4; }
@@ -795,22 +797,41 @@
   .nba-rec-val { font-size: 22px; font-weight: 800; margin: 4px 0; }
   .nba-rec-sub { font-size: 11px; color: var(--color-text-muted); }
   .nba-wrap .table-wrap { overflow-x: auto; }
-  .nba-empty-live {
+  .nba-picks-empty {
     border: 2px solid var(--color-border); background: var(--color-bg);
-    text-align: center; font-size: 15px; font-weight: 600; padding: 20px 16px; margin: 16px 0;
+    padding: 18px 16px; margin: 0 0 12px; line-height: 1.55; font-size: 15px;
   }
-  .nba-no-live-scan .nba-candidates { display: none; }
+  .nba-picks-empty-soft { border-style: dashed; font-size: 14px; color: var(--color-text-muted); }
+  .nba-picks-empty-sub { font-size: 13px; color: var(--color-text-muted); margin-top: 8px; font-weight: 400; }
+  .nba-pick-cards { margin: 0 0 8px; }
+  .nba-pick-card { margin-bottom: 12px; }
+  .nba-pick-card .play-title { font-size: clamp(20px, 5vw, 24px); }
+  .nba-stake-dollars { display: block; font-size: 10px; font-weight: 500; color: var(--color-text-muted); margin-top: 2px; }
+  .nba-tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .nba-gap-badge { font-size: 11px; letter-spacing: 0.04em; }
+  .nba-score-secondary { font-size: 12px; color: var(--color-text-muted); margin-top: 10px; line-height: 1.45; }
+  .nba-model-details { margin: 28px 0 16px; border: 1px solid var(--color-border); background: var(--color-bg); padding: 4px 16px 16px; }
+  .nba-model-details > summary {
+    cursor: pointer; font-family: var(--font-serif); font-size: 20px; font-weight: 500;
+    padding: 14px 0; list-style: none; color: var(--color-text-muted);
+  }
+  .nba-model-details > summary::-webkit-details-marker { display: none; }
   .nba-model-tag { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
   .nba-model-agree { background: #dcfce7; color: #166534; }
   .nba-model-disagree { background: #fee2e2; color: #991b1b; }
   .nba-model-neutral { background: #f3f4f6; color: #374151; }
-  .nba-tag-stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
   .nba-sharp-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
   .nba-sharp-with { background: #dbeafe; color: #1e40af; }
   .nba-sharp-against { background: #ffedd5; color: #9a3412; }
   .nba-sharp-none { background: #f3f4f6; color: #4b5563; }
   .nba-sharp-nodata { background: transparent; color: #9ca3af; font-weight: 600; }
-  @media (max-width: 640px) { .nba-hero h1 { font-size: 29px; } }
+  @media (max-width: 640px) {
+    .nba-hero h1 { font-size: 29px; }
+    .nba-wrap .plays-table thead { display: none; }
+    .nba-wrap .plays-table tr { display: block; border: 1px solid var(--color-border); margin-bottom: 10px; padding: 8px 10px; }
+    .nba-wrap .plays-table td { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border: none; }
+    .nba-wrap .plays-table td::before { content: attr(data-label); font-weight: 700; font-size: 10px; text-transform: uppercase; color: var(--color-text-muted); }
+  }
 </style>
 </head>
 <body class="ss-bottom-bar">
@@ -846,44 +867,156 @@
   <text x="40" y="40" text-anchor="middle" font-family="Inconsolata, monospace" font-size="30" font-weight="700" fill="#ffffff">Q</text>
 </svg>
     <h1>NBA — paper testing</h1>
-    <p>Live shadow scan · 0 line picks · 0 prop picks · 1+0 possible · updated Mon Oct 26, 4:03 PM ET</p>
+    <p>Live shadow scan · updated Mon Oct 26, 4:03 PM ET · next scan Tue Oct 27, 10:30 AM ET</p>
   </div>
   <p class="nba-note">
     Paper/test plays only — not Sharp Plays, not on the NFL card, and not graded on football records.
     Paper window 2026-11-02 – 2026-12-13. Outside paper window (testing only).
-    EV uses quarter-Kelly staking with caps ($10/unit). Retail books: FanDuel first, then DraftKings.
+    Price-edge picks use quarter-Kelly staking with caps ($10/unit). Score modeling is display-only (≥3 pt vs consensus).
   </p>
-  
-  <h2 class="nba-h2">Paper record by bet type</h2>
-  <div class="nba-record-grid"><div class="nba-rec-card"><div class="nba-rec-lbl">3PM</div><div class="nba-rec-val">0-1</div><div class="nba-rec-sub">Units -0.18u · CLV 1.6%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Assists</div><div class="nba-rec-val">0-1</div><div class="nba-rec-sub">Units -0.75u · CLV 0.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">H2H</div><div class="nba-rec-val">0-3</div><div class="nba-rec-sub">Units -1.06u · CLV 1.7%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">PRA</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 1.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Points</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 0.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Spreads</div><div class="nba-rec-val">1-1</div><div class="nba-rec-sub">Units -0.20u · CLV -3.4%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Totals</div><div class="nba-rec-val">4-1</div><div class="nba-rec-sub">Units +3.37u · CLV -2.4%</div></div></div>
-  <p class="nba-section-note">Price-gap plays vs score model (side-by-side): Model filter splits appear after graded side/total plays.</p>
-  <h2 class="nba-h2">Sharp money (display only)</h2>
-  <p class="nba-section-note">Action Network bet% vs money% — Sharp-money tag uses latest Action Network snapshot before tip (display only). Gap ≥10 pts tags &ldquo;with sharps&rdquo; on your side or &ldquo;against sharps&rdquo; when the other side shows sharp action. Does not change picks or sizing.</p>
-  <p class="empty">Sharp-money splits appear after graded side/total plays are tagged.</p>
-  <h2 class="nba-h2">Score model paper track</h2>
-  <p class="nba-section-note">Stage-3 possession ridge projections vs consensus/Pinnacle — frozen at tip, graded after ESPN finals.</p>
-  <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>Tip</th><th>Game</th><th>Proj score</th><th>Margin</th><th>Total</th><th>Consensus spr/tot</th></tr></thead><tbody><tr><td data-label="Tip">Mon Oct 26, 7:10 PM ET</td><td data-label="Game">WAS @ CHA</td><td data-label="Proj score">109.18-120.91</td><td data-label="Margin">+11.7</td><td data-label="Total">230.1</td><td data-label="Consensus">-2.5 / 228.0</td></tr><tr><td data-label="Tip">Mon Oct 26, 7:10 PM ET</td><td data-label="Game">MIN @ CLE</td><td data-label="Proj score">115.17-115.46</td><td data-label="Margin">+0.3</td><td data-label="Total">230.6</td><td data-label="Consensus">-4.5 / 232.0</td></tr><tr><td data-label="Tip">Mon Oct 26, 7:40 PM ET</td><td data-label="Game">CHI @ BOS</td><td data-label="Proj score">109.16-120.9</td><td data-label="Margin">+11.8</td><td data-label="Total">230.1</td><td data-label="Consensus">-14.5 / 233.0</td></tr><tr><td data-label="Tip">Mon Oct 26, 7:40 PM ET</td><td data-label="Game">DAL @ MIA</td><td data-label="Proj score">114.12-120.5</td><td data-label="Margin">+6.4</td><td data-label="Total">234.6</td><td data-label="Consensus">-7.5 / 240.75</td></tr><tr><td data-label="Tip">Mon Oct 26, 8:10 PM ET</td><td data-label="Game">IND @ MIL</td><td data-label="Proj score">117.97-116.03</td><td data-label="Margin">-1.9</td><td data-label="Total">234.0</td><td data-label="Consensus">4.5 / 238.5</td></tr><tr><td data-label="Tip">Mon Oct 26, 8:10 PM ET</td><td data-label="Game">PHX @ OKC</td><td data-label="Proj score">107.48-115.02</td><td data-label="Margin">+7.5</td><td data-label="Total">222.5</td><td data-label="Consensus">-8.5 / 221.5</td></tr><tr><td data-label="Tip">Mon Oct 26, 8:40 PM ET</td><td data-label="Game">ATL @ HOU</td><td data-label="Proj score">113.83-115.41</td><td data-label="Margin">+1.6</td><td data-label="Total">229.2</td><td data-label="Consensus">-4.5 / 229.5</td></tr><tr><td data-label="Tip">Mon Oct 26, 9:10 PM ET</td><td data-label="Game">MEM @ UTA</td><td data-label="Proj score">119.48-120.61</td><td data-label="Margin">+1.1</td><td data-label="Total">241.2</td><td data-label="Consensus">-1.5 / 237.5</td></tr><tr><td data-label="Tip">Mon Oct 26, 10:10 PM ET</td><td data-label="Game">GSW @ DEN</td><td data-label="Proj score">115.48-125.03</td><td data-label="Margin">+9.5</td><td data-label="Total">241.6</td><td data-label="Consensus">-7.5 / 236.5</td></tr></tbody></table></div>
-  <h2 class="nba-h2">Injury lag (paper)</h2>
-  <p class="nba-section-note">ESPN Out/Doubtful changes where the line may not have fully adjusted yet.</p>
-  <p class="empty">No open injury-lag leans.</p>
-  <div class="nba-candidates">
-  <h2 class="nba-h2">Game lines</h2>
-  <h3 class="nba-h3">Picks</h3>
-  <p class="nba-section-note">Qualifying paper plays (EV floor, sharp fair, Kelly sizing, and portfolio caps).</p>
-  <p class="empty">No qualifying picks right now.</p>
-  <h3 class="nba-h3">Possible picks</h3>
-  <p class="nba-section-note">Tentative leans with positive EV that did not fully qualify yet. Not logged or graded.</p>
-  <div class="table-wrap"><table class="export-table plays-table nba-table nba-possible-table"><thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Tentative lean</th></tr></thead><tbody><tr><td data-label="#">1</td><td data-label="Tip">Mon Oct 26, 7:10 PM ET</td><td data-label="Game">WAS @ CHA</td><td data-label="Player">—</td><td data-label="Tentative lean" class="nba-lean-cell"><div class="nba-lean-main"><b>After more testing, we'd pick: Over 227.5 (DraftKings -105)</b></div><div class="nba-lean-meta">EV 1.2% · EV below 2.0% floor · 0u (display only)</div></td></tr></tbody></table></div>
-  <h2 class="nba-h2">Player props</h2>
-  <h3 class="nba-h3">Picks</h3>
-  <p class="nba-section-note">Qualifying paper props that pass model, consensus, and staking rules.</p>
-  <p class="empty">No qualifying prop picks right now.</p>
-  <h3 class="nba-h3">Possible picks</h3>
-  <p class="nba-section-note">Tentative prop leans — display only until they pass all rules.</p>
-  <p class="empty">No near-miss prop candidates right now.</p>
-  </div>
-  <h2 class="nba-h2">Graded paper ledger</h2>
-  <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>Tip</th><th>Type</th><th>Game</th><th>Pick</th><th>Result</th><th>P/L</th><th>CLV</th></tr></thead><tbody><tr><td data-label="Tip">Sun Oct 25, 6:10 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">IND @ BKN</td><td data-label="Pick"><b>Over 231.5</b></td><td data-label="Result">WIN</td><td data-label="P/L">+0.99u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sun Oct 25, 7:10 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">LAC @ OKC</td><td data-label="Pick"><b>Over 223.5</b></td><td data-label="Result">LOSS</td><td data-label="P/L">-1.38u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sun Oct 25, 7:10 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">TOR @ MIN</td><td data-label="Pick"><b>Under 230.5</b></td><td data-label="Result">WIN</td><td data-label="P/L">+1.30u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sun Oct 25, 9:00 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">MEM @ SAC</td><td data-label="Pick"><b>Under 236.5</b></td><td data-label="Result">WIN</td><td data-label="P/L">+1.30u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sun Oct 25, 7:40 PM ET</td><td data-label="Type">Spreads</td><td data-label="Game">DET @ PHI</td><td data-label="Pick"><b>DET +1.5</b></td><td data-label="Result">WIN</td><td data-label="P/L">+1.30u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sat Oct 24, 7:40 PM ET</td><td data-label="Type">3PM</td><td data-label="Game">MIL @ PHI</td><td data-label="Pick"><b>U 2.5 3PM</b></td><td data-label="Result">LOSS</td><td data-label="P/L">-0.18u</td><td data-label="CLV">1.6%</td></tr><tr><td data-label="Tip">Sat Oct 24, 10:10 PM ET</td><td data-label="Type">Assists</td><td data-label="Game">GSW @ PHX</td><td data-label="Pick"><b>O 3.5 Assists</b></td><td data-label="Result">LOSS</td><td data-label="P/L">-0.75u</td><td data-label="CLV">0.0%</td></tr><tr><td data-label="Tip">Sat Oct 24, 9:10 PM ET</td><td data-label="Type">H2H</td><td data-label="Game">NOP @ DEN</td><td data-label="Pick"><b>Away</b></td><td data-label="Result">LOSS</td><td data-label="P/L">-0.35u</td><td data-label="CLV">1.7%</td></tr><tr><td data-label="Tip">Sat Oct 24, 8:40 PM ET</td><td data-label="Type">Spreads</td><td data-label="Game">HOU @ ATL</td><td data-label="Pick"><b>ATL +1.5</b></td><td data-label="Result">LOSS</td><td data-label="P/L">-1.50u</td><td data-label="CLV">-3.4%</td></tr><tr><td data-label="Tip">Sat Oct 24, 8:10 PM ET</td><td data-label="Type">H2H</td><td data-label="Game">SAS @ DAL</td><td data-label="Pick"><b>Home</b></td><td data-label="Result">LOSS</td><td data-label="P/L">-0.24u</td><td data-label="CLV">1.4%</td></tr><tr><td data-label="Tip">Sat Oct 24, 9:10 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">NOP @ DEN</td><td data-label="Pick"><b>Over 238.5</b></td><td data-label="Result">WIN</td><td data-label="P/L">+1.16u</td><td data-label="CLV">-2.4%</td></tr><tr><td data-label="Tip">Sat Oct 24, 10:10 PM ET</td><td data-label="Type">H2H</td><td data-label="Game">GSW @ PHX</td><td data-label="Pick"><b>Away</b></td><td data-label="Result">LOSS</td><td data-label="P/L">-0.47u</td><td data-label="CLV">2.2%</td></tr></tbody></table></div>
+  <h2 class="nba-h2">Price-edge picks</h2>
+  <p class="nba-section-note">Qualifying paper card plays (EV floor, sharp fair, Kelly sizing, portfolio caps).</p>
+  <div class="nba-pick-cards"><div class="nba-picks-empty" role="status"><p><strong>No NBA price-edge picks yet today.</strong></p><p class="nba-picks-empty-sub">Last updated Mon Oct 26, 4:03 PM ET. Next scan Tue Oct 27, 10:30 AM ET (10:30 AM &amp; 5:30 PM ET).</p></div></div>
+  <h2 class="nba-h2">Score modeling <span class="nba-section-record">Spread 2-2 · Total 1-1</span></h2>
+  <p class="nba-section-note">Model projection vs consensus — one card per game with ≥3 pt spread or total gap (display only, not logged as price-edge picks).</p>
+  <div class="nba-pick-cards">
+      <div class="play-card candidate nba-pick-card nba-score-card">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-cand">Score modeling</span>
+            <div class="play-title">CHA -2.5</div>
+            <div class="play-subtitle">WAS @ CHA · Mon Oct 26, 7:10 PM ET</div>
+          </div>
+          <div class="units-badge nba-gap-badge">9.2 pt</div>
+        </div>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">Proj margin +11.7</span></div>
+          <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">Consensus -2.5</span></div>
+          <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">+9.2 pt vs consensus</span></div>
+          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">Mon Oct 26, 7:10 PM ET</span></div>
+        </div>
+        
+      </div>
+
+      <div class="play-card candidate nba-pick-card nba-score-card">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-cand">Score modeling</span>
+            <div class="play-title">DAL @ MIA: Under 240.75</div>
+            <div class="play-subtitle">DAL @ MIA · Mon Oct 26, 7:40 PM ET</div>
+          </div>
+          <div class="units-badge nba-gap-badge">6.1 pt</div>
+        </div>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">Proj total 234.6</span></div>
+          <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">Consensus 240.75</span></div>
+          <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">-6.1 pt vs consensus</span></div>
+          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">Mon Oct 26, 7:40 PM ET</span></div>
+        </div>
+        
+      </div>
+
+      <div class="play-card candidate nba-pick-card nba-score-card">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-cand">Score modeling</span>
+            <div class="play-title">GSW @ DEN: Over 236.5</div>
+            <div class="play-subtitle">GSW @ DEN · Mon Oct 26, 10:10 PM ET</div>
+          </div>
+          <div class="units-badge nba-gap-badge">5.1 pt</div>
+        </div>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">Proj total 241.6</span></div>
+          <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">Consensus 236.5</span></div>
+          <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">+5.1 pt vs consensus</span></div>
+          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">Mon Oct 26, 10:10 PM ET</span></div>
+        </div>
+        
+      </div>
+
+      <div class="play-card candidate nba-pick-card nba-score-card">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-cand">Score modeling</span>
+            <div class="play-title">IND @ MIL: Under 238.5</div>
+            <div class="play-subtitle">IND @ MIL · Mon Oct 26, 8:10 PM ET</div>
+          </div>
+          <div class="units-badge nba-gap-badge">4.5 pt</div>
+        </div>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">Proj total 234.0</span></div>
+          <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">Consensus 238.5</span></div>
+          <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">-4.5 pt vs consensus</span></div>
+          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">Mon Oct 26, 8:10 PM ET</span></div>
+        </div>
+        
+      </div>
+
+      <div class="play-card candidate nba-pick-card nba-score-card">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-cand">Score modeling</span>
+            <div class="play-title">MIN +4.5</div>
+            <div class="play-subtitle">MIN @ CLE · Mon Oct 26, 7:10 PM ET</div>
+          </div>
+          <div class="units-badge nba-gap-badge">4.2 pt</div>
+        </div>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">Proj margin +0.3</span></div>
+          <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">Consensus -4.5</span></div>
+          <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">-4.2 pt vs consensus</span></div>
+          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">Mon Oct 26, 7:10 PM ET</span></div>
+        </div>
+        
+      </div>
+
+      <div class="play-card candidate nba-pick-card nba-score-card">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-cand">Score modeling</span>
+            <div class="play-title">MEM @ UTA: Over 237.5</div>
+            <div class="play-subtitle">MEM @ UTA · Mon Oct 26, 9:10 PM ET</div>
+          </div>
+          <div class="units-badge nba-gap-badge">3.7 pt</div>
+        </div>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">Proj total 241.2</span></div>
+          <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">Consensus 237.5</span></div>
+          <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">+3.7 pt vs consensus</span></div>
+          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">Mon Oct 26, 9:10 PM ET</span></div>
+        </div>
+        
+      </div></div>
+  <h2 class="nba-h2">Graded paper results</h2>
+  <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>Tip</th><th>Type</th><th>Game</th><th>Pick</th><th>Result</th><th>P/L</th><th>CLV</th></tr></thead><tbody><tr><td data-label="Tip">Sun Oct 25, 6:10 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">IND @ BKN</td><td data-label="Pick"><b>Over 231.5</b></td><td data-label="Result" class="win">WIN</td><td data-label="P/L" class="pos">+0.99u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sun Oct 25, 7:10 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">LAC @ OKC</td><td data-label="Pick"><b>Over 223.5</b></td><td data-label="Result" class="loss">LOSS</td><td data-label="P/L" class="neg">-1.38u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sun Oct 25, 7:10 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">TOR @ MIN</td><td data-label="Pick"><b>Under 230.5</b></td><td data-label="Result" class="win">WIN</td><td data-label="P/L" class="pos">+1.30u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sun Oct 25, 9:00 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">MEM @ SAC</td><td data-label="Pick"><b>Under 236.5</b></td><td data-label="Result" class="win">WIN</td><td data-label="P/L" class="pos">+1.30u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sun Oct 25, 7:40 PM ET</td><td data-label="Type">Spreads</td><td data-label="Game">DET @ PHI</td><td data-label="Pick"><b>DET +1.5</b></td><td data-label="Result" class="win">WIN</td><td data-label="P/L" class="pos">+1.30u</td><td data-label="CLV">—</td></tr><tr><td data-label="Tip">Sat Oct 24, 7:40 PM ET</td><td data-label="Type">3PM</td><td data-label="Game">MIL @ PHI</td><td data-label="Pick"><b>U 2.5 3PM</b></td><td data-label="Result" class="loss">LOSS</td><td data-label="P/L" class="neg">-0.18u</td><td data-label="CLV">1.6%</td></tr><tr><td data-label="Tip">Sat Oct 24, 10:10 PM ET</td><td data-label="Type">Assists</td><td data-label="Game">GSW @ PHX</td><td data-label="Pick"><b>O 3.5 Assists</b></td><td data-label="Result" class="loss">LOSS</td><td data-label="P/L" class="neg">-0.75u</td><td data-label="CLV">0.0%</td></tr><tr><td data-label="Tip">Sat Oct 24, 9:10 PM ET</td><td data-label="Type">H2H</td><td data-label="Game">NOP @ DEN</td><td data-label="Pick"><b>Away</b></td><td data-label="Result" class="loss">LOSS</td><td data-label="P/L" class="neg">-0.35u</td><td data-label="CLV">1.7%</td></tr><tr><td data-label="Tip">Sat Oct 24, 8:40 PM ET</td><td data-label="Type">Spreads</td><td data-label="Game">HOU @ ATL</td><td data-label="Pick"><b>ATL +1.5</b></td><td data-label="Result" class="loss">LOSS</td><td data-label="P/L" class="neg">-1.50u</td><td data-label="CLV">-3.4%</td></tr><tr><td data-label="Tip">Sat Oct 24, 8:10 PM ET</td><td data-label="Type">H2H</td><td data-label="Game">SAS @ DAL</td><td data-label="Pick"><b>Home</b></td><td data-label="Result" class="loss">LOSS</td><td data-label="P/L" class="neg">-0.24u</td><td data-label="CLV">1.4%</td></tr><tr><td data-label="Tip">Sat Oct 24, 9:10 PM ET</td><td data-label="Type">Totals</td><td data-label="Game">NOP @ DEN</td><td data-label="Pick"><b>Over 238.5</b></td><td data-label="Result" class="win">WIN</td><td data-label="P/L" class="pos">+1.16u</td><td data-label="CLV">-2.4%</td></tr><tr><td data-label="Tip">Sat Oct 24, 10:10 PM ET</td><td data-label="Type">H2H</td><td data-label="Game">GSW @ PHX</td><td data-label="Pick"><b>Away</b></td><td data-label="Result" class="loss">LOSS</td><td data-label="P/L" class="neg">-0.47u</td><td data-label="CLV">2.2%</td></tr></tbody></table></div>
+  <details class="nba-model-details">
+    <summary>Model details</summary>
+    
+    <h3 class="nba-h3">Paper record by bet type</h3>
+    <div class="nba-record-grid"><div class="nba-rec-card"><div class="nba-rec-lbl">3PM</div><div class="nba-rec-val">0-1</div><div class="nba-rec-sub">Units -0.18u · CLV 1.6%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Assists</div><div class="nba-rec-val">0-1</div><div class="nba-rec-sub">Units -0.75u · CLV 0.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">H2H</div><div class="nba-rec-val">0-3</div><div class="nba-rec-sub">Units -1.06u · CLV 1.7%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">PRA</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 1.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Points</div><div class="nba-rec-val">—</div><div class="nba-rec-sub">Units — · CLV 0.0%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Spreads</div><div class="nba-rec-val">1-1</div><div class="nba-rec-sub">Units -0.20u · CLV -3.4%</div></div><div class="nba-rec-card"><div class="nba-rec-lbl">Totals</div><div class="nba-rec-val">4-1</div><div class="nba-rec-sub">Units +3.37u · CLV -2.4%</div></div></div>
+    <p class="nba-section-note">Price-gap plays vs score model (side-by-side): Model filter splits appear after graded side/total plays.</p>
+    <h3 class="nba-h3">Sharp money (display only)</h3>
+    <p class="nba-section-note">Action Network bet% vs money% — Sharp-money tag uses latest Action Network snapshot before tip (display only).</p>
+    <p class="empty">Sharp-money splits appear after graded side/total plays are tagged.</p>
+    <h3 class="nba-h3">Score model paper track</h3>
+    <p class="nba-section-note">Stage-3 possession ridge projections vs consensus/Pinnacle — frozen at tip, graded after ESPN finals.</p>
+    <div class="table-wrap"><table class="export-table plays-table nba-table"><thead><tr><th>Tip</th><th>Game</th><th>Proj score</th><th>Margin</th><th>Total</th><th>Consensus spr/tot</th></tr></thead><tbody><tr><td data-label="Tip">Mon Oct 26, 7:10 PM ET</td><td data-label="Game">WAS @ CHA</td><td data-label="Proj score">109.18-120.91</td><td data-label="Margin">+11.7</td><td data-label="Total">230.1</td><td data-label="Consensus">-2.5 / 228.0</td></tr><tr><td data-label="Tip">Mon Oct 26, 7:10 PM ET</td><td data-label="Game">MIN @ CLE</td><td data-label="Proj score">115.17-115.46</td><td data-label="Margin">+0.3</td><td data-label="Total">230.6</td><td data-label="Consensus">-4.5 / 232.0</td></tr><tr><td data-label="Tip">Mon Oct 26, 7:40 PM ET</td><td data-label="Game">CHI @ BOS</td><td data-label="Proj score">109.16-120.9</td><td data-label="Margin">+11.8</td><td data-label="Total">230.1</td><td data-label="Consensus">-14.5 / 233.0</td></tr><tr><td data-label="Tip">Mon Oct 26, 7:40 PM ET</td><td data-label="Game">DAL @ MIA</td><td data-label="Proj score">114.12-120.5</td><td data-label="Margin">+6.4</td><td data-label="Total">234.6</td><td data-label="Consensus">-7.5 / 240.75</td></tr><tr><td data-label="Tip">Mon Oct 26, 8:10 PM ET</td><td data-label="Game">IND @ MIL</td><td data-label="Proj score">117.97-116.03</td><td data-label="Margin">-1.9</td><td data-label="Total">234.0</td><td data-label="Consensus">4.5 / 238.5</td></tr><tr><td data-label="Tip">Mon Oct 26, 8:10 PM ET</td><td data-label="Game">PHX @ OKC</td><td data-label="Proj score">107.48-115.02</td><td data-label="Margin">+7.5</td><td data-label="Total">222.5</td><td data-label="Consensus">-8.5 / 221.5</td></tr><tr><td data-label="Tip">Mon Oct 26, 8:40 PM ET</td><td data-label="Game">ATL @ HOU</td><td data-label="Proj score">113.83-115.41</td><td data-label="Margin">+1.6</td><td data-label="Total">229.2</td><td data-label="Consensus">-4.5 / 229.5</td></tr><tr><td data-label="Tip">Mon Oct 26, 9:10 PM ET</td><td data-label="Game">MEM @ UTA</td><td data-label="Proj score">119.48-120.61</td><td data-label="Margin">+1.1</td><td data-label="Total">241.2</td><td data-label="Consensus">-1.5 / 237.5</td></tr><tr><td data-label="Tip">Mon Oct 26, 10:10 PM ET</td><td data-label="Game">GSW @ DEN</td><td data-label="Proj score">115.48-125.03</td><td data-label="Margin">+9.5</td><td data-label="Total">241.6</td><td data-label="Consensus">-7.5 / 236.5</td></tr></tbody></table></div>
+    <h3 class="nba-h3">Injury lag (paper)</h3>
+    <p class="nba-section-note">ESPN Out/Doubtful changes where the line may not have fully adjusted yet.</p>
+    <p class="empty">No open injury-lag leans.</p>
+    <h3 class="nba-h3">Near-miss candidates</h3>
+    <p class="nba-section-note">Positive EV that did not qualify for the price-edge paper card. Not logged or graded.</p>
+    <h4 class="nba-h4">Game lines</h4>
+    <div class="table-wrap"><table class="export-table plays-table nba-table nba-possible-table"><thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Tentative lean</th></tr></thead><tbody><tr><td data-label="#">1</td><td data-label="Tip">Mon Oct 26, 7:10 PM ET</td><td data-label="Game">WAS @ CHA</td><td data-label="Player">—</td><td data-label="Tentative lean" class="nba-lean-cell"><div class="nba-lean-main"><b>After more testing, we'd pick: Over 227.5 (DraftKings -105)</b></div><div class="nba-lean-meta">EV 1.2% · EV below 2.0% floor · 0u (display only)</div></td></tr></tbody></table></div>
+    <h4 class="nba-h4">Player props</h4>
+    <p class="empty">No near-miss prop candidates right now.</p>
+    <h3 class="nba-h3">Price-edge tables (export)</h3>
+    <h4 class="nba-h4">Game line picks</h4>
+    <p class="empty">No qualifying picks right now.</p>
+    <h4 class="nba-h4">Prop picks</h4>
+    <p class="empty">No qualifying prop picks right now.</p>
+    
+  </details>
 </div>
 <div class="footer">
   Sharp Scout Quant · research and entertainment only · not betting advice.

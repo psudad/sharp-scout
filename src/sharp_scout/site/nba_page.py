@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
-
 from sharp_scout.config import ROOT, get_settings
-from sharp_scout.copy.explain import format_kickoff_compact, kickoff_sort_key
+from sharp_scout.copy.explain import format_kickoff_compact, format_kickoff_et, kickoff_sort_key
 from sharp_scout.nba import paths as nba_paths
-from sharp_scout.utils.slate import parse_commence
+from sharp_scout.utils.slate import ET, parse_commence
 
 DOCS_DIR = ROOT / "docs"
 
@@ -30,6 +29,11 @@ NBA_BOOK_LABELS = {
     "fanduel": "FanDuel",
     "draftkings": "DraftKings",
 }
+
+# Matches score-model paper grading bucket ge_3 in summarize_score_paper (display only).
+SCORE_MODELING_MIN_EDGE_PT = 3.0
+
+NBA_SCAN_SLOTS_ET = ((10, 30), (17, 30))
 
 
 def _esc(s: Any) -> str:
@@ -141,7 +145,239 @@ def _sharp_money_tag(play: dict[str, Any]) -> str:
 
 def _model_sharp_tags(play: dict[str, Any]) -> str:
     return (
-        f'<span class="nba-tag-stack">{_model_alignment_tag(play)}{_sharp_money_tag(play)}</span>'
+        f'<span class="nba-tag-row">{_model_alignment_tag(play)}{_sharp_money_tag(play)}</span>'
+    )
+
+
+def _format_model_spread_pick(home: str, away: str, spread_home: float, margin_edge: float) -> str:
+    if margin_edge > 0:
+        team, line = home, float(spread_home)
+    else:
+        team, line = away, -float(spread_home)
+    sign = "+" if line > 0 else ""
+    return f"{team} {sign}{line:g}"
+
+
+def score_modeling_display_plays(
+    rows: list[dict[str, Any]],
+    *,
+    min_edge: float = SCORE_MODELING_MIN_EDGE_PT,
+) -> list[dict[str, Any]]:
+    """One display card per game where model vs consensus spread/total gap >= min_edge."""
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        lines = r.get("lines") or {}
+        cs, ct = lines.get("consensus_spread_home"), lines.get("consensus_total")
+        margin = float(r.get("margin") or 0)
+        total = float(r.get("total") or 0)
+        away = str(r.get("away") or "")
+        home = str(r.get("home") or "")
+        game = f"{away} @ {home}"
+        candidates: list[dict[str, Any]] = []
+        if cs is not None:
+            margin_edge = margin + float(cs)
+            if abs(margin_edge) >= min_edge:
+                pick = _format_model_spread_pick(home, away, float(cs), margin_edge)
+                candidates.append(
+                    {
+                        "kind": "spread",
+                        "gap": abs(margin_edge),
+                        "signed_gap": margin_edge,
+                        "title": pick,
+                        "model_line": f"Proj margin {margin:+.1f}",
+                        "consensus_line": f"Consensus {float(cs):+.1f}",
+                    }
+                )
+        if ct is not None:
+            total_edge = total - float(ct)
+            if abs(total_edge) >= min_edge:
+                side = "Over" if total_edge > 0 else "Under"
+                pick = f"{side} {float(ct):g}"
+                candidates.append(
+                    {
+                        "kind": "total",
+                        "gap": abs(total_edge),
+                        "signed_gap": total_edge,
+                        "title": f"{game}: {pick}",
+                        "model_line": f"Proj total {total:.1f}",
+                        "consensus_line": f"Consensus {float(ct):g}",
+                    }
+                )
+        if not candidates:
+            continue
+        primary = max(candidates, key=lambda c: c["gap"])
+        secondary = [c for c in candidates if c is not primary]
+        out.append(
+            {
+                "game": game,
+                "kickoff": r.get("kickoff"),
+                "gap": primary["gap"],
+                "title": primary["title"],
+                "kind": primary["kind"],
+                "model_line": primary["model_line"],
+                "consensus_line": primary["consensus_line"],
+                "signed_gap": primary["signed_gap"],
+                "secondary": secondary,
+            }
+        )
+    out.sort(key=lambda x: float(x.get("gap") or 0), reverse=True)
+    return out
+
+
+def _score_modeling_record_label(summary: dict[str, Any] | None) -> str:
+    if not summary or not int(summary.get("n_graded") or 0):
+        return ""
+    parts: list[str] = []
+    ats = (summary.get("ats_vs_close") or {}).get("ge_3") or {}
+    ou = (summary.get("ou_vs_close") or {}).get("ge_3") or {}
+    for label, row in (("Spread", ats), ("Total", ou)):
+        w, l, p = int(row.get("wins") or 0), int(row.get("losses") or 0), int(row.get("pushes") or 0)
+        if w + l + p:
+            rec = f"{w}-{l}" + (f"-{p}" if p else "")
+            parts.append(f"{label} {rec}")
+    return " · ".join(parts)
+
+
+def _next_nba_scan_et(now: datetime | None = None) -> datetime:
+    now = now or datetime.now(ET)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc).astimezone(ET)
+    else:
+        now = now.astimezone(ET)
+    for hour, minute in NBA_SCAN_SLOTS_ET:
+        slot = datetime.combine(now.date(), time(hour, minute), tzinfo=ET)
+        if slot > now:
+            return slot
+    tomorrow = now.date() + timedelta(days=1)
+    return datetime.combine(tomorrow, time(NBA_SCAN_SLOTS_ET[0][0], NBA_SCAN_SLOTS_ET[0][1]), tzinfo=ET)
+
+
+def _price_edge_card_title(play: dict[str, Any]) -> str:
+    away = str(play.get("away_team") or "")
+    home = str(play.get("home_team") or "")
+    if play.get("play_type") == "prop":
+        player = str(play.get("player_name") or "").strip()
+        pick = _prop_pick(play)
+        return f"{player}: {pick}" if player else f"{away} @ {home}: {pick}"
+    pick = _game_pick(play)
+    market = str(play.get("market") or "")
+    if market == "spreads":
+        return pick
+    return f"{away} @ {home}: {pick}"
+
+
+def _render_nba_play_card(play: dict[str, Any], *, badge: str, badge_cls: str, card_cls: str) -> str:
+    settings = get_settings()
+    unit_d = float(settings.nba_unit_dollars)
+    kick = format_kickoff_et(play.get("kickoff"))
+    away = str(play.get("away_team") or "")
+    home = str(play.get("home_team") or "")
+    title = _price_edge_card_title(play)
+    book = _book_label(play.get("book"))
+    price = _price(play.get("price"))
+    units = play.get("units")
+    units_f = float(units) if isinstance(units, (int, float)) else None
+    units_s = f"{units_f:.2f}u" if units_f is not None else "—"
+    stake_s = f"${units_f * unit_d:.0f}" if units_f is not None else "—"
+    edge = play.get("edge")
+    edge_s = _pct(edge)
+    fair = play.get("p_true") if play.get("p_true") is not None else play.get("p_fair")
+    fair_s = _pct(fair)
+    sub_parts = [kick, f"{away} @ {home}", f"{book} {price}"]
+    if play.get("play_type") == "prop":
+        sub_parts.insert(1, "Prop")
+    subtitle = " · ".join(sub_parts)
+    tags = _model_sharp_tags(play)
+    return f"""
+      <div class="play-card {card_cls} nba-pick-card">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge {badge_cls}">{_esc(badge)}</span>
+            <div class="play-title">{_esc(title)}</div>
+            <div class="play-subtitle">{_esc(subtitle)}</div>
+          </div>
+          <div class="units-badge">{units_s}<span class="nba-stake-dollars">{stake_s}</span></div>
+        </div>
+        {tags}
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">{edge_s}</span></div>
+          <div class="meta-item"><span class="meta-label">Fair </span><span class="meta-val">{fair_s}</span></div>
+          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">{_esc(kick)}</span></div>
+          <div class="meta-item"><span class="meta-label">Book </span><span class="meta-val">{_esc(book)} {_esc(price)}</span></div>
+        </div>
+      </div>"""
+
+
+def _render_price_edge_cards(picks: list[dict[str, Any]]) -> str:
+    ordered = sorted(picks, key=lambda p: kickoff_sort_key(p.get("kickoff")))
+    if not ordered:
+        return ""
+    return "\n".join(
+        _render_nba_play_card(p, badge="Price-edge pick", badge_cls="badge-play", card_cls="sharp-play")
+        for p in ordered
+    )
+
+
+def _render_score_modeling_card(item: dict[str, Any]) -> str:
+    kick = format_kickoff_et(item.get("kickoff"))
+    gap = float(item.get("signed_gap") or 0)
+    gap_s = f"{gap:+.1f} pt vs consensus"
+    secondary = item.get("secondary") or []
+    extra = ""
+    if secondary:
+        bits = []
+        for s in secondary:
+            bits.append(f"{s['title']} ({s['signed_gap']:+.1f} pt)")
+        extra = f'<div class="nba-score-secondary">Also: {_esc(" · ".join(bits))}</div>'
+    return f"""
+      <div class="play-card candidate nba-pick-card nba-score-card">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge badge-cand">Score modeling</span>
+            <div class="play-title">{_esc(str(item.get("title") or ""))}</div>
+            <div class="play-subtitle">{_esc(item.get("game") or "")} · {_esc(kick)}</div>
+          </div>
+          <div class="units-badge nba-gap-badge">{float(item.get("gap") or 0):.1f} pt</div>
+        </div>
+        <div class="play-meta">
+          <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">{_esc(item.get("model_line") or "")}</span></div>
+          <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">{_esc(item.get("consensus_line") or "")}</span></div>
+          <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">{_esc(gap_s)}</span></div>
+          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">{_esc(kick)}</span></div>
+        </div>
+        {extra}
+      </div>"""
+
+
+def _render_score_modeling_cards(plays: list[dict[str, Any]]) -> str:
+    if not plays:
+        return ""
+    return "\n".join(_render_score_modeling_card(p) for p in plays)
+
+
+def _render_picks_empty(*, live_scan: bool, updated: str, next_scan: str) -> str:
+    if not live_scan:
+        return (
+            f'<div class="nba-picks-empty" role="status">'
+            f"<p>{_esc(NO_LIVE_SCAN_MESSAGE)}</p>"
+            f"<p class=\"nba-picks-empty-sub\">Scans run at 10:30 AM and 5:30 PM ET. "
+            f"Next scan {_esc(next_scan)}.</p></div>"
+        )
+    return (
+        f'<div class="nba-picks-empty" role="status">'
+        f"<p><strong>No NBA price-edge picks yet today.</strong></p>"
+        f"<p class=\"nba-picks-empty-sub\">Last updated {_esc(updated)}. "
+        f"Next scan {_esc(next_scan)} (10:30 AM &amp; 5:30 PM ET).</p></div>"
+    )
+
+
+def _render_score_modeling_empty(*, live_scan: bool) -> str:
+    if not live_scan:
+        return ""
+    return (
+        '<div class="nba-picks-empty nba-picks-empty-soft" role="status">'
+        f"<p>No Score modeling plays right now (need ≥{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
+        "</div>"
     )
 
 
@@ -503,14 +739,16 @@ def _render_ledger_rows(ledger: dict[str, Any] | None) -> str:
         pnl = p.get("pnl_units")
         pnl_s = f"{float(pnl):+.2f}u" if pnl is not None else "—"
         clv = p.get("clv_prob")
+        st = str(p.get("status") or "").lower()
+        st_cls = st if st in ("win", "loss", "push") else "pending"
         rows.append(
             "<tr>"
             f'<td data-label="Tip">{_esc(format_kickoff_compact(p.get("kickoff")))}</td>'
             f'<td data-label="Type">{_esc(_bet_type_label(p))}</td>'
             f'<td data-label="Game">{_esc(game)}</td>'
             f'<td data-label="Pick"><b>{_esc(pick)}</b></td>'
-            f'<td data-label="Result">{_esc(str(p.get("status") or "").upper())}</td>'
-            f'<td data-label="P/L">{pnl_s}</td>'
+            f'<td data-label="Result" class="{st_cls}">{_esc(st.upper())}</td>'
+            f'<td data-label="P/L" class="{"pos" if (pnl or 0) >= 0 else "neg"}">{pnl_s}</td>'
             f'<td data-label="CLV">{_pct(clv) if clv is not None else "—"}</td>'
             "</tr>"
         )
@@ -530,6 +768,7 @@ def render_nba_page_html(
     analytics_head: str,
     score_model_rows: list[dict[str, Any]] | None = None,
     injury_lag_rows: list[dict[str, Any]] | None = None,
+    score_model_summary: dict[str, Any] | None = None,
 ) -> str:
     from sharp_scout.site.bottom_bar import BOTTOM_BAR_SCRIPT, bottom_bar_css, render_bottom_bar
     from sharp_scout.site.build import _SITE_CSS, _format_timestamp_et, _ssq_logo_svg
@@ -553,29 +792,36 @@ def render_nba_page_html(
     possible = list(pub_signals.get("possible_signals") or [])
     generated = parse_commence(pub_signals.get("generated_at"))
     updated = _format_timestamp_et(generated) if generated else "—"
-    n_game = len([s for s in picks if (s.get("play_type") or "side") != "prop"])
-    n_prop = len([s for s in picks if (s.get("play_type") or "") == "prop"])
-    n_possible_game = len([s for s in possible if (s.get("play_type") or "side") != "prop"])
-    n_possible_prop = len([s for s in possible if (s.get("play_type") or "") == "prop"])
+    next_scan = _format_timestamp_et(_next_nba_scan_et())
 
-    empty_live_notice = ""
     body_class = "ss-bottom-bar"
-    if not live_scan:
-        body_class = "ss-bottom-bar nba-no-live-scan"
-        empty_live_notice = (
-            f'<div class="nba-empty-live" role="status">{_esc(NO_LIVE_SCAN_MESSAGE)}</div>'
-        )
-        game_picks_table = ""
-        game_possible_table = ""
-        prop_picks_table = ""
-        prop_possible_table = ""
-        mode_note = "Awaiting live scan"
+    mode_note = "Live shadow scan" if live_scan else "Awaiting live scan"
+
+    price_edge_cards = _render_price_edge_cards(picks) if live_scan else ""
+    if live_scan and not price_edge_cards:
+        price_edge_section = _render_picks_empty(live_scan=True, updated=updated, next_scan=next_scan)
+    elif not live_scan:
+        price_edge_section = _render_picks_empty(live_scan=False, updated=updated, next_scan=next_scan)
     else:
-        game_picks_table = _render_candidate_rows(picks, kind="side")
-        game_possible_table = _render_possible_rows(possible, kind="side")
-        prop_picks_table = _render_candidate_rows(picks, kind="prop")
-        prop_possible_table = _render_possible_rows(possible, kind="prop")
-        mode_note = "Live shadow scan"
+        price_edge_section = price_edge_cards
+
+    score_rows = score_model_rows or []
+    score_plays = score_modeling_display_plays(score_rows) if live_scan else []
+    score_modeling_cards = _render_score_modeling_cards(score_plays) if live_scan else ""
+    if live_scan and not score_modeling_cards:
+        score_modeling_section = _render_score_modeling_empty(live_scan=True)
+    else:
+        score_modeling_section = score_modeling_cards
+
+    score_record = _score_modeling_record_label(score_model_summary)
+    score_record_html = (
+        f'<span class="nba-section-record">{_esc(score_record)}</span>' if score_record else ""
+    )
+
+    game_picks_table = _render_candidate_rows(picks, kind="side") if live_scan else ""
+    game_possible_table = _render_possible_rows(possible, kind="side") if live_scan else ""
+    prop_picks_table = _render_candidate_rows(picks, kind="prop") if live_scan else ""
+    prop_possible_table = _render_possible_rows(possible, kind="prop") if live_scan else ""
 
     record_rows = _record_by_bet_type(pub_ledger)
     record_block = _render_record_cards(record_rows)
@@ -584,7 +830,7 @@ def render_nba_page_html(
             '<p class="empty">No paper ledger yet. Run the NBA shadow scan to log test plays.</p>'
         )
     ledger_table = _render_ledger_rows(pub_ledger)
-    score_block = _render_score_model_block(score_model_rows or []) if live_scan else ""
+    score_block = _render_score_model_block(score_rows) if live_scan else ""
     injury_block = _render_injury_lag_block(injury_lag_rows or []) if live_scan else ""
     mf = pub_report.get("model_filter") or {}
     mf_bits = []
@@ -610,6 +856,32 @@ def render_nba_page_html(
         else "Sharp-money tag uses latest Action Network snapshot before tip (display only)."
     )
 
+    model_details = f"""
+    <h3 class="nba-h3">Paper record by bet type</h3>
+    {record_block}
+    <p class="nba-section-note">Price-gap plays vs score model (side-by-side): {_esc(model_filter_note)}</p>
+    <h3 class="nba-h3">Sharp money (display only)</h3>
+    <p class="nba-section-note">Action Network bet% vs money% — {_esc(sharp_money_note)}</p>
+    {sharp_money_block}
+    <h3 class="nba-h3">Score model paper track</h3>
+    <p class="nba-section-note">Stage-3 possession ridge projections vs consensus/Pinnacle — frozen at tip, graded after ESPN finals.</p>
+    {score_block}
+    <h3 class="nba-h3">Injury lag (paper)</h3>
+    <p class="nba-section-note">ESPN Out/Doubtful changes where the line may not have fully adjusted yet.</p>
+    {injury_block}
+    <h3 class="nba-h3">Near-miss candidates</h3>
+    <p class="nba-section-note">Positive EV that did not qualify for the price-edge paper card. Not logged or graded.</p>
+    <h4 class="nba-h4">Game lines</h4>
+    {game_possible_table}
+    <h4 class="nba-h4">Player props</h4>
+    {prop_possible_table}
+    <h3 class="nba-h3">Price-edge tables (export)</h3>
+    <h4 class="nba-h4">Game line picks</h4>
+    {game_picks_table}
+    <h4 class="nba-h4">Prop picks</h4>
+    {prop_picks_table}
+    """
+
     in_window = pub_report.get("in_window")
     window = pub_report.get("paper_window") or {}
     window_s = ""
@@ -625,22 +897,12 @@ def render_nba_page_html(
         body_class=body_class,
         updated=_esc(updated),
         mode_note=_esc(mode_note),
-        n_game=n_game,
-        n_prop=n_prop,
-        n_possible_game=n_possible_game,
-        n_possible_prop=n_possible_prop,
-        empty_live_notice=empty_live_notice,
-        game_picks_table=game_picks_table,
-        game_possible_table=game_possible_table,
-        prop_picks_table=prop_picks_table,
-        prop_possible_table=prop_possible_table,
-        record_block=record_block,
+        next_scan=_esc(next_scan),
+        price_edge_section=price_edge_section,
+        score_modeling_section=score_modeling_section,
+        score_record_html=score_record_html,
         ledger_table=ledger_table,
-        score_model_block=score_block,
-        injury_lag_block=injury_block,
-        model_filter_note=_esc(model_filter_note),
-        sharp_money_block=sharp_money_block,
-        sharp_money_note=_esc(sharp_money_note),
+        model_details=model_details,
         window_note=_esc(window_s + window_flag),
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
@@ -687,13 +949,15 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
 
     score_model_rows: list[dict[str, Any]] = []
     injury_lag_rows: list[dict[str, Any]] = []
+    score_model_summary: dict[str, Any] = {}
     if live_scan:
         try:
             from sharp_scout.nba.score_model.injury_lag import open_entries_for_page
-            from sharp_scout.nba.score_model.paper import slate_projections_for_page
+            from sharp_scout.nba.score_model.paper import load_paper_store, slate_projections_for_page
 
             score_model_rows = slate_projections_for_page()
             injury_lag_rows = open_entries_for_page()
+            score_model_summary = load_paper_store().get("summary") or {}
         except Exception:  # noqa: BLE001
             pass
 
@@ -704,6 +968,7 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
         analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         score_model_rows=score_model_rows,
         injury_lag_rows=injury_lag_rows,
+        score_model_summary=score_model_summary,
     )
     (out / "nba.html").write_text(html)
     return out / "nba.html"
@@ -734,11 +999,13 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   .nba-hero h1 {{ font-family: var(--font-serif); font-size: 38px; font-weight: 500; margin: 10px 0 4px; }}
   .nba-hero p {{ color: var(--color-text-muted); font-size: 14px; font-weight: 300; }}
   .nba-note {{ font-size: 13px; color: var(--color-text-muted); margin: 8px 0 20px; line-height: 1.55; }}
-  .nba-h2 {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; }}
+  .nba-h2 {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }}
   .nba-h3 {{ font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: var(--color-text-muted); margin: 18px 0 8px; }}
+  .nba-h4 {{ font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--color-text-muted); margin: 14px 0 6px; }}
   .nba-section-note {{ font-size: 12.5px; color: var(--color-text-muted); margin: 0 0 10px; line-height: 1.5; }}
-  .nba-display-only {{ color: var(--color-text-muted); font-size: 12px; font-weight: 600; }}
+  .nba-section-record {{ font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--color-text-muted); }}
   .nba-lean-cell {{ max-width: 520px; }}
   .nba-lean-main {{ font-size: 14px; line-height: 1.45; margin-bottom: 4px; }}
   .nba-lean-meta {{ font-size: 12px; color: var(--color-text-muted); line-height: 1.4; }}
@@ -749,22 +1016,41 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   .nba-rec-val {{ font-size: 22px; font-weight: 800; margin: 4px 0; }}
   .nba-rec-sub {{ font-size: 11px; color: var(--color-text-muted); }}
   .nba-wrap .table-wrap {{ overflow-x: auto; }}
-  .nba-empty-live {{
+  .nba-picks-empty {{
     border: 2px solid var(--color-border); background: var(--color-bg);
-    text-align: center; font-size: 15px; font-weight: 600; padding: 20px 16px; margin: 16px 0;
+    padding: 18px 16px; margin: 0 0 12px; line-height: 1.55; font-size: 15px;
   }}
-  .nba-no-live-scan .nba-candidates {{ display: none; }}
+  .nba-picks-empty-soft {{ border-style: dashed; font-size: 14px; color: var(--color-text-muted); }}
+  .nba-picks-empty-sub {{ font-size: 13px; color: var(--color-text-muted); margin-top: 8px; font-weight: 400; }}
+  .nba-pick-cards {{ margin: 0 0 8px; }}
+  .nba-pick-card {{ margin-bottom: 12px; }}
+  .nba-pick-card .play-title {{ font-size: clamp(20px, 5vw, 24px); }}
+  .nba-stake-dollars {{ display: block; font-size: 10px; font-weight: 500; color: var(--color-text-muted); margin-top: 2px; }}
+  .nba-tag-row {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }}
+  .nba-gap-badge {{ font-size: 11px; letter-spacing: 0.04em; }}
+  .nba-score-secondary {{ font-size: 12px; color: var(--color-text-muted); margin-top: 10px; line-height: 1.45; }}
+  .nba-model-details {{ margin: 28px 0 16px; border: 1px solid var(--color-border); background: var(--color-bg); padding: 4px 16px 16px; }}
+  .nba-model-details > summary {{
+    cursor: pointer; font-family: var(--font-serif); font-size: 20px; font-weight: 500;
+    padding: 14px 0; list-style: none; color: var(--color-text-muted);
+  }}
+  .nba-model-details > summary::-webkit-details-marker {{ display: none; }}
   .nba-model-tag {{ font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }}
   .nba-model-agree {{ background: #dcfce7; color: #166534; }}
   .nba-model-disagree {{ background: #fee2e2; color: #991b1b; }}
   .nba-model-neutral {{ background: #f3f4f6; color: #374151; }}
-  .nba-tag-stack {{ display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }}
   .nba-sharp-tag {{ font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }}
   .nba-sharp-with {{ background: #dbeafe; color: #1e40af; }}
   .nba-sharp-against {{ background: #ffedd5; color: #9a3412; }}
   .nba-sharp-none {{ background: #f3f4f6; color: #4b5563; }}
   .nba-sharp-nodata {{ background: transparent; color: #9ca3af; font-weight: 600; }}
-  @media (max-width: 640px) {{ .nba-hero h1 {{ font-size: 29px; }} }}
+  @media (max-width: 640px) {{
+    .nba-hero h1 {{ font-size: 29px; }}
+    .nba-wrap .plays-table thead {{ display: none; }}
+    .nba-wrap .plays-table tr {{ display: block; border: 1px solid var(--color-border); margin-bottom: 10px; padding: 8px 10px; }}
+    .nba-wrap .plays-table td {{ display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border: none; }}
+    .nba-wrap .plays-table td::before {{ content: attr(data-label); font-weight: 700; font-size: 10px; text-transform: uppercase; color: var(--color-text-muted); }}
+  }}
 </style>
 </head>
 <body class="{body_class}">
@@ -781,44 +1067,25 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   <div class="nba-hero">
     {ssq_logo}
     <h1>NBA — paper testing</h1>
-    <p>{mode_note} · {n_game} line picks · {n_prop} prop picks · {n_possible_game}+{n_possible_prop} possible · updated {updated}</p>
+    <p>{mode_note} · updated {updated} · next scan {next_scan}</p>
   </div>
   <p class="nba-note">
     Paper/test plays only — not Sharp Plays, not on the NFL card, and not graded on football records.
     {window_note}
-    EV uses quarter-Kelly staking with caps ($10/unit). Retail books: FanDuel first, then DraftKings.
+    Price-edge picks use quarter-Kelly staking with caps ($10/unit). Score modeling is display-only (≥3 pt vs consensus).
   </p>
-  {empty_live_notice}
-  <h2 class="nba-h2">Paper record by bet type</h2>
-  {record_block}
-  <p class="nba-section-note">Price-gap plays vs score model (side-by-side): {model_filter_note}</p>
-  <h2 class="nba-h2">Sharp money (display only)</h2>
-  <p class="nba-section-note">Action Network bet% vs money% — {sharp_money_note} Gap ≥10 pts tags &ldquo;with sharps&rdquo; on your side or &ldquo;against sharps&rdquo; when the other side shows sharp action. Does not change picks or sizing.</p>
-  {sharp_money_block}
-  <h2 class="nba-h2">Score model paper track</h2>
-  <p class="nba-section-note">Stage-3 possession ridge projections vs consensus/Pinnacle — frozen at tip, graded after ESPN finals.</p>
-  {score_model_block}
-  <h2 class="nba-h2">Injury lag (paper)</h2>
-  <p class="nba-section-note">ESPN Out/Doubtful changes where the line may not have fully adjusted yet.</p>
-  {injury_lag_block}
-  <div class="nba-candidates">
-  <h2 class="nba-h2">Game lines</h2>
-  <h3 class="nba-h3">Picks</h3>
-  <p class="nba-section-note">Qualifying paper plays (EV floor, sharp fair, Kelly sizing, and portfolio caps).</p>
-  {game_picks_table}
-  <h3 class="nba-h3">Possible picks</h3>
-  <p class="nba-section-note">Tentative leans with positive EV that did not fully qualify yet. Not logged or graded.</p>
-  {game_possible_table}
-  <h2 class="nba-h2">Player props</h2>
-  <h3 class="nba-h3">Picks</h3>
-  <p class="nba-section-note">Qualifying paper props that pass model, consensus, and staking rules.</p>
-  {prop_picks_table}
-  <h3 class="nba-h3">Possible picks</h3>
-  <p class="nba-section-note">Tentative prop leans — display only until they pass all rules.</p>
-  {prop_possible_table}
-  </div>
-  <h2 class="nba-h2">Graded paper ledger</h2>
+  <h2 class="nba-h2">Price-edge picks</h2>
+  <p class="nba-section-note">Qualifying paper card plays (EV floor, sharp fair, Kelly sizing, portfolio caps).</p>
+  <div class="nba-pick-cards">{price_edge_section}</div>
+  <h2 class="nba-h2">Score modeling {score_record_html}</h2>
+  <p class="nba-section-note">Model projection vs consensus — one card per game with ≥3 pt spread or total gap (display only, not logged as price-edge picks).</p>
+  <div class="nba-pick-cards">{score_modeling_section}</div>
+  <h2 class="nba-h2">Graded paper results</h2>
   {ledger_table}
+  <details class="nba-model-details">
+    <summary>Model details</summary>
+    {model_details}
+  </details>
 </div>
 <div class="footer">
   Sharp Scout Quant · research and entertainment only · not betting advice.

@@ -98,6 +98,12 @@ def append_nba_signals(signals: list[dict[str, Any]], *, path: Path | None = Non
             "model_edge_pts": s.get("model_edge_pts"),
             "model_proj_margin": s.get("model_proj_margin"),
             "model_proj_total": s.get("model_proj_total"),
+            "sharp_money_tag": s.get("sharp_money_tag"),
+            "sharp_money_gap_pt": s.get("sharp_money_gap_pt"),
+            "sharp_money_snapshot_at": s.get("sharp_money_snapshot_at"),
+            "sharp_money_evaluated_at": datetime.now(timezone.utc).isoformat()
+            if s.get("sharp_money_tag")
+            else None,
             "filter_passed": True,
             "pipeline": "nba_shadow",
             "status": "paper",
@@ -148,6 +154,9 @@ def ledger_play_to_signal(play: dict[str, Any]) -> dict[str, Any]:
         "fair_source": play.get("fair_source"),
         "sharp_book": play.get("sharp_book"),
         "model_mean": play.get("model_mean"),
+        "model_alignment": play.get("model_alignment"),
+        "sharp_money_tag": play.get("sharp_money_tag"),
+        "sharp_money_gap_pt": play.get("sharp_money_gap_pt"),
         "filter_passed": True,
         "pipeline": play.get("pipeline") or "nba_shadow",
         "status": play.get("status") or "paper",

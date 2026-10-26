@@ -290,6 +290,20 @@ def run_nba_shadow(
         except Exception as exc:  # noqa: BLE001
             logger.warning("NBA model filter annotation skipped: %s", exc)
 
+    if not use_demo:
+        try:
+            from sharp_scout.nba.sharp_splits.filter import (
+                annotate_signals_with_sharp_money,
+                refresh_open_ledger_sharp_tags,
+            )
+
+            annotate_signals_with_sharp_money(events, signals)
+            annotate_signals_with_sharp_money(events, possible_signals)
+            if refresh_open_ledger_sharp_tags(ledger):
+                save_nba_ledger(ledger)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("NBA sharp-money annotation skipped: %s", exc)
+
     signals_for_ledger = list(signals)
     if not use_demo:
         signals, possible_signals = filter_demo_from_signal_lists(signals, possible_signals)

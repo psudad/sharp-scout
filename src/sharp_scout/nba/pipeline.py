@@ -140,9 +140,12 @@ def run_nba_shadow(
         "qualified_prop_edges": 0,
         "prop_picks_pre_cap": 0,
         "prop_possible_pre_cap": 0,
+        "props_skipped_thin_rate_file": [],
     }
 
     file_rate_keys = set((rates or {}).keys())
+    # Live shadow: do not scan props when the on-disk rate file is a stub (measurement lane).
+    _min_file_rates_for_props = 8
     prop_scan_stats: dict[str, int] = {}
 
     prop_events = events
@@ -151,26 +154,38 @@ def run_nba_shadow(
             : settings.nba_max_prop_events_per_run
         ]
         prop_diagnostics["events_in_horizon"] = len(horizon_shells)
-        merged: list[dict[str, Any]] = []
-        for shell in horizon_shells:
-            eid = shell.get("event_id")
-            if not eid:
-                continue
-            try:
-                detail = client.fetch_event_props(
-                    str(eid),
-                    markets=",".join(settings.nba_prop_market_list),
-                    regions=settings.nba_prop_regions,
-                    sport=NBA.odds_sport_key,
-                )
-            except Exception as exc:  # noqa: BLE001
-                prop_diagnostics["fetch_failures"] += 1
-                logger.warning("NBA props fetch skipped for %s: %s", eid, exc)
-                continue
-            merged.append(detail)
-            record_nba_snapshot([detail], sharp_only=False)
-        prop_events = merged
-        prop_diagnostics["events_fetched"] = len(merged)
+        if len(rates or {}) < _min_file_rates_for_props:
+            prop_diagnostics["props_skipped_thin_rate_file"] = [
+                str(e.get("event_id")) for e in horizon_shells if e.get("event_id")
+            ]
+            logger.info(
+                "NBA props skipped (thin rate file): %d players in file, need %d",
+                len(rates or {}),
+                _min_file_rates_for_props,
+            )
+            prop_events = []
+            prop_diagnostics["events_fetched"] = 0
+        else:
+            merged: list[dict[str, Any]] = []
+            for shell in horizon_shells:
+                eid = shell.get("event_id")
+                if not eid:
+                    continue
+                try:
+                    detail = client.fetch_event_props(
+                        str(eid),
+                        markets=",".join(settings.nba_prop_market_list),
+                        regions=settings.nba_prop_regions,
+                        sport=NBA.odds_sport_key,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    prop_diagnostics["fetch_failures"] += 1
+                    logger.warning("NBA props fetch skipped for %s: %s", eid, exc)
+                    continue
+                merged.append(detail)
+                record_nba_snapshot([detail], sharp_only=False)
+            prop_events = merged
+            prop_diagnostics["events_fetched"] = len(merged)
     elif use_demo:
         prop_events = events
 

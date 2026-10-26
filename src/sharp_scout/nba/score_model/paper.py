@@ -18,6 +18,22 @@ logger = logging.getLogger(__name__)
 
 PAPER_PATH = DATA_DIR / "paper" / "nba_score_model.json"
 BLEND_W = 0.10
+_BLOCKED_EVENT_IDS = frozenset({"test", "demo"})
+
+
+def is_live_paper_event_id(event_id: Any) -> bool:
+    """Reject demo/test ids from live NBA score-model paper tracking."""
+    eid = str(event_id or "").strip().lower()
+    if not eid or eid in _BLOCKED_EVENT_IDS or eid.startswith("demo-"):
+        return False
+    return len(eid) >= 10
+
+
+def _scrub_test_games(store: dict[str, Any]) -> None:
+    before = len(store.get("games") or [])
+    store["games"] = [g for g in store.get("games") or [] if is_live_paper_event_id(g.get("event_id"))]
+    if len(store["games"]) < before:
+        logger.info("score paper: dropped %d non-live event id(s)", before - len(store["games"]))
 
 
 def _empty_store() -> dict[str, Any]:
@@ -34,6 +50,7 @@ def load_paper_store(path: Any = None) -> dict[str, Any]:
         return _empty_store()
     raw.setdefault("games", [])
     raw.setdefault("summary", {})
+    _scrub_test_games(raw)
     return raw
 
 
@@ -147,7 +164,7 @@ def record_score_model_scan(
         if not kickoff_in_horizon(ev.get("commence_time"), hours, now=now):
             continue
         eid = str(ev.get("event_id") or "")
-        if not eid:
+        if not eid or not is_live_paper_event_id(eid):
             continue
         home = normalize_nba_team(str(ev.get("home_team") or ""))
         away = normalize_nba_team(str(ev.get("away_team") or ""))

@@ -12,6 +12,7 @@ from sharp_scout.nba.score_model.model_filter import (
 from sharp_scout.nba.score_model.injury_lag import load_store, record_injury_lag_scan, save_store as save_injury_store
 from sharp_scout.nba.score_model.player_impact import example_impacts, margin_impact_pts
 from sharp_scout.nba.score_model.paper import (
+    is_live_paper_event_id,
     load_paper_store,
     record_score_model_scan,
     save_paper_store,
@@ -23,7 +24,7 @@ from sharp_scout.nba.score_model.engine import V2Engine, V2Params
 
 def _mock_event(
     *,
-    eid: str = "ev1",
+    eid: str = "0123456789abcdef0123456789ab",
     home: str = "BOS",
     away: str = "NYK",
 ) -> dict:
@@ -208,19 +209,42 @@ def test_void_score_paper_outside_horizon(tmp_path):
     assert summarize_score_paper(store)["n_graded"] == 0
 
 
+def test_is_live_paper_event_id_rejects_test():
+    assert not is_live_paper_event_id("test")
+    assert is_live_paper_event_id("b9f6f078c66480af12ca8bcc44969097")
+
+
+def test_load_paper_store_drops_test_event(tmp_path):
+    store_path = tmp_path / "paper.json"
+    store_path.write_text(
+        '{"games":[{"event_id":"test","home":"BOS","away":"NYK","scans":[]},'
+        '{"event_id":"abc1234567890","home":"BOS","away":"NYK","scans":[]}]}'
+    )
+    from sharp_scout.nba.score_model import paper as paper_mod
+
+    old = paper_mod.PAPER_PATH
+    try:
+        paper_mod.PAPER_PATH = store_path
+        store = load_paper_store(store_path)
+        assert len(store["games"]) == 1
+        assert store["games"][0]["event_id"] == "abc1234567890"
+    finally:
+        paper_mod.PAPER_PATH = old
+
+
 def test_record_score_model_skips_far_kickoff(tmp_path, monkeypatch):
     store_path = tmp_path / "paper.json"
     monkeypatch.setattr("sharp_scout.nba.score_model.paper.PAPER_PATH", store_path)
     engine = V2Engine(params=V2Params(), stage=3)
     now = datetime(2026, 10, 25, 12, 0, tzinfo=timezone.utc)
-    near = _mock_event(eid="near", home="BOS", away="NYK")
-    far = _mock_event(eid="far", home="LAL", away="GSW")
+    near = _mock_event(eid="0123456789abcdef0123456789aa", home="BOS", away="NYK")
+    far = _mock_event(eid="0123456789abcdef0123456789bb", home="LAL", away="GSW")
     far["commence_time"] = datetime(2026, 12, 25, 17, 0, tzinfo=timezone.utc)
     record_score_model_scan([near, far], engine=engine, now=now, horizon_hours=36.0)
     store = load_paper_store(store_path)
     ids = {g["event_id"] for g in store["games"]}
-    assert "near" in ids
-    assert "far" not in ids
+    assert near["event_id"] in ids
+    assert far["event_id"] not in ids
 
 
 def test_model_view_uses_engine():

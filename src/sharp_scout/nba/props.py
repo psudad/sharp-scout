@@ -11,6 +11,8 @@ from scipy.stats import norm
 from sharp_scout.config import get_settings
 from sharp_scout.nba.fair import prop_consensus_over_prob
 from sharp_scout.nba.projections import PlayerRateRow, load_rate_table, project_mean, projected_minutes
+from sharp_scout.nba.rosters import player_team_for_event
+from sharp_scout.nba.teams import normalize_nba_team
 from sharp_scout.nba.staking import stake_units
 from sharp_scout.phase3.market import anchor_probability, fair_probs_from_two_way
 from sharp_scout.utils.odds import expected_value
@@ -115,6 +117,8 @@ def scan_prop_opportunities(
     table = rates if rates is not None else load_rate_table()
     if file_rate_keys is None:
         file_rate_keys = set(table.keys())
+    home = normalize_nba_team(str(event.get("home_team") or ""))
+    away = normalize_nba_team(str(event.get("away_team") or ""))
     thr_base = settings.nba_prop_ev_threshold
     retail_order = [settings.nba_primary_retail_book, settings.nba_secondary_retail_book]
     books = event.get("bookmakers") or {}
@@ -162,6 +166,11 @@ def scan_prop_opportunities(
                 is_alt = main_line.get((pk, market), ln) != ln
                 file_backed = pk in file_rate_keys
                 row = table.get(pk) if file_backed else None
+                rate_team = row.team if row else None
+                if not player_team_for_event(
+                    str(player_name), home=home, away=away, rate_team=rate_team
+                ):
+                    continue
 
                 for side in ("over", "under"):
                     o = sides[side]

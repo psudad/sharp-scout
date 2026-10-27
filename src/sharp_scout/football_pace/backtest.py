@@ -2,27 +2,21 @@
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any
 
 import pandas as pd
 
-from sharp_scout.data.nfl_injuries import injuries_for_team_week, load_nfl_injuries
 from sharp_scout.football_pace.config import NCAAF_PACE_CONFIG, NFL_PACE_CONFIG, SportPaceConfig
+from sharp_scout.football_pace.market_blend import BlendParams
 from sharp_scout.football_pace.engine import PaceEngine
 from sharp_scout.football_pace.games import PaceGame, load_ncaaf_games, load_nfl_games
-from sharp_scout.football_pace.injury_adjust import project_with_injuries
+from sharp_scout.football_pace.injury_context import InjuryBacktestContext, build_injury_context
+from sharp_scout.football_pace.pipeline import project_game
 from sharp_scout.football_pace.lines import edge_bucket_label, grade_ats, grade_total, roi_at_110
-from sharp_scout.football_pace.player_value import (
-    PlayerValueTracker,
-    attach_nflverse_positions,
-    build_nfl_game_touch_index,
-    build_ncaaf_game_touch_index,
-)
-from sharp_scout.data.nflfastr import load_pbp
-from sharp_scout.data.cfbfastr import load_cfb_pbp
 
 
 @dataclass
@@ -53,50 +47,6 @@ class GradedRow:
     total_bucket: str | None
     spread_bucket_adj: str | None
     total_bucket_adj: str | None
-
-
-@dataclass
-class InjuryBacktestContext:
-    sport: str
-    tracker: PlayerValueTracker = field(default_factory=lambda: PlayerValueTracker("nfl"))
-    touch_by_game: dict[str, list[tuple[str, str, float]]] = field(default_factory=dict)
-    injuries_df: pd.DataFrame = field(default_factory=pd.DataFrame)
-    historical_injuries: bool = False
-
-    def injuries_for(self, g: PaceGame) -> tuple[list[dict], list[dict]]:
-        if not self.historical_injuries or self.injuries_df.empty:
-            return [], []
-        home = injuries_for_team_week(self.injuries_df, season=g.season, week=g.week, team=g.home)
-        away = injuries_for_team_week(self.injuries_df, season=g.season, week=g.week, team=g.away)
-        for row in home + away:
-            self.tracker.set_position(row["team"], row["player"], row.get("position") or "")
-        return home, away
-
-    def roster_names(self, team: str) -> list[str]:
-        team = team.upper()
-        names: list[str] = []
-        for (t, _key), _ in self.tracker.player_touches.items():
-            if t == team:
-                names.append(_key)
-        for (t, _key) in self.tracker.roster_positions:
-            if t == team:
-                names.append(_key)
-        return names
-
-
-def build_injury_context(sport: str, seasons: list[int]) -> InjuryBacktestContext:
-    ctx = InjuryBacktestContext(sport=sport, tracker=PlayerValueTracker(sport))
-    if sport == "nfl":
-        pbp = load_pbp(seasons)
-        ctx.touch_by_game = build_nfl_game_touch_index(pbp)
-        ctx.injuries_df = load_nfl_injuries(seasons)
-        ctx.historical_injuries = not ctx.injuries_df.empty
-        attach_nflverse_positions(ctx.tracker)
-    elif sport == "ncaaf":
-        pbp = load_cfb_pbp(seasons)
-        ctx.touch_by_game = build_ncaaf_game_touch_index(pbp)
-        ctx.historical_injuries = False
-    return ctx
 
 
 def _default_plays(cfg: SportPaceConfig) -> float:
@@ -163,7 +113,7 @@ def walk_forward_backtest(
         has_scores = g.home_score is not None and g.away_score is not None
         has_lines = g.spread_home is not None and g.total_line is not None
         if has_scores and has_lines:
-            proj = engine.project(g.home, g.away)
+            proj, adj = project_game(engine, g, cfg, injury_ctx=ctx)
             adj_fields: dict[str, Any] = {
                 "proj_margin_adj": None,
                 "proj_total_adj": None,
@@ -174,28 +124,9 @@ def walk_forward_backtest(
                 "spread_bucket_adj": None,
                 "total_bucket_adj": None,
             }
-            if ctx and ctx.historical_injuries:
-                home_inj, away_inj = ctx.injuries_for(g)
-                if home_inj or away_inj:
-                    adj = project_with_injuries(
-                        proj,
-                        home_injuries=home_inj,
-                        away_injuries=away_inj,
-                        tracker=ctx.tracker,
-                        home_roster=ctx.roster_names(g.home),
-                        away_roster=ctx.roster_names(g.away),
-                    )
-                    graded_adj = _grade_row(g, adj, cfg, suffix="adj")
-                    adj_fields = {
-                        "proj_margin_adj": graded_adj["proj_margin_adj"],
-                        "proj_total_adj": graded_adj["proj_total_adj"],
-                        "spread_edge_adj": graded_adj["spread_edge_adj"],
-                        "total_edge_adj": graded_adj["total_edge_adj"],
-                        "spread_result_adj": graded_adj["spread_result_adj"],
-                        "total_result_adj": graded_adj["total_result_adj"],
-                        "spread_bucket_adj": graded_adj["spread_bucket_adj"],
-                        "total_bucket_adj": graded_adj["total_bucket_adj"],
-                    }
+            if adj is not None:
+                graded_adj = _grade_row(g, adj, cfg, suffix="adj")
+                adj_fields = {k: graded_adj[k] for k in adj_fields}
             graded = _grade_row(g, proj, cfg)
             rows.append(
                 GradedRow(
@@ -319,12 +250,49 @@ def summarize_graded(
     }
 
 
-def run_backtest_for_sport(sport: str, seasons: list[int]) -> tuple[pd.DataFrame, dict[str, Any]]:
+def legacy_pace_config(sport: str) -> SportPaceConfig:
+    """Pre-tune defaults: no market blend, lower min edges (high play rate)."""
+    base = NFL_PACE_CONFIG if sport == "nfl" else NCAAF_PACE_CONFIG
+    no_blend = BlendParams(0.0, 0.0, max_edge_spread=None, max_edge_total=None)
     if sport == "nfl":
-        cfg = NFL_PACE_CONFIG
+        return replace(
+            base,
+            min_edge_spread=2.5,
+            min_edge_total=2.5,
+            lean_min_edge_spread=1.5,
+            lean_min_edge_total=1.5,
+            blend=no_blend,
+        )
+    return replace(
+        base,
+        min_edge_spread=3.5,
+        min_edge_total=3.5,
+        lean_min_edge_spread=2.5,
+        lean_min_edge_total=2.5,
+        blend=no_blend,
+    )
+
+
+def _play_rate_pct(summary: dict[str, Any]) -> float:
+    n = summary.get("games_with_lines") or 0
+    if n == 0:
+        return 0.0
+    sp = summary.get("spread") or {}
+    tot = summary.get("total") or {}
+    return round(((sp.get("picks") or 0) + (tot.get("picks") or 0)) / (2.0 * n) * 100.0, 2)
+
+
+def run_backtest_for_sport(
+    sport: str,
+    seasons: list[int],
+    *,
+    cfg: SportPaceConfig | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    if sport == "nfl":
+        cfg = cfg or NFL_PACE_CONFIG
         games = load_nfl_games(seasons)
     elif sport == "ncaaf":
-        cfg = NCAAF_PACE_CONFIG
+        cfg = cfg or NCAAF_PACE_CONFIG
         games = load_ncaaf_games(seasons)
     else:
         raise ValueError(f"unknown sport {sport}")
@@ -399,6 +367,88 @@ def _fmt_metrics(m: dict[str, Any]) -> str:
         f"\n| {m.get('picks', 0)} | {m.get('wins', 0)}-{m.get('losses', 0)}-{m.get('pushes', 0)} | "
         f"{m.get('win_pct')}% | {m.get('roi_pct_at_110')}% | {m.get('clear_rate')}% |"
     )
+
+
+def compact_summary_row(label: str, summary: dict[str, Any], *, variant_key: str = "unadjusted") -> str:
+    block = summary.get(variant_key) or {}
+    sp = block.get("spread") or {}
+    tot = block.get("total") or {}
+    rate = _play_rate_pct(block)
+    return (
+        f"| {label} | {block.get('games_with_lines', 0)} | "
+        f"{sp.get('picks', 0)} | {sp.get('wins', 0)}-{sp.get('losses', 0)}-{sp.get('pushes', 0)} | "
+        f"{sp.get('win_pct')}% | {sp.get('roi_pct_at_110')}% | {rate}% | "
+        f"{tot.get('picks', 0)} | {tot.get('wins', 0)}-{tot.get('losses', 0)}-{tot.get('pushes', 0)} | "
+        f"{tot.get('win_pct')}% | {tot.get('roi_pct_at_110')}% |"
+    )
+
+
+def comparison_markdown(
+    sport: str,
+    *,
+    legacy_is: dict[str, Any],
+    tuned_is: dict[str, Any],
+    legacy_oos: dict[str, Any],
+    tuned_oos: dict[str, Any],
+    tuning_params: dict[str, Any] | None,
+    nfl_injury_band_5_7: dict[str, Any] | None = None,
+) -> str:
+    hdr = (
+        "| Sample | Model | Games | Spread picks | Spread W-L-P | Spread Win% | Spread ROI | Play rate% | "
+        "Total picks | Total W-L-P | Total Win% | Total ROI |"
+        "\n|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"
+    )
+    lines = [
+        f"## {sport.upper()} — tuned vs legacy (walk-forward)",
+        "",
+        "Play rate = (spread picks + total picks) / (2 × games with lines). "
+        "**Tuned** uses `data/shadow/football_pace/tuning.json` (market blend + selective min edges). "
+        "**Legacy** = no blend, NFL 2.5 / NCAAF 3.5 pt mins.",
+        "",
+    ]
+    if tuning_params:
+        lines.append(f"Tuned params: `{json.dumps(tuning_params, default=str)}`")
+        lines.append("")
+
+    def block(title: str, leg: dict, tun: dict, variant: str) -> list[str]:
+        vlabel = "Unadjusted" if variant == "unadjusted" else "Injury-adjusted"
+        return [
+            f"### {title} — {vlabel}",
+            "",
+            hdr,
+            compact_summary_row("In-sample 2023–2024 legacy", leg, variant_key=variant),
+            compact_summary_row("In-sample 2023–2024 tuned", tun, variant_key=variant),
+            compact_summary_row("OOS 2025–2026 legacy", legacy_oos, variant_key=variant),
+            compact_summary_row("OOS 2025–2026 tuned", tuned_oos, variant_key=variant),
+            "",
+        ]
+
+    lines.extend(block("In-sample vs OOS", legacy_is, tuned_is, "unadjusted"))
+    lines.extend(block("In-sample vs OOS", legacy_is, tuned_is, "injury_adjusted"))
+
+    bucket = nfl_injury_band_5_7 if sport == "nfl" else None
+    lines.extend(
+        [
+            "### NFL injury-adjusted spread bucket 5–7 (OOS 2025–2026, tuned blend, min edge 5.0)",
+            "",
+        ]
+    )
+    if sport != "nfl":
+        lines.append("_N/A for NCAAF (no historical injury backtest)._")
+    elif bucket:
+        note = bucket.get("note") or ""
+        lines.append(
+            f"| Picks | W-L-P | Win% | ROI @ -110 |"
+            f"\n|---:|---:|---:|---:|"
+            f"\n| {bucket['picks']} | {bucket['wins']}-{bucket['losses']}-{bucket['pushes']} | "
+            f"{bucket['win_pct']}% | {bucket['roi_pct_at_110']}% |"
+        )
+        if note:
+            lines.append(f"\n_{note}_")
+    else:
+        lines.append("_No qualifying picks in 5–7 bucket on holdout._")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def _fmt_bucket_table(buckets: dict[str, dict[str, Any]]) -> str:

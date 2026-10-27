@@ -105,7 +105,7 @@ def _get_json(url: str) -> dict[str, Any] | None:
         return None
 
 
-def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
+def _fetch_scoreboard_raw(params: dict[str, Any]) -> list[dict[str, Any]]:
     qs = urlencode(params)
     payload = _get_json(f"{ESPN_SCOREBOARD}?{qs}")
     events = payload.get("events") if isinstance(payload, dict) else None
@@ -115,9 +115,59 @@ def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
     if not events:
         logger.warning("ESPN CFB scoreboard returned no events for %s", params)
         return []
+    return list(events)
 
+
+def _parse_event_slate(event: dict[str, Any]) -> dict[str, Any] | None:
+    comps = event.get("competitions") or []
+    if not comps:
+        return None
+    comp = comps[0]
+    home_team = away_team = None
+    for side in comp.get("competitors") or []:
+        team = side.get("team") or {}
+        code = _team_code(team)
+        if side.get("homeAway") == "home":
+            home_team = code
+        else:
+            away_team = code
+    if not home_team or not away_team:
+        return None
+    season = week = None
+    season_block = event.get("season") or {}
+    if season_block.get("year") is not None:
+        try:
+            season = int(season_block["year"])
+        except (TypeError, ValueError):
+            season = None
+    week_block = event.get("week")
+    if week_block is not None:
+        try:
+            week = int(week_block.get("number") if isinstance(week_block, dict) else week_block)
+        except (TypeError, ValueError):
+            week = None
+    return {
+        "event_id": str(event.get("id") or comp.get("id") or ""),
+        "home_team": home_team,
+        "away_team": away_team,
+        "season": season,
+        "week": week,
+    }
+
+
+def fetch_espn_cfb_week_slate(season: int, week: int) -> dict[str, dict[str, Any]]:
+    """Map ESPN event id → home/away team codes (scheduled or final)."""
+    by_id: dict[str, dict[str, Any]] = {}
+    for event in _fetch_scoreboard_raw({"year": season, "seasontype": 2, "week": week, "limit": 400}):
+        parsed = _parse_event_slate(event)
+        if parsed and parsed["event_id"]:
+            by_id[parsed["event_id"]] = parsed
+    return by_id
+
+
+def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for event in events:
+    for event in _fetch_scoreboard_raw(params):
         parsed = _parse_event(event)
         if parsed:
             rows.append(parsed)

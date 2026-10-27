@@ -77,7 +77,7 @@ def _parse_event(event: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
+def _fetch_scoreboard_raw(params: dict[str, Any]) -> list[dict[str, Any]]:
     qs = urlencode(params)
     payload = _get_json(f"{ESPN_SCOREBOARD}?{qs}")
     events = payload.get("events") if isinstance(payload, dict) else None
@@ -87,9 +87,12 @@ def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
     if not events:
         logger.warning("ESPN NFL scoreboard returned no events for %s", params)
         return []
+    return list(events)
 
+
+def _fetch_scoreboard(params: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for event in events:
+    for event in _fetch_scoreboard_raw(params):
         parsed = _parse_event(event)
         if parsed:
             rows.append(parsed)
@@ -188,7 +191,11 @@ def fetch_espn_nfl_roster(team: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     rank: dict[str, int] = {}
     for group in payload.get("athletes") or []:
-        pos = (group.get("position") or {}).get("abbreviation") or group.get("position") or ""
+        pos_raw = group.get("position")
+        if isinstance(pos_raw, dict):
+            pos = pos_raw.get("abbreviation") or pos_raw.get("name") or ""
+        else:
+            pos = pos_raw or ""
         pos = str(pos)
         for athlete in group.get("items") or []:
             name = athlete.get("displayName") or athlete.get("fullName") or ""

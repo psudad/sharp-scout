@@ -41,7 +41,7 @@ def _train_engine_and_tracker(
     games: list[PaceGame], cfg, sport: str
 ) -> tuple[PaceEngine, PlayerValueTracker]:
     completed = [g for g in games if g.home_score is not None and g.away_score is not None]
-    from sharp_scout.football_pace.backtest import build_injury_context
+    from sharp_scout.football_pace.injury_context import build_injury_context
 
     seasons = sorted({g.season for g in games})
     ctx = build_injury_context(sport, seasons)
@@ -159,7 +159,8 @@ def _pick_ou(edge: float | None, min_edge: float) -> str | None:
 
 def record_and_grade_completed(sport: str, season: int) -> dict[str, Any]:
     """Append graded rows for completed games in season to shadow store."""
-    from sharp_scout.football_pace.backtest import build_injury_context, walk_forward_backtest
+    from sharp_scout.football_pace.backtest import walk_forward_backtest
+    from sharp_scout.football_pace.injury_context import build_injury_context
 
     if sport == "nfl":
         cfg = NFL_PACE_CONFIG

@@ -41,9 +41,10 @@ def _parse_gameday(val) -> datetime | None:
         return None
     try:
         ts = pd.Timestamp(val)
-        if ts.tzinfo is None:
-            return ts.to_pydatetime().replace(tzinfo=datetime.now().astimezone().tzinfo)
-        return ts.to_pydatetime()
+        dt = ts.to_pydatetime()
+        if dt.tzinfo is not None:
+            dt = dt.replace(tzinfo=None)
+        return dt
     except Exception:  # noqa: BLE001
         return None
 

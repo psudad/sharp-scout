@@ -8,12 +8,26 @@ import json
 import sys
 from pathlib import Path
 
-from sharp_scout.football_pace.backtest import graded_to_markdown, run_backtest_for_sport
+from sharp_scout.config import DATA_DIR
+from sharp_scout.football_pace.backtest import (
+    comparison_markdown,
+    graded_to_markdown,
+    legacy_pace_config,
+    run_backtest_for_sport,
+)
+from sharp_scout.football_pace.config import NCAAF_PACE_CONFIG, NFL_PACE_CONFIG
 from sharp_scout.utils.odds import setup_logging
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 CSV_DIR = DOCS / "data"
+TUNING_PATH = DATA_DIR / "shadow" / "football_pace" / "tuning.json"
+
+
+def _load_tuning() -> dict:
+    if not TUNING_PATH.exists():
+        return {}
+    return json.loads(TUNING_PATH.read_text())
 
 
 def main() -> int:
@@ -24,7 +38,7 @@ def main() -> int:
         type=int,
         nargs="+",
         default=[2023, 2024, 2025, 2026],
-        help="Seasons to include (walk-forward, no lookahead)",
+        help="Seasons for full CSV export (walk-forward)",
     )
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
@@ -32,6 +46,7 @@ def main() -> int:
 
     sports = ["nfl", "ncaaf"] if args.sport == "both" else [args.sport]
     summaries = {}
+    tuning_doc = _load_tuning()
     CSV_DIR.mkdir(parents=True, exist_ok=True)
 
     md_parts = [
@@ -42,33 +57,50 @@ def main() -> int:
         "",
         "## Data sources",
         "",
-        "- **NFL:** nflverse `games.parquet` (closing spread/total, finals) and play-by-play parquets "
-        "(tempo and efficiency; garbage-time filtered via win probability).",
-        "- **NCAAF:** sportsdataverse cfbfastR play-by-play parquets (`spread`, `over_under`, scores). "
-        "FBS vs FBS games only. Official schedule parquet URLs currently 404; lines come from PBP.",
-        "- **CollegeFootballData.com:** optional; requires a free API key (`COLLEGE_FOOTBALL_DATA_API_KEY`) "
-        "— not used here because no key is configured in this environment.",
+        "- **NFL:** nflverse schedules + PBP (closing spread/total, finals).",
+        "- **NCAAF:** cfbfastR PBP (`spread`, `over_under`, scores); FBS + FCS where lines exist.",
         "",
-        "**Injury adjustments:** live via ESPN + nflverse rosters; NFL backtest uses nflverse "
-        "weekly injury reports. See `docs/football_pace_injury_adjust.md`. NCAAF has no free "
-        "historical injury feed — injury-adjusted backtest columns are empty for college.",
+        "**Injury adjustments:** NFL backtest uses nflverse weekly reports; NCAAF has no free "
+        "historical injury feed. See `docs/football_pace_injury_adjust.md`.",
         "",
-        "## Default minimum edges",
+        "## Tuning methodology",
         "",
-        "| Sport | Spread | Total |",
-        "|---|---:|---:|",
-        "| NFL | 2.5 pts | 2.5 pts |",
-        "| NCAAF | 3.5 pts | 3.5 pts |",
-        "",
-        "Edge buckets in tables: 3–5, 5–7, 7+ points (absolute gap vs closing line).",
+        "Parameters tuned on **2023–2024** only (`scripts/tune_football_pace.py`): market blend toward "
+        "close, optional edge caps, and min edges targeting ~10–25% combined play rate. "
+        "Holdout **2025–2026** reported separately below.",
         "",
     ]
 
+    train = [2023, 2024]
+    holdout = [2025, 2026]
+
     for sport in sports:
-        df, summary = run_backtest_for_sport(sport, args.seasons)
+        tuned_cfg = NFL_PACE_CONFIG if sport == "nfl" else NCAAF_PACE_CONFIG
+        leg_cfg = legacy_pace_config(sport)
+        params = tuning_doc.get(sport)
+
+        legacy_is = run_backtest_for_sport(sport, train, cfg=leg_cfg)[1]
+        tuned_is = run_backtest_for_sport(sport, train, cfg=tuned_cfg)[1]
+        legacy_oos = run_backtest_for_sport(sport, holdout, cfg=leg_cfg)[1]
+        tuned_oos = run_backtest_for_sport(sport, holdout, cfg=tuned_cfg)[1]
+
+        df, summary = run_backtest_for_sport(sport, args.seasons, cfg=tuned_cfg)
         csv_path = CSV_DIR / f"football_pace_backtest_{sport}.csv"
         df.to_csv(csv_path, index=False)
         summaries[sport] = summary
+
+        band = tuning_doc.get("nfl_holdout_injury_spread_band_5_7") if sport == "nfl" else None
+        md_parts.append(
+            comparison_markdown(
+                sport,
+                legacy_is=legacy_is,
+                tuned_is=tuned_is,
+                legacy_oos=legacy_oos,
+                tuned_oos=tuned_oos,
+                tuning_params=params,
+                nfl_injury_band_5_7=band,
+            )
+        )
         md_parts.append(graded_to_markdown(summary))
         md_parts.append("")
 

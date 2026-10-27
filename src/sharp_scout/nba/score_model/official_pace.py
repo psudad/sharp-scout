@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -119,24 +119,110 @@ def summarize_official_pace(store: dict[str, Any] | None = None) -> dict[str, An
     }
 
 
-def _play_dedupe_key(p: dict[str, Any]) -> tuple[str, str, str, str]:
+def _play_slot_key(
+    *,
+    date_et: str | None,
+    away: str,
+    home: str,
+    market: str,
+) -> tuple[str, str, str, str]:
     return (
-        str(p.get("date_et") or ""),
-        str(p.get("away") or ""),
-        str(p.get("home") or ""),
-        str(p.get("pick") or ""),
+        str(date_et or ""),
+        normalize_nba_team(str(away)),
+        normalize_nba_team(str(home)),
+        str(market or ""),
     )
 
 
-def _game_already_logged(store: dict[str, Any], *, date_et: str | None, away: str, home: str) -> bool:
+def _play_dedupe_key(p: dict[str, Any]) -> tuple[str, str, str, str]:
+    return _play_slot_key(
+        date_et=str(p.get("date_et") or ""),
+        away=str(p.get("away") or ""),
+        home=str(p.get("home") or ""),
+        market=str(p.get("market") or ""),
+    )
+
+
+def _slot_already_logged(store: dict[str, Any], slot: tuple[str, str, str, str]) -> bool:
+    keys = {_play_dedupe_key(p) for p in store.get("plays") or []}
+    return slot in keys
+
+
+def last_official_backfill_date_et(store: dict[str, Any] | None = None) -> date | None:
+    """Latest ET date covered by manual Jason backfill rows."""
+    store = store or load_official_pace()
+    dates: list[date] = []
     for p in store.get("plays") or []:
-        if (
-            str(p.get("date_et") or "") == str(date_et or "")
-            and str(p.get("away") or "") == str(away)
-            and str(p.get("home") or "") == str(home)
-        ):
-            return True
-    return False
+        if str(p.get("source") or "") != "official_backfill":
+            continue
+        raw = p.get("date_et")
+        if not raw:
+            continue
+        try:
+            dates.append(date.fromisoformat(str(raw)))
+        except ValueError:
+            continue
+    return max(dates) if dates else None
+
+
+def injury_adj_pace_picks(
+    snap: dict[str, Any],
+    *,
+    home: str,
+    away: str,
+    min_gap: float = MIN_AUTO_GAP,
+) -> list[dict[str, Any]]:
+    lines = snap.get("lines") or {}
+    cs, ct = lines.get("consensus_spread_home"), lines.get("consensus_total")
+    pm_i = float(
+        snap.get("injury_margin") if snap.get("injury_margin") is not None else snap.get("margin") or 0
+    )
+    pt_i = float(
+        snap.get("injury_total") if snap.get("injury_total") is not None else snap.get("total") or 0
+    )
+    picks: list[dict[str, Any]] = []
+    if cs is not None:
+        edge = pm_i + float(cs)
+        if abs(edge) >= min_gap:
+            side = "home" if edge > 0 else "away"
+            picks.append(
+                {
+                    "kind": "spread",
+                    "pick": _format_spread_pick(home, away, float(cs), edge),
+                    "side": side,
+                    "line": float(cs) if side == "home" else -float(cs),
+                    "gap": abs(edge),
+                }
+            )
+    if ct is not None:
+        edge_t = pt_i - float(ct)
+        if abs(edge_t) >= min_gap:
+            side = "over" if edge_t > 0 else "under"
+            label = "Over" if edge_t > 0 else "Under"
+            picks.append(
+                {
+                    "kind": "total",
+                    "pick": f"{away} @ {home}: {label} {float(ct):g}",
+                    "side": side,
+                    "line": float(ct),
+                    "gap": abs(edge_t),
+                }
+            )
+    return picks
+
+
+def pace_display_pick_from_snapshot(
+    snap: dict[str, Any],
+    *,
+    home: str,
+    away: str,
+    min_gap: float = MIN_AUTO_GAP,
+) -> dict[str, Any] | None:
+    """Primary injury-adj Pace card pick at tip (same rule as the public page)."""
+    picks = injury_adj_pace_picks(snap, home=home, away=away, min_gap=min_gap)
+    if not picks:
+        return None
+    return max(picks, key=lambda x: float(x.get("gap") or 0))
 
 
 def append_auto_graded_pace_play(
@@ -170,10 +256,13 @@ def append_auto_graded_pace_play(
         "espn_home_score": home_score,
         "graded_at": datetime.now(timezone.utc).isoformat(),
     }
-    if _game_already_logged(store, date_et=entry.get("date_et"), away=str(entry.get("away")), home=str(entry.get("home"))):
-        return False
-    keys = {_play_dedupe_key(p) for p in store.get("plays") or []}
-    if _play_dedupe_key(entry) in keys:
+    slot = _play_slot_key(
+        date_et=str(entry.get("date_et") or ""),
+        away=str(entry.get("away") or ""),
+        home=str(entry.get("home") or ""),
+        market=str(entry.get("market") or ""),
+    )
+    if _slot_already_logged(store, slot):
         return False
     store.setdefault("plays", []).append(entry)
     save_official_pace(store)
@@ -190,18 +279,30 @@ def _format_spread_pick(home: str, away: str, spread_home: float, margin_edge: f
 
 
 def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -> int:
-    """After score-model paper grading, append any new official-card plays (inj-adj, ge 3 pt)."""
+    """Append auto-graded Pace plays after backfill: Oct 27+ ET, page-display picks only."""
     from sharp_scout.nba.score_model.paper import _game_excluded, _grade_ats_margin, _grade_ou
 
     paper_store = paper_store or {}
     added = 0
     official = load_official_pace()
+    backfill_through = last_official_backfill_date_et(official)
     for g in paper_store.get("games") or []:
         if _game_excluded(g) or not g.get("graded"):
+            continue
+        day = kickoff_date_et(g.get("kickoff"))
+        if day is None:
+            continue
+        if backfill_through is not None and day <= backfill_through:
             continue
         gr = g["graded"]
         frozen = g.get("frozen") or {}
         snap = frozen.get("snapshot") or (g.get("scans") or [{}])[-1]
+        home, away = str(g.get("home") or ""), str(g.get("away") or "")
+        primary = frozen.get("pace_display_pick")
+        if not primary:
+            primary = pace_display_pick_from_snapshot(snap, home=home, away=away)
+        if not primary:
+            continue
         cs, ct = gr.get("close_spread_home"), gr.get("close_total")
         pm_i = float(
             snap.get("injury_margin") if snap.get("injury_margin") is not None else snap.get("margin") or 0
@@ -209,38 +310,6 @@ def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -
         pt_i = float(
             snap.get("injury_total") if snap.get("injury_total") is not None else snap.get("total") or 0
         )
-        home, away = str(g.get("home") or ""), str(g.get("away") or "")
-        picks: list[dict[str, Any]] = []
-        if cs is not None:
-            edge = pm_i + float(cs)
-            if abs(edge) >= MIN_AUTO_GAP:
-                side = "home" if edge > 0 else "away"
-                picks.append(
-                    {
-                        "kind": "spread",
-                        "pick": _format_spread_pick(home, away, float(cs), edge),
-                        "side": side,
-                        "line": float(cs) if side == "home" else -float(cs),
-                        "gap": abs(edge),
-                    }
-                )
-        if ct is not None:
-            edge_t = pt_i - float(ct)
-            if abs(edge_t) >= MIN_AUTO_GAP:
-                side = "over" if edge_t > 0 else "under"
-                label = "Over" if edge_t > 0 else "Under"
-                picks.append(
-                    {
-                        "kind": "total",
-                        "pick": f"{away} @ {home}: {label} {float(ct):g}",
-                        "side": side,
-                        "line": float(ct),
-                        "gap": abs(edge_t),
-                    }
-                )
-        if not picks:
-            continue
-        primary = max(picks, key=lambda x: x["gap"])
         act_total = int(gr["actual_total"])
         act_margin = int(gr["actual_margin"])
         home_score = (act_total + act_margin) // 2

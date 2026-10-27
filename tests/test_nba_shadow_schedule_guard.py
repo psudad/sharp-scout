@@ -12,6 +12,7 @@ from sharp_scout.nba.schedule_guard import (
     CRON_WEEKEND_EST,
     DEFAULT_MAX_LATE_HOURS,
     expected_cron_for_intended_slot,
+    next_nba_scan_et,
     scheduled_cron_run_allowed,
     target_time_for_et_date,
 )
@@ -95,6 +96,23 @@ def test_target_time_by_weekday():
 
     assert target_time_for_et_date(mon) == WEEKDAY_TARGET
     assert target_time_for_et_date(sat) == WEEKEND_TARGET
+
+
+def test_next_scan_weekday_edt_after_evening_slot():
+    # Tue Oct 27 2026 9:13 PM EDT — today's 4:30 PM passed; next is Wed 4:30 PM (not 5:30 EST cron).
+    now = datetime(2026, 10, 27, 21, 13, tzinfo=ET)
+    nxt = next_nba_scan_et(now)
+    assert nxt == datetime(2026, 10, 28, 16, 30, tzinfo=ET)
+    assert nxt.utcoffset() == timedelta(hours=-4)
+
+
+def test_next_scan_weekend_then_monday():
+    # Sat Oct 31 2026 noon EDT — morning slot passed; next is Sun 11 AM.
+    sat_noon = datetime(2026, 10, 31, 12, 0, tzinfo=ET)
+    assert next_nba_scan_et(sat_noon) == datetime(2026, 11, 1, 11, 0, tzinfo=ET)
+    # Sun 1 PM — next is Mon 4:30 PM.
+    sun_afternoon = datetime(2026, 11, 1, 13, 0, tzinfo=ET)
+    assert next_nba_scan_et(sun_afternoon) == datetime(2026, 11, 2, 16, 30, tzinfo=ET)
 
 
 def test_late_start_uses_intended_slot_date_for_dst_not_delayed_clock():

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 LpTopnavActive = Literal["plays", "results", "guide", "board", "nba"]
-SiteTabsActive = Literal["plays", "results", "guide", "comments", "props", "nba"]
+SiteTabsActive = Literal["plays", "results", "guide", "comments", "props", "nba", "nba_props"]
 BoardTabsContext = Literal["board"]  # board uses its own NFL/CFB tablist + NBA link
 
 NBA_TEST_BADGE = '<span class="nav-test-badge">test</span>'
@@ -31,6 +31,10 @@ NAV_TEST_BADGE_CSS = """
 
 def nba_nav_label() -> str:
     return f"NBA {NBA_TEST_BADGE}"
+
+
+def nba_props_nav_label() -> str:
+    return f"NBA Props {NBA_TEST_BADGE}"
 
 
 def render_lp_topnav(*, active: LpTopnavActive) -> str:
@@ -72,9 +76,14 @@ def render_site_tabs(*, active: SiteTabsActive) -> str:
         if active == "nba"
         else f'<a class="tab tab-aux tab-nba" href="nba.html">{nba_nav_label()}</a>'
     )
+    nba_props = (
+        f'<span class="tab tab-aux tab-nba-props active">{nba_props_nav_label()}</span>'
+        if active == "nba_props"
+        else f'<a class="tab tab-aux tab-nba-props" href="nba-props.html">{nba_props_nav_label()}</a>'
+    )
     return (
         f'<div class="tabs" role="navigation" aria-label="Sections">'
-        f"{home}{results}{guide}{comments}{props}{nba}"
+        f"{home}{results}{guide}{comments}{props}{nba}{nba_props}"
         f"</div>"
     )
 

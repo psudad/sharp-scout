@@ -149,11 +149,13 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
         score_model_rows=score_rows,
         score_model_summary=summary,
     )
-    idx_sharp = html.index("Sharp Scout model")
-    idx_pace = html.index("Pace of Play model")
-    idx_plays = html.index("Today&apos;s plays")
+    idx_sharp = html.index('id="sharp-scout-heading"')
+    idx_pace = html.index('id="pace-heading"')
+    idx_plays = html.index('<div class="section-label">Today&apos;s plays</div>')
     idx_diag = html.index("Diagnostics")
     assert idx_sharp < idx_plays < idx_pace < idx_diag
+    assert 'href="nba.html"' in html
+    assert "nav-test-badge" in html
     assert "WAS @ CHA: Over 227.5" in html
     assert "Today&apos;s play" in html
     assert "DAL @ MIA: Under 240.75" in html

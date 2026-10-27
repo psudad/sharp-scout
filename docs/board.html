@@ -194,8 +194,9 @@
       z-index: 20;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
-    .tab { flex: 0 0 auto; padding: 13px 13px; font-size: 12px; letter-spacing: 0.05em; }
+    .tab { flex: 0 0 auto; padding: 13px 11px; font-size: 12px; letter-spacing: 0.05em; }
     .tab.tab-aux { display: none; }
+    .tab.tab-nba { display: inline-flex; align-items: center; }
   }
   .content { display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }
   .content.active { display: block; }
@@ -723,6 +724,22 @@
     .footer { padding: 24px 12px; }
   }
 
+  .nav-test-badge {
+    display: inline-block;
+    margin-left: 3px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    line-height: 1.2;
+  }
+  .lp-topnav a .nav-test-badge { background: rgba(255,255,255,.22); color: #fff; }
+  .tab .nav-test-badge { background: rgba(30,58,95,.12); color: var(--color-navy); font-size: 8px; }
+  .tab.active .nav-test-badge { background: rgba(255,255,255,.28); color: #fff; }
+
 
   body.ss-bottom-bar { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 12px); }
   .lp-badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: #15803d;
@@ -821,6 +838,7 @@
   <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
   <a class="tab tab-aux tab-comments" href="comments.html">Comments</a>
   <a class="tab tab-aux" href="props.html">Props</a>
+  <a class="tab tab-aux tab-nba" href="nba.html">NBA <span class="nav-test-badge">test</span></a>
 </div>
 </div>
 
@@ -6728,7 +6746,7 @@ function downloadTableCsv(tableId, filename) {
     <a href="board.html#tab-guide">How it works</a>
     <a href="comments.html">Comments</a>
     <a href="props.html">NFL Props</a>
-    <a href="nba.html">NBA (testing)</a>
+    <a href="nba.html">NBA <span class="nav-test-badge">test</span></a>
   </div>
 </div>
 

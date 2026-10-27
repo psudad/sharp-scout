@@ -940,8 +940,10 @@ def build_site(
         render_bottom_bar,
         render_slip_overlay,
     )
+    from sharp_scout.site.site_nav import render_board_nba_tab_link
 
     html = SITE_TEMPLATE.format(
+        board_nba_tab=render_board_nba_tab_link(),
         bottom_bar_css=bottom_bar_css(),
         slip_overlay=render_slip_overlay(),
         bottom_bar=render_bottom_bar(active="board"),
@@ -1090,8 +1092,10 @@ def _render_comments_page(*, analytics_head: str) -> str:
         render_bottom_bar,
         render_slip_overlay,
     )
+    from sharp_scout.site.site_nav import render_site_tabs
 
     return COMMENTS_TEMPLATE.format(
+        site_tabs=render_site_tabs(active="comments"),
         site_css=_SITE_CSS,
         bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
@@ -1312,9 +1316,11 @@ def _render_props_page(
         render_bottom_bar,
         render_slip_overlay,
     )
+    from sharp_scout.site.site_nav import render_site_tabs
 
     return PROPS_TEMPLATE.format(
         site_css=_SITE_CSS,
+        site_tabs=render_site_tabs(active="props"),
         bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
         ssq_logo=_ssq_logo_svg(embedded=True),
@@ -1365,13 +1371,7 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 <body class="ss-bottom-bar">
-<div class="tabs" role="navigation" aria-label="Sections">
-  <a class="tab tab-home" href="index.html">Today's plays</a>
-  <a class="tab" href="board.html#tab-plays">Results</a>
-  <a class="tab" href="board.html#tab-guide">How it works</a>
-  <a class="tab tab-aux" href="comments.html">Comments</a>
-  <span class="tab active">NFL Props</span>
-</div>
+{site_tabs}
 <div class="props-wrap">
   <div class="props-hero">
     {ssq_logo}
@@ -1454,13 +1454,7 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 <body class="ss-bottom-bar">
-<div class="tabs" role="navigation" aria-label="Sections">
-  <a class="tab tab-home" href="index.html">Today's plays</a>
-  <a class="tab" href="board.html#tab-plays">Results</a>
-  <a class="tab" href="board.html#tab-guide">How it works</a>
-  <span class="tab tab-comments active">Comments</span>
-  <a class="tab tab-aux" href="props.html">NFL Props</a>
-</div>
+{site_tabs}
 <div class="cf-wrap">
   <div class="cf-hero">
     {ssq_logo}
@@ -3610,8 +3604,9 @@ _SITE_CSS = """\
       z-index: 20;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
-    .tab { flex: 0 0 auto; padding: 13px 13px; font-size: 12px; letter-spacing: 0.05em; }
+    .tab { flex: 0 0 auto; padding: 13px 11px; font-size: 12px; letter-spacing: 0.05em; }
     .tab.tab-aux { display: none; }
+    .tab.tab-nba { display: inline-flex; align-items: center; }
   }
   .content { display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }
   .content.active { display: block; }
@@ -4140,6 +4135,10 @@ _SITE_CSS = """\
   }
 """
 
+from sharp_scout.site.site_nav import NAV_TEST_BADGE_CSS as _NAV_BADGE_CSS
+
+_SITE_CSS = _SITE_CSS + _NAV_BADGE_CSS
+
 
 SITE_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
@@ -4188,6 +4187,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
   <a class="tab tab-aux tab-comments" href="comments.html">Comments</a>
   <a class="tab tab-aux" href="props.html">Props</a>
+  {board_nba_tab}
 </div>
 </div>
 

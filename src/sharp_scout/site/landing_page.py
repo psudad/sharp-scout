@@ -20,6 +20,7 @@ from sharp_scout.site.bottom_bar import (
     render_bottom_bar,
     render_slip_overlay,
 )
+from sharp_scout.site.site_nav import render_lp_topnav
 
 
 def _site_build():
@@ -342,8 +343,11 @@ LANDING_PAGE_CSS = """
   .lp-record { margin-left: auto; font-size: 13px; text-align: right; line-height: 1.35; }
   .lp-record .pos { color: #86efac; font-weight: 700; }
   .lp-record .neg { color: #fca5a5; font-weight: 700; }
-  .lp-topnav { display: none; gap: 4px; margin-left: 20px; }
-  .lp-topnav a { color: #dbe6f3; text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+  .lp-topnav { display: flex; flex: 1 1 auto; min-width: 0; gap: 2px; margin-left: 8px;
+    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .lp-topnav::-webkit-scrollbar { display: none; }
+  .lp-topnav a { color: #dbe6f3; text-decoration: none; padding: 8px 10px; border-radius: 8px;
+    font-size: 13px; white-space: nowrap; flex-shrink: 0; }
   .lp-topnav a.on { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
   .lp-main { max-width: 1180px; margin: 0 auto; padding: 12px 16px 24px; }
   .lp-hero h1 { font-family: var(--font-serif); font-size: 28px; font-weight: 600; margin: 4px 0 2px; }
@@ -413,7 +417,8 @@ LANDING_PAGE_CSS = """
   .lp-slip .lp-copy { width: 100%; margin-top: 10px; border: 1px solid var(--color-navy); background: #fff;
     color: var(--color-navy); border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); }
   @media (min-width: 900px) {
-    .lp-topnav { display: flex; }
+    .lp-topnav { margin-left: 20px; gap: 4px; }
+    .lp-topnav a { padding: 8px 12px; font-size: 14px; }
     .lp-hero h1 { font-size: 32px; }
     .lp-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
     .lp-grid.official-grid { grid-template-columns: 1fr; }
@@ -532,6 +537,7 @@ def render_landing_page(
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
         landing_filter_script=LANDING_FILTER_SCRIPT,
         timing_script=b._TIMING_SCRIPT,
+        lp_topnav=render_lp_topnav(active="plays"),
     )
 
 
@@ -565,12 +571,7 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
 <header class="lp-header"><div class="lp-hwrap">
   {ssq_logo}
   <div class="lp-brand">Sharp Scout</div>
-  <nav class="lp-topnav" aria-label="Primary">
-    <a class="on" href="index.html">Today's plays</a>
-    <a href="board.html#tab-plays">Results</a>
-    <a href="board.html#tab-guide">How it works</a>
-    <a href="board.html">Full board</a>
-  </nav>
+  {lp_topnav}
   <div class="lp-record"><span class="lp-rec-label">Season record</span><br>{record_html}</div>
 </div></header>
 

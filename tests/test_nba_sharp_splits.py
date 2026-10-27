@@ -202,7 +202,7 @@ def test_nba_page_renders_sharp_money_section():
         report={},
         analytics_head="",
     )
-    assert "Sharp money (display only)" in html
-    assert "With sharps" in html or "No signal" in html
-    assert "Price-edge picks" in html
-    assert "Model / sharp" in html
+    assert "Sharp Scout model" in html
+    assert "Sharp money tags" in html
+    assert "Diagnostics" in html
+    assert "With sharps" in html or "No signal" in html or "PHX @ OKC" in html

@@ -9,12 +9,40 @@ from sharp_scout.site.nba_page import (
     NO_LIVE_SCAN_MESSAGE,
     PACE_LEAN_MIN_EDGE_PT,
     SCORE_MODELING_MIN_EDGE_PT,
+    _injury_list_summary,
     format_projected_scores_line,
     render_nba_page_html,
     score_modeling_display_leans,
     score_modeling_display_plays,
     spread_gap_plain_english,
 )
+
+
+def test_injury_summary_lists_season_exclusions_first():
+    row = {
+        "home": "LAL",
+        "away": "POR",
+        "home_absences": [],
+        "away_absences": [
+            {
+                "player": "Scoot Henderson",
+                "kind": "absence",
+                "status_label": "Day-To-Day",
+                "margin_pts": -0.8,
+            }
+        ],
+        "home_excluded": [],
+        "away_excluded": [
+            {
+                "player": "Shaedon Sharpe",
+                "kind": "excluded_season",
+                "status_label": "Out",
+            }
+        ],
+    }
+    summary = _injury_list_summary(row)
+    assert summary.startswith("Excluded: Shaedon Sharpe")
+    assert "-0.8" in summary
 
 
 def test_projected_scores_and_gap_copy():

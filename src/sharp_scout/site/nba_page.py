@@ -935,13 +935,13 @@ def _injury_list_summary(r: dict[str, Any]) -> str:
 
     bits: list[str] = []
     home, away = str(r.get("home") or ""), str(r.get("away") or "")
+    for team, key in ((home, "home_excluded"), (away, "away_excluded")):
+        for row in r.get(key) or []:
+            bits.append(format_absence_line(team, row))
     for team, key in ((home, "home_absences"), (away, "away_absences")):
         for row in r.get(key) or []:
             if row.get("kind") in ("return", "absence"):
                 bits.append(format_absence_line(team, row))
-    for team, key in ((home, "home_excluded"), (away, "away_excluded")):
-        for row in r.get(key) or []:
-            bits.append(format_absence_line(team, row))
     if not bits:
         return "—"
     if len(bits) > 3:

@@ -66,10 +66,14 @@ def test_football_pages_have_no_nba_shadow_content(tmp_path, monkeypatch):
 
 def test_nba_public_page_isolated(tmp_path, monkeypatch):
     from sharp_scout.nba import paths as nba_paths
+    from sharp_scout.nba.score_model import official_pace as op
 
     shadow = tmp_path / "shadow"
     shadow.mkdir()
     monkeypatch.setattr(nba_paths, "SHADOW_DIR", shadow)
+    monkeypatch.setattr(op, "OFFICIAL_PATH", shadow / "nba_pace_of_play_official.json")
+    monkeypatch.setattr(op, "OFFICIAL_CSV_PATH", shadow / "nba_pace_of_play_official.csv")
+    (shadow / "nba_pace_of_play_official.json").write_text('{"version": 1, "plays": []}\n')
     monkeypatch.setattr(nba_paths, "NBA_LEDGER_PATH", shadow / "nba_ledger.json")
     monkeypatch.setattr(nba_paths, "NBA_LATEST_SIGNALS_PATH", shadow / "nba_latest_signals.json")
     monkeypatch.setattr(nba_paths, "NBA_REPORT_PATH", shadow / "nba_paper_report.json")
@@ -82,7 +86,7 @@ def test_nba_public_page_isolated(tmp_path, monkeypatch):
 
     nba_html = (docs / "nba.html").read_text()
     nba_body = nba_html.split("<script", 1)[0]
-    assert "This is just for testing." in nba_html
+    assert "testing only" in nba_html
     assert "lp-card" not in nba_body
     assert 'class="lp-add"' not in nba_body
     assert "+ Add to my card" not in nba_body
@@ -162,8 +166,13 @@ def test_nba_public_page_shows_live_scan_only(tmp_path, monkeypatch):
 
 
 def test_nba_page_picks_and_possible_sections(tmp_path, monkeypatch):
+    from datetime import datetime, time
+
     from sharp_scout.nba import paths as nba_paths
     from sharp_scout.site.nba_page import build_nba_page
+    from sharp_scout.utils.slate import ET
+
+    today_kick = datetime.combine(datetime.now(ET).date(), time(19, 0), tzinfo=ET).isoformat()
 
     shadow = tmp_path / "shadow"
     shadow.mkdir()
@@ -182,7 +191,7 @@ def test_nba_page_picks_and_possible_sections(tmp_path, monkeypatch):
             {
                 "event_id": "live-ev-1",
                 "play_type": "side",
-                "kickoff": "2026-10-25T00:00:00+00:00",
+                "kickoff": today_kick,
                 "away_team": "BOS",
                 "home_team": "NYK",
                 "market": "spreads",
@@ -201,7 +210,7 @@ def test_nba_page_picks_and_possible_sections(tmp_path, monkeypatch):
             {
                 "event_id": "live-ev-1",
                 "play_type": "side",
-                "kickoff": "2026-10-25T00:00:00+00:00",
+                "kickoff": today_kick,
                 "away_team": "BOS",
                 "home_team": "NYK",
                 "market": "totals",
@@ -223,9 +232,9 @@ def test_nba_page_picks_and_possible_sections(tmp_path, monkeypatch):
     docs = tmp_path / "docs"
     build_nba_page(docs_dir=docs)
     html = (docs / "nba.html").read_text()
-    assert "Price-edge picks" in html
-    assert "Model details" in html
-    assert "Near-miss candidates" in html
+    assert "Sharp Scout model" in html
+    assert "Diagnostics" in html
+    assert "Near-miss tables" in html
     assert "After more testing, we'd pick:" in html
     assert "EV below 2.0% floor" in html
     assert "display only" in html

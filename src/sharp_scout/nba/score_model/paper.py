@@ -278,10 +278,18 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
         if not scans:
             continue
         last = scans[-1]
+        from sharp_scout.nba.score_model.official_pace import pace_display_pick_from_snapshot
+
+        display_pick = pace_display_pick_from_snapshot(
+            last,
+            home=str(g.get("home") or ""),
+            away=str(g.get("away") or ""),
+        )
         g["frozen"] = {
             "frozen_at": now.isoformat(),
             "snapshot": last,
             "first_snapshot": scans[0],
+            "pace_display_pick": display_pick,
         }
         frozen += 1
     if frozen:

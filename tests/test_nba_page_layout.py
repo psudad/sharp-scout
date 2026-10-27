@@ -152,14 +152,14 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     )
     idx_sharp = html.index('id="sharp-scout-heading"')
     idx_pace = html.index('id="pace-heading"')
-    idx_plays = html.index('<div class="section-label">Today&apos;s plays</div>')
+    idx_plays = html.index('<div class="section-label">Upcoming plays</div>')
     idx_diag = html.index("Diagnostics")
     assert idx_pace < idx_plays < idx_sharp < idx_diag
     assert 'href="nba.html"' not in html or "nba-props.html" in html
     assert 'href="nba-props.html"' in html
     assert "nav-test-badge" in html
     assert "WAS @ CHA: Over 227.5" in html
-    assert "Today&apos;s play" in html
+    assert "Tonight's play" in html or "nba-day-heading" in html
     assert "DAL @ MIA: Under 240.75" in html
     assert "Projections &amp; detail" in html
     assert "Leans, projections &amp; history" in html
@@ -200,6 +200,60 @@ def test_render_nba_page_no_live_scan_message():
     assert NO_LIVE_SCAN_MESSAGE in html
     assert "4:30 PM" in html
     assert "no-cache" in html.lower()
+
+
+def test_render_nba_page_groups_plays_by_et_date():
+    ref_day = datetime(2026, 10, 27, 15, 0, tzinfo=ET)
+    payload = {
+        "ok": True,
+        "demo": False,
+        "generated_at": "2026-10-27T19:00:00+00:00",
+        "signals": [],
+        "possible_signals": [],
+    }
+    score_rows = [
+        {
+            "away": "PHI",
+            "home": "IND",
+            "kickoff": "2026-10-29T00:00:00Z",
+            "margin": 2.0,
+            "total": 232.0,
+            "injury_margin": 2.0,
+            "injury_total": 232.0,
+            "home_absences": [],
+            "away_absences": [],
+            "lines": {"consensus_spread_home": -3.0, "consensus_total": 240.75},
+        },
+        {
+            "away": "DAL",
+            "home": "MIA",
+            "kickoff": "2026-10-28T02:00:00Z",
+            "margin": 2.0,
+            "total": 232.0,
+            "injury_margin": 2.0,
+            "injury_total": 232.0,
+            "home_absences": [],
+            "away_absences": [],
+            "lines": {"consensus_spread_home": -3.0, "consensus_total": 240.75},
+        },
+    ]
+    from unittest.mock import patch
+
+    with patch("sharp_scout.site.nba_page.datetime") as mock_dt:
+        mock_dt.now.return_value = ref_day
+        mock_dt.side_effect = lambda *a, **k: datetime(*a, **k)
+        html = render_nba_page_html(
+            signals_payload=payload,
+            ledger={"plays": []},
+            report={},
+            analytics_head="",
+            score_model_rows=score_rows,
+            score_model_summary={"n_graded": 0},
+        )
+    t_pos = html.index("Tonight, Tue Oct 27")
+    m_pos = html.index("Tomorrow, Wed Oct 28")
+    assert t_pos < m_pos
+    assert html.index("DAL @ MIA") < html.index("PHI @ IND")
 
 
 def test_render_nba_props_page_empty_when_no_props():

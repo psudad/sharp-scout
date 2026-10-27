@@ -122,3 +122,87 @@ def fetch_espn_nfl_scores(
 
     logger.info("ESPN NFL: %d final scores loaded (season=%s)", len(by_key), season)
     return list(by_key.values())
+
+
+ESPN_NFL_INJURIES = "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
+ESPN_NFL_TEAMS = "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/teams"
+
+
+def fetch_espn_nfl_injuries() -> list[dict[str, Any]]:
+    """Live ESPN NFL injury report (Out / Doubtful / Questionable / IR)."""
+    payload = _get_json(ESPN_NFL_INJURIES)
+    if not isinstance(payload, dict):
+        return []
+    out: list[dict[str, Any]] = []
+    for team_block in payload.get("injuries") or []:
+        team_meta = team_block.get("team") or {}
+        team = _team_code(team_meta) if team_meta else ""
+        if not team and team_block.get("displayName"):
+            team = normalize_team(str(team_block["displayName"]), "nfl")
+        for item in team_block.get("injuries") or []:
+            athlete = item.get("athlete") or {}
+            name = athlete.get("displayName") or athlete.get("shortName") or ""
+            status = item.get("status") or ""
+            pos = (athlete.get("position") or {}).get("abbreviation") or ""
+            if not name:
+                continue
+            out.append(
+                {
+                    "player": str(name).strip(),
+                    "team": team,
+                    "position": str(pos),
+                    "status": str(status).strip(),
+                    "detail": item.get("shortComment") or item.get("longComment") or "",
+                }
+            )
+    logger.info("ESPN NFL injuries: %d rows", len(out))
+    return out
+
+
+def _espn_team_id_map() -> dict[str, str]:
+    payload = _get_json(f"{ESPN_NFL_TEAMS}?limit=50")
+    mapping: dict[str, str] = {}
+    if not isinstance(payload, dict):
+        return mapping
+    for block in payload.get("sports", [{}])[0].get("leagues", [{}])[0].get("teams", []):
+        ent = block.get("team") or {}
+        abbr = ent.get("abbreviation") or ""
+        tid = ent.get("id")
+        if abbr and tid:
+            mapping[normalize_team(str(abbr), "nfl")] = str(tid)
+    return mapping
+
+
+def fetch_espn_nfl_roster(team: str) -> list[dict[str, Any]]:
+    """Current-season roster with position (ESPN)."""
+    team = normalize_team(team, "nfl")
+    ids = _espn_team_id_map()
+    tid = ids.get(team)
+    if not tid:
+        return []
+    payload = _get_json(
+        f"https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/teams/{tid}/roster"
+    )
+    if not isinstance(payload, dict):
+        return []
+    rows: list[dict[str, Any]] = []
+    rank: dict[str, int] = {}
+    for group in payload.get("athletes") or []:
+        pos = (group.get("position") or {}).get("abbreviation") or group.get("position") or ""
+        pos = str(pos)
+        for athlete in group.get("items") or []:
+            name = athlete.get("displayName") or athlete.get("fullName") or ""
+            if not name:
+                continue
+            rank[pos] = rank.get(pos, 0) + 1
+            apos = (athlete.get("position") or {}).get("abbreviation") or pos
+            rows.append(
+                {
+                    "player": str(name).strip(),
+                    "team": team,
+                    "position": str(apos),
+                    "depth_rank": rank[pos],
+                    "status": (athlete.get("status") or {}).get("name") or athlete.get("status") or "",
+                }
+            )
+    return rows

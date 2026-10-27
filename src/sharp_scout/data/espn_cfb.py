@@ -182,3 +182,37 @@ def fetch_espn_cfb_scores(
 
     logger.info("ESPN CFB: %d final scores loaded (season=%s)", len(by_key), season)
     return list(by_key.values())
+
+
+ESPN_CFB_INJURIES = "https://site.web.api.espn.com/apis/site/v2/sports/football/college-football/injuries"
+
+
+def fetch_espn_cfb_injuries() -> list[dict[str, Any]]:
+    """ESPN college football injuries (coverage varies by team)."""
+    payload = _get_json(ESPN_CFB_INJURIES)
+    if not isinstance(payload, dict):
+        return []
+    out: list[dict[str, Any]] = []
+    for team_block in payload.get("injuries") or []:
+        team_meta = team_block.get("team") or {}
+        team = _team_code(team_meta) if team_meta else ""
+        if not team and team_block.get("displayName"):
+            team = normalize_team(str(team_block["displayName"]), "ncaaf")
+        for item in team_block.get("injuries") or []:
+            athlete = item.get("athlete") or {}
+            name = athlete.get("displayName") or athlete.get("shortName") or ""
+            status = item.get("status") or ""
+            pos = (athlete.get("position") or {}).get("abbreviation") or ""
+            if not name:
+                continue
+            out.append(
+                {
+                    "player": str(name).strip(),
+                    "team": team,
+                    "position": str(pos),
+                    "status": str(status).strip(),
+                    "detail": item.get("shortComment") or item.get("longComment") or "",
+                }
+            )
+    logger.info("ESPN CFB injuries: %d rows", len(out))
+    return out

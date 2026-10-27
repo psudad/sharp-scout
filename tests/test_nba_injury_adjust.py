@@ -16,8 +16,10 @@ from sharp_scout.nba.score_model.injury_adjust import (
 )
 from sharp_scout.nba.score_model.player_impact import (
     MAX_OFF_PTS_GAME,
+    is_season_long_absence,
     margin_impact_pts,
     offense_impact_pts,
+    resolve_player_rate_row,
 )
 
 
@@ -86,9 +88,60 @@ def test_team_absence_respects_status_weight():
         }
     }
     injuries = [{"player": "Joel Embiid", "team": "PHI", "status": "Questionable"}]
-    rows = team_absence_rows("PHI", injuries, rates=rates)
+    rows, excluded = team_absence_rows("PHI", injuries, rates=rates)
     assert len(rows) == 1
     assert rows[0]["weight"] == 0.5
+    assert not excluded
+
+
+def test_missing_rate_row_uses_supplemental_impact():
+    injuries = [
+        {
+            "player": "Jose Alvarado",
+            "team": "NYK",
+            "status": "Out",
+            "detail": "Out Tuesday.",
+        }
+    ]
+    rows, excluded = team_absence_rows("NYK", injuries, rates={})
+    assert not excluded
+    assert len(rows) == 1
+    assert rows[0]["player"] == "Jose Alvarado"
+    assert float(rows[0]["margin_pts"]) < 0
+
+
+def test_season_long_out_excluded_not_adjusted():
+    rates = {
+        "POR|shaedon sharpe": {
+            "player_name": "Shaedon Sharpe",
+            "team": "POR",
+            "minutes": 30,
+            "current_season_gp": 0,
+            "played_this_season": False,
+            "pts_per_min": 0.5,
+            "reb_per_min": 0.1,
+            "ast_per_min": 0.05,
+            "usage_share": 0.25,
+        }
+    }
+    injuries = [
+        {
+            "player": "Shaedon Sharpe",
+            "team": "POR",
+            "status": "Out",
+            "detail": "Sharpe suffered a torn meniscus and is expected to miss six months.",
+        }
+    ]
+    rows, excluded = team_absence_rows("POR", injuries, rates=rates)
+    assert not rows
+    assert len(excluded) == 1
+    assert excluded[0]["reason"] == "out all season"
+
+
+def test_is_season_long_absence_patterns():
+    assert is_season_long_absence(detail="expected to miss six months")
+    assert is_season_long_absence(detail="out for the season")
+    assert not is_season_long_absence(detail="ruled out for Tuesday's game")
 
 
 def test_live_roster_assigns_lebron_to_phi():

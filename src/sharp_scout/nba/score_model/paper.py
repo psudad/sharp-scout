@@ -170,6 +170,8 @@ def _proj_row(
         "injury_total": inj.get("injury_total"),
         "home_absences": inj.get("home_absences") or [],
         "away_absences": inj.get("away_absences") or [],
+        "home_excluded": inj.get("home_excluded") or [],
+        "away_excluded": inj.get("away_excluded") or [],
         "lines": lines,
     }
     absences = (row["home_absences"] or []) + (row["away_absences"] or [])
@@ -535,6 +537,8 @@ def slate_projections_for_page(store: dict[str, Any] | None = None) -> list[dict
                 "injury_away_pts": last.get("injury_away_pts"),
                 "home_absences": last.get("home_absences") or [],
                 "away_absences": last.get("away_absences") or [],
+                "home_excluded": last.get("home_excluded") or [],
+                "away_excluded": last.get("away_excluded") or [],
                 "injury_news_after_line": last.get("injury_news_after_line"),
                 "first_scan_at": first_at,
                 "lines": last.get("lines"),

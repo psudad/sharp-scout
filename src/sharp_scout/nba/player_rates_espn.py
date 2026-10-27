@@ -70,12 +70,14 @@ def _stat_row_from_athlete(
     fg3 = offensive.get("avgThreePointFieldGoalsMade") or offensive.get("3PM")
     fga = offensive.get("avgFieldGoalsAttempted") or offensive.get("FGA")
     fta = offensive.get("avgFreeThrowsAttempted") or offensive.get("FTA")
+    gp = general.get("gamesPlayed") or general.get("GP") or 0
     mpg_f = float(mpg or 0)
     if mpg_f <= 0:
         return {}
     pts_f = float(pts or 0)
     return {
         "minutes": mpg_f,
+        "games_played": int(float(gp or 0)),
         "pts_per_min": pts_f / mpg_f,
         "reb_per_min": float(reb or 0) / mpg_f,
         "ast_per_min": float(ast or 0) / mpg_f,
@@ -129,6 +131,29 @@ def _fetch_stats_by_name(*, season: int) -> dict[str, dict[str, float]]:
     return out
 
 
+_season_stats_cache: dict[int, dict[str, dict[str, float]]] = {}
+
+
+def season_stats_by_name(*, season: int, refresh: bool = False) -> dict[str, dict[str, float]]:
+    if not refresh and season in _season_stats_cache:
+        return _season_stats_cache[season]
+    data = _fetch_stats_by_name(season=season)
+    _season_stats_cache[season] = data
+    return data
+
+
+def stats_for_player_name(
+    player_name: str,
+    *,
+    season: int = ESPN_NBA_SEASON_END_YEAR,
+) -> tuple[dict[str, float] | None, int | None]:
+    """Normalized-name lookup in ESPN by-athlete for a season."""
+    stats = season_stats_by_name(season=season).get(roster_norm_name(player_name))
+    if not stats:
+        return None, None
+    return stats, season
+
+
 def build_player_rate_rows(*, season: int = ESPN_NBA_SEASON_END_YEAR) -> list[dict[str, Any]]:
     """Team codes from live ESPN rosters; stat values from current season, prior season fallback."""
     roster = roster_player_entries(season=season)
@@ -137,14 +162,20 @@ def build_player_rate_rows(*, season: int = ESPN_NBA_SEASON_END_YEAR) -> list[di
     rows: list[dict[str, Any]] = []
     for norm_name, entry in sorted(roster.items()):
         team = entry["team"]
-        stats = current.get(norm_name) or prior.get(norm_name)
+        cur_stats = current.get(norm_name)
+        prior_stats = prior.get(norm_name)
+        stats = cur_stats or prior_stats
         if not stats:
             continue
+        cur_gp = int(cur_stats.get("games_played") or 0) if cur_stats else 0
         rows.append(
             {
                 "player_name": entry["display_name"],
                 "team": team,
                 "minutes": stats["minutes"],
+                "games_played": int(stats.get("games_played") or 0),
+                "current_season_gp": cur_gp,
+                "played_this_season": cur_gp > 0,
                 "pts_per_min": round(stats["pts_per_min"], 4),
                 "reb_per_min": round(stats["reb_per_min"], 4),
                 "ast_per_min": round(stats["ast_per_min"], 4),
@@ -155,6 +186,55 @@ def build_player_rate_rows(*, season: int = ESPN_NBA_SEASON_END_YEAR) -> list[di
             }
         )
     return rows
+
+
+def build_supplemental_rate_row(
+    player_name: str,
+    team: str,
+    *,
+    season: int = ESPN_NBA_SEASON_END_YEAR,
+) -> dict[str, Any] | None:
+    """Rate row for injured/traded players missing from roster-built file (ESPN by-athlete)."""
+    norm = roster_norm_name(player_name)
+    current = season_stats_by_name(season=season)
+    prior = season_stats_by_name(season=season - 1) if season else {}
+    cur_stats = current.get(norm)
+    prior_stats = prior.get(norm)
+    stats = cur_stats or prior_stats
+    if stats:
+        cur_gp = int(cur_stats.get("games_played") or 0) if cur_stats else 0
+        return {
+            "player_name": player_name.strip(),
+            "team": team.upper(),
+            "minutes": stats["minutes"],
+            "games_played": int(stats.get("games_played") or 0),
+            "current_season_gp": cur_gp,
+            "played_this_season": cur_gp > 0,
+            "pts_per_min": round(stats["pts_per_min"], 4),
+            "reb_per_min": round(stats["reb_per_min"], 4),
+            "ast_per_min": round(stats["ast_per_min"], 4),
+            "fg3_per_min": round(stats.get("fg3_per_min") or 0, 4),
+            "usage_share": round(stats["usage_share"], 4),
+            "stats_season": season if cur_stats else season - 1,
+            "rate_source": "espn_by_athlete_supplement",
+            "out_teammates": [],
+        }
+    return {
+        "player_name": player_name.strip(),
+        "team": team.upper(),
+        "minutes": 18.0,
+        "games_played": 0,
+        "current_season_gp": 0,
+        "played_this_season": False,
+        "pts_per_min": 0.28,
+        "reb_per_min": 0.09,
+        "ast_per_min": 0.08,
+        "fg3_per_min": 0.03,
+        "usage_share": 0.16,
+        "stats_season": season,
+        "rate_source": "minutes_fallback",
+        "out_teammates": [],
+    }
 
 
 def refresh_nba_player_rates_file(

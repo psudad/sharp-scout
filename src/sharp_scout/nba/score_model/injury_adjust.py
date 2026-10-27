@@ -20,11 +20,13 @@ from sharp_scout.data.espn_nba import fetch_espn_nba_injuries
 from sharp_scout.nba.score_model.injury_lag import normalize_injury_status
 from sharp_scout.nba.score_model.player_impact import (
     LEAGUE_PACE,
+    ROTATION_MIN_MPG,
     defense_impact_pts,
+    is_season_long_absence,
     load_rates_by_team_player,
-    lookup_player_row,
     offense_impact_pts,
     pace_impact_pts,
+    resolve_player_rate_row,
 )
 from sharp_scout.nba.rosters import ESPN_NBA_SEASON_END_YEAR, resolve_player_team_for_game
 from sharp_scout.nba.teams import normalize_nba_team
@@ -47,7 +49,8 @@ RETURN_BOOST_FRAC = 0.5
 MAX_TEAM_OFF_LOSS = 12.0
 MAX_TEAM_DEF_LOSS = 9.0
 MAX_TEAM_PACE_LOSS = 4.0
-MIN_DISPLAY_IMPACT = 0.3
+MIN_DISPLAY_IMPACT = 0.15
+INJURY_STATUSES = frozenset({"out", "doubtful", "questionable", "day-to-day", "probable"})
 
 
 def status_weight(status: str) -> float:
@@ -102,6 +105,11 @@ def scope_injuries_to_game(
     return scoped
 
 
+def _rotation_player(rate_row: dict[str, Any]) -> bool:
+    mpg = float(rate_row.get("minutes") or rate_row.get("mpg") or 0)
+    return mpg >= ROTATION_MIN_MPG
+
+
 def team_absence_rows(
     team: str,
     injuries: list[dict[str, Any]],
@@ -109,12 +117,13 @@ def team_absence_rows(
     rates: dict[str, dict[str, Any]] | None = None,
     prior_status: dict[str, str] | None = None,
     pace: float = LEAGUE_PACE,
-) -> list[dict[str, Any]]:
-    """Absences and return boosts for one franchise code."""
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Absences, return boosts, and season-long exclusions for one franchise code."""
     rates = rates or load_rates_by_team_player()
     prior_status = prior_status or {}
     team = normalize_nba_team(team)
     rows: list[dict[str, Any]] = []
+    excluded: list[dict[str, Any]] = []
     off_sum = def_sum = pace_sum = 0.0
 
     for inj in injuries:
@@ -125,14 +134,29 @@ def team_absence_rows(
             continue
         status = normalize_injury_status(inj.get("status"))
         pkey = f"{team}|{name.lower()}"
-        rate_row = lookup_player_row(name, team, rates)
-        if rate_row is None:
+        rate_row = resolve_player_rate_row(name, team, rates)
+        detail = str(inj.get("detail") or inj.get("description") or "")
+        if status in INJURY_STATUSES and is_season_long_absence(
+            detail=detail,
+            current_season_gp=int(rate_row.get("current_season_gp") or 0),
+            played_this_season=bool(rate_row.get("played_this_season")),
+        ):
+            excluded.append(
+                {
+                    "player": name,
+                    "team": team,
+                    "status": status,
+                    "status_label": str(inj.get("status") or status).strip() or status.title(),
+                    "kind": "excluded_season",
+                    "reason": "out all season",
+                }
+            )
             continue
 
         w = status_weight(status)
         off, defn, pace_pts = _player_row_impacts(rate_row, weight=w, pace=pace)
         kind = "absence"
-        if w > 0 and max(off, defn, pace_pts) >= MIN_DISPLAY_IMPACT:
+        if w > 0 and status in INJURY_STATUSES and _rotation_player(rate_row):
             off_sum += off
             def_sum += defn
             pace_sum += pace_pts
@@ -148,6 +172,7 @@ def team_absence_rows(
                     "pace_pts": round(-pace_pts, 2),
                     "margin_pts": round(-(off + defn * 0.5), 2),
                     "kind": kind,
+                    "minutes": round(float(rate_row.get("minutes") or 0), 1),
                 }
             )
             continue
@@ -157,7 +182,7 @@ def team_absence_rows(
             off_f, def_f, pace_f = _player_row_impacts(
                 rate_row, weight=RETURN_BOOST_FRAC, pace=pace
             )
-            if max(off_f, def_f) >= MIN_DISPLAY_IMPACT:
+            if max(off_f, def_f, pace_f) >= MIN_DISPLAY_IMPACT:
                 off_sum -= off_f
                 def_sum -= def_f
                 pace_sum -= pace_f
@@ -177,7 +202,7 @@ def team_absence_rows(
                 )
 
     off_sum, def_sum, pace_sum = _cap_team(off_sum, def_sum, pace_sum)
-    return rows
+    return rows, excluded
 
 
 def apply_team_adjustments(
@@ -229,11 +254,17 @@ def build_game_injury_bundle(
 ) -> dict[str, Any]:
     injuries = injuries if injuries is not None else fetch_espn_nba_injuries()
     scoped = scope_injuries_to_game(injuries, home, away)
-    home_abs = team_absence_rows(home, scoped, rates=rates, prior_status=prior_status, pace=pace)
-    away_abs = team_absence_rows(away, scoped, rates=rates, prior_status=prior_status, pace=pace)
+    home_abs, home_ex = team_absence_rows(
+        home, scoped, rates=rates, prior_status=prior_status, pace=pace
+    )
+    away_abs, away_ex = team_absence_rows(
+        away, scoped, rates=rates, prior_status=prior_status, pace=pace
+    )
     return {
         "home_absences": home_abs,
         "away_absences": away_abs,
+        "home_excluded": home_ex,
+        "away_excluded": away_ex,
         "injury_refreshed_at": None,
     }
 
@@ -295,6 +326,8 @@ def format_absence_line(team: str, row: dict[str, Any]) -> str:
     """Display: 'PHI without Embiid (Out): -4.1 pts' (margin-oriented)."""
     name = row.get("player") or "?"
     label = row.get("status_label") or row.get("status") or "?"
+    if row.get("kind") == "excluded_season":
+        return f"Excluded: {name} ({label}) — out all season (already in team ratings)"
     impact = float(row.get("margin_pts") or row.get("off_pts") or 0)
     prefix = f"{team} without {name}" if row.get("kind") != "return" else f"{team} with {name} back"
     return f"{prefix} ({label}): {impact:+.1f} pts"

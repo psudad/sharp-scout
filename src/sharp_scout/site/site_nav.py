@@ -38,9 +38,9 @@ def render_lp_topnav(*, active: LpTopnavActive) -> str:
     items: list[tuple[LpTopnavActive, str, str]] = [
         ("plays", "index.html", "Today's plays"),
         ("results", "board.html#tab-plays", "Results"),
+        ("nba", "nba.html", nba_nav_label()),
         ("guide", "board.html#tab-guide", "How it works"),
         ("board", "board.html", "Full board"),
-        ("nba", "nba.html", nba_nav_label()),
     ]
     parts: list[str] = []
     for key, href, label in items:

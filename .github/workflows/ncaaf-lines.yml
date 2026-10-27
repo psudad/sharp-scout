@@ -8,6 +8,8 @@ name: NCAAF Line Snapshots (CLV)
 #     trigger the separate pages.yml, so this workflow deploys itself).
 #
 # Requires repo secret: ODDS_API_KEY (ACTION_NETWORK_TOKEN optional for money %)
+#
+# Scheduled Odds API usage pauses until 2026-11-05 ET (billing reset); workflow_dispatch unchanged.
 
 on:
   schedule:
@@ -51,18 +53,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Gate — odds credit pause (scheduled)
+        id: credit
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
+        run: python3 scripts/check_odds_credit_pause.py --workflow ncaaf-lines
+
       - uses: actions/setup-python@v5
+        if: steps.credit.outputs.proceed == 'true'
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install
+        if: steps.credit.outputs.proceed == 'true'
         run: pip install -e .
 
       # Cache cfbfastR play-by-play parquet so the gameday rebuild builds REAL power
       # ratings without re-downloading ~400MB every run. Keyed by month so a new
       # season's data is refetched when it lands.
       - name: Cache CFB play-by-play
+        if: steps.credit.outputs.proceed == 'true'
         uses: actions/cache@v4
         with:
           path: data/cfb_pbp_cache
@@ -71,6 +83,7 @@ jobs:
             cfb-pbp-
 
       - name: Configure env
+        if: steps.credit.outputs.proceed == 'true'
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
           echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
@@ -79,7 +92,9 @@ jobs:
           echo "GA_MEASUREMENT_ID=${{ secrets.GA_MEASUREMENT_ID }}" >> $GITHUB_ENV
 
       - name: Settle finished CFB games (T+3h after kickoff)
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         id: settle
         continue-on-error: true
         run: |
@@ -93,7 +108,10 @@ jobs:
           fi
 
       - name: Tuesday — rebuild plan and capture opening lines
-        if: github.event.schedule == '0 14 * * 2' || (github.event_name == 'workflow_dispatch' && inputs.rebuild_plan)
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          (github.event.schedule == '0 14 * * 2' ||
+          (github.event_name == 'workflow_dispatch' && inputs.rebuild_plan))
         run: |
           if [ -z "$ODDS_API_KEY" ]; then
             echo "No ODDS_API_KEY — skipping"
@@ -104,15 +122,19 @@ jobs:
 
       - name: Gate — skip hour if no snapshot window due
         id: gate
-        if: github.event_name == 'schedule' && github.event.schedule != '0 14 * * 2'
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          github.event_name == 'schedule' &&
+          github.event.schedule != '0 14 * * 2'
         run: python scripts/check_ncaaf_snapshot_plan.py
 
       - name: Run due pre-kick line snapshots
         # Snapshot-only when a window is due but no full rebuild is (T-6h / T-4h).
         # At T-3h / T-1h the full pipeline below records snapshots itself.
         if: |
+          steps.credit.outputs.proceed == 'true' && (
           (github.event_name == 'workflow_dispatch' && inputs.force && !inputs.rebuild_report) ||
-          (steps.gate.outputs.run == 'true' && steps.gate.outputs.rebuild != 'true')
+          (steps.gate.outputs.run == 'true' && steps.gate.outputs.rebuild != 'true'))
         run: |
           if [ -z "$ODDS_API_KEY" ]; then
             echo "No ODDS_API_KEY — skipping"
@@ -122,16 +144,18 @@ jobs:
 
       - name: Settle prior NCAAF plays (gameday rebuild)
         if: |
+          steps.credit.outputs.proceed == 'true' && (
           (github.event_name == 'workflow_dispatch' && inputs.rebuild_report) ||
-          (steps.gate.outputs.rebuild == 'true')
+          (steps.gate.outputs.rebuild == 'true'))
         continue-on-error: true
         run: python scripts/settle_plays.py --sport ncaaf --build-site
 
       - name: Gameday full board rebuild (T-3h / T-1h)
         # Refreshes the public report — plays, splits, open→now, When-to-bet — before kickoff.
         if: |
+          steps.credit.outputs.proceed == 'true' && (
           (github.event_name == 'workflow_dispatch' && inputs.rebuild_report) ||
-          (steps.gate.outputs.rebuild == 'true')
+          (steps.gate.outputs.rebuild == 'true'))
         run: |
           if [ -z "$ODDS_API_KEY" ]; then
             echo "No ODDS_API_KEY — skipping rebuild"
@@ -144,6 +168,7 @@ jobs:
 
       - name: Flag whether a Pages deploy is needed
         id: deployflag
+        if: steps.credit.outputs.proceed == 'true'
         run: |
           if [ "${{ github.event_name == 'workflow_dispatch' && inputs.rebuild_report }}" = "true" ] || [ "${{ steps.gate.outputs.rebuild }}" = "true" ] || [ "${{ steps.settle.outputs.changed }}" = "true" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
@@ -152,6 +177,7 @@ jobs:
           fi
 
       - name: Commit plan + line history + site
+        if: steps.credit.outputs.proceed == 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

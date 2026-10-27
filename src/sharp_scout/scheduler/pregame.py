@@ -140,6 +140,8 @@ def run_due_pregame(
     build_pages: bool = True,
     skip_pbp: bool = False,
     update_ledger: bool = False,
+    nfl_only: bool = False,
+    skip_props: bool = False,
 ) -> dict[str, Any]:
     """Check schedule; for each due window run side + props pipelines for that game."""
     settings = get_settings()
@@ -160,15 +162,16 @@ def run_due_pregame(
                 events = client.fetch_odds()
             for ev in events:
                 ev["sport"] = "nfl"
-            try:
-                ncaaf_client = OddsClient(sport="ncaaf")
-                ncaaf_events = ncaaf_client.fetch_odds()
-                for raw in ncaaf_events:
-                    ev = dict(raw)
-                    ev["sport"] = "ncaaf"
-                    events.append(ev)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("NCAAF events for pregame skipped: %s", exc)
+            if not nfl_only:
+                try:
+                    ncaaf_client = OddsClient(sport="ncaaf")
+                    ncaaf_events = ncaaf_client.fetch_odds()
+                    for raw in ncaaf_events:
+                        ev = dict(raw)
+                        ev["sport"] = "ncaaf"
+                        events.append(ev)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("NCAAF events for pregame skipped: %s", exc)
         except Exception as exc:  # noqa: BLE001
             logger.error("Failed to load events: %s", exc)
             return {"ok": False, "error": str(exc), "hits": []}
@@ -204,13 +207,17 @@ def run_due_pregame(
     window_map = {h.event_id: h.window_hours for h in hits}
     sport_by_event = {str(ev.get("event_id")): ev.get("sport", "nfl") for ev in events}
     due_nfl = {eid for eid in due_ids if sport_by_event.get(eid, "nfl") == "nfl"}
-    due_ncaaf = {eid for eid in due_ids if sport_by_event.get(eid) == "ncaaf"}
+    due_ncaaf = (
+        set()
+        if nfl_only
+        else {eid for eid in due_ids if sport_by_event.get(eid) == "ncaaf"}
+    )
 
     # Full side odds for due games
     from sharp_scout.pipeline.run import run_pipeline
-    from sharp_scout.props.pipeline import run_props_pipeline
 
     ncaaf_result: dict[str, Any] | None = None
+    props: dict[str, Any] = {"plays": []}
 
     if demo or not settings.odds_api_key:
         side = run_pipeline(demo=True, skip_pbp=True, update_ledger=update_ledger, build_pages=False)
@@ -218,7 +225,12 @@ def run_due_pregame(
         for p in side.get("plays") or []:
             p["window"] = window_map.get(str(p.get("event_id")), 3.0)
             p["pregame_window"] = p["window"]
-        props = run_props_pipeline(demo=True, skip_pbp=True, update_ledger=update_ledger, build_pages=build_pages)
+        if not skip_props:
+            from sharp_scout.props.pipeline import run_props_pipeline
+
+            props = run_props_pipeline(
+                demo=True, skip_pbp=True, update_ledger=update_ledger, build_pages=build_pages
+            )
     else:
         client = OddsClient()
         all_odds = client.fetch_odds()
@@ -247,41 +259,44 @@ def run_due_pregame(
             if shadow:
                 append_signals(shadow, status="watchlist")
 
-        # Props for due events only
-        prop_events = []
-        for ev in due_events:
-            try:
-                pev = client.fetch_event_props(str(ev["event_id"]))
-                books = dict(ev.get("bookmakers") or {})
-                for bk, bm in (pev.get("bookmakers") or {}).items():
-                    if bk not in books:
-                        books[bk] = bm
-                    else:
-                        mk = dict(books[bk].get("markets") or {})
-                        mk.update(bm.get("markets") or {})
-                        books[bk] = {**books[bk], "markets": mk}
-                ev = dict(ev)
-                ev["bookmakers"] = books
-                prop_events.append(ev)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("prop odds %s: %s", ev.get("event_id"), exc)
+        if not skip_props:
+            from sharp_scout.props.pipeline import run_props_pipeline
 
-        game_context = {
-            str(g["event_id"]): {
-                "home_spread": g.get("model_spread", 0),
-                "total": g.get("model_total", 45),
+            # Props for due events only
+            prop_events = []
+            for ev in due_events:
+                try:
+                    pev = client.fetch_event_props(str(ev["event_id"]))
+                    books = dict(ev.get("bookmakers") or {})
+                    for bk, bm in (pev.get("bookmakers") or {}).items():
+                        if bk not in books:
+                            books[bk] = bm
+                        else:
+                            mk = dict(books[bk].get("markets") or {})
+                            mk.update(bm.get("markets") or {})
+                            books[bk] = {**books[bk], "markets": mk}
+                    ev = dict(ev)
+                    ev["bookmakers"] = books
+                    prop_events.append(ev)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("prop odds %s: %s", ev.get("event_id"), exc)
+
+            game_context = {
+                str(g["event_id"]): {
+                    "home_spread": g.get("model_spread", 0),
+                    "total": g.get("model_total", 45),
+                }
+                for g in (side.get("games") or [])
+                if str(g.get("event_id")) in due_ids
             }
-            for g in (side.get("games") or [])
-            if str(g.get("event_id")) in due_ids
-        }
-        props = run_props_pipeline(
-            demo=False,
-            skip_pbp=skip_pbp,
-            events=prop_events or None,
-            update_ledger=update_ledger,
-            build_pages=build_pages and not due_ncaaf,
-            game_context=game_context,
-        )
+            props = run_props_pipeline(
+                demo=False,
+                skip_pbp=skip_pbp,
+                events=prop_events or None,
+                update_ledger=update_ledger,
+                build_pages=build_pages and not due_ncaaf,
+                game_context=game_context,
+            )
 
         if due_ncaaf:
             from sharp_scout.ncaaf.pipeline import run_ncaaf_pipeline

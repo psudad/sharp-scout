@@ -198,8 +198,9 @@
       z-index: 20;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
-    .tab { flex: 0 0 auto; padding: 13px 13px; font-size: 12px; letter-spacing: 0.05em; }
+    .tab { flex: 0 0 auto; padding: 13px 11px; font-size: 12px; letter-spacing: 0.05em; }
     .tab.tab-aux { display: none; }
+    .tab.tab-nba { display: inline-flex; align-items: center; }
   }
   .content { display: none; padding: 20px 16px 32px; max-width: 900px; margin: 0 auto; }
   .content.active { display: block; }
@@ -727,6 +728,22 @@
     .footer { padding: 24px 12px; }
   }
 
+  .nav-test-badge {
+    display: inline-block;
+    margin-left: 3px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    line-height: 1.2;
+  }
+  .lp-topnav a .nav-test-badge { background: rgba(255,255,255,.22); color: #fff; }
+  .tab .nav-test-badge { background: rgba(30,58,95,.12); color: var(--color-navy); font-size: 8px; }
+  .tab.active .nav-test-badge { background: rgba(255,255,255,.28); color: #fff; }
+
 
   body.ss-bottom-bar { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 12px); }
   .lp-badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: #15803d;
@@ -787,8 +804,11 @@
   .lp-record { margin-left: auto; font-size: 13px; text-align: right; line-height: 1.35; }
   .lp-record .pos { color: #86efac; font-weight: 700; }
   .lp-record .neg { color: #fca5a5; font-weight: 700; }
-  .lp-topnav { display: none; gap: 4px; margin-left: 20px; }
-  .lp-topnav a { color: #dbe6f3; text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+  .lp-topnav { display: flex; flex: 1 1 auto; min-width: 0; gap: 2px; margin-left: 8px;
+    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .lp-topnav::-webkit-scrollbar { display: none; }
+  .lp-topnav a { color: #dbe6f3; text-decoration: none; padding: 8px 10px; border-radius: 8px;
+    font-size: 13px; white-space: nowrap; flex-shrink: 0; }
   .lp-topnav a.on { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
   .lp-main { max-width: 1180px; margin: 0 auto; padding: 12px 16px 24px; }
   .lp-hero h1 { font-family: var(--font-serif); font-size: 28px; font-weight: 600; margin: 4px 0 2px; }
@@ -858,7 +878,8 @@
   .lp-slip .lp-copy { width: 100%; margin-top: 10px; border: 1px solid var(--color-navy); background: #fff;
     color: var(--color-navy); border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); }
   @media (min-width: 900px) {
-    .lp-topnav { display: flex; }
+    .lp-topnav { margin-left: 20px; gap: 4px; }
+    .lp-topnav a { padding: 8px 12px; font-size: 14px; }
     .lp-hero h1 { font-size: 32px; }
     .lp-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
     .lp-grid.official-grid { grid-template-columns: 1fr; }
@@ -892,12 +913,7 @@
   <text x="40" y="40" text-anchor="middle" font-family="Inconsolata, monospace" font-size="30" font-weight="700" fill="#ffffff">Q</text>
 </svg>
   <div class="lp-brand">Sharp Scout</div>
-  <nav class="lp-topnav" aria-label="Primary">
-    <a class="on" href="index.html">Today's plays</a>
-    <a href="board.html#tab-plays">Results</a>
-    <a href="board.html#tab-guide">How it works</a>
-    <a href="board.html">Full board</a>
-  </nav>
+  <nav class="lp-topnav" aria-label="Primary"><a class="on" href="index.html">Today's plays</a><a href="board.html#tab-plays">Results</a><a href="nba.html">NBA <span class="nav-test-badge">test</span></a><a href="board.html#tab-guide">How it works</a><a href="board.html">Full board</a></nav>
   <div class="lp-record"><span class="lp-rec-label">Season record</span><br><b>CFB 56-50</b> <span class="pos">+2.89u</span><br class="lp-rec-br"> <b>NFL 12-11</b> <span class="pos">+1.58u</span></div>
 </div></header>
 
@@ -970,7 +986,7 @@
     <a href="board.html#tab-guide">How it works</a>
     <a href="comments.html">Comments</a>
     <a href="props.html">NFL Props</a>
-    <a href="nba.html">NBA (testing)</a>
+    <a href="nba.html">NBA <span class="nav-test-badge">test</span></a>
   </div>
 </div>
 

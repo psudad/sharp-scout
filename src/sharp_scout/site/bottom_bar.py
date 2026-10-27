@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
+from sharp_scout.site.site_nav import nba_nav_label
+
 BottomBarActive = Literal["plays", "results", "props", "comments", "board"]
 
 # Height of the fixed bar (px), used for body padding and slip positioning.
@@ -93,7 +95,7 @@ def render_bottom_bar(*, active: BottomBarActive) -> str:
     <a href="board.html#tab-guide">How it works</a>
     <a href="comments.html"{comments_em}>Comments</a>
     <a href="props.html"{props_em}>NFL Props</a>
-    <a href="nba.html">NBA (testing)</a>
+    <a href="nba.html">{nba_nav_label()}</a>
   </div>
 </div>
 """

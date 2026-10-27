@@ -1699,7 +1699,10 @@ def render_nba_page_html(
         window_s = f"Paper window {window['start']} – {window['end']}. "
     window_flag = "In paper window." if in_window else "Outside paper window (testing only)."
 
+    from sharp_scout.site.site_nav import render_site_tabs
+
     return NBA_PAGE_TEMPLATE.format(
+        site_tabs=render_site_tabs(active="nba"),
         site_css=_SITE_CSS,
         bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
@@ -1897,14 +1900,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 <body class="{body_class}">
 <div class="nba-test-banner" role="alert">NBA paper tracking — testing only. Not NFL Sharp Plays.</div>
 <div class="board-nav">
-  <div class="tabs" role="navigation" aria-label="Sections">
-    <a class="tab tab-home" href="index.html">Today's plays</a>
-    <a class="tab" href="board.html#tab-plays">Results</a>
-    <a class="tab" href="board.html#tab-guide">How it works</a>
-    <a class="tab tab-aux" href="comments.html">Comments</a>
-    <a class="tab tab-aux" href="props.html">NFL Props</a>
-    <span class="tab active">NBA (test)</span>
-  </div>
+  {site_tabs}
   <div class="board-updated-bar" role="status">
     <span class="board-updated-label">NBA shadow board</span>
     <span class="board-updated-time">{mode_note} · Updated {updated} · Next scan {next_scan}</span>

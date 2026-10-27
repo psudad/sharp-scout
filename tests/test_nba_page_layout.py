@@ -5,9 +5,27 @@ from __future__ import annotations
 from sharp_scout.site.nba_page import (
     NO_LIVE_SCAN_MESSAGE,
     SCORE_MODELING_MIN_EDGE_PT,
+    format_projected_scores_line,
     render_nba_page_html,
     score_modeling_display_plays,
+    spread_gap_plain_english,
 )
+
+
+def test_projected_scores_and_gap_copy():
+    line = format_projected_scores_line(
+        home="BOS",
+        away="BKN",
+        margin=20.6,
+        total=225.0,
+        inj_margin=18.0,
+        inj_total=223.0,
+    )
+    assert "Projected: BOS" in line
+    assert "after injuries" in line
+    explain = spread_gap_plain_english(home="BOS", margin=20.6, consensus_spread_home=-11.5)
+    assert "gap 9.1 pts" in explain
+    assert "3+ pts" in explain
 
 
 def test_score_modeling_display_uses_three_point_threshold():
@@ -107,6 +125,7 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     assert "Sharp Scout model" in html
     assert "DAL @ MIA: Under 240.75" in html
     assert "Injury-adj" in html or "Injury " in html
+    assert "Projected:" in html
     assert "Spread 6-4" in html
     assert "Game lines" not in html.split("Model details")[0]
 

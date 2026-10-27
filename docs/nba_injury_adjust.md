@@ -6,7 +6,8 @@ The **Score modeling** cards on the NBA test page show stage-3 possession projec
 
 - **Injuries:** ESPN public injuries feed (same source as `data/paper/nba_injury_lag.json`).
 - **Team assignment:** ESPN `teams/{id}/roster?season=2027` (2026–27 season). Player franchise codes never come from memory, stale rate files, or the injury feed alone.
-- **Player value:** ESPN by-athlete season stats, keyed by roster display name. Current-season stats first; prior season used only for numeric rates, not team.
+- **Player value:** ESPN by-athlete season stats, keyed by roster display name. Current-season stats first; prior season blends in when the sample is small; roster-only players get a minutes-based fallback. Traded players not yet on the roster JSON still resolve via the injury feed team when they are in the game.
+- **Season-long outs:** Players already baked into team ratings (e.g. season-ending injury, zero current-season games with a long-term report) are listed as `Excluded: … — out all season` and do not move the projection again.
 
 ## Status weights
 

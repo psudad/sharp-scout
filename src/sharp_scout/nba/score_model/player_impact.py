@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from sharp_scout.nba import paths as nba_paths
+from sharp_scout.nba.player_rates_espn import build_supplemental_rate_row, season_stats_by_name
+from sharp_scout.nba.rosters import ESPN_NBA_SEASON_END_YEAR, roster_norm_name
 
 REPLACEMENT_BPM = -2.0  # per-100 possessions vs replacement player
 LEAGUE_PACE = 100.0
@@ -15,12 +18,102 @@ MAX_DEF_PTS_GAME = 4.5
 MAX_PACE_PTS_GAME = 2.0
 OFF_BPM_SHARE = 0.62
 DEF_BPM_SHARE = 0.38
+MIN_GAMES_TRUST_CURRENT = 8
+ROTATION_MIN_MPG = 8.0
+
+_SEASON_LONG_DETAIL = re.compile(
+    r"(?:"
+    r"for the season|rest of the season|out for the season|"
+    r"expected to miss(?:\s+\w+){0,3}\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|several)\s+months|"
+    r"miss(?:ing)?\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|several)\s+months|"
+    r"torn\s+(?:\w+\s+){0,2}(?:acl|achilles|meniscus)"
+    r")",
+    re.IGNORECASE,
+)
 
 # Documented formula (paper / PR):
 #   bpm_proxy = box-score on-court value (per 100 poss, heuristic from rates file)
 #   margin_pts = (bpm_proxy - REPLACEMENT_BPM) × (MPG / 48) × (pace / 100)
 #   off_pts / def_pts split bpm_proxy by OFF_BPM_SHARE / DEF_BPM_SHARE before scaling
 #   clamp per-player game impacts to MAX_OFF_PTS_GAME / MAX_DEF_PTS_GAME / MAX_PACE_PTS_GAME
+
+
+def is_season_long_absence(
+    *,
+    detail: str | None = None,
+    current_season_gp: int | None = None,
+    played_this_season: bool | None = None,
+) -> bool:
+    """Skip adjustment when absence is already baked into team ratings."""
+    text = str(detail or "")
+    if _SEASON_LONG_DETAIL.search(text):
+        return True
+    gp = current_season_gp
+    if gp is None and played_this_season is not None:
+        gp = 0 if not played_this_season else 1
+    if gp is not None and gp <= 0 and re.search(
+        r"(?:underwent|surgery|rehabilitation|re-evaluated in \d+)",
+        text,
+        re.I,
+    ):
+        if _SEASON_LONG_DETAIL.search(text) or re.search(
+            r"(?:achilles|acl|meniscus|fracture)", text, re.I
+        ):
+            return True
+    return False
+
+
+def impact_rate_row(
+    row: dict[str, Any],
+    *,
+    season_end: int = ESPN_NBA_SEASON_END_YEAR,
+) -> dict[str, Any]:
+    """Row copy with blended rates when current-season sample is small."""
+    out = dict(row)
+    if out.get("current_season_gp") is not None:
+        gp = int(out.get("current_season_gp") or 0)
+    elif out.get("games_played") is not None:
+        gp = int(out.get("games_played") or 0)
+    elif int(out.get("stats_season") or season_end) >= season_end:
+        gp = MIN_GAMES_TRUST_CURRENT
+    else:
+        gp = 0
+    mpg = float(out.get("minutes") or 0)
+    if gp < MIN_GAMES_TRUST_CURRENT:
+        prior_stats = season_stats_by_name(season=season_end - 1).get(
+            roster_norm_name(str(out.get("player_name") or ""))
+        )
+        if prior_stats:
+            w = max(0.0, min(1.0, gp / float(MIN_GAMES_TRUST_CURRENT)))
+            for field in ("minutes", "pts_per_min", "reb_per_min", "ast_per_min", "usage_share"):
+                cur = float(out.get(field) or 0)
+                prv = float(prior_stats.get(field) or cur)
+                out[field] = prv * (1.0 - w) + cur * w
+    if mpg >= 24 and bpm_proxy_per100(out) < REPLACEMENT_BPM:
+        out["pts_per_min"] = max(float(out.get("pts_per_min") or 0), 0.38)
+        out["usage_share"] = max(float(out.get("usage_share") or 0), 0.20)
+    elif mpg >= 18 and bpm_proxy_per100(out) < REPLACEMENT_BPM:
+        out["pts_per_min"] = max(float(out.get("pts_per_min") or 0), 0.30)
+    mpg = float(out.get("minutes") or 0)
+    if mpg >= 22 and bpm_proxy_per100(out) < REPLACEMENT_BPM:
+        out["pts_per_min"] = max(float(out.get("pts_per_min") or 0), 0.35)
+        out["usage_share"] = max(float(out.get("usage_share") or 0), 0.18)
+    return out
+
+
+def rotation_bpm_proxy(row: dict[str, Any]) -> float:
+    """BPM proxy with a floor so cold starts / sparse rate rows still move rotation minutes."""
+    bpm = bpm_proxy_per100(row)
+    mpg = float(row.get("minutes") or row.get("mpg") or 0)
+    if mpg >= 24:
+        floor = REPLACEMENT_BPM + 1.25
+    elif mpg >= 18:
+        floor = REPLACEMENT_BPM + 0.65
+    elif mpg >= ROTATION_MIN_MPG:
+        floor = REPLACEMENT_BPM + 0.15
+    else:
+        floor = REPLACEMENT_BPM
+    return max(bpm, floor)
 
 
 def bpm_proxy_per100(row: dict[str, Any]) -> float:
@@ -40,17 +133,17 @@ def _scale_bpm_to_game_pts(bpm: float, row: dict[str, Any], *, pace: float = LEA
 
 
 def margin_impact_pts(row: dict[str, Any], *, pace: float = LEAGUE_PACE) -> float:
-    bpm = bpm_proxy_per100(row)
+    bpm = rotation_bpm_proxy(row)
     return min(_scale_bpm_to_game_pts(bpm, row, pace=pace), MAX_MARGIN_IMPACT)
 
 
 def offense_impact_pts(row: dict[str, Any], *, pace: float = LEAGUE_PACE) -> float:
-    bpm = bpm_proxy_per100(row) * OFF_BPM_SHARE
+    bpm = rotation_bpm_proxy(row) * OFF_BPM_SHARE
     return min(_scale_bpm_to_game_pts(bpm, row, pace=pace), MAX_OFF_PTS_GAME)
 
 
 def defense_impact_pts(row: dict[str, Any], *, pace: float = LEAGUE_PACE) -> float:
-    bpm = bpm_proxy_per100(row) * DEF_BPM_SHARE
+    bpm = rotation_bpm_proxy(row) * DEF_BPM_SHARE
     return min(_scale_bpm_to_game_pts(bpm, row, pace=pace), MAX_DEF_PTS_GAME)
 
 
@@ -101,6 +194,18 @@ def lookup_player_row(name: str, team: str, table: dict[str, dict[str, Any]]) ->
     if len(matches) == 1:
         return matches[0]
     return None
+
+
+def resolve_player_rate_row(
+    name: str,
+    team: str,
+    table: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Rates file, then ESPN by-athlete / minutes fallback for rotation injuries."""
+    hit = lookup_player_row(name, team, table)
+    if hit is None:
+        hit = build_supplemental_rate_row(name, team)
+    return impact_rate_row(hit)
 
 
 def example_impacts(limit: int = 10) -> list[dict[str, Any]]:

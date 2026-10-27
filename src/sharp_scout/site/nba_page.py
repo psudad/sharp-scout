@@ -207,6 +207,66 @@ def _qualifies_play(candidates: list[dict[str, Any]]) -> bool:
     return bool(candidates)
 
 
+def projected_team_scores(
+    margin: float,
+    total: float,
+) -> tuple[float, float]:
+    """Home/away points from model margin (home − away) and game total."""
+    home_pts = (float(total) + float(margin)) / 2.0
+    away_pts = (float(total) - float(margin)) / 2.0
+    return round(home_pts, 1), round(away_pts, 1)
+
+
+def format_projected_scores_line(
+    *,
+    home: str,
+    away: str,
+    margin: float,
+    total: float,
+    inj_margin: float | None = None,
+    inj_total: float | None = None,
+) -> str:
+    h_raw, a_raw = projected_team_scores(margin, total)
+    base = f"Projected: {home} {h_raw:g}, {away} {a_raw:g}"
+    if inj_margin is None or inj_total is None:
+        return base
+    h_inj, a_inj = projected_team_scores(inj_margin, inj_total)
+    if h_inj == h_raw and a_inj == a_raw:
+        return base
+    return f"{base} | after injuries: {home} {h_inj:g}, {away} {a_inj:g}"
+
+
+def spread_gap_plain_english(
+    *,
+    home: str,
+    margin: float,
+    consensus_spread_home: float,
+    min_edge: float = SCORE_MODELING_MIN_EDGE_PT,
+) -> str:
+    """One-line spread gap vs consensus (home margin = −spread)."""
+    market_margin = -float(consensus_spread_home)
+    model_margin = float(margin)
+    gap = model_margin - market_margin
+    return (
+        f"Model has {home} by {model_margin:.1f}; market says {home} by {market_margin:.1f}; "
+        f"gap {abs(gap):.1f} pts. A play needs a gap of {min_edge:g}+ pts."
+    )
+
+
+def total_gap_plain_english(
+    *,
+    total: float,
+    consensus_total: float,
+    min_edge: float = SCORE_MODELING_MIN_EDGE_PT,
+) -> str:
+    gap = float(total) - float(consensus_total)
+    side = "Over" if gap > 0 else "Under"
+    return (
+        f"Model total {float(total):.1f}; market {float(consensus_total):g}; "
+        f"gap {abs(gap):.1f} pts ({side}). A play needs a gap of {min_edge:g}+ pts."
+    )
+
+
 def score_modeling_display_plays(
     rows: list[dict[str, Any]],
     *,
@@ -252,8 +312,20 @@ def score_modeling_display_plays(
         absence_lines: list[str] = []
         for team, key in ((home, "home_absences"), (away, "away_absences")):
             for row in r.get(key) or []:
-                if row.get("kind") == "return" or abs(float(row.get("margin_pts") or 0)) >= 0.3:
+                if row.get("kind") in ("return", "absence"):
                     absence_lines.append(format_absence_line(team, row))
+        for team, key in ((home, "home_excluded"), (away, "away_excluded")):
+            for row in r.get(key) or []:
+                absence_lines.append(format_absence_line(team, row))
+
+        projected_line = format_projected_scores_line(
+            home=home,
+            away=away,
+            margin=margin,
+            total=total,
+            inj_margin=inj_margin,
+            inj_total=inj_total,
+        )
 
         candidates = adj_candidates or raw_candidates
         if not candidates and not raw_candidates:
@@ -278,6 +350,8 @@ def score_modeling_display_plays(
                         "raw_signed_gap": None,
                         "raw_model_line": f"Raw margin {margin:+.1f} · total {total:.1f}",
                         "injury_model_line": f"Injury-adj margin {inj_margin:+.1f} · total {inj_total:.1f}",
+                        "projected_scores_line": projected_line,
+                        "gap_explain": "",
                         "secondary": [],
                         "absence_lines": absence_lines,
                         "injury_news_after_line": bool(r.get("injury_news_after_line")),
@@ -297,6 +371,20 @@ def score_modeling_display_plays(
         elif raw_primary and raw_primary.get("kind") == primary.get("kind"):
             if (raw_gap or 0) * adj_gap < 0 and abs(adj_gap) >= min_edge:
                 flip = True
+        gap_explain = ""
+        if primary.get("kind") == "spread" and cs is not None:
+            gap_explain = spread_gap_plain_english(
+                home=home,
+                margin=inj_margin if adj_candidates else margin,
+                consensus_spread_home=float(cs),
+                min_edge=min_edge,
+            )
+        elif primary.get("kind") == "total" and ct is not None:
+            gap_explain = total_gap_plain_english(
+                total=inj_total if adj_candidates else total,
+                consensus_total=float(ct),
+                min_edge=min_edge,
+            )
         out.append(
             {
                 "game": game,
@@ -310,6 +398,8 @@ def score_modeling_display_plays(
                 "raw_signed_gap": raw_gap,
                 "raw_model_line": raw_primary["model_line"] if raw_primary else f"Proj margin {margin:+.1f}",
                 "injury_model_line": primary["model_line"],
+                "projected_scores_line": projected_line,
+                "gap_explain": gap_explain,
                 "secondary": secondary,
                 "absence_lines": absence_lines,
                 "injury_news_after_line": bool(r.get("injury_news_after_line")),
@@ -441,6 +531,14 @@ def _render_score_modeling_card(item: dict[str, Any]) -> str:
     flip = ""
     if item.get("injury_play_flip"):
         flip = '<div class="nba-score-flip">Injury adjustment changes or removes this display play vs the raw model.</div>'
+    projected = item.get("projected_scores_line") or ""
+    proj_html = ""
+    if projected:
+        proj_html = f'<div class="nba-score-projected">{_esc(projected)}</div>'
+    gap_explain = str(item.get("gap_explain") or "").strip()
+    gap_html = ""
+    if gap_explain:
+        gap_html = f'<div class="nba-score-gap-explain">{_esc(gap_explain)}</div>'
     return f"""
       <div class="play-card candidate nba-pick-card nba-score-card">
         <div class="card-top">
@@ -457,6 +555,8 @@ def _render_score_modeling_card(item: dict[str, Any]) -> str:
           <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">{_esc(item.get("consensus_line") or "")}</span></div>
           <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">{_esc(gap_s)}{(" · " + _esc(raw_gap_s)) if raw_gap_s else ""}</span></div>
         </div>
+        {proj_html}
+        {gap_html}
         {abs_html}
         {stale}
         {flip}
@@ -1146,6 +1246,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   .nba-gap-badge {{ font-size: 11px; letter-spacing: 0.04em; }}
   .nba-score-secondary {{ font-size: 12px; color: var(--color-text-muted); margin-top: 10px; line-height: 1.45; }}
   .nba-score-absences {{ font-size: 12px; line-height: 1.5; margin-top: 10px; color: var(--color-text); }}
+  .nba-score-projected, .nba-score-gap-explain {{ font-size: 12px; line-height: 1.45; margin-top: 8px; color: var(--color-text-muted, var(--color-text)); }}
   .nba-score-stale {{ font-size: 11px; color: #92400e; margin-top: 8px; }}
   .nba-score-flip {{ font-size: 11px; color: #1e40af; margin-top: 6px; font-weight: 600; }}
   .nba-model-details {{ margin: 28px 0 16px; border: 1px solid var(--color-border); background: var(--color-bg); padding: 4px 16px 16px; }}

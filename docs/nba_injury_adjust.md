@@ -33,4 +33,4 @@ Frozen pre-tip snapshots grade **both** raw and injury-adjusted edges vs closing
 ## Ops
 
 - Full shadow scan (Odds API): still runs at 10:30 AM & 5:30 PM ET; refreshes rates + injuries on live runs.
-- **Extra cron:** `nba-injury-refresh.yml` at ~4 PM ET — ESPN only, re-renders `docs/nba.html` without an Odds API scan.
+- **Extra cron:** `nba-injury-refresh.yml` at ~**1 PM ET** and ~**5 PM ET** (two runs to beat Actions delay) — ESPN only, ET game-date slate, re-renders `docs/nba.html` without an Odds API scan.

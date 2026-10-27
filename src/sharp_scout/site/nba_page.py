@@ -214,7 +214,9 @@ def score_modeling_display_plays(
 ) -> list[dict[str, Any]]:
     """One display card per game where model vs consensus spread/total gap >= min_edge."""
     from sharp_scout.nba.score_model.injury_adjust import format_absence_line
+    from sharp_scout.nba.slate_et import kickoff_date_et
 
+    today_et = datetime.now(ET).date()
     out: list[dict[str, Any]] = []
     for r in rows:
         lines = r.get("lines") or {}
@@ -247,17 +249,46 @@ def score_modeling_display_plays(
             min_edge=min_edge,
             label_prefix="Injury-adj ",
         )
-        candidates = adj_candidates or raw_candidates
-        if not candidates and not raw_candidates:
-            continue
-        primary = max(candidates, key=lambda c: c["gap"])
-        raw_primary = max(raw_candidates, key=lambda c: c["gap"]) if raw_candidates else None
-        secondary = [c for c in candidates if c is not primary]
         absence_lines: list[str] = []
         for team, key in ((home, "home_absences"), (away, "away_absences")):
             for row in r.get(key) or []:
                 if row.get("kind") == "return" or abs(float(row.get("margin_pts") or 0)) >= 0.3:
                     absence_lines.append(format_absence_line(team, row))
+
+        candidates = adj_candidates or raw_candidates
+        if not candidates and not raw_candidates:
+            if absence_lines and kickoff_date_et(r.get("kickoff")) == today_et:
+                market = ""
+                if cs is not None:
+                    market = f"Consensus {float(cs):+.1f}"
+                elif ct is not None:
+                    market = f"Consensus total {float(ct):g}"
+                else:
+                    market = "Awaiting market line from next scan"
+                out.append(
+                    {
+                        "game": game,
+                        "kickoff": r.get("kickoff"),
+                        "gap": 0.0,
+                        "title": game,
+                        "kind": "injury_watch",
+                        "model_line": f"Injury-adj margin {inj_margin:+.1f} · total {inj_total:.1f}",
+                        "consensus_line": market,
+                        "signed_gap": 0.0,
+                        "raw_signed_gap": None,
+                        "raw_model_line": f"Raw margin {margin:+.1f} · total {total:.1f}",
+                        "injury_model_line": f"Injury-adj margin {inj_margin:+.1f} · total {inj_total:.1f}",
+                        "secondary": [],
+                        "absence_lines": absence_lines,
+                        "injury_news_after_line": bool(r.get("injury_news_after_line")),
+                        "injury_play_flip": False,
+                        "injury_watch_only": True,
+                    }
+                )
+            continue
+        primary = max(candidates, key=lambda c: c["gap"])
+        raw_primary = max(raw_candidates, key=lambda c: c["gap"]) if raw_candidates else None
+        secondary = [c for c in candidates if c is not primary]
         raw_gap = raw_primary["signed_gap"] if raw_primary else None
         adj_gap = primary["signed_gap"]
         flip = False
@@ -418,7 +449,7 @@ def _render_score_modeling_card(item: dict[str, Any]) -> str:
             <div class="play-title">{_esc(str(item.get("title") or ""))}</div>
             <div class="play-subtitle">{_esc(item.get("game") or "")} · {_esc(kick)}</div>
           </div>
-          <div class="units-badge nba-gap-badge">{float(item.get("gap") or 0):.1f} pt</div>
+          <div class="units-badge nba-gap-badge">{"Injuries" if item.get("injury_watch_only") else f"{float(item.get('gap') or 0):.1f} pt"}</div>
         </div>
         <div class="play-meta">
           <div class="meta-item"><span class="meta-label">Injury </span><span class="meta-val">{_esc(item.get("injury_model_line") or item.get("model_line") or "")}</span></div>
@@ -1166,7 +1197,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   <p class="nba-section-note">Qualifying paper card plays (EV floor, sharp fair, Kelly sizing, portfolio caps).</p>
   <div class="nba-pick-cards">{price_edge_section}</div>
   <h2 class="nba-h2">Pace of Play model {score_record_html}</h2>
-  <p class="nba-section-note">Pace-of-play score model vs consensus — raw and injury-adjusted gaps (≥3 pt, display only). Player teams from live ESPN rosters.</p>)
+  <p class="nba-section-note">Pace-of-play score model vs consensus — raw and injury-adjusted gaps (≥3 pt, display only). Player teams from live ESPN rosters.</p>
   <div class="nba-pick-cards">{score_modeling_section}</div>
   <h2 class="nba-h2">Graded paper results</h2>
   {ledger_table}

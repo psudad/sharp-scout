@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from sharp_scout.site.nba_page import (
     NO_LIVE_SCAN_MESSAGE,
+    PACE_LEAN_MIN_EDGE_PT,
     SCORE_MODELING_MIN_EDGE_PT,
     format_projected_scores_line,
     render_nba_page_html,
+    score_modeling_display_leans,
     score_modeling_display_plays,
     spread_gap_plain_english,
 )
@@ -115,19 +117,41 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
         score_model_rows=score_rows,
         score_model_summary=summary,
     )
-    idx_price = html.index("Price-edge picks")
-    idx_score = html.index("Pace of Play model")
-    idx_details = html.index("Model details")
-    assert idx_price < idx_score < idx_details
+    idx_sharp = html.index("Sharp Scout model")
+    idx_pace = html.index("Pace of Play model")
+    idx_plays = html.index("Today&apos;s plays")
+    idx_diag = html.index("Diagnostics")
+    assert idx_sharp < idx_plays < idx_pace < idx_diag
     assert "WAS @ CHA: Over 227.5" in html
-    assert "Price-edge pick" in html
-    assert "Pace of Play model" in html
-    assert "Sharp Scout model" in html
+    assert "Today&apos;s play" in html
     assert "DAL @ MIA: Under 240.75" in html
     assert "Injury-adj" in html or "Injury " in html
     assert "Projected:" in html
-    assert "Spread 6-4" in html
-    assert "Game lines" not in html.split("Model details")[0]
+    assert "Results tracking" in html
+    assert "Today&apos;s slate projections" in html
+    assert "Game lines" not in html.split("Diagnostics")[0]
+
+
+def test_pace_leans_use_band_between_one_five_and_three():
+    rows = [
+        {
+            "away": "GSW",
+            "home": "DEN",
+            "kickoff": "2026-10-27T02:00:00+00:00",
+            "margin": 5.0,
+            "total": 240.0,
+            "injury_margin": 5.0,
+            "injury_total": 240.0,
+            "home_absences": [],
+            "away_absences": [],
+            "lines": {"consensus_spread_home": -3.0, "consensus_total": None},
+        }
+    ]
+    plays = score_modeling_display_plays(rows)
+    leans = score_modeling_display_leans(rows)
+    assert not plays
+    assert len(leans) == 1
+    assert PACE_LEAN_MIN_EDGE_PT <= leans[0]["gap"] < SCORE_MODELING_MIN_EDGE_PT
 
 
 def test_render_nba_page_no_live_scan_message():

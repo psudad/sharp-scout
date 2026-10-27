@@ -17,6 +17,7 @@ from sharp_scout.nba.score_model.player_impact import (
     load_rates_by_team_player,
     margin_impact_pts,
 )
+from sharp_scout.nba.rosters import resolve_player_team_for_game
 from sharp_scout.nba.teams import normalize_nba_team
 
 logger = logging.getLogger(__name__)
@@ -131,9 +132,25 @@ def record_injury_lag_scan(events: list[dict[str, Any]], *, store: dict[str, Any
 
     for row in injuries:
         name = str(row.get("player") or "").strip()
-        team = normalize_nba_team(str(row.get("team") or ""))
         status = normalize_injury_status(row.get("status"))
-        if not name or not team:
+        if not name:
+            continue
+        team = ""
+        ev = None
+        for candidate in events:
+            home = normalize_nba_team(str(candidate.get("home_team") or ""))
+            away = normalize_nba_team(str(candidate.get("away_team") or ""))
+            resolved = resolve_player_team_for_game(
+                name,
+                home=home,
+                away=away,
+                reported_team=str(row.get("team") or "") or None,
+            )
+            if resolved:
+                team = resolved
+                ev = candidate
+                break
+        if not team:
             continue
         pkey = f"{team}|{name.lower()}"
         old = prev_status.get(pkey)
@@ -166,7 +183,8 @@ def record_injury_lag_scan(events: list[dict[str, Any]], *, store: dict[str, Any
                 watch_streak[pkey] = 1
                 continue
 
-            ev = team_events.get(team)
+            if not ev:
+                ev = team_events.get(team)
             if not ev:
                 prev_status[pkey] = status
                 watch_streak[pkey] = 1

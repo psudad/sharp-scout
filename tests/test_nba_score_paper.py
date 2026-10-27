@@ -102,9 +102,19 @@ def test_margin_impact_star_not_raw_points():
     assert impact < 12.0
 
 
+def _patch_lamelo_on_cha(monkeypatch):
+    monkeypatch.setattr(
+        "sharp_scout.nba.score_model.injury_lag.resolve_player_team_for_game",
+        lambda name, home, away, reported_team=None, season=2027: (
+            "CHA" if str(name).lower() == "lamelo ball" and home == "CHA" else None
+        ),
+    )
+
+
 def test_injury_first_scan_seeds_without_entry(tmp_path, monkeypatch):
     store_path = tmp_path / "injury.json"
     monkeypatch.setattr("sharp_scout.nba.score_model.injury_lag.PAPER_PATH", store_path)
+    _patch_lamelo_on_cha(monkeypatch)
     monkeypatch.setattr(
         "sharp_scout.nba.score_model.injury_lag.fetch_espn_nba_injuries",
         lambda: [{"player": "LaMelo Ball", "team": "CHA", "status": "Out"}],
@@ -119,6 +129,7 @@ def test_injury_first_scan_seeds_without_entry(tmp_path, monkeypatch):
 def test_injury_logs_transition_with_prior_lines(tmp_path, monkeypatch):
     store_path = tmp_path / "injury.json"
     monkeypatch.setattr("sharp_scout.nba.score_model.injury_lag.PAPER_PATH", store_path)
+    _patch_lamelo_on_cha(monkeypatch)
     ev = _mock_event(home="CHA", away="MIA", eid="e2")
     monkeypatch.setattr(
         "sharp_scout.nba.score_model.injury_lag.fetch_espn_nba_injuries",
@@ -170,7 +181,10 @@ def test_record_score_model_scan_tmp(tmp_path, monkeypatch):
     )
     engine = V2Engine(params=V2Params(), stage=3)
     ev = _mock_event()
-    record_score_model_scan([ev], engine=engine, store=load_paper_store(store_path))
+    now = datetime(2026, 10, 26, 12, 0, tzinfo=timezone.utc)
+    record_score_model_scan(
+        [ev], engine=engine, store=load_paper_store(store_path), now=now, horizon_hours=36.0
+    )
     store = load_paper_store(store_path)
     assert len(store["games"]) == 1
     assert store["games"][0]["scans"]

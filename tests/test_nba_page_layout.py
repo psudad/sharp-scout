@@ -18,6 +18,10 @@ def test_score_modeling_display_uses_three_point_threshold():
             "kickoff": "2026-10-27T00:00:00+00:00",
             "margin": 2.0,
             "total": 232.0,
+            "injury_margin": 2.0,
+            "injury_total": 230.0,
+            "home_absences": [],
+            "away_absences": [],
             "lines": {"consensus_spread_home": -3.0, "consensus_total": 240.75},
         },
         {
@@ -26,6 +30,10 @@ def test_score_modeling_display_uses_three_point_threshold():
             "kickoff": "2026-10-27T01:00:00+00:00",
             "margin": -2.0,
             "total": 226.0,
+            "injury_margin": -2.0,
+            "injury_total": 226.0,
+            "home_absences": [],
+            "away_absences": [],
             "lines": {"consensus_spread_home": -4.5, "consensus_total": 225.0},
         },
     ]
@@ -69,6 +77,10 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
             "kickoff": "2026-10-27T00:00:00+00:00",
             "margin": 2.0,
             "total": 232.0,
+            "injury_margin": 2.0,
+            "injury_total": 232.0,
+            "home_absences": [],
+            "away_absences": [],
             "lines": {"consensus_spread_home": -3.0, "consensus_total": 240.75},
         }
     ]
@@ -94,6 +106,7 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     assert "Pace of Play model" in html
     assert "Sharp Scout model" in html
     assert "DAL @ MIA: Under 240.75" in html
+    assert "Injury-adj" in html or "Injury " in html
     assert "Spread 6-4" in html
     assert "Game lines" not in html.split("Model details")[0]
 

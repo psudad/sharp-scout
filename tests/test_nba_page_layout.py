@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime, time
+
+from sharp_scout.utils.slate import ET
 from sharp_scout.site.nba_page import (
     NO_LIVE_SCAN_MESSAGE,
     PACE_LEAN_MIN_EDGE_PT,
@@ -66,6 +69,7 @@ def test_score_modeling_display_uses_three_point_threshold():
 
 
 def test_render_nba_page_price_edge_and_score_modeling_sections():
+    today_kick = datetime.combine(datetime.now(ET).date(), time(19, 0), tzinfo=ET).isoformat()
     payload = {
         "ok": True,
         "demo": False,
@@ -74,7 +78,7 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
             {
                 "away_team": "WAS",
                 "home_team": "CHA",
-                "kickoff": "2026-10-27T00:00:00Z",
+                "kickoff": today_kick,
                 "market": "totals",
                 "side": "over",
                 "play_type": "side",
@@ -129,7 +133,8 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     assert "Projected:" in html
     assert "Results tracking" in html
     assert "Today&apos;s slate projections" in html
-    assert "Game lines" not in html.split("Diagnostics")[0]
+    assert "Official card (9-2" in html or "Official card (" in html
+    assert "Export tables" not in html.split("Diagnostics")[0]
 
 
 def test_pace_leans_use_band_between_one_five_and_three():

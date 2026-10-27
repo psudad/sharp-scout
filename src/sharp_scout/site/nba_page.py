@@ -464,7 +464,20 @@ def _record_str(w: int, l: int, p: int) -> str:
     return rec
 
 
-def _sharp_scout_record_summary(ledger: dict[str, Any] | None) -> dict[str, Any]:
+def _is_sharp_game_line_play(play: dict[str, Any]) -> bool:
+    if play.get("play_type") == "prop":
+        return False
+    market = str(play.get("market") or "")
+    return market in ("spreads", "totals")
+
+
+def _sharp_scout_record_summary(
+    ledger: dict[str, Any] | None,
+    *,
+    game_lines_only: bool = False,
+) -> dict[str, Any]:
+    from sharp_scout.nba.slate_et import kickoff_date_et
+
     plays = (ledger or {}).get("plays") or []
     buckets = {
         "all": {"w": 0, "l": 0, "p": 0, "units": 0.0},
@@ -484,12 +497,18 @@ def _sharp_scout_record_summary(ledger: dict[str, Any] | None) -> dict[str, Any]
         if pnl is not None:
             b["units"] += float(pnl)
 
+    dates: list[str] = []
     for p in plays:
         st = str(p.get("status") or "").lower()
         if st not in ("win", "loss", "push"):
             continue
+        if game_lines_only and not _is_sharp_game_line_play(p):
+            continue
         pnl = p.get("pnl_units")
         bump("all", st, pnl if pnl is not None else None)
+        day = kickoff_date_et(p.get("kickoff"))
+        if day:
+            dates.append(day.isoformat())
         if p.get("play_type") == "prop":
             bump("prop", st, pnl if pnl is not None else None)
         elif str(p.get("market") or "") == "totals":
@@ -498,6 +517,8 @@ def _sharp_scout_record_summary(ledger: dict[str, Any] | None) -> dict[str, Any]
             bump("spreads", st, pnl if pnl is not None else None)
 
     all_b = buckets["all"]
+    ds = sorted(set(dates))
+    date_range = ds[0] if len(ds) == 1 else (f"{ds[0]} – {ds[-1]}" if ds else "")
     return {
         "record": _record_str(all_b["w"], all_b["l"], all_b["p"]),
         "wins": all_b["w"],
@@ -508,7 +529,33 @@ def _sharp_scout_record_summary(ledger: dict[str, Any] | None) -> dict[str, Any]
         "spreads": buckets["spreads"],
         "totals": buckets["totals"],
         "props": buckets["prop"],
+        "date_range_et": date_range,
     }
+
+
+def _signals_for_today_et(signals: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Signals for today's ET slate only (excludes finished prior-night games)."""
+    from sharp_scout.nba.slate_et import kickoff_date_et
+
+    today_et = datetime.now(ET).date()
+    return [s for s in signals if kickoff_date_et(s.get("kickoff")) == today_et]
+
+
+def _score_rows_missing_lines(rows: list[dict[str, Any]]) -> bool:
+    if not rows:
+        return False
+    for r in rows:
+        lines = r.get("lines") or {}
+        if lines.get("consensus_spread_home") is None and lines.get("consensus_total") is None:
+            return True
+    return False
+
+
+def _render_waiting_for_lines(next_scan: str) -> str:
+    return (
+        f'<p class="nba-picks-empty nba-picks-empty-soft" role="status">'
+        f"Waiting for today&apos;s lines from the odds scan (next scan {_esc(next_scan)}).</p>"
+    )
 
 
 def _pace_record_summary(summary: dict[str, Any] | None) -> dict[str, Any]:
@@ -926,6 +973,12 @@ def _render_pace_projections_table(rows: list[dict[str, Any]]) -> str:
             spr_gap = f"{inj_m + float(spr):+.1f}"
         if tot is not None:
             tot_gap = f"{inj_t - float(tot):+.1f}"
+        if spr is None and tot is None:
+            market_s = "Waiting for lines"
+            gap_s = "—"
+        else:
+            market_s = f"{spr if spr is not None else '—'} / {tot if tot is not None else '—'}"
+            gap_s = f"{spr_gap or '—'} / {tot_gap or '—'}"
         body.append(
             "<tr>"
             f'<td data-label="Tip">{_esc(format_kickoff_compact(r.get("kickoff")))}</td>'
@@ -934,8 +987,8 @@ def _render_pace_projections_table(rows: list[dict[str, Any]]) -> str:
             f'<td data-label="Injury-adj score">{_esc(inj_score)}</td>'
             f'<td data-label="Margin (raw / inj)">{margin:+.1f} / {inj_m:+.1f}</td>'
             f'<td data-label="Total (raw / inj)">{total:.1f} / {inj_t:.1f}</td>'
-            f'<td data-label="Market">{_esc(spr)} / {_esc(tot)}</td>'
-            f'<td data-label="Gap spr / tot">{_esc(spr_gap)} / {_esc(tot_gap)}</td>'
+            f'<td data-label="Market">{_esc(market_s)}</td>'
+            f'<td data-label="Gap spr / tot">{_esc(gap_s)}</td>'
             f'<td data-label="Injuries">{_injury_list_summary(r)}</td>'
             "</tr>"
         )
@@ -944,6 +997,73 @@ def _render_pace_projections_table(rows: list[dict[str, Any]]) -> str:
         "<thead><tr><th>Tip</th><th>Game</th><th>Raw score</th><th>Injury-adj score</th>"
         "<th>Margin (raw / inj)</th><th>Total (raw / inj)</th><th>Market spr/tot</th>"
         "<th>Gap spr / tot</th><th>Injuries</th></tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
+def _render_official_pace_history(store: dict[str, Any] | None) -> str:
+    rows = sorted(
+        (store or {}).get("plays") or [],
+        key=lambda r: (r.get("date_et") or "", r.get("kickoff") or ""),
+        reverse=True,
+    )
+    if not rows:
+        return '<p class="empty">No official Pace of Play plays logged yet.</p>'
+    body = []
+    for r in rows:
+        st = str(r.get("result") or "").upper()
+        units = r.get("units")
+        units_s = f"{float(units):+.2f}u" if units is not None else "—"
+        body.append(
+            "<tr>"
+            f'<td data-label="Date (ET)">{_esc(r.get("date_et") or "")}</td>'
+            f'<td data-label="Game">{_esc(r.get("away", ""))} @ {_esc(r.get("home", ""))}</td>'
+            f'<td data-label="Pick"><b>{_esc(r.get("pick") or "")}</b></td>'
+            f'<td data-label="Line">{_esc(r.get("line", "—"))}</td>'
+            f'<td data-label="Price">{_esc(_price(r.get("price")))}</td>'
+            f'<td data-label="Gap">{float(r.get("gap_pts") or 0):.2f} pt</td>'
+            f'<td data-label="Result" class="{st.lower()}">{_esc(st)}</td>'
+            f'<td data-label="Units" class="{"pos" if (units or 0) >= 0 else "neg"}">{units_s}</td>'
+            f'<td data-label="Final">{_esc(r.get("espn_away_score", "—"))}–{_esc(r.get("espn_home_score", "—"))}</td>'
+            "</tr>"
+        )
+    return (
+        '<div class="table-wrap"><table class="export-table plays-table nba-table nba-official-pace">'
+        "<thead><tr><th>Date (ET)</th><th>Game</th><th>Pick</th><th>Line</th><th>Price</th>"
+        "<th>Gap</th><th>Result</th><th>Units</th><th>Final</th></tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
+def _render_sharp_props_history(ledger: dict[str, Any] | None) -> str:
+    plays = [
+        p
+        for p in (ledger or {}).get("plays") or []
+        if p.get("play_type") == "prop"
+        and str(p.get("status") or "").lower() in ("win", "loss", "push")
+    ]
+    plays = sorted(plays, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True)
+    if not plays:
+        return '<p class="empty">No graded prop paper plays yet.</p>'
+    body = []
+    for p in plays:
+        game = f"{p.get('away_team', '')} @ {p.get('home_team', '')}"
+        pick = _prop_pick(p)
+        pnl = p.get("pnl_units")
+        pnl_s = f"{float(pnl):+.2f}u" if pnl is not None else "—"
+        st = str(p.get("status") or "").lower()
+        body.append(
+            "<tr>"
+            f'<td data-label="Tip">{_esc(format_kickoff_compact(p.get("kickoff")))}</td>'
+            f'<td data-label="Game">{_esc(game)}</td>'
+            f'<td data-label="Pick"><b>{_esc(pick)}</b></td>'
+            f'<td data-label="Result" class="{st}">{_esc(st.upper())}</td>'
+            f'<td data-label="P/L" class="{"pos" if (pnl or 0) >= 0 else "neg"}">{pnl_s}</td>'
+            "</tr>"
+        )
+    return (
+        '<div class="table-wrap"><table class="export-table plays-table nba-table">'
+        "<thead><tr><th>Tip</th><th>Game</th><th>Pick</th><th>Result</th><th>P/L</th></tr></thead>"
         f"<tbody>{''.join(body)}</tbody></table></div>"
     )
 
@@ -982,7 +1102,11 @@ def _render_pace_graded_history(rows: list[dict[str, Any]]) -> str:
 
 def _render_sharp_graded_history(ledger: dict[str, Any] | None) -> str:
     plays = (ledger or {}).get("plays") or []
-    graded = [p for p in plays if str(p.get("status") or "").lower() in ("win", "loss", "push")]
+    graded = [
+        p
+        for p in plays
+        if str(p.get("status") or "").lower() in ("win", "loss", "push") and _is_sharp_game_line_play(p)
+    ]
     graded = sorted(graded, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True)
     if not graded:
         return '<p class="empty">No graded Sharp Scout paper plays yet.</p>'
@@ -1418,78 +1542,126 @@ def render_nba_page_html(
     body_class = "ss-bottom-bar"
     mode_note = "Live shadow scan" if live_scan else "Awaiting live scan"
 
-    sharp_summary = _sharp_scout_record_summary(pub_ledger)
+    from sharp_scout.nba.score_model.official_pace import load_official_pace, summarize_official_pace
+
+    official_pace = load_official_pace()
+    official_summary = summarize_official_pace(official_pace)
+    sharp_game_lines = _sharp_scout_record_summary(pub_ledger, game_lines_only=True)
+    sharp_props = _sharp_scout_record_summary(pub_ledger, game_lines_only=False)["props"]
     pace_summary = _pace_record_summary(score_model_summary)
     pace_graded = _pace_pick_rows_from_store(score_model_store)
 
-    sharp_plays_html = _render_price_edge_cards(picks) if live_scan else ""
+    picks_today = _signals_for_today_et(picks)
+    possible_today = _signals_for_today_et(possible)
+
+    sharp_plays_html = _render_price_edge_cards(picks_today) if live_scan else ""
     if live_scan and not sharp_plays_html:
         sharp_plays_html = _render_picks_empty(live_scan=True, updated=updated, next_scan=next_scan)
     elif not live_scan:
         sharp_plays_html = _render_picks_empty(live_scan=False, updated=updated, next_scan=next_scan)
 
-    sharp_leans_html = _render_sharp_lean_cards(possible) if live_scan else ""
+    sharp_leans_html = _render_sharp_lean_cards(possible_today) if live_scan else ""
     if live_scan and not sharp_leans_html:
         sharp_leans_html = (
             '<p class="empty nba-leans-empty">No Sharp Scout leans today — near-miss EV spots will show here.</p>'
         )
 
     score_rows = score_model_rows or []
+    waiting_lines = live_scan and _score_rows_missing_lines(score_rows)
     pace_plays = (
         score_modeling_display_plays(score_rows, include_injury_watch=False) if live_scan else []
     )
     pace_plays = [p for p in pace_plays if not p.get("injury_watch_only")]
     pace_leans = score_modeling_display_leans(score_rows) if live_scan else []
 
-    pace_plays_html = _render_score_modeling_cards(pace_plays) if live_scan else ""
+    pace_plays_html = _render_score_modeling_cards(pace_plays) if live_scan and pace_plays else ""
     if live_scan and not pace_plays_html:
-        pace_plays_html = _render_score_modeling_empty(live_scan=True)
+        if waiting_lines:
+            pace_plays_html = _render_waiting_for_lines(next_scan)
+        else:
+            pace_plays_html = _render_score_modeling_empty(live_scan=True)
     elif not live_scan:
         pace_plays_html = _render_picks_empty(live_scan=False, updated=updated, next_scan=next_scan)
 
-    pace_leans_html = _render_score_lean_cards(pace_leans) if live_scan else ""
+    pace_leans_html = _render_score_lean_cards(pace_leans) if live_scan and pace_leans else ""
     if live_scan and not pace_leans_html:
-        pace_leans_html = (
-            '<p class="empty nba-leans-empty">No Pace of Play leans today (need '
-            f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
-        )
+        if waiting_lines:
+            pace_leans_html = _render_waiting_for_lines(next_scan)
+        else:
+            pace_leans_html = (
+                '<p class="empty nba-leans-empty">No Pace of Play leans today (need '
+                f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
+            )
 
     pace_projections_html = _render_pace_projections_table(score_rows) if live_scan else ""
-    pace_history_html = _render_pace_graded_history(pace_graded)
-    sharp_history_html = _render_sharp_graded_history(pub_ledger)
+    pace_history_html = _render_official_pace_history(official_pace)
+    raw_p = pace_summary.get("raw") or {}
+    inj_p = pace_summary.get("injury") or {}
+    pace_auto_secondary = (
+        f"Secondary — repo auto-track at ≥3 pt vs close: raw {raw_p.get('record', '—')} "
+        f"({raw_p.get('units', 0):+.2f}u), injury-adj {inj_p.get('record', '—')} "
+        f"({inj_p.get('units', 0):+.2f}u); {len(pace_graded)} pick-rows in store vs "
+        f"{official_summary.get('n_plays', 0)} official card plays."
+    )
 
+    sharp_history_html = _render_sharp_graded_history(pub_ledger)
+    sharp_props_html = _render_sharp_props_history(pub_ledger)
+
+    gl_range = sharp_game_lines.get("date_range_et") or "—"
     sharp_stat_grid = _render_stat_grid(
         [
-            (sharp_summary.get("record") or "—", "Record (W-L-P)"),
-            (sharp_summary.get("win_pct") or "—", "Win %"),
-            (f"{sharp_summary.get('units', 0):+.2f}u", "Units"),
+            (sharp_game_lines.get("record") or "—", f"Game lines ({gl_range} ET)"),
+            (sharp_game_lines.get("win_pct") or "—", "Win % (spreads/totals)"),
+            (f"{sharp_game_lines.get('units', 0):+.2f}u", "Units (game lines)"),
             (
                 _record_str(
-                    sharp_summary.get("spreads", {}).get("w", 0),
-                    sharp_summary.get("spreads", {}).get("l", 0),
-                    sharp_summary.get("spreads", {}).get("p", 0),
+                    sharp_game_lines.get("spreads", {}).get("w", 0),
+                    sharp_game_lines.get("spreads", {}).get("l", 0),
+                    sharp_game_lines.get("spreads", {}).get("p", 0),
                 ),
                 "Spreads",
             ),
             (
                 _record_str(
-                    sharp_summary.get("totals", {}).get("w", 0),
-                    sharp_summary.get("totals", {}).get("l", 0),
-                    sharp_summary.get("totals", {}).get("p", 0),
+                    sharp_game_lines.get("totals", {}).get("w", 0),
+                    sharp_game_lines.get("totals", {}).get("l", 0),
+                    sharp_game_lines.get("totals", {}).get("p", 0),
                 ),
                 "Totals",
             ),
         ]
     )
-    raw_p = pace_summary.get("raw") or {}
-    inj_p = pace_summary.get("injury") or {}
+    props_line = _render_stat_grid(
+        [
+            (
+                _record_str(sharp_props.get("w", 0), sharp_props.get("l", 0), sharp_props.get("p", 0)),
+                "Player props (separate)",
+            ),
+            (f"{sharp_props.get('units', 0):+.2f}u", "Prop units"),
+        ]
+    )
+    off_range = official_summary.get("date_range_et") or "—"
     pace_stat_grid = _render_stat_grid(
         [
-            (inj_p.get("record") or raw_p.get("record") or "—", "Record (inj-adj · ≥3 pt)"),
-            (inj_p.get("win_pct") or "—", "Win % (inj-adj)"),
-            (f"{inj_p.get('units', 0):+.2f}u", "Units (inj-adj @ -110)"),
-            (raw_p.get("record") or "—", "Record (raw)"),
-            (f"{raw_p.get('units', 0):+.2f}u", "Units (raw @ -110)"),
+            (official_summary.get("record") or "—", f"Official card ({off_range} ET)"),
+            (official_summary.get("win_pct") or "—", "Win %"),
+            (f"{official_summary.get('units', 0):+.2f}u", "Units (@ -110)"),
+            (
+                _record_str(
+                    official_summary.get("spreads", {}).get("w", 0),
+                    official_summary.get("spreads", {}).get("l", 0),
+                    official_summary.get("spreads", {}).get("p", 0),
+                ),
+                "Spreads",
+            ),
+            (
+                _record_str(
+                    official_summary.get("totals", {}).get("w", 0),
+                    official_summary.get("totals", {}).get("l", 0),
+                    official_summary.get("totals", {}).get("p", 0),
+                ),
+                "Totals",
+            ),
         ]
     )
 
@@ -1541,7 +1713,15 @@ def render_nba_page_html(
         sharp_plays_html=sharp_plays_html,
         sharp_leans_html=sharp_leans_html,
         sharp_history_html=sharp_history_html,
+        sharp_props_line=props_line,
+        sharp_props_html=sharp_props_html,
+        sharp_record_note=(
+            "Headline counts spreads/totals only (excludes props and h2h). "
+            "Oct 24–26 ET includes pre-window shadow testing; configured paper window starts "
+            f"{window.get('start', '—')}."
+        ),
         pace_stat_grid=pace_stat_grid,
+        pace_auto_secondary=_esc(pace_auto_secondary),
         pace_plays_html=pace_plays_html,
         pace_leans_html=pace_leans_html,
         pace_projections_html=pace_projections_html,
@@ -1585,7 +1765,12 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     (out / "nba_paper_report.json").write_text(
         json.dumps(pub_report, indent=2, default=str) + "\n"
     )
-    for src_name in ("nba_score_model.json", "nba_injury_lag.json"):
+    for src_name in (
+        "nba_score_model.json",
+        "nba_injury_lag.json",
+        "nba_pace_of_play_official.json",
+        "nba_pace_of_play_official.csv",
+    ):
         src = nba_paths.PAPER_DIR / src_name
         if src.exists():
             (out / src_name).write_text(src.read_text())
@@ -1739,6 +1924,8 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     <h2 class="nba-h2" id="sharp-scout-heading">Sharp Scout model</h2>
     <p class="nba-section-note">Price-edge paper plays (EV floor, sharp fair, Kelly sizing). Paper only — never live bets.</p>
     {sharp_stat_grid}
+    <p class="nba-section-note">{sharp_record_note}</p>
+    {sharp_props_line}
     <div class="section-label">Today&apos;s plays</div>
     <div class="nba-pick-cards">{sharp_plays_html}</div>
     <div class="nba-leans-block">
@@ -1746,14 +1933,17 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
       <p class="nba-section-note">Near-miss EV that did not qualify for a paper card (display only, 0u).</p>
       {sharp_leans_html}
     </div>
-    <div class="section-label">Results tracking</div>
+    <div class="section-label">Results tracking (game lines)</div>
     {sharp_history_html}
+    <div class="section-label">Player props (separate)</div>
+    {sharp_props_html}
   </section>
 
   <section class="nba-model-panel pace-panel" aria-labelledby="pace-heading">
     <h2 class="nba-h2" id="pace-heading">Pace of Play model</h2>
     <p class="nba-section-note">Possession-pace projections vs consensus (raw + ESPN injury adjustments). Plays need ≥{pace_play_threshold} pt gap; graded at -110 vs close at tip.</p>
     {pace_stat_grid}
+    <p class="nba-section-note">{pace_auto_secondary}</p>
     <div class="section-label">Today&apos;s plays</div>
     <div class="nba-pick-cards">{pace_plays_html}</div>
     <div class="nba-leans-block">

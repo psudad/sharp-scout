@@ -70,6 +70,75 @@ def _find_game(store: dict[str, Any], event_id: str) -> dict[str, Any] | None:
     return None
 
 
+def _event_id_is_espn(event_id: Any) -> bool:
+    eid = str(event_id or "").strip()
+    return eid.isdigit()
+
+
+def _projection_row_has_lines(row: dict[str, Any]) -> bool:
+    lines = row.get("lines") or {}
+    return lines.get("consensus_spread_home") is not None or lines.get("consensus_total") is not None
+
+
+def _odds_api_projection_priority(row: dict[str, Any]) -> int:
+    """Higher = prefer this row for market lines and Odds API tip time."""
+    score = 0
+    if _projection_row_has_lines(row):
+        score += 2
+    if not _event_id_is_espn(row.get("event_id")):
+        score += 1
+    return score
+
+
+def merge_slate_projection_rows(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
+    """One row per ET matchup: market lines + Odds API kickoff when available."""
+    primary = a if _odds_api_projection_priority(a) >= _odds_api_projection_priority(b) else b
+    secondary = b if primary is a else a
+    merged = dict(primary)
+    if _projection_row_has_lines(primary):
+        pass
+    elif _projection_row_has_lines(secondary):
+        merged["lines"] = secondary.get("lines")
+        for key in (
+            "margin",
+            "total",
+            "injury_margin",
+            "injury_total",
+            "home_pts",
+            "away_pts",
+            "injury_home_pts",
+            "injury_away_pts",
+            "home_absences",
+            "away_absences",
+            "home_excluded",
+            "away_excluded",
+            "injury_news_after_line",
+        ):
+            if secondary.get(key) is not None:
+                merged[key] = secondary[key]
+    if not _event_id_is_espn(secondary.get("event_id")) and _event_id_is_espn(primary.get("event_id")):
+        merged["kickoff"] = secondary.get("kickoff")
+        merged["event_id"] = secondary.get("event_id")
+    return merged
+
+
+def dedupe_slate_projection_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    from sharp_scout.nba.slate_et import kickoff_date_et
+
+    buckets: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for row in rows:
+        day = kickoff_date_et(row.get("kickoff"))
+        if day is None:
+            continue
+        away = normalize_nba_team(str(row.get("away") or ""))
+        home = normalize_nba_team(str(row.get("home") or ""))
+        key = (day.isoformat(), away, home)
+        prev = buckets.get(key)
+        buckets[key] = merge_slate_projection_rows(prev, row) if prev else row
+    out = sorted(buckets.values(), key=lambda r: r.get("kickoff") or "")
+    return out
+
+
 def _find_game_by_matchup(
     store: dict[str, Any],
     away: str,
@@ -233,7 +302,7 @@ def record_score_model_scan(
         away = normalize_nba_team(str(ev.get("away_team") or ""))
         kick = ev.get("commence_time")
         lines = snapshot_game_lines(ev)
-        existing = _find_game(store, eid)
+        existing = _find_game_by_matchup(store, away, home, kickoff=kick) or _find_game(store, eid)
         first_scan_at = (existing.get("scans") or [{}])[0].get("at") if existing else None
         snap = _proj_row(
             engine,
@@ -255,7 +324,11 @@ def record_score_model_scan(
                 "graded": None,
             }
             store["games"].append(existing)
+        else:
+            existing["event_id"] = eid
         existing["kickoff"] = kick.isoformat() if hasattr(kick, "isoformat") else kick
+        existing["home"] = home
+        existing["away"] = away
         existing["scans"].append(snap)
         if len(existing["scans"]) > 40:
             existing["scans"] = existing["scans"][-40:]
@@ -553,8 +626,7 @@ def slate_projections_for_page(store: dict[str, Any] | None = None) -> list[dict
                 "frozen": bool(g.get("frozen")),
             }
         )
-    out.sort(key=lambda r: r.get("kickoff") or "")
-    return out
+    return dedupe_slate_projection_rows(out)
 
 
 def refresh_espn_slate_injury_scans(

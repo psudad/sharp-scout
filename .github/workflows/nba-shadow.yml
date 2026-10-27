@@ -75,10 +75,14 @@ jobs:
       - name: Run NBA shadow pipeline
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
+          EXTRA=""
+          if [ "${{ steps.gate.outputs.skip_props }}" = "true" ]; then
+            EXTRA="--no-props"
+          fi
           if [ "${{ github.event.inputs.demo }}" = "true" ]; then
             python scripts/run_nba_shadow.py --demo
           else
-            python scripts/run_nba_shadow.py
+            python scripts/run_nba_shadow.py $EXTRA
           fi
 
       - name: Build NBA public page

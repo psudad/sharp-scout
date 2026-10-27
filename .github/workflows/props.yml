@@ -3,6 +3,8 @@ name: NFL Props (10 AM ET daily)
 # Dedicated props run: scores the full slate, locks new props into data/props_ledger.json,
 # grades finished props, and rebuilds the NFL Props page. Props are tracked separately
 # from the NFL sides card.
+#
+# Scheduled runs pause until 2026-11-05 ET (Odds API billing reset); workflow_dispatch unchanged.
 
 on:
   schedule:
@@ -22,29 +24,44 @@ concurrency:
 jobs:
   props:
     runs-on: ubuntu-latest
+    outputs:
+      ran: ${{ steps.credit.outputs.proceed }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Gate — odds credit pause (scheduled)
+        id: credit
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
+        run: python3 scripts/check_odds_credit_pause.py --workflow props
+
       - uses: actions/setup-python@v5
+        if: steps.credit.outputs.proceed == 'true'
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install
+        if: steps.credit.outputs.proceed == 'true'
         run: pip install -e .
 
       - name: Configure env
+        if: steps.credit.outputs.proceed == 'true'
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
           echo "INACTIVE_PLAYERS=${{ secrets.INACTIVE_PLAYERS }}" >> $GITHUB_ENV
 
       - name: Run props pipeline
+        if: steps.credit.outputs.proceed == 'true'
         run: python scripts/run_props.py
 
       - name: Settle finished games and rebuild site
+        if: steps.credit.outputs.proceed == 'true'
         run: python scripts/settle_now.py --sport nfl
 
       - name: Commit props ledger + site
+        if: steps.credit.outputs.proceed == 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -58,13 +75,14 @@ jobs:
           fi
 
       - name: Upload Pages artifact
+        if: steps.credit.outputs.proceed == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
   deploy:
     needs: props
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.props.outputs.ran == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

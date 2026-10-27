@@ -3,6 +3,9 @@ name: Pregame Windows (T-12 / T-4..T-1)
 # Uses data/pregame_run_plan.json (NFL schedule + NCAAF Odds API board) to fire only
 # near real kickoff windows — not every 30 minutes.
 #
+# Scheduled Odds API usage pauses until 2026-11-05 ET (billing reset), except one
+# Nov 1 2026 NFL Sunday sides scan (see cron 0 14 * * 0 + check_odds_credit_pause.py).
+#
 # Secrets (repo Settings → Secrets and variables → Actions → Repository secrets):
 #   ODDS_API_KEY (required for live runs)
 #   ACTION_NETWORK_COOKIE (optional)
@@ -14,6 +17,8 @@ on:
     - cron: "0 10 * * *"
     # Every day at :05 and :35 UTC — gate skips hours with no planned games
     - cron: "5,35 * * * *"
+    # Credit-pause exception: Nov 1 2026 NFL Sunday ~9 AM ET (14:00 UTC EST); late-tolerant gate
+    - cron: "0 14 * * 0"
   workflow_dispatch:
     inputs:
       demo:
@@ -46,27 +51,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Gate — odds credit pause (scheduled)
+        id: credit
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
+        run: python3 scripts/check_odds_credit_pause.py --workflow pregame
+
       - name: Gate — skip hour if not in run plan
         id: gate
-        if: github.event_name == 'schedule' && github.event.schedule != '0 10 * * *'
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          steps.credit.outputs.nov1_nfl_only != 'true' &&
+          github.event_name == 'schedule' &&
+          github.event.schedule != '0 10 * * *' &&
+          github.event.schedule != '0 14 * * 0'
         run: python3 scripts/check_pregame_plan.py
 
       - name: Stop — not a planned run hour
-        if: github.event_name == 'schedule' && github.event.schedule != '0 10 * * *' && steps.gate.outputs.run != 'true'
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          steps.credit.outputs.nov1_nfl_only != 'true' &&
+          github.event_name == 'schedule' &&
+          github.event.schedule != '0 10 * * *' &&
+          github.event.schedule != '0 14 * * 0' &&
+          steps.gate.outputs.run != 'true'
         run: echo "Skipping — no pregame window scheduled for this hour."
 
       - uses: actions/setup-python@v5
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 10 * * *' || steps.gate.outputs.run == 'true'
+        if: steps.credit.outputs.proceed == 'true'
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 10 * * *' || steps.gate.outputs.run == 'true'
+        if: steps.credit.outputs.proceed == 'true'
         run: pip install -e .
 
       - name: Configure env
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 10 * * *' || steps.gate.outputs.run == 'true'
+        if: steps.credit.outputs.proceed == 'true'
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
           echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
@@ -75,11 +98,19 @@ jobs:
           echo "MONTE_CARLO_SIMS=4000" >> $GITHUB_ENV
 
       - name: Build weekly pregame run plan
-        if: github.event.schedule == '0 10 * * *' || (github.event_name == 'workflow_dispatch' && inputs.refresh_plan)
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          steps.credit.outputs.nov1_nfl_only != 'true' &&
+          (github.event.schedule == '0 10 * * *' ||
+          (github.event_name == 'workflow_dispatch' && inputs.refresh_plan))
         run: python scripts/plan_pregame_runs.py
 
       - name: Commit run plan
-        if: github.event.schedule == '0 10 * * *' || (github.event_name == 'workflow_dispatch' && inputs.refresh_plan)
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          steps.credit.outputs.nov1_nfl_only != 'true' &&
+          (github.event.schedule == '0 10 * * *' ||
+          (github.event_name == 'workflow_dispatch' && inputs.refresh_plan))
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -93,7 +124,10 @@ jobs:
           fi
 
       - name: Run due pregame windows
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          steps.credit.outputs.nov1_nfl_only != 'true' &&
+          (github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true')
         env:
           DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
           FORCE_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.force_all || false }}
@@ -112,21 +146,49 @@ jobs:
           fi
           python scripts/run_pregame.py $ARGS --ledger
 
+      - name: Run Nov 1 2026 NFL Sunday pregame (credit pause exception)
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          steps.credit.outputs.nov1_nfl_only == 'true'
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "No ODDS_API_KEY — skipping Nov 1 NFL scan"
+            exit 0
+          fi
+          python scripts/run_pregame.py --ledger --nfl-only --no-props
+
       - name: Settle finished games (NFL + NCAAF) and rebuild site
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          (steps.credit.outputs.nov1_nfl_only == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          steps.gate.outputs.run == 'true')
         run: python scripts/settle_now.py
 
       - name: Commit schedule state + site
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          (steps.credit.outputs.nov1_nfl_only == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          steps.gate.outputs.run == 'true')
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           chmod +x scripts/ci_git_push_retry.sh
           export ADD_PATHS="data/schedule_state.json data/ledger.json data/ncaaf_ledger.json data/props_ledger.json data/line_history.json data/line_history_archive.json data/paper/nfl_totals_momentum_follow.json data/open_lines.json data/calibration.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
-          ./scripts/ci_git_push_retry.sh "chore: pregame window update (NFL + NCAAF sides)" bash -c "python scripts/run_pregame.py --ledger && python scripts/settle_now.py"
+          if [ "${{ steps.credit.outputs.nov1_nfl_only }}" = "true" ]; then
+            PREGAME="python scripts/run_pregame.py --ledger --nfl-only --no-props"
+          else
+            PREGAME="python scripts/run_pregame.py --ledger"
+          fi
+          ./scripts/ci_git_push_retry.sh "chore: pregame window update (NFL + NCAAF sides)" bash -c "$PREGAME && python scripts/settle_now.py"
 
       - name: Upload Pages artifact
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
+        if: >-
+          steps.credit.outputs.proceed == 'true' &&
+          (steps.credit.outputs.nov1_nfl_only == 'true' ||
+          github.event_name == 'workflow_dispatch' ||
+          steps.gate.outputs.run == 'true')
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
@@ -134,7 +196,10 @@ jobs:
       - id: publish_flag
         if: always()
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.gate.outputs.run }}" = "true" ]; then
+          if [ "${{ steps.credit.outputs.proceed }}" = "true" ] && \
+             { [ "${{ steps.credit.outputs.nov1_nfl_only }}" = "true" ] || \
+               [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
+               [ "${{ steps.gate.outputs.run }}" = "true" ]; }; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
           else
             echo "publish=false" >> "$GITHUB_OUTPUT"

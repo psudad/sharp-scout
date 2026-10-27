@@ -25,6 +25,8 @@ def main() -> None:
         action="store_true",
         help="Append validated plays to data/ledger.json (default: on)",
     )
+    p.add_argument("--nfl-only", action="store_true", help="NFL events only (no NCAAF fetch/run)")
+    p.add_argument("--no-props", action="store_true", help="Skip player props pipeline")
     args = p.parse_args()
     result = run_due_pregame(
         demo=args.demo,
@@ -32,6 +34,8 @@ def main() -> None:
         build_pages=not args.no_site,
         skip_pbp=args.skip_pbp or args.demo,
         update_ledger=args.ledger,
+        nfl_only=args.nfl_only,
+        skip_props=args.no_props,
     )
     print(json.dumps(result, indent=2, default=str))
 

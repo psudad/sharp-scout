@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI gate: scheduled NBA shadow runs only at weekday 4:30 PM / weekend 11:00 AM ET."""
+"""CI gate: scheduled NBA shadow runs match the seasonal cron for the intended ET slot."""
 
 from __future__ import annotations
 
@@ -11,16 +11,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from sharp_scout.nba.schedule_guard import scheduled_slot_matches  # noqa: E402
+from sharp_scout.nba.schedule_guard import scheduled_cron_run_allowed  # noqa: E402
 
 
 def main() -> None:
     now = datetime.now(timezone.utc)
-    ok = scheduled_slot_matches(now)
+    cron = os.environ.get("GITHUB_SCHEDULE_CRON", "").strip()
+    ok = bool(cron) and scheduled_cron_run_allowed(cron, now)
     if ok:
-        print(f"Within NBA shadow scheduled ET window at {now.isoformat()}")
+        print(f"Allowed scheduled run: cron={cron!r} now={now.isoformat()}")
     else:
-        print(f"Outside NBA shadow scheduled ET window at {now.isoformat()} — skip run")
+        print(
+            f"Skipping scheduled run: cron={cron!r} now={now.isoformat()} "
+            "(wrong seasonal line, outside late window, or unknown cron)"
+        )
 
     out = os.environ.get("GITHUB_OUTPUT")
     if out:

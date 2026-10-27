@@ -3,7 +3,7 @@ name: NBA Shadow (private)
 # Paper-trading scan — data/shadow/ plus docs/nba.html (testing page only; no football docs).
 #
 # Schedule (America/New_York): Mon–Fri 4:30 PM; Sat–Sun 11:00 AM.
-# Two UTC crons per slot (EDT vs EST); scripts/check_nba_shadow_schedule.py skips misfires.
+# Two UTC crons per slot (EDT vs EST); check_nba_shadow_schedule.py keeps the seasonal line only.
 
 on:
   schedule:
@@ -40,6 +40,8 @@ jobs:
       - name: Gate — scheduled ET window
         id: gate
         if: github.event_name == 'schedule'
+        env:
+          GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
         run: python3 scripts/check_nba_shadow_schedule.py
 
       - id: ran_flag

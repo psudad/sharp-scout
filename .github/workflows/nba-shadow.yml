@@ -1,11 +1,18 @@
 name: NBA Shadow (private)
 
 # Paper-trading scan — data/shadow/ plus docs/nba.html (testing page only; no football docs).
+#
+# Schedule (America/New_York): Mon–Fri 4:30 PM; Sat–Sun 11:00 AM.
+# Two UTC crons per slot (EDT vs EST); scripts/check_nba_shadow_schedule.py skips misfires.
 
 on:
   schedule:
-    # 10:30 AM and 5:30 PM ET (approx; UTC cron — adjust for DST manually if needed)
-    - cron: "30 14,21 * * *"
+    # Weekday 4:30 PM ET — 20:30 UTC (EDT) and 21:30 UTC (EST)
+    - cron: "30 20 * * 1-5"
+    - cron: "30 21 * * 1-5"
+    # Weekend 11:00 AM ET — 15:00 UTC (EDT) and 16:00 UTC (EST)
+    - cron: "0 15 * * 0,6"
+    - cron: "0 16 * * 0,6"
   workflow_dispatch:
     inputs:
       demo:
@@ -25,25 +32,46 @@ concurrency:
 jobs:
   nba-shadow:
     runs-on: ubuntu-latest
+    outputs:
+      ran: ${{ steps.ran_flag.outputs.ran }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Gate — scheduled ET window
+        id: gate
+        if: github.event_name == 'schedule'
+        run: python3 scripts/check_nba_shadow_schedule.py
+
+      - id: ran_flag
+        if: always()
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.gate.outputs.run }}" = "true" ]; then
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-python@v5
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: pip install -e .
 
       - name: Configure env
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
 
       - name: Settle NBA paper ledger
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: python scripts/settle_nba.py || echo 'NBA settle failed (non-fatal)'
 
       - name: Run NBA shadow pipeline
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
           if [ "${{ github.event.inputs.demo }}" = "true" ]; then
             python scripts/run_nba_shadow.py --demo
@@ -52,9 +80,11 @@ jobs:
           fi
 
       - name: Build NBA public page
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: python -c "from sharp_scout.site.nba_page import build_nba_page; build_nba_page()"
 
       - name: Commit shadow artifacts and NBA page
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -80,13 +110,14 @@ jobs:
           fi
 
       - name: Upload Pages artifact
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
   deploy-pages:
     needs: nba-shadow
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.nba-shadow.outputs.ran == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

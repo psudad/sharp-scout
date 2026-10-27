@@ -205,7 +205,13 @@ def settle_nba_ledger(
         from sharp_scout.nba.score_model.paper import grade_score_model_paper
         from sharp_scout.nba.score_model.state import ensure_score_engine
 
-        grade_score_model_paper(scores=scores)
+        paper = grade_score_model_paper(scores=scores)
+        try:
+            from sharp_scout.nba.score_model.official_pace import sync_auto_pace_from_paper_store
+
+            sync_auto_pace_from_paper_store(paper)
+        except Exception as sync_exc:  # noqa: BLE001
+            logger.warning("NBA official pace sync skipped: %s", sync_exc)
         grade_injury_lag_entries()
         ensure_score_engine(lookback_days=100)
     except Exception as exc:  # noqa: BLE001

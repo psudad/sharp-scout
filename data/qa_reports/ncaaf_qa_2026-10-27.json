@@ -1,0 +1,100 @@
+{
+  "sport": "ncaaf",
+  "generated_at": "2026-10-27T12:19:44.469074+00:00",
+  "layer1_passed": false,
+  "block_deploy": true,
+  "layer1_issues": [
+    {
+      "code": "demo_mode",
+      "severity": "block",
+      "message": "Pipeline ran in demo mode \u2014 not safe to deploy"
+    },
+    {
+      "code": "low_game_count",
+      "severity": "block",
+      "message": "Only 1 games in slate (need \u226520 for NCAA Football)"
+    },
+    {
+      "code": "flat_ratings_count",
+      "severity": "block",
+      "message": "Only 20 rated teams (need \u226580) \u2014 likely skip-pbp or demo ratings"
+    }
+  ],
+  "approved": 0,
+  "quarantined": 0,
+  "voided": 3,
+  "play_reviews": [
+    {
+      "play_id": "42cd8ac7",
+      "matchup": "OSU@USC",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "a47df97e",
+      "matchup": "ASU@BYU",
+      "market": "totals",
+      "side": "over",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team BYU missing from power ratings"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team ASU missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    },
+    {
+      "play_id": "2b6ff0b4",
+      "matchup": "ND@NAVY",
+      "market": "totals",
+      "side": "under",
+      "action": "void",
+      "issues": [
+        {
+          "code": "orphan_event",
+          "severity": "void",
+          "message": "Game not found in latest pipeline output"
+        },
+        {
+          "code": "unrated_team",
+          "severity": "quarantine",
+          "message": "Team NAVY missing from power ratings"
+        },
+        {
+          "code": "single_book",
+          "severity": "quarantine",
+          "message": "Only 0 book(s) on this line \u2014 no multi-book corroboration"
+        }
+      ]
+    }
+  ]
+}

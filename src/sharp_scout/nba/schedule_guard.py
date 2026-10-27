@@ -21,6 +21,8 @@ ALL_CRONS = frozenset(
 
 DEFAULT_MAX_LATE_HOURS = 4
 
+NBA_SCAN_SCHEDULE_LABEL = "weekdays 4:30 PM & weekends 11:00 AM ET"
+
 
 def target_time_for_et_date(et_now: datetime) -> time:
     """Return the configured local run time for the given ET calendar day."""
@@ -138,3 +140,23 @@ def scheduled_cron_run_allowed(
         return False
 
     return trigger_cron == expected_cron_for_intended_slot(intended)
+
+
+def next_nba_scan_et(now: datetime | None = None) -> datetime:
+    """Next GitHub scheduled NBA shadow run (honors weekday vs weekend ET slots and DST)."""
+    if now is None:
+        now = datetime.now(ET)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc).astimezone(ET)
+    else:
+        now = now.astimezone(ET)
+
+    for day_offset in range(0, 8):
+        day = now.date() + timedelta(days=day_offset)
+        noon = datetime.combine(day, time(12, 0), tzinfo=ET)
+        target_t = target_time_for_et_date(noon)
+        candidate = datetime.combine(day, target_t, tzinfo=ET)
+        if candidate > now:
+            return candidate
+    fallback_day = now.date() + timedelta(days=1)
+    return datetime.combine(fallback_day, WEEKDAY_TARGET, tzinfo=ET)

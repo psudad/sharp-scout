@@ -9,6 +9,7 @@ from typing import Any
 from sharp_scout.config import ROOT, get_settings
 from sharp_scout.copy.explain import format_kickoff_compact, format_kickoff_et, kickoff_sort_key
 from sharp_scout.nba import paths as nba_paths
+from sharp_scout.nba.schedule_guard import NBA_SCAN_SCHEDULE_LABEL, next_nba_scan_et
 from sharp_scout.utils.slate import ET, parse_commence
 
 DOCS_DIR = ROOT / "docs"
@@ -33,8 +34,6 @@ NBA_BOOK_LABELS = {
 # Matches score-model paper grading bucket ge_3 in summarize_score_paper (display only).
 SCORE_MODELING_MIN_EDGE_PT = 3.0
 PACE_LEAN_MIN_EDGE_PT = 1.5
-
-NBA_SCAN_SLOTS_ET = ((10, 30), (17, 30))
 
 
 def _esc(s: Any) -> str:
@@ -713,18 +712,25 @@ def _render_stat_grid(items: list[tuple[str, str]], *, extra_cls: str = "") -> s
     return f'<div class="summary-grid {extra_cls}">' + "".join(cards) + "</div>"
 
 
-def _next_nba_scan_et(now: datetime | None = None) -> datetime:
-    now = now or datetime.now(ET)
-    if now.tzinfo is None:
-        now = now.replace(tzinfo=timezone.utc).astimezone(ET)
-    else:
-        now = now.astimezone(ET)
-    for hour, minute in NBA_SCAN_SLOTS_ET:
-        slot = datetime.combine(now.date(), time(hour, minute), tzinfo=ET)
-        if slot > now:
-            return slot
-    tomorrow = now.date() + timedelta(days=1)
-    return datetime.combine(tomorrow, time(NBA_SCAN_SLOTS_ET[0][0], NBA_SCAN_SLOTS_ET[0][1]), tzinfo=ET)
+def _render_compact_record(
+    *,
+    record: str,
+    win_pct: str,
+    units: float,
+    label: str = "",
+) -> str:
+    units_s = f"{float(units):+.2f}u"
+    lbl = (
+        f'<span class="nba-rec-chip-label">{_esc(label)}</span>'
+        if label
+        else ""
+    )
+    return (
+        f'<div class="nba-rec-chip">{lbl}'
+        f'<strong class="nba-rec-chip-record">{_esc(record)}</strong>'
+        f'<span class="nba-rec-chip-meta">{_esc(win_pct)} win · {_esc(units_s)}</span>'
+        f"</div>"
+    )
 
 
 def _price_edge_card_title(play: dict[str, Any]) -> str:
@@ -788,12 +794,15 @@ def _render_nba_play_card(
           {stake_block}
         </div>
         {tags}
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">{edge_s}</span></div>
-          <div class="meta-item"><span class="meta-label">Fair </span><span class="meta-val">{fair_s}</span></div>
-          <div class="meta-item"><span class="meta-label">Book </span><span class="meta-val">{_esc(book)} {_esc(price)}</span></div>
-          <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">{_esc(kick)}</span></div>
-        </div>
+        <details class="nba-pick-details">
+          <summary>Odds &amp; detail</summary>
+          <div class="play-meta">
+            <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">{edge_s}</span></div>
+            <div class="meta-item"><span class="meta-label">Fair </span><span class="meta-val">{fair_s}</span></div>
+            <div class="meta-item"><span class="meta-label">Book </span><span class="meta-val">{_esc(book)} {_esc(price)}</span></div>
+            <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">{_esc(kick)}</span></div>
+          </div>
+        </details>
       </div>"""
 
 
@@ -860,6 +869,19 @@ def _render_score_modeling_card(item: dict[str, Any]) -> str:
     gap_html = ""
     if gap_explain:
         gap_html = f'<div class="nba-score-gap-explain">{_esc(gap_explain)}</div>'
+    detail_inner = f"""
+          <div class="play-meta">
+            <div class="meta-item"><span class="meta-label">Injury </span><span class="meta-val">{_esc(item.get("injury_model_line") or item.get("model_line") or "")}</span></div>
+            <div class="meta-item"><span class="meta-label">Raw </span><span class="meta-val">{_esc(item.get("raw_model_line") or "")}</span></div>
+            <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">{_esc(item.get("consensus_line") or "")}</span></div>
+            <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">{_esc(gap_s)}{(" · " + _esc(raw_gap_s)) if raw_gap_s else ""}</span></div>
+          </div>
+          {proj_html}
+          {gap_html}
+          {abs_html}
+          {stale}
+          {flip}
+          {extra}"""
     return f"""
       <div class="play-card sharp-play nba-pick-card nba-score-card">
         <div class="card-top">
@@ -870,18 +892,10 @@ def _render_score_modeling_card(item: dict[str, Any]) -> str:
           </div>
           <div class="units-badge nba-gap-badge">{"Injuries" if item.get("injury_watch_only") else f"{float(item.get('gap') or 0):.1f} pt"}</div>
         </div>
-        <div class="play-meta">
-          <div class="meta-item"><span class="meta-label">Injury </span><span class="meta-val">{_esc(item.get("injury_model_line") or item.get("model_line") or "")}</span></div>
-          <div class="meta-item"><span class="meta-label">Raw </span><span class="meta-val">{_esc(item.get("raw_model_line") or "")}</span></div>
-          <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">{_esc(item.get("consensus_line") or "")}</span></div>
-          <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">{_esc(gap_s)}{(" · " + _esc(raw_gap_s)) if raw_gap_s else ""}</span></div>
-        </div>
-        {proj_html}
-        {gap_html}
-        {abs_html}
-        {stale}
-        {flip}
-        {extra}
+        <details class="nba-pick-details">
+          <summary>Projections &amp; detail</summary>
+          {detail_inner}
+        </details>
       </div>"""
 
 
@@ -904,19 +918,35 @@ def _render_score_lean_cards(leans: list[dict[str, Any]]) -> str:
     return "\n".join(_render_score_lean_card(p) for p in leans)
 
 
+def _render_props_empty(*, live_scan: bool, updated: str, next_scan: str) -> str:
+    if not live_scan:
+        return (
+            f'<div class="nba-picks-empty" role="status">'
+            f"<p>{_esc(NO_LIVE_SCAN_MESSAGE)}</p>"
+            f"<p class=\"nba-picks-empty-sub\">Prop picks appear after a live scan with props enabled. "
+            f"Next scan {_esc(next_scan)}.</p></div>"
+        )
+    return (
+        f'<div class="nba-picks-empty" role="status">'
+        f"<p><strong>No NBA prop picks on today&apos;s slate.</strong></p>"
+        f"<p class=\"nba-picks-empty-sub\">Scheduled scans may skip props until the paper window opens. "
+        f"Last updated {_esc(updated)}. Next scan {_esc(next_scan)} ({_esc(NBA_SCAN_SCHEDULE_LABEL)}).</p></div>"
+    )
+
+
 def _render_picks_empty(*, live_scan: bool, updated: str, next_scan: str) -> str:
     if not live_scan:
         return (
             f'<div class="nba-picks-empty" role="status">'
             f"<p>{_esc(NO_LIVE_SCAN_MESSAGE)}</p>"
-            f"<p class=\"nba-picks-empty-sub\">Scans run at 10:30 AM and 5:30 PM ET. "
+            f"<p class=\"nba-picks-empty-sub\">Scheduled scans: {_esc(NBA_SCAN_SCHEDULE_LABEL)}. "
             f"Next scan {_esc(next_scan)}.</p></div>"
         )
     return (
         f'<div class="nba-picks-empty" role="status">'
         f"<p><strong>No NBA price-edge picks yet today.</strong></p>"
         f"<p class=\"nba-picks-empty-sub\">Last updated {_esc(updated)}. "
-        f"Next scan {_esc(next_scan)} (10:30 AM &amp; 5:30 PM ET).</p></div>"
+        f"Next scan {_esc(next_scan)} ({_esc(NBA_SCAN_SCHEDULE_LABEL)}).</p></div>"
     )
 
 
@@ -1537,7 +1567,7 @@ def render_nba_page_html(
     possible = list(pub_signals.get("possible_signals") or [])
     generated = parse_commence(pub_signals.get("generated_at"))
     updated = _format_timestamp_et(generated) if generated else "—"
-    next_scan = _format_timestamp_et(_next_nba_scan_et())
+    next_scan = _format_timestamp_et(next_nba_scan_et())
 
     body_class = "ss-bottom-bar"
     mode_note = "Live shadow scan" if live_scan else "Awaiting live scan"
@@ -1547,20 +1577,21 @@ def render_nba_page_html(
     official_pace = load_official_pace()
     official_summary = summarize_official_pace(official_pace)
     sharp_game_lines = _sharp_scout_record_summary(pub_ledger, game_lines_only=True)
-    sharp_props = _sharp_scout_record_summary(pub_ledger, game_lines_only=False)["props"]
     pace_summary = _pace_record_summary(score_model_summary)
     pace_graded = _pace_pick_rows_from_store(score_model_store)
 
     picks_today = _signals_for_today_et(picks)
     possible_today = _signals_for_today_et(possible)
+    side_picks_today = [p for p in picks_today if (p.get("play_type") or "side") != "prop"]
+    side_possible_today = [p for p in possible_today if (p.get("play_type") or "side") != "prop"]
 
-    sharp_plays_html = _render_price_edge_cards(picks_today) if live_scan else ""
+    sharp_plays_html = _render_price_edge_cards(side_picks_today) if live_scan else ""
     if live_scan and not sharp_plays_html:
         sharp_plays_html = _render_picks_empty(live_scan=True, updated=updated, next_scan=next_scan)
     elif not live_scan:
         sharp_plays_html = _render_picks_empty(live_scan=False, updated=updated, next_scan=next_scan)
 
-    sharp_leans_html = _render_sharp_lean_cards(possible_today) if live_scan else ""
+    sharp_leans_html = _render_sharp_lean_cards(side_possible_today) if live_scan else ""
     if live_scan and not sharp_leans_html:
         sharp_leans_html = (
             '<p class="empty nba-leans-empty">No Sharp Scout leans today — near-miss EV spots will show here.</p>'
@@ -1605,70 +1636,26 @@ def render_nba_page_html(
     )
 
     sharp_history_html = _render_sharp_graded_history(pub_ledger)
-    sharp_props_html = _render_sharp_props_history(pub_ledger)
 
     gl_range = sharp_game_lines.get("date_range_et") or "—"
-    sharp_stat_grid = _render_stat_grid(
-        [
-            (sharp_game_lines.get("record") or "—", f"Game lines ({gl_range} ET)"),
-            (sharp_game_lines.get("win_pct") or "—", "Win % (spreads/totals)"),
-            (f"{sharp_game_lines.get('units', 0):+.2f}u", "Units (game lines)"),
-            (
-                _record_str(
-                    sharp_game_lines.get("spreads", {}).get("w", 0),
-                    sharp_game_lines.get("spreads", {}).get("l", 0),
-                    sharp_game_lines.get("spreads", {}).get("p", 0),
-                ),
-                "Spreads",
-            ),
-            (
-                _record_str(
-                    sharp_game_lines.get("totals", {}).get("w", 0),
-                    sharp_game_lines.get("totals", {}).get("l", 0),
-                    sharp_game_lines.get("totals", {}).get("p", 0),
-                ),
-                "Totals",
-            ),
-        ]
-    )
-    props_line = _render_stat_grid(
-        [
-            (
-                _record_str(sharp_props.get("w", 0), sharp_props.get("l", 0), sharp_props.get("p", 0)),
-                "Player props (separate)",
-            ),
-            (f"{sharp_props.get('units', 0):+.2f}u", "Prop units"),
-        ]
+    sharp_compact_record = _render_compact_record(
+        record=sharp_game_lines.get("record") or "—",
+        win_pct=sharp_game_lines.get("win_pct") or "—",
+        units=float(sharp_game_lines.get("units") or 0),
+        label=f"Game lines · {gl_range} ET",
     )
     off_range = official_summary.get("date_range_et") or "—"
-    pace_stat_grid = _render_stat_grid(
-        [
-            (official_summary.get("record") or "—", f"Official card ({off_range} ET)"),
-            (official_summary.get("win_pct") or "—", "Win %"),
-            (f"{official_summary.get('units', 0):+.2f}u", "Units (@ -110)"),
-            (
-                _record_str(
-                    official_summary.get("spreads", {}).get("w", 0),
-                    official_summary.get("spreads", {}).get("l", 0),
-                    official_summary.get("spreads", {}).get("p", 0),
-                ),
-                "Spreads",
-            ),
-            (
-                _record_str(
-                    official_summary.get("totals", {}).get("w", 0),
-                    official_summary.get("totals", {}).get("l", 0),
-                    official_summary.get("totals", {}).get("p", 0),
-                ),
-                "Totals",
-            ),
-        ]
+    pace_compact_record = _render_compact_record(
+        record=official_summary.get("record") or "—",
+        win_pct=official_summary.get("win_pct") or "—",
+        units=float(official_summary.get("units") or 0),
+        label=f"Official card · {off_range} ET",
     )
 
-    game_picks_table = _render_candidate_rows(picks, kind="side") if live_scan else ""
-    game_possible_table = _render_possible_rows(possible, kind="side") if live_scan else ""
-    prop_picks_table = _render_candidate_rows(picks, kind="prop") if live_scan else ""
-    prop_possible_table = _render_possible_rows(possible, kind="prop") if live_scan else ""
+    side_picks = [p for p in picks if (p.get("play_type") or "side") != "prop"]
+    side_possible = [p for p in possible if (p.get("play_type") or "side") != "prop"]
+    game_picks_table = _render_candidate_rows(side_picks, kind="side") if live_scan else ""
+    game_possible_table = _render_possible_rows(side_possible, kind="side") if live_scan else ""
     record_rows = _record_by_bet_type(pub_ledger)
     record_block = _render_record_cards(record_rows)
     injury_block = _render_injury_lag_block(injury_lag_rows or []) if live_scan else ""
@@ -1679,11 +1666,8 @@ def render_nba_page_html(
     <h3 class="nba-h3">Export tables</h3>
     <h4 class="nba-h4">Sharp Scout game lines</h4>
     {game_picks_table}
-    <h4 class="nba-h4">Sharp Scout props</h4>
-    {prop_picks_table}
-    <h3 class="nba-h3">Near-miss tables</h3>
+    <h3 class="nba-h3">Near-miss tables (game lines)</h3>
     {game_possible_table}
-    {prop_possible_table}
     <h3 class="nba-h3">Paper record by bet type</h3>
     {record_block or '<p class="empty">No ledger rows yet.</p>'}
     <h3 class="nba-h3">Injury lag (paper)</h3>
@@ -1712,18 +1696,17 @@ def render_nba_page_html(
         mode_note=_esc(mode_note),
         next_scan=_esc(next_scan),
         window_note=_esc(window_s + window_flag),
-        sharp_stat_grid=sharp_stat_grid,
+        sharp_compact_record=sharp_compact_record,
         sharp_plays_html=sharp_plays_html,
         sharp_leans_html=sharp_leans_html,
         sharp_history_html=sharp_history_html,
-        sharp_props_line=props_line,
-        sharp_props_html=sharp_props_html,
         sharp_record_note=(
-            "Headline counts spreads/totals only (excludes props and h2h). "
+            "Spreads/totals only (props on "
+            '<a href="nba-props.html">NBA Props</a>). '
             "Oct 24–26 ET includes pre-window shadow testing; configured paper window starts "
             f"{window.get('start', '—')}."
         ),
-        pace_stat_grid=pace_stat_grid,
+        pace_compact_record=pace_compact_record,
         pace_auto_secondary=_esc(pace_auto_secondary),
         pace_plays_html=pace_plays_html,
         pace_leans_html=pace_leans_html,
@@ -1732,6 +1715,107 @@ def render_nba_page_html(
         model_details=model_details,
         pace_play_threshold=f"{SCORE_MODELING_MIN_EDGE_PT:g}",
         pace_lean_range=f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g}",
+        bottom_bar=render_bottom_bar(active="plays"),
+        bottom_bar_script=BOTTOM_BAR_SCRIPT,
+    )
+
+
+def render_nba_props_page_html(
+    *,
+    signals_payload: dict[str, Any] | None,
+    ledger: dict[str, Any] | None,
+    report: dict[str, Any] | None,
+    analytics_head: str,
+) -> str:
+    from sharp_scout.site.bottom_bar import BOTTOM_BAR_SCRIPT, bottom_bar_css, render_bottom_bar
+    from sharp_scout.site.build import _SITE_CSS, _format_timestamp_et, _ssq_logo_svg
+
+    live_scan = has_live_nba_scan(signals_payload)
+    pub_signals = public_nba_signals(signals_payload)
+    if live_scan:
+        try:
+            from sharp_scout.nba.sharp_splits.filter import annotate_signals_with_sharp_money
+
+            pool = list(pub_signals.get("signals") or []) + list(
+                pub_signals.get("possible_signals") or []
+            )
+            annotate_signals_with_sharp_money([], pool)
+        except Exception:  # noqa: BLE001
+            pass
+    pub_ledger = public_nba_ledger(ledger)
+    pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
+
+    picks = list(pub_signals.get("signals") or [])
+    possible = list(pub_signals.get("possible_signals") or [])
+    generated = parse_commence(pub_signals.get("generated_at"))
+    updated = _format_timestamp_et(generated) if generated else "—"
+    next_scan = _format_timestamp_et(next_nba_scan_et())
+
+    props_ledger_summary = _sharp_scout_record_summary(pub_ledger, game_lines_only=False)
+    props_summary = props_ledger_summary["props"]
+    pr_range = props_ledger_summary.get("date_range_et") or "—"
+    props_compact_record = _render_compact_record(
+        record=_record_str(
+            props_summary.get("w", 0),
+            props_summary.get("l", 0),
+            props_summary.get("p", 0),
+        ),
+        win_pct=_win_pct(
+            props_summary.get("w", 0),
+            props_summary.get("l", 0),
+            props_summary.get("p", 0),
+        ),
+        units=float(props_summary.get("units") or 0),
+        label=f"Player props · {pr_range} ET",
+    )
+
+    picks_today = _signals_for_today_et(picks)
+    possible_today = _signals_for_today_et(possible)
+    prop_picks_today = [p for p in picks_today if p.get("play_type") == "prop"]
+    prop_possible_today = [p for p in possible_today if p.get("play_type") == "prop"]
+
+    prop_plays_html = _render_price_edge_cards(prop_picks_today) if live_scan else ""
+    if live_scan and not prop_plays_html:
+        prop_plays_html = _render_props_empty(live_scan=True, updated=updated, next_scan=next_scan)
+    elif not live_scan:
+        prop_plays_html = _render_props_empty(live_scan=False, updated=updated, next_scan=next_scan)
+
+    prop_leans_html = _render_sharp_lean_cards(prop_possible_today) if live_scan else ""
+    if live_scan and not prop_leans_html:
+        prop_leans_html = (
+            '<p class="empty nba-leans-empty">No prop leans today — near-miss EV spots will show here.</p>'
+        )
+
+    prop_history_html = _render_sharp_props_history(pub_ledger)
+    prop_picks_table = _render_candidate_rows(picks, kind="prop") if live_scan else ""
+    prop_possible_table = _render_possible_rows(possible, kind="prop") if live_scan else ""
+
+    in_window = pub_report.get("in_window")
+    window = pub_report.get("paper_window") or {}
+    window_s = ""
+    if window.get("start") and window.get("end"):
+        window_s = f"Paper window {window['start']} – {window['end']}. "
+    window_flag = "In paper window." if in_window else "Outside paper window (testing only)."
+
+    from sharp_scout.site.site_nav import render_site_tabs
+
+    return NBA_PROPS_PAGE_TEMPLATE.format(
+        site_tabs=render_site_tabs(active="nba_props"),
+        site_css=_SITE_CSS,
+        bottom_bar_css=bottom_bar_css(),
+        analytics_head=analytics_head,
+        ssq_logo=_ssq_logo_svg(embedded=True),
+        body_class="ss-bottom-bar",
+        updated=_esc(updated),
+        mode_note=_esc("Live shadow scan" if live_scan else "Awaiting live scan"),
+        next_scan=_esc(next_scan),
+        window_note=_esc(window_s + window_flag),
+        props_compact_record=props_compact_record,
+        prop_plays_html=prop_plays_html,
+        prop_leans_html=prop_leans_html,
+        prop_history_html=prop_history_html,
+        prop_picks_table=prop_picks_table,
+        prop_possible_table=prop_possible_table,
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
     )
@@ -1804,78 +1888,99 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     except Exception:  # noqa: BLE001
         pass
 
+    analytics_head = _render_analytics_head(get_settings().ga_measurement_id)
     html = render_nba_page_html(
         signals_payload=signals_payload,
         ledger=ledger,
         report=report,
-        analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
+        analytics_head=analytics_head,
         score_model_rows=score_model_rows,
         injury_lag_rows=injury_lag_rows,
         score_model_summary=score_model_summary,
         score_model_store=paper_store,
     )
     (out / "nba.html").write_text(html)
+    props_html = render_nba_props_page_html(
+        signals_payload=signals_payload,
+        ledger=ledger,
+        report=report,
+        analytics_head=analytics_head,
+    )
+    (out / "nba-props.html").write_text(props_html)
     return out / "nba.html"
 
 
-NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NBA tracking (testing) · Sharp Scout Quant</title>
-<meta name="description" content="NBA Sharp Scout and Pace of Play paper tracking — testing only">
-<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
-<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
-{analytics_head}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-{site_css}
-{bottom_bar_css}
+_NBA_SHARED_PAGE_CSS = """
   .nba-test-banner {{
     background: #fef3c7; border: 2px solid #d97706; color: #92400e;
-    text-align: center; font-weight: 800; font-size: 16px; padding: 14px 16px; margin: 0;
+    text-align: center; font-weight: 800; font-size: clamp(14px, 3.5vw, 16px);
+    padding: 12px 16px; margin: 0;
   }}
-  .nba-content {{ max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; }}
-  .nba-note {{ font-size: 13px; color: var(--color-text-muted); margin: 0 0 18px; line-height: 1.55; }}
+  .nba-content {{ max-width: 1240px; margin: 0 auto; padding: 16px 16px 48px; }}
+  .nba-note {{ font-size: 13px; color: var(--color-text-muted); margin: 0 0 20px; line-height: 1.55; }}
+  .nba-note a {{ color: var(--color-navy); font-weight: 600; }}
   .nba-model-panel {{
     border: 2px solid var(--color-border); background: var(--color-bg);
-    padding: 18px 16px 22px; margin: 0 0 28px;
+    padding: 16px 14px 18px; margin: 0 0 24px; border-radius: 2px;
   }}
   .nba-model-panel.pace-panel {{ border-top: 4px solid var(--color-navy); }}
   .nba-model-panel.sharp-panel {{ border-top: 4px solid var(--color-win); }}
-  .nba-h2 {{ font-family: var(--font-serif); font-size: 28px; font-weight: 500; margin: 0 0 6px; }}
+  .nba-model-panel.props-panel {{ border-top: 4px solid #7c3aed; }}
+  .nba-h2 {{ font-family: var(--font-serif); font-size: clamp(24px, 5vw, 28px); font-weight: 500; margin: 0 0 8px; }}
   .nba-h3 {{ font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: var(--color-text-muted); margin: 18px 0 8px; }}
   .nba-h4 {{ font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .06em;
     text-transform: uppercase; color: var(--color-text-muted); margin: 14px 0 6px; }}
-  .nba-section-note {{ font-size: 12.5px; color: var(--color-text-muted); margin: 0 0 10px; line-height: 1.5; }}
-  .nba-leans-block {{ background: var(--color-bg-soft); border: 1px dashed #cbd5e1; padding: 12px 12px 4px; margin: 8px 0 16px; }}
-  .nba-leans-block .section-label {{ margin-top: 0; color: #92400e; }}
+  .nba-section-note {{ font-size: 12.5px; color: var(--color-text-muted); margin: 0 0 12px; line-height: 1.5; }}
+  .nba-rec-chip {{
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px;
+    background: var(--color-bg-soft); border: 1px solid var(--color-border);
+    padding: 10px 12px; margin: 0 0 14px; font-size: 13px;
+  }}
+  .nba-rec-chip-label {{ font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted); width: 100%; }}
+  .nba-rec-chip-record {{ font-size: 20px; font-weight: 700; color: var(--color-text); }}
+  .nba-rec-chip-meta {{ color: var(--color-text-muted); font-size: 13px; }}
+  .nba-plays-block {{ margin: 4px 0 16px; }}
+  .nba-plays-block .section-label {{ margin-bottom: 10px; font-size: 13px; }}
+  .nba-section-details {{
+    margin: 16px 0 0; border: 1px dashed #cbd5e1; background: var(--color-bg-soft);
+    padding: 2px 12px 12px;
+  }}
+  .nba-section-details > summary {{
+    cursor: pointer; font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted);
+    padding: 12px 0; list-style: none;
+  }}
+  .nba-section-details > summary::-webkit-details-marker {{ display: none; }}
+  .nba-leans-block {{ padding: 4px 0 0; }}
   .nba-leans-empty {{ font-size: 13px; margin: 0 0 8px; }}
   .nba-picks-empty {{
     border: 2px solid var(--color-border); background: var(--color-bg);
-    padding: 18px 16px; margin: 0 0 12px; line-height: 1.55; font-size: 15px;
+    padding: 16px 14px; margin: 0 0 12px; line-height: 1.55; font-size: 15px;
   }}
   .nba-picks-empty-soft {{ border-style: dashed; font-size: 14px; color: var(--color-text-muted); }}
   .nba-picks-empty-sub {{ font-size: 13px; color: var(--color-text-muted); margin-top: 8px; font-weight: 400; }}
-  .nba-pick-cards {{ margin: 0 0 8px; }}
+  .nba-pick-cards {{ margin: 0; }}
   .nba-pick-card {{ margin-bottom: 12px; }}
-  .nba-pick-card .play-title {{ font-size: clamp(20px, 5vw, 26px); font-weight: 700; }}
+  .nba-pick-card .play-title {{ font-size: clamp(20px, 5vw, 26px); font-weight: 700; line-height: 1.2; }}
   .nba-stake-dollars {{ display: block; font-size: 10px; font-weight: 500; color: var(--color-text-muted); margin-top: 2px; }}
   .nba-lean-units {{ font-size: 11px; color: var(--color-text-muted); }}
-  .nba-tag-row {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }}
+  .nba-tag-row {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }}
   .nba-gap-badge {{ font-size: 11px; letter-spacing: 0.04em; }}
+  .nba-pick-details {{ margin-top: 8px; font-size: 12px; }}
+  .nba-pick-details > summary {{
+    cursor: pointer; color: var(--color-navy); font-weight: 600; list-style: none; padding: 4px 0;
+  }}
+  .nba-pick-details > summary::-webkit-details-marker {{ display: none; }}
   .nba-score-secondary {{ font-size: 12px; color: var(--color-text-muted); margin-top: 10px; line-height: 1.45; }}
   .nba-score-absences {{ font-size: 12px; line-height: 1.5; margin-top: 10px; color: var(--color-text); }}
   .nba-score-projected, .nba-score-gap-explain {{ font-size: 12px; line-height: 1.45; margin-top: 8px; color: var(--color-text-muted); }}
   .nba-score-stale {{ font-size: 11px; color: #92400e; margin-top: 8px; }}
   .nba-score-flip {{ font-size: 11px; color: #1e40af; margin-top: 6px; font-weight: 600; }}
-  .nba-model-details {{ margin: 28px 0 16px; border: 1px solid var(--color-border); background: var(--color-bg); padding: 4px 16px 16px; }}
+  .nba-model-details {{ margin: 8px 0 16px; border: 1px solid var(--color-border); background: var(--color-bg); padding: 4px 16px 16px; }}
   .nba-model-details > summary {{
-    cursor: pointer; font-family: var(--font-serif); font-size: 20px; font-weight: 500;
+    cursor: pointer; font-family: var(--font-serif); font-size: 18px; font-weight: 500;
     padding: 14px 0; list-style: none; color: var(--color-text-muted);
   }}
   .nba-model-details > summary::-webkit-details-marker {{ display: none; }}
@@ -1888,13 +1993,35 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   .nba-sharp-against {{ background: #ffedd5; color: #9a3412; }}
   .nba-sharp-none {{ background: #f3f4f6; color: #4b5563; }}
   .nba-sharp-nodata {{ background: transparent; color: #9ca3af; font-weight: 600; }}
-  .nba-content .table-wrap {{ overflow-x: auto; }}
+  .nba-content .table-wrap {{ overflow-x: auto; -webkit-overflow-scrolling: touch; }}
   @media (max-width: 640px) {{
     .nba-content .plays-table thead {{ display: none; }}
     .nba-content .plays-table tr {{ display: block; border: 1px solid var(--color-border); margin-bottom: 10px; padding: 8px 10px; }}
     .nba-content .plays-table td {{ display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border: none; }}
     .nba-content .plays-table td::before {{ content: attr(data-label); font-weight: 700; font-size: 10px; text-transform: uppercase; color: var(--color-text-muted); }}
   }}
+"""
+
+NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA tracking (testing) · Sharp Scout Quant</title>
+<meta name="description" content="NBA Sharp Scout and Pace of Play paper tracking — testing only">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
+<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+{analytics_head}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+{site_css}
+{bottom_bar_css}
+""" + _NBA_SHARED_PAGE_CSS + """
 </style>
 </head>
 <body class="{body_class}">
@@ -1911,51 +2038,133 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     <div class="header-logo">{ssq_logo}</div>
     <div class="header-text">
       <h1>NBA tracking board</h1>
-      <p>Two paper systems side by side: Sharp Scout price-edge picks and Pace of Play projections vs the market. {window_note}</p>
+      <p>Pace of Play and Sharp Scout game-line paper picks. Player props live on <a href="nba-props.html">NBA Props</a>. {window_note}</p>
     </div>
   </div>
 </header>
 <div class="nba-content">
-  <section class="nba-model-panel sharp-panel" aria-labelledby="sharp-scout-heading">
-    <h2 class="nba-h2" id="sharp-scout-heading">Sharp Scout model</h2>
-    <p class="nba-section-note">Price-edge paper plays (EV floor, sharp fair, Kelly sizing). Paper only — never live bets.</p>
-    {sharp_stat_grid}
-    <p class="nba-section-note">{sharp_record_note}</p>
-    {sharp_props_line}
-    <div class="section-label">Today&apos;s plays</div>
-    <div class="nba-pick-cards">{sharp_plays_html}</div>
-    <div class="nba-leans-block">
-      <div class="section-label">Leans</div>
-      <p class="nba-section-note">Near-miss EV that did not qualify for a paper card (display only, 0u).</p>
-      {sharp_leans_html}
-    </div>
-    <div class="section-label">Results tracking (game lines)</div>
-    {sharp_history_html}
-    <div class="section-label">Player props (separate)</div>
-    {sharp_props_html}
-  </section>
-
   <section class="nba-model-panel pace-panel" aria-labelledby="pace-heading">
     <h2 class="nba-h2" id="pace-heading">Pace of Play model</h2>
-    <p class="nba-section-note">Possession-pace projections vs consensus (raw + ESPN injury adjustments). Plays need ≥{pace_play_threshold} pt gap; graded at -110 vs close at tip.</p>
-    {pace_stat_grid}
-    <p class="nba-section-note">{pace_auto_secondary}</p>
-    <div class="section-label">Today&apos;s plays</div>
-    <div class="nba-pick-cards">{pace_plays_html}</div>
-    <div class="nba-leans-block">
-      <div class="section-label">Leans</div>
-      <p class="nba-section-note">Games with {pace_lean_range} pt gap vs consensus (not paper plays).</p>
-      {pace_leans_html}
+    <p class="nba-section-note">Possession-pace projections vs consensus (injury-adjusted when available). Plays need ≥{pace_play_threshold} pt gap.</p>
+    {pace_compact_record}
+    <div class="nba-plays-block">
+      <div class="section-label">Today&apos;s plays</div>
+      <div class="nba-pick-cards">{pace_plays_html}</div>
     </div>
-    <div class="section-label">Today&apos;s slate projections</div>
-    {pace_projections_html}
-    <div class="section-label">Results tracking</div>
-    {pace_history_html}
+    <details class="nba-section-details">
+      <summary>Leans, projections &amp; history</summary>
+      <p class="nba-section-note">{pace_auto_secondary}</p>
+      <div class="nba-leans-block">
+        <div class="section-label">Leans ({pace_lean_range} pt gap)</div>
+        {pace_leans_html}
+      </div>
+      <div class="section-label">Today&apos;s slate projections</div>
+      {pace_projections_html}
+      <div class="section-label">Results tracking</div>
+      {pace_history_html}
+    </details>
+  </section>
+
+  <section class="nba-model-panel sharp-panel" aria-labelledby="sharp-scout-heading">
+    <h2 class="nba-h2" id="sharp-scout-heading">Sharp Scout model</h2>
+    <p class="nba-section-note">Price-edge paper plays on spreads and totals (EV floor, Kelly sizing). Paper only — never live bets.</p>
+    {sharp_compact_record}
+    <p class="nba-section-note">{sharp_record_note}</p>
+    <div class="nba-plays-block">
+      <div class="section-label">Today&apos;s plays</div>
+      <div class="nba-pick-cards">{sharp_plays_html}</div>
+    </div>
+    <details class="nba-section-details">
+      <summary>Leans &amp; graded history</summary>
+      <div class="nba-leans-block">
+        <div class="section-label">Leans (near-miss EV, 0u)</div>
+        {sharp_leans_html}
+      </div>
+      <div class="section-label">Results tracking (game lines)</div>
+      {sharp_history_html}
+    </details>
   </section>
 
   <details class="nba-model-details">
     <summary>Diagnostics &amp; export tables</summary>
     {model_details}
+  </details>
+</div>
+<div class="footer">
+  Sharp Scout Quant · research and entertainment only · not betting advice.
+</div>
+{bottom_bar}
+{bottom_bar_script}
+</body>
+</html>
+"""
+
+NBA_PROPS_PAGE_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Props (testing) · Sharp Scout Quant</title>
+<meta name="description" content="NBA Sharp Scout player prop paper tracking — testing only">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
+<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+{analytics_head}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+{site_css}
+{bottom_bar_css}
+""" + _NBA_SHARED_PAGE_CSS + """
+</style>
+</head>
+<body class="{body_class}">
+<div class="nba-test-banner" role="alert">NBA paper tracking — testing only. Not NFL Sharp Plays.</div>
+<div class="board-nav">
+  {site_tabs}
+  <div class="board-updated-bar" role="status">
+    <span class="board-updated-label">NBA props board</span>
+    <span class="board-updated-time">{mode_note} · Updated {updated} · Next scan {next_scan}</span>
+  </div>
+</div>
+<header class="header">
+  <div class="header-inner">
+    <div class="header-logo">{ssq_logo}</div>
+    <div class="header-text">
+      <h1>NBA player props</h1>
+      <p>Sharp Scout price-edge prop picks (max five per game). Game lines and Pace of Play are on <a href="nba.html">NBA</a>. {window_note}</p>
+    </div>
+  </div>
+</header>
+<div class="nba-content">
+  <section class="nba-model-panel props-panel" aria-labelledby="nba-props-heading">
+    <h2 class="nba-h2" id="nba-props-heading">Today&apos;s prop plays</h2>
+    <p class="nba-section-note">Props may be skipped on scheduled scans until the paper window opens; this page updates when props are included in a scan.</p>
+    {props_compact_record}
+    <div class="nba-plays-block">
+      <div class="section-label">Today&apos;s plays</div>
+      <div class="nba-pick-cards">{prop_plays_html}</div>
+    </div>
+    <details class="nba-section-details">
+      <summary>Leans &amp; prop history</summary>
+      <div class="nba-leans-block">
+        <div class="section-label">Leans (near-miss EV, 0u)</div>
+        {prop_leans_html}
+      </div>
+      <div class="section-label">Graded prop plays</div>
+      {prop_history_html}
+    </details>
+  </section>
+
+  <details class="nba-model-details">
+    <summary>Export tables</summary>
+    <h4 class="nba-h4">Qualifying prop picks</h4>
+    {prop_picks_table}
+    <h4 class="nba-h4">Near-miss props</h4>
+    {prop_possible_table}
   </details>
 </div>
 <div class="footer">

@@ -12,6 +12,7 @@ from sharp_scout.site.nba_page import (
     _injury_list_summary,
     format_projected_scores_line,
     render_nba_page_html,
+    render_nba_props_page_html,
     score_modeling_display_leans,
     score_modeling_display_plays,
     spread_gap_plain_english,
@@ -153,17 +154,17 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     idx_pace = html.index('id="pace-heading"')
     idx_plays = html.index('<div class="section-label">Today&apos;s plays</div>')
     idx_diag = html.index("Diagnostics")
-    assert idx_sharp < idx_plays < idx_pace < idx_diag
-    assert 'href="nba.html"' in html
+    assert idx_pace < idx_plays < idx_sharp < idx_diag
+    assert 'href="nba.html"' not in html or "nba-props.html" in html
+    assert 'href="nba-props.html"' in html
     assert "nav-test-badge" in html
     assert "WAS @ CHA: Over 227.5" in html
     assert "Today&apos;s play" in html
     assert "DAL @ MIA: Under 240.75" in html
-    assert "Injury-adj" in html or "Injury " in html
-    assert "Projected:" in html
-    assert "Results tracking" in html
-    assert "Today&apos;s slate projections" in html
-    assert "Official card (9-2" in html or "Official card (" in html
+    assert "Projections &amp; detail" in html
+    assert "Leans, projections &amp; history" in html
+    assert "Player props (separate)" not in html
+    assert "nba-rec-chip" in html
     assert "Export tables" not in html.split("Diagnostics")[0]
 
 
@@ -197,4 +198,39 @@ def test_render_nba_page_no_live_scan_message():
         analytics_head="",
     )
     assert NO_LIVE_SCAN_MESSAGE in html
-    assert "10:30 AM" in html
+    assert "4:30 PM" in html
+    assert "no-cache" in html.lower()
+
+
+def test_render_nba_props_page_empty_when_no_props():
+    today_kick = datetime.combine(datetime.now(ET).date(), time(19, 0), tzinfo=ET).isoformat()
+    payload = {
+        "ok": True,
+        "demo": False,
+        "generated_at": "2026-10-26T12:00:00+00:00",
+        "signals": [
+            {
+                "away_team": "WAS",
+                "home_team": "CHA",
+                "kickoff": today_kick,
+                "market": "totals",
+                "side": "over",
+                "play_type": "side",
+                "line": 227.5,
+                "edge": 0.04,
+                "price": -110,
+                "units": 1.0,
+                "book": "fanduel",
+            }
+        ],
+        "possible_signals": [],
+    }
+    html = render_nba_props_page_html(
+        signals_payload=payload,
+        ledger={"plays": []},
+        report={},
+        analytics_head="",
+    )
+    assert "No NBA prop picks on today&apos;s slate" in html
+    assert "tab-nba-props active" in html
+    assert "WAS @ CHA" not in html

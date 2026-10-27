@@ -333,7 +333,7 @@ def _render_score_modeling_card(item: dict[str, Any]) -> str:
       <div class="play-card candidate nba-pick-card nba-score-card">
         <div class="card-top">
           <div class="card-left">
-            <span class="tier-badge badge-cand">Score modeling</span>
+            <span class="tier-badge badge-cand">Pace of Play model</span>
             <div class="play-title">{_esc(str(item.get("title") or ""))}</div>
             <div class="play-subtitle">{_esc(item.get("game") or "")} · {_esc(kick)}</div>
           </div>
@@ -376,7 +376,7 @@ def _render_score_modeling_empty(*, live_scan: bool) -> str:
         return ""
     return (
         '<div class="nba-picks-empty nba-picks-empty-soft" role="status">'
-        f"<p>No Score modeling plays right now (need ≥{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
+        f"<p>No Pace of Play plays right now (need ≥{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
         "</div>"
     )
 
@@ -1000,6 +1000,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   .nba-hero p {{ color: var(--color-text-muted); font-size: 14px; font-weight: 300; }}
   .nba-note {{ font-size: 13px; color: var(--color-text-muted); margin: 8px 0 20px; line-height: 1.55; }}
   .nba-h2 {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }}
+  .nba-h2-sub {{ font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.02em; }}
   .nba-h3 {{ font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: var(--color-text-muted); margin: 18px 0 8px; }}
   .nba-h4 {{ font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .06em;
@@ -1072,12 +1073,12 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   <p class="nba-note">
     Paper/test plays only — not Sharp Plays, not on the NFL card, and not graded on football records.
     {window_note}
-    Price-edge picks use quarter-Kelly staking with caps ($10/unit). Score modeling is display-only (≥3 pt vs consensus).
+    Price-edge picks use quarter-Kelly staking with caps ($10/unit). Pace of Play model is display-only (≥3 pt vs consensus).
   </p>
-  <h2 class="nba-h2">Price-edge picks</h2>
+  <h2 class="nba-h2">Price-edge picks <span class="nba-h2-sub">Sharp Scout model</span></h2>
   <p class="nba-section-note">Qualifying paper card plays (EV floor, sharp fair, Kelly sizing, portfolio caps).</p>
   <div class="nba-pick-cards">{price_edge_section}</div>
-  <h2 class="nba-h2">Score modeling {score_record_html}</h2>
+  <h2 class="nba-h2">Pace of Play model {score_record_html}</h2>
   <p class="nba-section-note">Model projection vs consensus — one card per game with ≥3 pt spread or total gap (display only, not logged as price-edge picks).</p>
   <div class="nba-pick-cards">{score_modeling_section}</div>
   <h2 class="nba-h2">Graded paper results</h2>

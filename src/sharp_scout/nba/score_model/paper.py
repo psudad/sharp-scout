@@ -26,6 +26,8 @@ def is_live_paper_event_id(event_id: Any) -> bool:
     eid = str(event_id or "").strip().lower()
     if not eid or eid in _BLOCKED_EVENT_IDS or eid.startswith("demo-"):
         return False
+    if eid.isdigit() and len(eid) >= 8:
+        return True
     return len(eid) >= 10
 
 
@@ -64,6 +66,26 @@ def save_paper_store(store: dict[str, Any], path: Any = None) -> None:
 def _find_game(store: dict[str, Any], event_id: str) -> dict[str, Any] | None:
     for g in store["games"]:
         if str(g.get("event_id")) == str(event_id):
+            return g
+    return None
+
+
+def _find_game_by_matchup(
+    store: dict[str, Any],
+    away: str,
+    home: str,
+    *,
+    kickoff: Any = None,
+) -> dict[str, Any] | None:
+    from sharp_scout.nba.slate_et import kickoff_date_et
+
+    target_day = kickoff_date_et(kickoff) if kickoff else None
+    for g in store.get("games") or []:
+        if g.get("away") != away or g.get("home") != home:
+            continue
+        if target_day is None:
+            return g
+        if kickoff_date_et(g.get("kickoff")) == target_day:
             return g
     return None
 
@@ -110,7 +132,21 @@ def void_score_paper_outside_horizon(
     return voided
 
 
-def _proj_row(engine: V2Engine, ev: dict[str, Any], *, at: str, lines: dict[str, float | None]) -> dict[str, Any]:
+def _proj_row(
+    engine: V2Engine,
+    ev: dict[str, Any],
+    *,
+    at: str,
+    lines: dict[str, float | None],
+    prior_status: dict[str, str] | None = None,
+    injury_store: dict[str, Any] | None = None,
+    first_scan_at: str | None = None,
+) -> dict[str, Any]:
+    from sharp_scout.nba.score_model.injury_adjust import (
+        apply_injury_to_projection,
+        injury_news_after_first_line,
+    )
+
     home = normalize_nba_team(str(ev.get("home_team") or ""))
     away = normalize_nba_team(str(ev.get("away_team") or ""))
     kick = parse_kickoff_utc(ev.get("commence_time")) or datetime.now(timezone.utc)
@@ -121,18 +157,35 @@ def _proj_row(engine: V2Engine, ev: dict[str, Any], *, at: str, lines: dict[str,
     pt = lines.get("pinnacle_total")
     sd_m = float(proj["sd_margin"])
     sd_t = float(proj["sd_total"])
+    inj = apply_injury_to_projection(proj, home, away, prior_status=prior_status)
     row: dict[str, Any] = {
         "at": at,
         "home_pts": round(proj["home_pts"], 2),
         "away_pts": round(proj["away_pts"], 2),
         "margin": round(proj["margin"], 2),
         "total": round(proj["total"], 2),
+        "injury_home_pts": inj.get("injury_home_pts"),
+        "injury_away_pts": inj.get("injury_away_pts"),
+        "injury_margin": inj.get("injury_margin"),
+        "injury_total": inj.get("injury_total"),
+        "home_absences": inj.get("home_absences") or [],
+        "away_absences": inj.get("away_absences") or [],
         "lines": lines,
     }
+    absences = (row["home_absences"] or []) + (row["away_absences"] or [])
+    row["injury_news_after_line"] = injury_news_after_first_line(
+        first_scan_at=first_scan_at or at,
+        absences=[a for a in absences if a.get("kind") != "return"],
+        injury_store=injury_store,
+    )
     if cs is not None:
         row["p_cover_home_consensus"] = round(p_cover_home(proj["margin"], float(cs), sd_m), 4)
+        row["p_cover_home_consensus_injury"] = round(
+            p_cover_home(float(inj["injury_margin"]), float(cs), sd_m), 4
+        )
     if ct is not None:
         row["p_over_consensus"] = round(p_over(proj["total"], float(ct), sd_t), 4)
+        row["p_over_consensus_injury"] = round(p_over(float(inj["injury_total"]), float(ct), sd_t), 4)
     if ps is not None:
         row["p_cover_home_pinnacle"] = round(p_cover_home(proj["margin"], float(ps), sd_m), 4)
     if pt is not None:
@@ -159,6 +212,14 @@ def record_score_model_scan(
         save_paper_store(store)
         return store
     engine = engine or ensure_score_engine()
+    try:
+        from sharp_scout.nba.score_model.injury_lag import load_store as load_injury_store
+
+        injury_store = load_injury_store()
+        prior_status = dict(injury_store.get("player_status") or {})
+    except Exception:  # noqa: BLE001
+        injury_store = {}
+        prior_status = {}
 
     for ev in events:
         if not kickoff_in_horizon(ev.get("commence_time"), hours, now=now):
@@ -170,9 +231,17 @@ def record_score_model_scan(
         away = normalize_nba_team(str(ev.get("away_team") or ""))
         kick = ev.get("commence_time")
         lines = snapshot_game_lines(ev)
-        snap = _proj_row(engine, ev, at=at, lines=lines)
-
         existing = _find_game(store, eid)
+        first_scan_at = (existing.get("scans") or [{}])[0].get("at") if existing else None
+        snap = _proj_row(
+            engine,
+            ev,
+            at=at,
+            lines=lines,
+            prior_status=prior_status,
+            injury_store=injury_store,
+            first_scan_at=first_scan_at,
+        )
         if existing is None:
             existing = {
                 "event_id": eid,
@@ -281,6 +350,8 @@ def grade_score_model_paper(
         ct = lines_close.get("consensus_total")
         proj_m = float(snap.get("margin") or 0)
         proj_t = float(snap.get("total") or 0)
+        inj_m = float(snap.get("injury_margin") if snap.get("injury_margin") is not None else proj_m)
+        inj_t = float(snap.get("injury_total") if snap.get("injury_total") is not None else proj_t)
         blend_m = proj_m
         blend_t = proj_t
         if cs is not None:
@@ -304,6 +375,8 @@ def grade_score_model_paper(
             "close_total": ct,
             "mae_margin_model": abs(act_m - proj_m),
             "mae_total_model": abs(act_t - proj_t),
+            "mae_margin_injury": abs(act_m - inj_m),
+            "mae_total_injury": abs(act_t - inj_t),
             "mae_margin_close": abs(act_m - (-float(cs))) if cs is not None else None,
             "mae_total_close": abs(act_t - float(ct)) if ct is not None else None,
             "mae_margin_blend": abs(act_m - blend_m) if cs is not None else None,
@@ -328,9 +401,13 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
 
     ats: dict[str, dict[str, Any]] = {}
     ou: dict[str, dict[str, Any]] = {}
+    ats_inj: dict[str, dict[str, Any]] = {}
+    ou_inj: dict[str, dict[str, Any]] = {}
     for thresh in (1.0, 2.0, 3.0):
         mw = ml = mp = 0
         ow = ol = op = 0
+        mw_i = ml_i = mp_i = 0
+        ow_i = ol_i = op_i = 0
         for g in active:
             gr = g.get("graded")
             if not gr:
@@ -339,6 +416,8 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
             frozen = g.get("frozen") or {}
             snap = frozen.get("snapshot") or {}
             pm, pt = float(snap.get("margin") or 0), float(snap.get("total") or 0)
+            pm_i = float(snap.get("injury_margin") if snap.get("injury_margin") is not None else pm)
+            pt_i = float(snap.get("injury_total") if snap.get("injury_total") is not None else pt)
             if cs is not None:
                 r = _grade_ats_margin(gr["actual_margin"], cs, min_edge=thresh, proj_margin=pm)
                 if r == "win":
@@ -347,6 +426,13 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
                     ml += 1
                 elif r == "push":
                     mp += 1
+                ri = _grade_ats_margin(gr["actual_margin"], cs, min_edge=thresh, proj_margin=pm_i)
+                if ri == "win":
+                    mw_i += 1
+                elif ri == "loss":
+                    ml_i += 1
+                elif ri == "push":
+                    mp_i += 1
             if ct is not None:
                 r = _grade_ou(gr["actual_total"], ct, min_edge=thresh, proj_total=pt)
                 if r == "win":
@@ -355,6 +441,13 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
                     ol += 1
                 elif r == "push":
                     op += 1
+                ri = _grade_ou(gr["actual_total"], ct, min_edge=thresh, proj_total=pt_i)
+                if ri == "win":
+                    ow_i += 1
+                elif ri == "loss":
+                    ol_i += 1
+                elif ri == "push":
+                    op_i += 1
         ats[f"ge_{int(thresh)}"] = {
             "wins": mw,
             "losses": ml,
@@ -366,6 +459,18 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
             "losses": ol,
             "pushes": op,
             "units_at_110": round(_ats_units(ow, ol, op), 2),
+        }
+        ats_inj[f"ge_{int(thresh)}"] = {
+            "wins": mw_i,
+            "losses": ml_i,
+            "pushes": mp_i,
+            "units_at_110": round(_ats_units(mw_i, ml_i, mp_i), 2),
+        }
+        ou_inj[f"ge_{int(thresh)}"] = {
+            "wins": ow_i,
+            "losses": ol_i,
+            "pushes": op_i,
+            "units_at_110": round(_ats_units(ow_i, ol_i, op_i), 2),
         }
 
     clv_hits = [g["graded"]["clv_line_move_toward_model_margin"] for g in active if g.get("graded")]
@@ -382,6 +487,10 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
         "mae_total_blend": mean("mae_total_blend"),
         "ats_vs_close": ats,
         "ou_vs_close": ou,
+        "ats_vs_close_injury": ats_inj,
+        "ou_vs_close_injury": ou_inj,
+        "mae_margin_injury": mean("mae_margin_injury"),
+        "mae_total_injury": mean("mae_total_injury"),
         "clv_margin_move_toward_model_pct": round(clv_yes / clv_n, 4) if clv_n else None,
         "clv_margin_n": clv_n,
     }
@@ -389,19 +498,27 @@ def summarize_score_paper(store: dict[str, Any]) -> dict[str, Any]:
 
 def slate_projections_for_page(store: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Upcoming / open games with latest projection for NBA page."""
+    from sharp_scout.nba.slate_et import kickoff_date_et
+    from sharp_scout.utils.slate import ET
+
     store = store or load_paper_store()
     now = datetime.now(timezone.utc)
+    today_et = now.astimezone(ET).date()
     out: list[dict[str, Any]] = []
     for g in store.get("games") or []:
         if _game_excluded(g) or g.get("graded"):
             continue
         kick = parse_kickoff_utc(g.get("kickoff"))
-        if kick and kick < now - timedelta(hours=3):
+        if kick and kick < now - timedelta(minutes=15):
+            continue
+        day = kickoff_date_et(g.get("kickoff"))
+        if day is not None and day < today_et:
             continue
         scans = g.get("scans") or []
         if not scans:
             continue
         last = scans[-1]
+        first_at = (g.get("scans") or [{}])[0].get("at")
         out.append(
             {
                 "event_id": g.get("event_id"),
@@ -410,11 +527,125 @@ def slate_projections_for_page(store: dict[str, Any] | None = None) -> list[dict
                 "kickoff": g.get("kickoff"),
                 "margin": last.get("margin"),
                 "total": last.get("total"),
+                "injury_margin": last.get("injury_margin"),
+                "injury_total": last.get("injury_total"),
                 "home_pts": last.get("home_pts"),
                 "away_pts": last.get("away_pts"),
+                "injury_home_pts": last.get("injury_home_pts"),
+                "injury_away_pts": last.get("injury_away_pts"),
+                "home_absences": last.get("home_absences") or [],
+                "away_absences": last.get("away_absences") or [],
+                "injury_news_after_line": last.get("injury_news_after_line"),
+                "first_scan_at": first_at,
                 "lines": last.get("lines"),
                 "frozen": bool(g.get("frozen")),
             }
         )
     out.sort(key=lambda r: r.get("kickoff") or "")
     return out
+
+
+def refresh_espn_slate_injury_scans(
+    *,
+    engine: V2Engine | None = None,
+    store: dict[str, Any] | None = None,
+    now: datetime | None = None,
+    horizon_hours: float | None = None,
+) -> int:
+    """ESPN slate (ET game dates) — upsert projections + injury fields without Odds API."""
+    from sharp_scout.data.espn_nba import fetch_espn_nba_upcoming
+    from sharp_scout.nba.slate_et import espn_events_for_injury_window
+
+    settings = get_settings()
+    hours = horizon_hours if horizon_hours is not None else settings.nba_prop_horizon_hours
+    now = now or datetime.now(timezone.utc)
+    at = now.isoformat()
+    store = store or load_paper_store()
+    engine = engine or ensure_score_engine()
+    try:
+        from sharp_scout.nba.score_model.injury_lag import load_store as load_injury_store
+
+        injury_store = load_injury_store()
+        prior_status = dict(injury_store.get("player_status") or {})
+    except Exception:  # noqa: BLE001
+        injury_store = {}
+        prior_status = {}
+
+    slate = espn_events_for_injury_window(
+        fetch_espn_nba_upcoming(days_ahead=2),
+        now=now,
+        horizon_hours=hours,
+    )
+    updated = 0
+    for ev in slate:
+        home = normalize_nba_team(str(ev.get("home_team") or ""))
+        away = normalize_nba_team(str(ev.get("away_team") or ""))
+        kick = ev.get("kickoff")
+        eid = str(ev.get("event_id") or "")
+        if not home or not away or not eid:
+            continue
+
+        existing = _find_game_by_matchup(store, away, home, kickoff=kick) or _find_game(store, eid)
+        lines: dict[str, float | None] = {}
+        if existing:
+            scans = existing.get("scans") or []
+            if scans:
+                lines = dict(scans[-1].get("lines") or {})
+            eid = str(existing.get("event_id") or eid)
+        else:
+            existing = {
+                "event_id": eid,
+                "home": home,
+                "away": away,
+                "kickoff": kick.isoformat() if hasattr(kick, "isoformat") else kick,
+                "scans": [],
+                "frozen": None,
+                "graded": None,
+            }
+            store["games"].append(existing)
+
+        existing["kickoff"] = kick.isoformat() if hasattr(kick, "isoformat") else kick
+        existing["home"] = home
+        existing["away"] = away
+        scans = existing.get("scans") or []
+        first_scan_at = scans[0].get("at") if scans else None
+        ev_row = {
+            "event_id": eid,
+            "home_team": home,
+            "away_team": away,
+            "commence_time": kick,
+        }
+        snap = _proj_row(
+            engine,
+            ev_row,
+            at=at,
+            lines=lines,
+            prior_status=prior_status,
+            injury_store=injury_store,
+            first_scan_at=first_scan_at,
+        )
+        snap["source"] = "injury_refresh"
+        existing["scans"].append(snap)
+        if len(existing["scans"]) > 40:
+            existing["scans"] = existing["scans"][-40:]
+        updated += 1
+
+    if updated:
+        save_paper_store(store)
+    return updated
+
+
+def refresh_open_game_injury_scans(
+    *,
+    engine: V2Engine | None = None,
+    store: dict[str, Any] | None = None,
+    now: datetime | None = None,
+    horizon_hours: float | None = None,
+) -> int:
+    """Backward-compatible alias for ESPN ET slate injury refresh."""
+    return refresh_espn_slate_injury_scans(
+        engine=engine,
+        store=store,
+        now=now,
+        horizon_hours=horizon_hours,
+    )

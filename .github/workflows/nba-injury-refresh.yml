@@ -1,0 +1,73 @@
+name: NBA Injury Refresh (ESPN only)
+
+# ESPN injuries + roster + Pace of Play re-project (no Odds API).
+# Two runs so at least one lands before ~7:30 PM ET tips despite Actions delay.
+
+on:
+  schedule:
+    # ~1 PM ET (17:00 UTC during EDT) and ~5 PM ET (21:00 UTC during EDT)
+    - cron: "0 17 * * *"
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: nba-injury-refresh
+  cancel-in-progress: false
+
+jobs:
+  injury-refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      - name: ESPN injury + roster refresh
+        run: python scripts/run_nba_injury_refresh.py
+
+      - name: Commit injury artifacts
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          chmod +x scripts/ci_git_add_paths.sh
+          scripts/ci_git_add_paths.sh \
+            data/shadow/nba_player_rates.json \
+            data/paper/nba_score_model.json \
+            data/paper/nba_injury_lag.json \
+            docs/nba.html \
+            docs/nba_score_model.json \
+            docs/nba_injury_lag.json
+          if git diff --staged --quiet; then
+            echo "No injury refresh changes"
+          else
+            git commit -m "chore(nba): ESPN injury refresh (no odds scan)"
+            git pull --rebase --autostash origin main
+            git push
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy-pages:
+    needs: injury-refresh
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

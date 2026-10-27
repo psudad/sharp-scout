@@ -88,10 +88,12 @@ def run_nba_shadow(
     score_engine = None
     if not use_demo:
         try:
+            from sharp_scout.nba.player_rates_espn import refresh_nba_player_rates_file
             from sharp_scout.nba.score_model.injury_lag import record_injury_lag_scan
             from sharp_scout.nba.score_model.paper import record_score_model_scan
             from sharp_scout.nba.score_model.state import ensure_score_engine
 
+            refresh_nba_player_rates_file()
             score_engine = ensure_score_engine()
             horizon_events = _events_in_horizon(events, settings.nba_prop_horizon_hours)
             record_score_model_scan(

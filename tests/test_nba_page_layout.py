@@ -168,6 +168,44 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     assert "Export tables" not in html.split("Diagnostics")[0]
 
 
+def test_score_modeling_skips_when_raw_qualifies_but_injury_vetoes():
+    """Regression: raw-only gap must not crash when injury adj fails raw-gate merge."""
+    rows = [
+        {
+            "away": "SAC",
+            "home": "SAS",
+            "kickoff": "2026-10-27T02:00:00+00:00",
+            "margin": 16.4,
+            "total": 233.0,
+            "injury_margin": 15.1,
+            "injury_total": 231.6,
+            "home_absences": [],
+            "away_absences": [],
+            "lines": {"consensus_spread_home": -18.5, "consensus_total": 232.5},
+        },
+        {
+            "away": "POR",
+            "home": "LAL",
+            "kickoff": "2026-10-27T03:00:00+00:00",
+            "margin": 1.2,
+            "total": 233.4,
+            "injury_margin": 5.4,
+            "injury_total": 233.1,
+            "home_absences": [],
+            "away_absences": [],
+            "lines": {"consensus_spread_home": -2.0, "consensus_total": 233.5},
+        },
+    ]
+    assert score_modeling_display_plays(rows, min_edge=SCORE_MODELING_MIN_EDGE_PT) == []
+    assert score_modeling_display_leans(rows) == []
+
+
+def test_build_nba_page_with_mixed_qualifying_rows_does_not_crash():
+    from sharp_scout.site.nba_page import build_nba_page
+
+    build_nba_page()
+
+
 def test_pace_leans_use_band_between_one_five_and_three():
     rows = [
         {

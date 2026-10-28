@@ -214,6 +214,37 @@ def _qualifies_play(candidates: list[dict[str, Any]]) -> bool:
     return bool(candidates)
 
 
+def _adj_candidate_for_raw(
+    raw: dict[str, Any],
+    adj_candidates: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Injury-adj candidate on the same market and side as a raw-qualified play."""
+    for adj in adj_candidates:
+        if adj.get("kind") != raw.get("kind"):
+            continue
+        if float(raw.get("signed_gap") or 0) * float(adj.get("signed_gap") or 0) <= 0:
+            continue
+        return adj
+    return None
+
+
+def _raw_gated_play_candidates(
+    raw_candidates: list[dict[str, Any]],
+    adj_candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Raw gap creates eligibility; injury adj may veto (no adj candidate) but never create."""
+    out: list[dict[str, Any]] = []
+    for raw in raw_candidates:
+        adj = _adj_candidate_for_raw(raw, adj_candidates)
+        if adj is None:
+            continue
+        merged = dict(adj)
+        merged["raw_signed_gap"] = raw.get("signed_gap")
+        merged["raw_model_line"] = raw.get("model_line")
+        out.append(merged)
+    return out
+
+
 def projected_team_scores(
     margin: float,
     total: float,
@@ -336,7 +367,7 @@ def score_modeling_display_plays(
             inj_total=inj_total,
         )
 
-        candidates = adj_candidates or raw_candidates
+        candidates = _raw_gated_play_candidates(raw_candidates, adj_candidates)
         if not candidates and not raw_candidates:
             if (
                 include_injury_watch
@@ -378,12 +409,16 @@ def score_modeling_display_plays(
             continue
         if max_edge is not None and float(primary.get("gap") or 0) >= max_edge:
             continue
-        raw_primary = max(raw_candidates, key=lambda c: c["gap"]) if raw_candidates else None
+        raw_gap = primary.get("raw_signed_gap")
+        raw_primary = (
+            max(raw_candidates, key=lambda c: c["gap"])
+            if raw_candidates and raw_gap is not None
+            else None
+        )
         secondary = [c for c in candidates if c is not primary]
-        raw_gap = raw_primary["signed_gap"] if raw_primary else None
         adj_gap = primary["signed_gap"]
         flip = False
-        if raw_primary and _qualifies_play(raw_candidates) != _qualifies_play(adj_candidates):
+        if raw_primary and _qualifies_play(raw_candidates) and not _qualifies_play(adj_candidates):
             flip = True
         elif raw_primary and raw_primary.get("kind") == primary.get("kind"):
             if (raw_gap or 0) * adj_gap < 0 and abs(adj_gap) >= min_edge:
@@ -392,13 +427,13 @@ def score_modeling_display_plays(
         if primary.get("kind") == "spread" and cs is not None:
             gap_explain = spread_gap_plain_english(
                 home=home,
-                margin=inj_margin if adj_candidates else margin,
+                margin=inj_margin,
                 consensus_spread_home=float(cs),
                 min_edge=min_edge,
             )
         elif primary.get("kind") == "total" and ct is not None:
             gap_explain = total_gap_plain_english(
-                total=inj_total if adj_candidates else total,
+                total=inj_total,
                 consensus_total=float(ct),
                 min_edge=min_edge,
             )
@@ -413,7 +448,8 @@ def score_modeling_display_plays(
                 "consensus_line": primary["consensus_line"],
                 "signed_gap": primary["signed_gap"],
                 "raw_signed_gap": raw_gap,
-                "raw_model_line": raw_primary["model_line"] if raw_primary else f"Proj margin {margin:+.1f}",
+                "raw_model_line": primary.get("raw_model_line")
+                or (raw_primary["model_line"] if raw_primary else f"Proj margin {margin:+.1f}"),
                 "injury_model_line": primary["model_line"],
                 "projected_scores_line": projected_line,
                 "gap_explain": gap_explain,

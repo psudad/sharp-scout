@@ -60,7 +60,23 @@ def is_season_long_absence(
             r"(?:achilles|acl|meniscus|fracture)", text, re.I
         ):
             return True
+    if gp is not None and gp <= 0 and played_this_season is False:
+        return True
     return False
+
+
+def season_gp_from_rate_row(row: dict[str, Any]) -> tuple[int | None, bool | None]:
+    """Current-season games played; None when unknown (do not treat as zero)."""
+    if row.get("current_season_gp") is not None:
+        gp = int(row.get("current_season_gp") or 0)
+        played = row.get("played_this_season")
+        if played is None:
+            played = gp > 0
+        return gp, bool(played)
+    if row.get("games_played") is not None and int(row.get("stats_season") or 0) >= ESPN_NBA_SEASON_END_YEAR:
+        gp = int(row.get("games_played") or 0)
+        return gp, gp > 0
+    return None, None
 
 
 def impact_rate_row(

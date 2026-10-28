@@ -24,6 +24,7 @@ from sharp_scout.nba.score_model.player_impact_v2 import (
     defense_impact_pts,
     is_season_long_absence,
     load_rates_by_team_player,
+    season_gp_from_rate_row,
     offense_impact_pts,
     pace_impact_pts,
     resolve_player_rate_row,
@@ -138,10 +139,11 @@ def team_absence_rows(
         if rate_row is None:
             continue
         detail = str(inj.get("detail") or inj.get("description") or "")
+        cur_gp, played = season_gp_from_rate_row(rate_row)
         if status in INJURY_STATUSES and is_season_long_absence(
             detail=detail,
-            current_season_gp=int(rate_row.get("current_season_gp") or 0),
-            played_this_season=bool(rate_row.get("played_this_season")),
+            current_season_gp=cur_gp,
+            played_this_season=played,
         ):
             excluded.append(
                 {

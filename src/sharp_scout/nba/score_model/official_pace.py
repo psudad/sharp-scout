@@ -172,43 +172,9 @@ def injury_adj_pace_picks(
     away: str,
     min_gap: float = MIN_AUTO_GAP,
 ) -> list[dict[str, Any]]:
-    lines = snap.get("lines") or {}
-    cs, ct = lines.get("consensus_spread_home"), lines.get("consensus_total")
-    pm_i = float(
-        snap.get("injury_margin") if snap.get("injury_margin") is not None else snap.get("margin") or 0
-    )
-    pt_i = float(
-        snap.get("injury_total") if snap.get("injury_total") is not None else snap.get("total") or 0
-    )
-    picks: list[dict[str, Any]] = []
-    if cs is not None:
-        edge = pm_i + float(cs)
-        if abs(edge) >= min_gap:
-            side = "home" if edge > 0 else "away"
-            picks.append(
-                {
-                    "kind": "spread",
-                    "pick": _format_spread_pick(home, away, float(cs), edge),
-                    "side": side,
-                    "line": float(cs) if side == "home" else -float(cs),
-                    "gap": abs(edge),
-                }
-            )
-    if ct is not None:
-        edge_t = pt_i - float(ct)
-        if abs(edge_t) >= min_gap:
-            side = "over" if edge_t > 0 else "under"
-            label = "Over" if edge_t > 0 else "Under"
-            picks.append(
-                {
-                    "kind": "total",
-                    "pick": f"{away} @ {home}: {label} {float(ct):g}",
-                    "side": side,
-                    "line": float(ct),
-                    "gap": abs(edge_t),
-                }
-            )
-    return picks
+    from sharp_scout.nba.score_model.pace_v1 import injury_adj_pace_picks as v1_picks
+
+    return v1_picks(snap, home=home, away=away, min_gap=min_gap)
 
 
 def pace_display_pick_from_snapshot(
@@ -218,11 +184,10 @@ def pace_display_pick_from_snapshot(
     away: str,
     min_gap: float = MIN_AUTO_GAP,
 ) -> dict[str, Any] | None:
-    """Primary injury-adj Pace card pick at tip (same rule as the public page)."""
-    picks = injury_adj_pace_picks(snap, home=home, away=away, min_gap=min_gap)
-    if not picks:
-        return None
-    return max(picks, key=lambda x: float(x.get("gap") or 0))
+    """Primary Pace card pick at tip (raw gap gate + injury adj; same as public page)."""
+    from sharp_scout.nba.score_model.pace_v1 import pace_display_pick_from_snapshot as v1_display
+
+    return v1_display(snap, home=home, away=away, min_gap=min_gap)
 
 
 def append_auto_graded_pace_play(

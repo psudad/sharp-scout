@@ -14,6 +14,24 @@ def test_early_season_min_gap_higher():
     assert pace_min_gap_pts(engine=engine, home="BOS", away="NYK") == 3.0
 
 
+def test_large_gap_excluded_early_season():
+    from sharp_scout.nba.score_model.pace_qualify import evaluate_pace_pick
+
+    engine = V2Engine(params=V2Params(), stage=3)
+    engine.team_games = {"OKC": 2, "LAC": 2}
+    # |inj_margin + spread_home| must be ≥ 7.0 to trigger large-gap exclusion (10.0 → 6.5 gap).
+    snap = {
+        "margin": 9.5,
+        "total": 220.0,
+        "injury_margin": 9.5,
+        "injury_total": 220.0,
+        "lines": {"consensus_spread_home": -16.5, "consensus_total": 225.0},
+    }
+    pick, meta = evaluate_pace_pick(snap, home="OKC", away="LAC", engine=engine)
+    assert pick is None
+    assert meta and meta.get("would_be_pick", {}).get("pick")
+
+
 def test_display_pick_requires_raw_and_injury_gap():
     engine = V2Engine(params=V2Params(), stage=3)
     engine.team_games = {"BOS": 20, "NYK": 20}

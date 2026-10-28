@@ -232,6 +232,7 @@ class Settings(BaseSettings):
     nba_pace_early_min_gap_pts: float = 4.5
     nba_pace_early_season_team_games: int = 15
     nba_pace_large_gap_warn_pts: float = 7.0
+    nba_pace_exclude_large_gap_early: bool = True
     nba_prop_markets: str = (
         "player_points,player_rebounds,player_assists,player_threes,"
         "player_points_rebounds_assists"

@@ -29,6 +29,31 @@ def large_gap_warn_pts() -> float:
     return float(getattr(get_settings(), "nba_pace_large_gap_warn_pts", 7.0))
 
 
+def exclude_large_gap_early(*, engine: Any | None, home: str, away: str) -> bool:
+    """When True, 7+ pt gaps do not qualify for official/display picks early season."""
+    settings = get_settings()
+    if not getattr(settings, "nba_pace_exclude_large_gap_early", True):
+        return False
+    gate = int(getattr(settings, "nba_pace_early_season_team_games", 15))
+    if engine is None:
+        return True
+    return min_team_games_for_matchup(engine, home, away) < gate
+
+
+def apply_large_gap_policy(
+    pick: dict[str, Any] | None,
+    *,
+    engine: Any | None,
+    home: str,
+    away: str,
+) -> dict[str, Any] | None:
+    if pick is None:
+        return None
+    if pick.get("large_gap_warning") and exclude_large_gap_early(engine=engine, home=home, away=away):
+        return None
+    return pick
+
+
 def spread_edges(
     *,
     raw_margin: float,
@@ -149,6 +174,57 @@ def injury_adj_pace_picks(
     return picks
 
 
+def large_gap_exclusion_note(
+    pick: dict[str, Any],
+    *,
+    engine: Any | None,
+    home: str,
+    away: str,
+) -> str | None:
+    if not pick.get("large_gap_warning"):
+        return None
+    if not exclude_large_gap_early(engine=engine, home=home, away=away):
+        return (
+            f"Gap {float(pick.get('gap') or 0):.1f} pt vs market (≥ {large_gap_warn_pts():g} "
+            "pt early-season warning — treat with extra skepticism)."
+        )
+    gate = int(getattr(get_settings(), "nba_pace_early_season_team_games", 15))
+    return (
+        f"Gap {float(pick.get('gap') or 0):.1f} pt vs market is ≥ {large_gap_warn_pts():g} pt "
+        f"before teams have {gate} games — excluded from official Pace card "
+        f"(would have been {pick.get('pick')})."
+    )
+
+
+def evaluate_pace_pick(
+    snap: dict[str, Any],
+    *,
+    home: str,
+    away: str,
+    min_gap: float | None = None,
+    engine: Any | None = None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Return (official pick or None, optional meta with would_be_pick + exclusion_note)."""
+    gap = min_gap if min_gap is not None else pace_min_gap_pts(engine=engine, home=home, away=away)
+    picks = injury_adj_pace_picks(
+        snap, home=home, away=away, min_gap=gap, engine=engine, require_raw_gap=True
+    )
+    if not picks:
+        return None, None
+    best = max(picks, key=lambda x: float(x.get("gap") or 0))
+    note = large_gap_exclusion_note(best, engine=engine, home=home, away=away)
+    meta = None
+    if note and exclude_large_gap_early(engine=engine, home=home, away=away) and best.get(
+        "large_gap_warning"
+    ):
+        meta = {"would_be_pick": best, "exclusion_note": note, "excluded": True}
+        return None, meta
+    if note and not exclude_large_gap_early(engine=engine, home=home, away=away):
+        meta = {"exclusion_note": note, "large_gap_warning_only": True}
+    official = apply_large_gap_policy(best, engine=engine, home=home, away=away)
+    return official, meta
+
+
 def pace_display_pick_from_snapshot(
     snap: dict[str, Any],
     *,
@@ -157,10 +233,7 @@ def pace_display_pick_from_snapshot(
     min_gap: float | None = None,
     engine: Any | None = None,
 ) -> dict[str, Any] | None:
-    gap = min_gap if min_gap is not None else pace_min_gap_pts(engine=engine, home=home, away=away)
-    picks = injury_adj_pace_picks(
-        snap, home=home, away=away, min_gap=gap, engine=engine, require_raw_gap=True
+    pick, _meta = evaluate_pace_pick(
+        snap, home=home, away=away, min_gap=min_gap, engine=engine
     )
-    if not picks:
-        return None
-    return max(picks, key=lambda x: float(x.get("gap") or 0))
+    return pick

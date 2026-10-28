@@ -15,11 +15,11 @@ from sharp_scout.nba.score_model.official_pace import (
 def test_official_pace_backfill_record():
     store = load_official_pace()
     summary = summarize_official_pace(store)
-    assert summary["record"] == "9-3"
-    assert summary["n_plays"] == 12
-    assert abs(summary["units"] - 5.18) < 0.02
+    assert summary["record"] == "9-2"
+    assert summary["n_plays"] == 11
+    assert abs(summary["units"] - 6.18) < 0.02
     assert summary["wins"] == 9
-    assert summary["losses"] == 3
+    assert summary["losses"] == 2
 
 
 def test_sync_skips_games_already_on_official_card(tmp_path, monkeypatch):
@@ -57,7 +57,7 @@ def test_sync_skips_games_already_on_official_card(tmp_path, monkeypatch):
     }
     n = op.sync_auto_pace_from_paper_store(paper)
     assert n == 0
-    assert len(op.load_official_pace(path).get("plays") or []) == 12
+    assert len(op.load_official_pace(path).get("plays") or []) == 11
 
 
 def test_official_plays_have_espn_finals():
@@ -76,7 +76,7 @@ def test_backfill_through_oct_26_and_was_cha_final():
     assert was_cha["espn_away_score"] == 103
     assert was_cha["espn_home_score"] == 110
     summary = summarize_official_pace(store)
-    assert summary["date_range_et"] == "2026-10-25 – 2026-10-27"
+    assert summary["date_range_et"] == "2026-10-25 – 2026-10-26"
 
 
 def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monkeypatch):
@@ -180,8 +180,8 @@ def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monk
     n = sync_auto_pace_from_paper_store(paper)
     assert n == 1
     plays = op.load_official_pace(path).get("plays") or []
-    assert len(plays) == 13
+    assert len(plays) == 12
     auto = [p for p in plays if p.get("source") == "auto_grade"]
-    assert len(auto) == 2
+    assert len(auto) == 1
     assert auto[-1]["date_et"] == "2026-10-28"
     assert auto[-1]["market"] == "total"

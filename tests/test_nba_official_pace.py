@@ -14,7 +14,11 @@ from sharp_scout.nba.score_model.official_pace import (
 
 def test_official_pace_backfill_record():
     store = load_official_pace()
-    summary = summarize_official_pace(store)
+    backfill = {
+        **store,
+        "plays": [p for p in store.get("plays") or [] if p.get("source") == "official_backfill"],
+    }
+    summary = summarize_official_pace(backfill)
     assert summary["record"] == "9-2"
     assert summary["n_plays"] == 11
     assert abs(summary["units"] - 6.18) < 0.02
@@ -29,7 +33,8 @@ def test_sync_skips_games_already_on_official_card(tmp_path, monkeypatch):
     path = tmp_path / "official.json"
     monkeypatch.setattr(op, "OFFICIAL_PATH", path)
     monkeypatch.setattr(op, "OFFICIAL_CSV_PATH", tmp_path / "official.csv")
-    op.save_official_pace({"version": 1, "plays": list(store.get("plays") or [])}, path=path)
+    seed = [p for p in store.get("plays") or [] if p.get("source") == "official_backfill"]
+    op.save_official_pace({"version": 1, "plays": list(seed)}, path=path)
     paper = {
         "games": [
             {
@@ -57,7 +62,12 @@ def test_sync_skips_games_already_on_official_card(tmp_path, monkeypatch):
     }
     n = op.sync_auto_pace_from_paper_store(paper)
     assert n == 0
-    assert len(op.load_official_pace(path).get("plays") or []) == 11
+    backfill_n = sum(
+        1
+        for p in op.load_official_pace(path).get("plays") or []
+        if p.get("source") == "official_backfill"
+    )
+    assert backfill_n == 11
 
 
 def test_official_plays_have_espn_finals():
@@ -75,18 +85,73 @@ def test_backfill_through_oct_26_and_was_cha_final():
     assert was_cha["away"] == "WAS"
     assert was_cha["espn_away_score"] == 103
     assert was_cha["espn_home_score"] == 110
-    summary = summarize_official_pace(store)
+    backfill = {
+        **store,
+        "plays": [p for p in store["plays"] if p.get("source") == "official_backfill"],
+    }
+    summary = summarize_official_pace(backfill)
     assert summary["date_range_et"] == "2026-10-25 – 2026-10-26"
 
 
-def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monkeypatch):
+def test_official_record_through_oct27_published_spreads():
+    store = load_official_pace()
+    plays = [p for p in store.get("plays") or [] if p.get("date_et") <= "2026-10-27"]
+    summary = summarize_official_pace({**store, "plays": plays})
+    assert summary["record"] == "9-6"
+    assert summary["n_plays"] == 15
+    oct27 = [p for p in plays if p.get("date_et") == "2026-10-27"]
+    assert len(oct27) == 4
+    assert all(p.get("source") == "published_card" for p in oct27)
+    assert all(p.get("market") == "spread" for p in oct27)
+    assert sum(1 for p in oct27 if p.get("result") == "loss") == 4
+
+
+def test_sync_never_invents_official_from_display_pick_only(tmp_path, monkeypatch):
+    from sharp_scout.nba.score_model import official_pace as op
+
+    path = tmp_path / "official.json"
+    monkeypatch.setattr(op, "OFFICIAL_PATH", path)
+    monkeypatch.setattr(op, "OFFICIAL_CSV_PATH", tmp_path / "official.csv")
+    op.save_official_pace({"version": 1, "plays": []}, path=path)
+    paper = {
+        "games": [
+            {
+                "event_id": "x99",
+                "away": "DET",
+                "home": "NYK",
+                "kickoff": "2026-10-28T00:10:00+00:00",
+                "graded": {
+                    "actual_margin": 14,
+                    "actual_total": 208,
+                    "close_spread_home": -4.0,
+                    "close_total": 220.5,
+                },
+                "frozen": {
+                    "snapshot": {"margin": 1, "injury_margin": 5, "lines": {"consensus_spread_home": -4.0}},
+                    "pace_display_pick": {
+                        "kind": "spread",
+                        "pick": "DET +4",
+                        "side": "away",
+                        "line": 4.0,
+                        "gap": 4.5,
+                    },
+                },
+            }
+        ]
+    }
+    assert sync_auto_pace_from_paper_store(paper) == 0
+    assert len(op.load_official_pace(path).get("plays") or []) == 0
+
+
+def test_auto_sync_skips_backfill_dates_and_requires_published_pick(tmp_path, monkeypatch):
     from sharp_scout.nba.score_model import official_pace as op
 
     store = load_official_pace()
     path = tmp_path / "official.json"
     monkeypatch.setattr(op, "OFFICIAL_PATH", path)
     monkeypatch.setattr(op, "OFFICIAL_CSV_PATH", tmp_path / "official.csv")
-    op.save_official_pace({"version": 1, "plays": list(store.get("plays") or [])}, path=path)
+    seed = [p for p in store.get("plays") or [] if p.get("source") == "official_backfill"]
+    op.save_official_pace({"version": 1, "plays": list(seed)}, path=path)
 
     paper = {
         "games": [
@@ -160,17 +225,17 @@ def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monk
                 "frozen": {
                     "snapshot": {
                         "margin": 4,
-                        "total": 228,
+                        "total": 231,
                         "injury_margin": 4,
-                        "injury_total": 228,
+                        "injury_total": 231,
                         "lines": {"consensus_spread_home": -1.5, "consensus_total": 225.0},
                     },
-                    "pace_display_pick": {
+                    "pace_published_pick": {
                         "kind": "total",
                         "pick": "PHI @ IND: Over 225",
                         "side": "over",
                         "line": 225.0,
-                        "gap": 3.0,
+                        "gap": 6.0,
                     },
                 },
             },
@@ -180,7 +245,6 @@ def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monk
     assert n == 1
     plays = op.load_official_pace(path).get("plays") or []
     assert len(plays) == 12
-    auto = [p for p in plays if p.get("source") == "auto_grade"]
-    assert len(auto) == 1
-    assert auto[0]["date_et"] == "2026-10-28"
-    assert auto[0]["market"] == "total"
+    pub = [p for p in plays if p.get("source") == "published_card" and p.get("date_et") == "2026-10-28"]
+    assert len(pub) == 1
+    assert pub[-1]["market"] == "total"

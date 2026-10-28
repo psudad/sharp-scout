@@ -233,13 +233,14 @@ def append_auto_graded_pace_play(
     away_score: int,
     home_score: int,
     store: dict[str, Any] | None = None,
+    source: str = "published_card",
 ) -> bool:
-    """Append one auto-graded Pace play if not already in the official ledger."""
+    """Append one graded published-card Pace play if not already in the official ledger."""
     store = store or load_official_pace()
     day = kickoff_date_et(game_row.get("kickoff"))
     entry: dict[str, Any] = {
         "id": f"pop-auto-{game_row.get('event_id', '')}-{pick.get('kind', '')}",
-        "source": "auto_grade",
+        "source": source,
         "date_et": day.isoformat() if day else None,
         "kickoff": game_row.get("kickoff"),
         "away": game_row.get("away"),
@@ -265,7 +266,6 @@ def append_auto_graded_pace_play(
     if _slot_already_logged(store, slot):
         return False
     store.setdefault("plays", []).append(entry)
-    save_official_pace(store)
     return True
 
 
@@ -278,9 +278,29 @@ def _format_spread_pick(home: str, away: str, spread_home: float, margin_edge: f
     return f"{team} {sign}{line:g}"
 
 
+def _grade_published_spread(act_margin: int, *, close_spread_home: float, side: str) -> str:
+    edge = float(act_margin) + float(close_spread_home)
+    if side == "home":
+        if abs(edge) < 0.01:
+            return "push"
+        return "win" if edge > 0 else "loss"
+    if abs(edge) < 0.01:
+        return "push"
+    return "win" if edge < 0 else "loss"
+
+
+def _grade_published_total(act_total: int, *, close_total: float, side: str) -> str:
+    diff = float(act_total) - float(close_total)
+    if abs(diff) < 0.01:
+        return "push"
+    if side == "over":
+        return "win" if diff > 0 else "loss"
+    return "win" if diff < 0 else "loss"
+
+
 def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -> int:
-    """Append auto-graded Pace plays after backfill: Oct 27+ ET, page-display picks only."""
-    from sharp_scout.nba.score_model.paper import _game_excluded, _grade_ats_margin, _grade_ou
+    """Grade published-card Pace plays only (frozen pace_published_pick — never model-invented)."""
+    from sharp_scout.nba.score_model.paper import _game_excluded
 
     paper_store = paper_store or {}
     added = 0
@@ -296,28 +316,20 @@ def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -
             continue
         gr = g["graded"]
         frozen = g.get("frozen") or {}
-        snap = frozen.get("snapshot") or (g.get("scans") or [{}])[-1]
-        home, away = str(g.get("home") or ""), str(g.get("away") or "")
-        primary = frozen.get("pace_display_pick")
-        if not primary:
-            primary = pace_display_pick_from_snapshot(snap, home=home, away=away)
+        primary = frozen.get("pace_published_pick")
         if not primary:
             continue
+        home, away = str(g.get("home") or ""), str(g.get("away") or "")
         cs, ct = gr.get("close_spread_home"), gr.get("close_total")
-        pm_i = float(
-            snap.get("injury_margin") if snap.get("injury_margin") is not None else snap.get("margin") or 0
-        )
-        pt_i = float(
-            snap.get("injury_total") if snap.get("injury_total") is not None else snap.get("total") or 0
-        )
         act_total = int(gr["actual_total"])
         act_margin = int(gr["actual_margin"])
         home_score = (act_total + act_margin) // 2
         away_score = (act_total - act_margin) // 2
+        side = str(primary.get("side") or "")
         if primary["kind"] == "spread" and cs is not None:
-            res = _grade_ats_margin(act_margin, cs, min_edge=MIN_AUTO_GAP, proj_margin=pm_i)
+            res = _grade_published_spread(act_margin, close_spread_home=float(cs), side=side)
         elif primary["kind"] == "total" and ct is not None:
-            res = _grade_ou(act_total, ct, min_edge=MIN_AUTO_GAP, proj_total=pt_i)
+            res = _grade_published_total(act_total, close_total=float(ct), side=side)
         else:
             continue
         if res not in ("win", "loss", "push"):
@@ -328,14 +340,17 @@ def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -
             "home": home,
             "event_id": g.get("event_id"),
         }
+        entry_pick = dict(primary)
+        entry_pick.setdefault("gap", primary.get("gap_pts") or primary.get("gap"))
         if append_auto_graded_pace_play(
             game_row=game_row,
-            pick=primary,
+            pick=entry_pick,
             result=res,
             away_score=away_score,
             home_score=home_score,
             store=official,
         ):
             added += 1
-            official = load_official_pace()
+    if added:
+        save_official_pace(official)
     return added

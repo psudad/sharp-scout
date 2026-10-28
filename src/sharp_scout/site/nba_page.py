@@ -1629,6 +1629,43 @@ def _render_ledger_rows(ledger: dict[str, Any] | None) -> str:
     )
 
 
+def _render_pace_v1_v2_shadow_table(rows: list[dict[str, Any]]) -> str:
+    """Side-by-side v1 production pick vs v2 shadow (never official card)."""
+    if not rows:
+        return ""
+    trs: list[str] = []
+    for r in rows:
+        scans = r.get("scans") or []
+        snap = scans[-1] if scans else r
+        away, home = str(r.get("away") or ""), str(r.get("home") or "")
+        v1_pick = snap.get("pace_v1_pick") or "—"
+        v1_gap = snap.get("pace_v1_gap")
+        v1_gap_s = f"{float(v1_gap):.1f}" if v1_gap is not None else "—"
+        units = snap.get("pace_v1_recommended_units")
+        units_s = f"{float(units):g}u" if units is not None else "—"
+        sv2 = snap.get("shadow_v2") or {}
+        v2_pick = sv2.get("pick") or sv2.get("would_be_pick") or "—"
+        v2_gap = sv2.get("gap") if sv2.get("pick") else sv2.get("would_be_gap")
+        v2_gap_s = f"{float(v2_gap):.1f}" if v2_gap is not None else "—"
+        trs.append(
+            f"<tr><td>{_esc(f'{away} @ {home}')}</td>"
+            f"<td>{_esc(str(v1_pick))}</td><td>{v1_gap_s}</td><td>{units_s}</td>"
+            f"<td>{_esc(str(v2_pick))}</td><td>{v2_gap_s}</td></tr>"
+        )
+    if not trs:
+        return ""
+    return (
+        '<div class="nba-pace-shadow" aria-labelledby="pace-shadow-heading">'
+        '<h3 class="nba-h3" id="pace-shadow-heading">Pace v1 vs v2 shadow (paper only)</h3>'
+        '<p class="nba-section-note">v1 drives the official card (3 pt bar). v2 is experimental; '
+        "promotion requires ~100 shadow plays beating v1 on CLV (<a href=\"nba_pace_v2_shadow.md\">rule</a>).</p>"
+        '<table class="nba-table"><thead><tr><th>Game</th><th>v1 pick</th><th>v1 gap</th>'
+        "<th>v1 rec</th><th>v2 shadow</th><th>v2 gap</th></tr></thead><tbody>"
+        + "".join(trs)
+        + "</tbody></table></div>"
+    )
+
+
 def render_nba_page_html(
     *,
     signals_payload: dict[str, Any] | None,
@@ -1730,6 +1767,7 @@ def render_nba_page_html(
                 f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
             )
 
+    pace_shadow_html = _render_pace_v1_v2_shadow_table(score_rows) if live_scan else ""
     pace_projections_html = (
         _render_pace_projections_table(score_rows, reference=slate_ref) if live_scan else ""
     )
@@ -1817,6 +1855,7 @@ def render_nba_page_html(
         pace_compact_record=pace_compact_record,
         pace_auto_secondary=_esc(pace_auto_secondary),
         pace_plays_html=pace_plays_html,
+        pace_shadow_html=pace_shadow_html,
         pace_leans_html=pace_leans_html,
         pace_projections_html=pace_projections_html,
         pace_history_html=pace_history_html,
@@ -2174,6 +2213,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
       <div class="section-label">Upcoming plays</div>
       {pace_plays_html}
     </div>
+    {pace_shadow_html}
     <details class="nba-section-details">
       <summary>Leans, projections &amp; history</summary>
       <p class="nba-section-note">{pace_auto_secondary}</p>

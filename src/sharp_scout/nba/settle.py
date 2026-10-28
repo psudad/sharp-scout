@@ -210,6 +210,9 @@ def settle_nba_ledger(
             from sharp_scout.nba.score_model.official_pace import sync_auto_pace_from_paper_store
 
             sync_auto_pace_from_paper_store(paper)
+            from sharp_scout.nba.score_model.mechanical_pace import sync_mechanical_pace_from_paper_store
+
+            sync_mechanical_pace_from_paper_store(paper)
         except Exception as sync_exc:  # noqa: BLE001
             logger.warning("NBA official pace sync skipped: %s", sync_exc)
         grade_injury_lag_entries()

@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from sharp_scout.config import get_settings
 from sharp_scout.data.espn_nba import fetch_espn_nba_injuries
 from sharp_scout.nba.score_model.injury_lag import normalize_injury_status
 from sharp_scout.nba.score_model.player_impact import (
@@ -24,6 +25,7 @@ from sharp_scout.nba.score_model.player_impact import (
     defense_impact_pts,
     is_season_long_absence,
     load_rates_by_team_player,
+    season_gp_from_rate_row,
     offense_impact_pts,
     pace_impact_pts,
     resolve_player_rate_row,
@@ -37,7 +39,7 @@ STATUS_WEIGHT: dict[str, float] = {
     "out": 1.0,
     "doubtful": 0.75,
     "questionable": 0.5,
-    "day-to-day": 0.45,
+    "day-to-day": 0.18,
     "probable": 0.25,
     "unknown": 0.0,
     "available": 0.0,
@@ -53,8 +55,33 @@ MIN_DISPLAY_IMPACT = 0.15
 INJURY_STATUSES = frozenset({"out", "doubtful", "questionable", "day-to-day", "probable"})
 
 
+def injury_impact_multiplier() -> float:
+    """Scale per-player injury hits until enough official graded plays exist."""
+    settings = get_settings()
+    scale = float(getattr(settings, "nba_injury_impact_scale", 0.5))
+    gate = int(getattr(settings, "nba_injury_impact_scale_full_after_graded", 50))
+    if scale >= 1.0 or gate <= 0:
+        return 1.0
+    try:
+        from sharp_scout.nba.score_model.official_pace import load_official_pace
+
+        graded = [
+            p
+            for p in load_official_pace().get("plays") or []
+            if str(p.get("result") or "") in ("win", "loss", "push")
+        ]
+        if len(graded) >= gate:
+            return 1.0
+    except Exception:  # noqa: BLE001
+        pass
+    return max(0.0, min(scale, 1.0))
+
+
 def status_weight(status: str) -> float:
-    return STATUS_WEIGHT.get(normalize_injury_status(status), 0.0)
+    norm = normalize_injury_status(status)
+    if norm == "day-to-day":
+        return float(getattr(get_settings(), "nba_injury_day_to_day_weight", STATUS_WEIGHT["day-to-day"]))
+    return STATUS_WEIGHT.get(norm, 0.0)
 
 
 def _player_row_impacts(
@@ -65,9 +92,10 @@ def _player_row_impacts(
 ) -> tuple[float, float, float]:
     if weight <= 0:
         return 0.0, 0.0, 0.0
-    off = offense_impact_pts(row, pace=pace) * weight
-    defn = defense_impact_pts(row, pace=pace) * weight
-    pace_pts = pace_impact_pts(row, pace=pace) * weight
+    mult = injury_impact_multiplier()
+    off = offense_impact_pts(row, pace=pace) * weight * mult
+    defn = defense_impact_pts(row, pace=pace) * weight * mult
+    pace_pts = pace_impact_pts(row, pace=pace) * weight * mult
     return off, defn, pace_pts
 
 
@@ -135,11 +163,24 @@ def team_absence_rows(
         status = normalize_injury_status(inj.get("status"))
         pkey = f"{team}|{name.lower()}"
         rate_row = resolve_player_rate_row(name, team, rates)
+        if rate_row is None:
+            excluded.append(
+                {
+                    "player": name,
+                    "team": team,
+                    "status": status,
+                    "status_label": str(inj.get("status") or status).strip() or status.title(),
+                    "kind": "excluded_no_stats",
+                    "reason": "no season stats",
+                }
+            )
+            continue
         detail = str(inj.get("detail") or inj.get("description") or "")
+        cur_gp, played = season_gp_from_rate_row(rate_row)
         if status in INJURY_STATUSES and is_season_long_absence(
             detail=detail,
-            current_season_gp=int(rate_row.get("current_season_gp") or 0),
-            played_this_season=bool(rate_row.get("played_this_season")),
+            current_season_gp=cur_gp,
+            played_this_season=played,
         ):
             excluded.append(
                 {
@@ -170,7 +211,7 @@ def team_absence_rows(
                     "off_pts": round(-off, 2),
                     "def_pts": round(-defn, 2),
                     "pace_pts": round(-pace_pts, 2),
-                    "margin_pts": round(-(off + defn * 0.5), 2),
+                    "margin_pts": round(-(off + defn), 2),
                     "kind": kind,
                     "minutes": round(float(rate_row.get("minutes") or 0), 1),
                 }
@@ -196,12 +237,11 @@ def team_absence_rows(
                         "off_pts": round(off_f, 2),
                         "def_pts": round(def_f, 2),
                         "pace_pts": round(pace_f, 2),
-                        "margin_pts": round(off_f + def_f * 0.5, 2),
+                        "margin_pts": round(off_f + def_f, 2),
                         "kind": "return",
                     }
                 )
 
-    off_sum, def_sum, pace_sum = _cap_team(off_sum, def_sum, pace_sum)
     return rows, excluded
 
 
@@ -328,6 +368,8 @@ def format_absence_line(team: str, row: dict[str, Any]) -> str:
     label = row.get("status_label") or row.get("status") or "?"
     if row.get("kind") == "excluded_season":
         return f"Excluded: {name} ({label}) — out all season (already in team ratings)"
+    if row.get("kind") == "excluded_no_stats":
+        return f"Excluded: {name} ({label}) — no season stats (skipped for injury adj)"
     impact = float(row.get("margin_pts") or row.get("off_pts") or 0)
     prefix = f"{team} without {name}" if row.get("kind") != "return" else f"{team} with {name} back"
     return f"{prefix} ({label}): {impact:+.1f} pts"

@@ -27,6 +27,7 @@ def test_status_weights():
     assert status_weight("Out") == STATUS_WEIGHT["out"]
     assert status_weight("DOUBTFUL") == 0.75
     assert status_weight("Questionable") == 0.5
+    assert status_weight("Day-to-day") == 0.18
     assert status_weight("Active") == 0.0
 
 
@@ -94,7 +95,11 @@ def test_team_absence_respects_status_weight():
     assert not excluded
 
 
-def test_missing_rate_row_uses_supplemental_impact():
+def test_missing_rate_row_excluded_no_synthetic_minutes(monkeypatch):
+    monkeypatch.setattr(
+        "sharp_scout.nba.score_model.player_impact.build_supplemental_rate_row",
+        lambda *a, **k: None,
+    )
     injuries = [
         {
             "player": "Jose Alvarado",
@@ -104,10 +109,58 @@ def test_missing_rate_row_uses_supplemental_impact():
         }
     ]
     rows, excluded = team_absence_rows("NYK", injuries, rates={})
-    assert not excluded
+    assert not rows
+    assert len(excluded) == 1
+    assert excluded[0]["kind"] == "excluded_no_stats"
+
+
+def test_margin_pts_matches_off_plus_def():
+    rates = {
+        "PHI|joel embiid": {
+            "player_name": "Joel Embiid",
+            "team": "PHI",
+            "minutes": 34,
+            "current_season_gp": 10,
+            "played_this_season": True,
+            "pts_per_min": 0.8,
+            "reb_per_min": 0.14,
+            "ast_per_min": 0.12,
+            "usage_share": 0.32,
+        }
+    }
+    injuries = [{"player": "Joel Embiid", "team": "PHI", "status": "Out"}]
+    rows, _ = team_absence_rows("PHI", injuries, rates=rates)
     assert len(rows) == 1
-    assert rows[0]["player"] == "Jose Alvarado"
-    assert float(rows[0]["margin_pts"]) < 0
+    expected = float(rows[0]["off_pts"]) + float(rows[0]["def_pts"])
+    assert abs(float(rows[0]["margin_pts"]) - expected) < 0.02
+
+
+def test_zero_gp_this_season_excluded_without_season_note():
+    rates = {
+        "SAS|tobias harris": {
+            "player_name": "Tobias Harris",
+            "team": "SAS",
+            "minutes": 28,
+            "current_season_gp": 0,
+            "played_this_season": False,
+            "pts_per_min": 0.45,
+            "reb_per_min": 0.1,
+            "ast_per_min": 0.08,
+            "usage_share": 0.22,
+        }
+    }
+    injuries = [
+        {
+            "player": "Tobias Harris",
+            "team": "SAS",
+            "status": "Out",
+            "detail": "Harris will not play Tuesday.",
+        }
+    ]
+    rows, excluded = team_absence_rows("SAS", injuries, rates=rates)
+    assert not rows
+    assert len(excluded) == 1
+    assert excluded[0]["kind"] == "excluded_season"
 
 
 def test_season_long_out_excluded_not_adjusted():

@@ -37,15 +37,31 @@ def test_v2_large_gap_excluded_early_season():
     assert meta and meta.get("would_be_pick", {}).get("pick")
 
 
-def test_v1_allows_injury_only_gap():
+def test_v1_blocks_injury_only_gap():
     engine = V2Engine(params=V2Params(), stage=3)
     snap = {
-        "margin": 1.0,
+        "margin": 1.01,
         "total": 224.0,
         "injury_margin": 7.0,
         "injury_total": 224.0,
         "lines": {"consensus_spread_home": -4.0, "consensus_total": 225.0},
     }
     pick = pace_display_pick_from_snapshot(snap, home="BOS", away="NYK", engine=engine)
-    assert pick is not None
-    assert pick["kind"] == "spread"
+    assert pick is None
+
+
+def test_v1_raw_gap_required_both_must_clear_bar():
+    from sharp_scout.nba.score_model.pace_v1 import injury_adj_pace_picks
+
+    snap = {
+        "margin": 8.0,
+        "total": 224.0,
+        "injury_margin": 2.0,
+        "injury_total": 224.0,
+        "lines": {"consensus_spread_home": -4.0, "consensus_total": 225.0},
+    }
+    assert not injury_adj_pace_picks(snap, home="BOS", away="NYK", min_gap=3.0)
+    snap["injury_margin"] = 8.0
+    picks = injury_adj_pace_picks(snap, home="BOS", away="NYK", min_gap=3.0)
+    assert len(picks) == 1
+    assert picks[0]["kind"] == "spread"

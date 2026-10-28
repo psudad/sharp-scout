@@ -229,6 +229,10 @@ class Settings(BaseSettings):
     nba_paper_start: str = "2026-11-02"
     nba_paper_end: str = "2026-12-13"
     nba_pace_min_gap_pts: float = 3.0  # v1 official card (production)
+    nba_pace_require_raw_gap: bool = True  # v1: injury adj cannot create a play
+    nba_injury_day_to_day_weight: float = 0.18
+    nba_injury_impact_scale: float = 0.5  # halve player hits until enough graded injury nights
+    nba_injury_impact_scale_full_after_graded: int = 50
     nba_pace_early_season_team_games: int = 15  # v1 half-unit sizing only
     nba_pace_large_gap_warn_pts: float = 7.0  # v1 half-unit sizing only
     nba_pace_half_unit_sizing_enabled: bool = True

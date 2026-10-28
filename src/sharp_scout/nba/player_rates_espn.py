@@ -219,22 +219,7 @@ def build_supplemental_rate_row(
             "rate_source": "espn_by_athlete_supplement",
             "out_teammates": [],
         }
-    return {
-        "player_name": player_name.strip(),
-        "team": team.upper(),
-        "minutes": 18.0,
-        "games_played": 0,
-        "current_season_gp": 0,
-        "played_this_season": False,
-        "pts_per_min": 0.28,
-        "reb_per_min": 0.09,
-        "ast_per_min": 0.08,
-        "fg3_per_min": 0.03,
-        "usage_share": 0.16,
-        "stats_season": season,
-        "rate_source": "minutes_fallback",
-        "out_teammates": [],
-    }
+    return None
 
 
 def refresh_nba_player_rates_file(

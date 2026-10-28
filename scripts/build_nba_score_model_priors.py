@@ -14,7 +14,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.config import DATA_DIR
 from sharp_scout.data.espn_nba import fetch_espn_nba_finals_by_event
+from sharp_scout.nba.rosters import ESPN_NBA_SEASON_END_YEAR
 from sharp_scout.nba.score_model.engine import V2Engine, V2Params, TeamPrior
+from sharp_scout.nba.score_model.roster_priors import ROSTER_PRIOR_WEIGHT, build_roster_weighted_priors
 from sharp_scout.nba.score_model.state import _games_from_scores, _replay_games, _season_label
 
 DEFAULT_OUT = DATA_DIR / "paper" / "nba_score_model_priors.json"
@@ -38,18 +40,26 @@ def main() -> int:
     _replay_games(engine, games, processed)  # noqa: SLF001
     engine.end_season()
     reg = engine.params.prior_regress_frac
+    blended = build_roster_weighted_priors(
+        regressed_team_priors=engine.end_season_priors,
+        season_end_year=ESPN_NBA_SEASON_END_YEAR,
+    )
     teams = {
         t: {
             "off": round(p.off, 3),
             "def": round(p.def_, 3),
             "pace": round(p.pace, 3),
         }
-        for t, p in engine.end_season_priors.items()
+        for t, p in blended.items()
     }
     payload = {
-        "version": 1,
+        "version": 2,
         "for_season": args.for_season,
         "built_from": f"ESPN finals {args.season_start}..{args.season_end}",
+        "prior_method": (
+            f"{ROSTER_PRIOR_WEIGHT:.0%} live ESPN roster minutes-weighted player BPM proxy + "
+            f"{1 - ROSTER_PRIOR_WEIGHT:.0%} regressed prior-season team ratings (no Odds API)"
+        ),
         "regress_frac": reg,
         "n_games": len(processed),
         "teams": teams,

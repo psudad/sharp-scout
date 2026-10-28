@@ -26,7 +26,12 @@ class V2Params:
     recency_half_life_days: float = 45.0
     hca_points: float = 2.25
     prior_regress_frac: float = 1.0 / 3.0
-    prior_decay_games: float = 18.0
+    prior_decay_games: float = 22.0
+    observe_alpha_cap: float = 0.28
+    observe_alpha_floor: float = 0.06
+    market_blend_early_games: int = 15
+    market_blend_max: float = 0.22
+    large_gap_warn_pts: float = 7.0
     b2b_penalty: float = 1.25
     rest_slope: float = 0.15  # pts per rest day below 2
     three_in_four_penalty: float = 1.0
@@ -123,6 +128,9 @@ class V2Engine:
     _cached_def: dict[str, float] = field(default_factory=dict)
     _ridge_intercept: float = LEAGUE_ORTG
     _refit_cooldown: int = 0
+    team_last_played: dict[str, str] = field(default_factory=dict)
+    team_last_venue: dict[str, str] = field(default_factory=dict)
+    team_recent_dates_et: dict[str, list[str]] = field(default_factory=dict)
 
     def _idx(self, team: str) -> int:
         if team not in self._team_index:
@@ -148,8 +156,15 @@ class V2Engine:
             prior_val = prior.pace
         if self.stage < 2:
             return raw
-        w = min(1.0, g / max(self.params.prior_decay_games, 1.0))
+        # Slower early blend: sqrt curve keeps preseason / committed priors heavier longer.
+        w = min(1.0, (g / max(self.params.prior_decay_games, 1.0)) ** 0.55)
         return w * raw + (1 - w) * prior_val
+
+    def _observe_alpha(self, team_games_after: int) -> float:
+        g = max(team_games_after, 1)
+        p = self.params
+        alpha = min(p.observe_alpha_cap, 2.0 / (g + 3.0))
+        return max(alpha, p.observe_alpha_floor if g > 8 else p.observe_alpha_floor * 0.5)
 
     def _schedule_adj(
         self,
@@ -258,6 +273,8 @@ class V2Engine:
         away_travel_mi: float = 0.0,
         home_player_mins: dict[str, float] | None = None,
         away_player_mins: dict[str, float] | None = None,
+        consensus_spread_home: float | None = None,
+        consensus_total: float | None = None,
     ) -> dict[str, float]:
         off_fit, def_fit = self._fit_ridge()
 
@@ -303,6 +320,23 @@ class V2Engine:
         margin = home_pts - away_pts
         total = home_pts_base + away_pts_base
 
+        min_g = min(self.team_games.get(home, 0), self.team_games.get(away, 0))
+        market_margin = None
+        if consensus_spread_home is not None and min_g < self.params.market_blend_early_games:
+            market_margin = -float(consensus_spread_home)
+            blend_w = (1.0 - min_g / max(self.params.market_blend_early_games, 1)) * self.params.market_blend_max
+            margin = (1.0 - blend_w) * margin + blend_w * market_margin
+        if consensus_total is not None and min_g < self.params.market_blend_early_games:
+            blend_w = (1.0 - min_g / max(self.params.market_blend_early_games, 1)) * self.params.market_blend_max
+            total = (1.0 - blend_w) * total + blend_w * float(consensus_total)
+
+        market_gap = None
+        large_gap_warning = False
+        if consensus_spread_home is not None:
+            market_gap = margin + float(consensus_spread_home)
+            if abs(market_gap) >= self.params.large_gap_warn_pts:
+                large_gap_warning = True
+
         # Stage 4: optional margin-only injury proxy (does not deflate totals).
         if self.stage >= 4 and home_player_mins and away_player_mins:
             ht = self.player_track.setdefault(home, PlayerTracker())
@@ -320,6 +354,10 @@ class V2Engine:
             "total": total,
             "sd_margin": sd_m,
             "sd_total": sd_t,
+            "market_margin_implied": market_margin,
+            "market_gap_margin": market_gap,
+            "large_gap_warning": large_gap_warning,
+            "team_games_min": min_g,
         }
 
     def observe(self, game: dict[str, Any], *, ctx: dict[str, Any]) -> None:
@@ -362,11 +400,19 @@ class V2Engine:
             (home, home_ortg, away_ortg),
             (away, away_ortg, home_ortg),
         ):
-            w = min(1.0, 2.0 / max(self.team_games[team], 1))
-            self.team_off[team] = (1 - w) * self.team_off.get(team, LEAGUE_ORTG) + w * ortg
-            # Defensive quality: points allowed per 100 (opponent ORtg in this game)
-            self.team_def[team] = (1 - w) * self.team_def.get(team, LEAGUE_ORTG) + w * opp_ortg
-            self.team_pace[team] = (1 - w) * self.team_pace.get(team, LEAGUE_PACE) + w * poss
+            g_after = self.team_games[team]
+            alpha = self._observe_alpha(g_after)
+            prior = self._prior_team(team)
+            cur_off = self.team_off.get(team, prior.off)
+            cur_def = self.team_def.get(team, prior.def_)
+            cur_pace = self.team_pace.get(team, prior.pace)
+            target_off = (1 - alpha) * cur_off + alpha * ortg
+            target_def = (1 - alpha) * cur_def + alpha * opp_ortg
+            target_pace = (1 - alpha) * cur_pace + alpha * poss
+            prior_w = max(0.0, 1.0 - g_after / max(self.params.prior_decay_games, 1.0)) * 0.35
+            self.team_off[team] = (1 - prior_w) * target_off + prior_w * prior.off
+            self.team_def[team] = (1 - prior_w) * target_def + prior_w * prior.def_
+            self.team_pace[team] = (1 - prior_w) * target_pace + prior_w * prior.pace
 
         if self.stage >= 4:
             hp = game.get("home_player_mins") or {}

@@ -37,7 +37,7 @@ STATUS_WEIGHT: dict[str, float] = {
     "out": 1.0,
     "doubtful": 0.75,
     "questionable": 0.5,
-    "day-to-day": 0.45,
+    "day-to-day": 0.18,
     "probable": 0.25,
     "unknown": 0.0,
     "available": 0.0,
@@ -135,6 +135,8 @@ def team_absence_rows(
         status = normalize_injury_status(inj.get("status"))
         pkey = f"{team}|{name.lower()}"
         rate_row = resolve_player_rate_row(name, team, rates)
+        if rate_row is None:
+            continue
         detail = str(inj.get("detail") or inj.get("description") or "")
         if status in INJURY_STATUSES and is_season_long_absence(
             detail=detail,

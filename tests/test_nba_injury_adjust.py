@@ -94,7 +94,11 @@ def test_team_absence_respects_status_weight():
     assert not excluded
 
 
-def test_missing_rate_row_uses_supplemental_impact():
+def test_missing_rate_row_skipped_without_stats(monkeypatch):
+    monkeypatch.setattr(
+        "sharp_scout.nba.score_model.player_impact.build_supplemental_rate_row",
+        lambda *a, **k: None,
+    )
     injuries = [
         {
             "player": "Jose Alvarado",
@@ -105,9 +109,28 @@ def test_missing_rate_row_uses_supplemental_impact():
     ]
     rows, excluded = team_absence_rows("NYK", injuries, rates={})
     assert not excluded
-    assert len(rows) == 1
-    assert rows[0]["player"] == "Jose Alvarado"
-    assert float(rows[0]["margin_pts"]) < 0
+    assert rows == []
+
+
+def test_injury_only_edge_does_not_qualify_without_raw():
+    from sharp_scout.nba.score_model.pace_qualify import qualifies_spread
+
+    ok, gap, _, _ = qualifies_spread(
+        raw_margin=1.0,
+        injury_margin=5.0,
+        spread_home=-3.0,
+        min_gap=3.0,
+        require_raw=True,
+    )
+    assert not ok
+    ok2, gap2, _, _ = qualifies_spread(
+        raw_margin=6.0,
+        injury_margin=7.0,
+        spread_home=-3.0,
+        min_gap=3.0,
+        require_raw=True,
+    )
+    assert ok2 and gap2 >= 3.0
 
 
 def test_season_long_out_excluded_not_adjusted():

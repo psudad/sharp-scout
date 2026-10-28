@@ -277,25 +277,33 @@ def total_gap_plain_english(
 def score_modeling_display_plays(
     rows: list[dict[str, Any]],
     *,
-    min_edge: float = SCORE_MODELING_MIN_EDGE_PT,
+    min_edge: float | None = None,
     max_edge: float | None = None,
     include_injury_watch: bool = False,
+    engine: Any | None = None,
 ) -> list[dict[str, Any]]:
     """Display cards per game where injury-adj (or raw) gap vs consensus is in [min_edge, max_edge)."""
     from sharp_scout.nba.score_model.injury_adjust import format_absence_line
     from sharp_scout.nba.slate_et import kickoff_date_et
 
+    from sharp_scout.nba.score_model.pace_qualify import pace_min_gap_pts
+
     today_et = datetime.now(ET).date()
     out: list[dict[str, Any]] = []
     for r in rows:
+        away = str(r.get("away") or "")
+        home = str(r.get("home") or "")
+        row_min_edge = (
+            min_edge
+            if min_edge is not None
+            else pace_min_gap_pts(engine=engine, home=home, away=away)
+        )
         lines = r.get("lines") or {}
         cs, ct = lines.get("consensus_spread_home"), lines.get("consensus_total")
         margin = float(r.get("margin") or 0)
         total = float(r.get("total") or 0)
         inj_margin = float(r.get("injury_margin") if r.get("injury_margin") is not None else margin)
         inj_total = float(r.get("injury_total") if r.get("injury_total") is not None else total)
-        away = str(r.get("away") or "")
-        home = str(r.get("home") or "")
         game = f"{away} @ {home}"
         raw_candidates = _edge_candidates(
             home=home,
@@ -305,7 +313,7 @@ def score_modeling_display_plays(
             total=total,
             cs=cs,
             ct=ct,
-            min_edge=min_edge,
+            min_edge=row_min_edge,
         )
         adj_candidates = _edge_candidates(
             home=home,
@@ -315,7 +323,7 @@ def score_modeling_display_plays(
             total=inj_total,
             cs=cs,
             ct=ct,
-            min_edge=min_edge,
+            min_edge=row_min_edge,
             label_prefix="Injury-adj ",
         )
         absence_lines: list[str] = []
@@ -336,12 +344,21 @@ def score_modeling_display_plays(
             inj_total=inj_total,
         )
 
-        candidates = adj_candidates or raw_candidates
-        if not candidates and not raw_candidates:
+        def _raw_supports_adj(adj: dict[str, Any]) -> bool:
+            kind = adj.get("kind")
+            raw_same = [c for c in raw_candidates if c.get("kind") == kind]
+            if not raw_same:
+                return False
+            return max(float(c.get("gap") or 0) for c in raw_same) >= row_min_edge
+
+        # Injury layer cannot create a play without raw model gap clearing the bar too.
+        candidates = [c for c in adj_candidates if _raw_supports_adj(c)]
+        if not candidates:
             if (
                 include_injury_watch
                 and absence_lines
                 and kickoff_date_et(r.get("kickoff")) == today_et
+                and not raw_candidates
             ):
                 market = ""
                 if cs is not None:
@@ -374,7 +391,7 @@ def score_modeling_display_plays(
                 )
             continue
         primary = max(candidates, key=lambda c: c["gap"])
-        if float(primary.get("gap") or 0) < min_edge:
+        if float(primary.get("gap") or 0) < row_min_edge:
             continue
         if max_edge is not None and float(primary.get("gap") or 0) >= max_edge:
             continue
@@ -386,7 +403,7 @@ def score_modeling_display_plays(
         if raw_primary and _qualifies_play(raw_candidates) != _qualifies_play(adj_candidates):
             flip = True
         elif raw_primary and raw_primary.get("kind") == primary.get("kind"):
-            if (raw_gap or 0) * adj_gap < 0 and abs(adj_gap) >= min_edge:
+            if (raw_gap or 0) * adj_gap < 0 and abs(adj_gap) >= row_min_edge:
                 flip = True
         gap_explain = ""
         if primary.get("kind") == "spread" and cs is not None:
@@ -394,19 +411,21 @@ def score_modeling_display_plays(
                 home=home,
                 margin=inj_margin if adj_candidates else margin,
                 consensus_spread_home=float(cs),
-                min_edge=min_edge,
+                min_edge=row_min_edge,
             )
         elif primary.get("kind") == "total" and ct is not None:
             gap_explain = total_gap_plain_english(
                 total=inj_total if adj_candidates else total,
                 consensus_total=float(ct),
-                min_edge=min_edge,
+                min_edge=row_min_edge,
             )
         out.append(
             {
                 "game": game,
                 "kickoff": r.get("kickoff"),
                 "gap": primary["gap"],
+                "large_gap_warning": float(primary.get("gap") or 0)
+                >= float(getattr(get_settings(), "nba_pace_large_gap_warn_pts", 7.0)),
                 "title": primary["title"],
                 "kind": primary["kind"],
                 "model_line": primary["model_line"],
@@ -1699,8 +1718,19 @@ def render_nba_page_html(
 
     score_rows = score_model_rows or []
     waiting_lines = live_scan and _score_rows_missing_lines(score_rows)
+    pace_engine = None
+    try:
+        from sharp_scout.nba.score_model.state import ensure_score_engine
+
+        pace_engine = ensure_score_engine()
+    except Exception:  # noqa: BLE001
+        pass
     pace_plays = (
-        score_modeling_display_plays(score_rows, include_injury_watch=False) if live_scan else []
+        score_modeling_display_plays(
+            score_rows, include_injury_watch=False, engine=pace_engine
+        )
+        if live_scan
+        else []
     )
     pace_plays = [p for p in pace_plays if not p.get("injury_watch_only")]
     pace_leans = score_modeling_display_leans(score_rows) if live_scan else []

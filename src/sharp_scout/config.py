@@ -228,6 +228,10 @@ class Settings(BaseSettings):
     nba_cap_units_per_night: float = 8.0
     nba_paper_start: str = "2026-11-02"
     nba_paper_end: str = "2026-12-13"
+    nba_pace_min_gap_pts: float = 3.0
+    nba_pace_early_min_gap_pts: float = 4.5
+    nba_pace_early_season_team_games: int = 15
+    nba_pace_large_gap_warn_pts: float = 7.0
     nba_prop_markets: str = (
         "player_points,player_rebounds,player_assists,player_threes,"
         "player_points_rebounds_assists"

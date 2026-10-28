@@ -368,9 +368,10 @@ def score_modeling_display_plays(
         )
 
         candidates = _raw_gated_play_candidates(raw_candidates, adj_candidates)
-        if not candidates and not raw_candidates:
+        if not candidates:
             if (
-                include_injury_watch
+                not raw_candidates
+                and include_injury_watch
                 and absence_lines
                 and kickoff_date_et(r.get("kickoff")) == today_et
             ):

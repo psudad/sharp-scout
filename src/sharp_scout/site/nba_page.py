@@ -277,33 +277,25 @@ def total_gap_plain_english(
 def score_modeling_display_plays(
     rows: list[dict[str, Any]],
     *,
-    min_edge: float | None = None,
+    min_edge: float = SCORE_MODELING_MIN_EDGE_PT,
     max_edge: float | None = None,
     include_injury_watch: bool = False,
-    engine: Any | None = None,
 ) -> list[dict[str, Any]]:
     """Display cards per game where injury-adj (or raw) gap vs consensus is in [min_edge, max_edge)."""
     from sharp_scout.nba.score_model.injury_adjust import format_absence_line
     from sharp_scout.nba.slate_et import kickoff_date_et
 
-    from sharp_scout.nba.score_model.pace_qualify import pace_min_gap_pts
-
     today_et = datetime.now(ET).date()
     out: list[dict[str, Any]] = []
     for r in rows:
-        away = str(r.get("away") or "")
-        home = str(r.get("home") or "")
-        row_min_edge = (
-            min_edge
-            if min_edge is not None
-            else pace_min_gap_pts(engine=engine, home=home, away=away)
-        )
         lines = r.get("lines") or {}
         cs, ct = lines.get("consensus_spread_home"), lines.get("consensus_total")
         margin = float(r.get("margin") or 0)
         total = float(r.get("total") or 0)
         inj_margin = float(r.get("injury_margin") if r.get("injury_margin") is not None else margin)
         inj_total = float(r.get("injury_total") if r.get("injury_total") is not None else total)
+        away = str(r.get("away") or "")
+        home = str(r.get("home") or "")
         game = f"{away} @ {home}"
         raw_candidates = _edge_candidates(
             home=home,
@@ -313,7 +305,7 @@ def score_modeling_display_plays(
             total=total,
             cs=cs,
             ct=ct,
-            min_edge=row_min_edge,
+            min_edge=min_edge,
         )
         adj_candidates = _edge_candidates(
             home=home,
@@ -323,7 +315,7 @@ def score_modeling_display_plays(
             total=inj_total,
             cs=cs,
             ct=ct,
-            min_edge=row_min_edge,
+            min_edge=min_edge,
             label_prefix="Injury-adj ",
         )
         absence_lines: list[str] = []
@@ -344,21 +336,12 @@ def score_modeling_display_plays(
             inj_total=inj_total,
         )
 
-        def _raw_supports_adj(adj: dict[str, Any]) -> bool:
-            kind = adj.get("kind")
-            raw_same = [c for c in raw_candidates if c.get("kind") == kind]
-            if not raw_same:
-                return False
-            return max(float(c.get("gap") or 0) for c in raw_same) >= row_min_edge
-
-        # Injury layer cannot create a play without raw model gap clearing the bar too.
-        candidates = [c for c in adj_candidates if _raw_supports_adj(c)]
-        if not candidates:
+        candidates = adj_candidates or raw_candidates
+        if not candidates and not raw_candidates:
             if (
                 include_injury_watch
                 and absence_lines
                 and kickoff_date_et(r.get("kickoff")) == today_et
-                and not raw_candidates
             ):
                 market = ""
                 if cs is not None:
@@ -391,7 +374,7 @@ def score_modeling_display_plays(
                 )
             continue
         primary = max(candidates, key=lambda c: c["gap"])
-        if float(primary.get("gap") or 0) < row_min_edge:
+        if float(primary.get("gap") or 0) < min_edge:
             continue
         if max_edge is not None and float(primary.get("gap") or 0) >= max_edge:
             continue
@@ -403,7 +386,7 @@ def score_modeling_display_plays(
         if raw_primary and _qualifies_play(raw_candidates) != _qualifies_play(adj_candidates):
             flip = True
         elif raw_primary and raw_primary.get("kind") == primary.get("kind"):
-            if (raw_gap or 0) * adj_gap < 0 and abs(adj_gap) >= row_min_edge:
+            if (raw_gap or 0) * adj_gap < 0 and abs(adj_gap) >= min_edge:
                 flip = True
         gap_explain = ""
         if primary.get("kind") == "spread" and cs is not None:
@@ -411,21 +394,19 @@ def score_modeling_display_plays(
                 home=home,
                 margin=inj_margin if adj_candidates else margin,
                 consensus_spread_home=float(cs),
-                min_edge=row_min_edge,
+                min_edge=min_edge,
             )
         elif primary.get("kind") == "total" and ct is not None:
             gap_explain = total_gap_plain_english(
                 total=inj_total if adj_candidates else total,
                 consensus_total=float(ct),
-                min_edge=row_min_edge,
+                min_edge=min_edge,
             )
         out.append(
             {
                 "game": game,
                 "kickoff": r.get("kickoff"),
                 "gap": primary["gap"],
-                "large_gap_warning": float(primary.get("gap") or 0)
-                >= float(getattr(get_settings(), "nba_pace_large_gap_warn_pts", 7.0)),
                 "title": primary["title"],
                 "kind": primary["kind"],
                 "model_line": primary["model_line"],
@@ -1648,6 +1629,43 @@ def _render_ledger_rows(ledger: dict[str, Any] | None) -> str:
     )
 
 
+def _render_pace_v1_v2_shadow_table(rows: list[dict[str, Any]]) -> str:
+    """Side-by-side v1 production pick vs v2 shadow (never official card)."""
+    if not rows:
+        return ""
+    trs: list[str] = []
+    for r in rows:
+        scans = r.get("scans") or []
+        snap = scans[-1] if scans else r
+        away, home = str(r.get("away") or ""), str(r.get("home") or "")
+        v1_pick = snap.get("pace_v1_pick") or "—"
+        v1_gap = snap.get("pace_v1_gap")
+        v1_gap_s = f"{float(v1_gap):.1f}" if v1_gap is not None else "—"
+        units = snap.get("pace_v1_recommended_units")
+        units_s = f"{float(units):g}u" if units is not None else "—"
+        sv2 = snap.get("shadow_v2") or {}
+        v2_pick = sv2.get("pick") or sv2.get("would_be_pick") or "—"
+        v2_gap = sv2.get("gap") if sv2.get("pick") else sv2.get("would_be_gap")
+        v2_gap_s = f"{float(v2_gap):.1f}" if v2_gap is not None else "—"
+        trs.append(
+            f"<tr><td>{_esc(f'{away} @ {home}')}</td>"
+            f"<td>{_esc(str(v1_pick))}</td><td>{v1_gap_s}</td><td>{units_s}</td>"
+            f"<td>{_esc(str(v2_pick))}</td><td>{v2_gap_s}</td></tr>"
+        )
+    if not trs:
+        return ""
+    return (
+        '<div class="nba-pace-shadow" aria-labelledby="pace-shadow-heading">'
+        '<h3 class="nba-h3" id="pace-shadow-heading">Pace v1 vs v2 shadow (paper only)</h3>'
+        '<p class="nba-section-note">v1 drives the official card (3 pt bar). v2 is experimental; '
+        "promotion requires ~100 shadow plays beating v1 on CLV (<a href=\"nba_pace_v2_shadow.md\">rule</a>).</p>"
+        '<table class="nba-table"><thead><tr><th>Game</th><th>v1 pick</th><th>v1 gap</th>'
+        "<th>v1 rec</th><th>v2 shadow</th><th>v2 gap</th></tr></thead><tbody>"
+        + "".join(trs)
+        + "</tbody></table></div>"
+    )
+
+
 def render_nba_page_html(
     *,
     signals_payload: dict[str, Any] | None,
@@ -1718,19 +1736,8 @@ def render_nba_page_html(
 
     score_rows = score_model_rows or []
     waiting_lines = live_scan and _score_rows_missing_lines(score_rows)
-    pace_engine = None
-    try:
-        from sharp_scout.nba.score_model.state import ensure_score_engine
-
-        pace_engine = ensure_score_engine()
-    except Exception:  # noqa: BLE001
-        pass
     pace_plays = (
-        score_modeling_display_plays(
-            score_rows, include_injury_watch=False, engine=pace_engine
-        )
-        if live_scan
-        else []
+        score_modeling_display_plays(score_rows, include_injury_watch=False) if live_scan else []
     )
     pace_plays = [p for p in pace_plays if not p.get("injury_watch_only")]
     pace_leans = score_modeling_display_leans(score_rows) if live_scan else []
@@ -1760,6 +1767,7 @@ def render_nba_page_html(
                 f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
             )
 
+    pace_shadow_html = _render_pace_v1_v2_shadow_table(score_rows) if live_scan else ""
     pace_projections_html = (
         _render_pace_projections_table(score_rows, reference=slate_ref) if live_scan else ""
     )
@@ -1847,6 +1855,7 @@ def render_nba_page_html(
         pace_compact_record=pace_compact_record,
         pace_auto_secondary=_esc(pace_auto_secondary),
         pace_plays_html=pace_plays_html,
+        pace_shadow_html=pace_shadow_html,
         pace_leans_html=pace_leans_html,
         pace_projections_html=pace_projections_html,
         pace_history_html=pace_history_html,
@@ -2204,6 +2213,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
       <div class="section-label">Upcoming plays</div>
       {pace_plays_html}
     </div>
+    {pace_shadow_html}
     <details class="nba-section-details">
       <summary>Leans, projections &amp; history</summary>
       <p class="nba-section-note">{pace_auto_secondary}</p>

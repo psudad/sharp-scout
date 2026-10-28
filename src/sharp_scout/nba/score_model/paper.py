@@ -216,22 +216,12 @@ def _proj_row(
         injury_news_after_first_line,
     )
 
-    from sharp_scout.nba.score_model.schedule_ctx import schedule_projection_kwargs
-
     home = normalize_nba_team(str(ev.get("home_team") or ""))
     away = normalize_nba_team(str(ev.get("away_team") or ""))
     kick = parse_kickoff_utc(ev.get("commence_time")) or datetime.now(timezone.utc)
-    sched = schedule_projection_kwargs(engine, home=home, away=away, kickoff=kick)
+    proj = engine.project(home, away, game_date=kick)
     cs = lines.get("consensus_spread_home")
     ct = lines.get("consensus_total")
-    proj = engine.project(
-        home,
-        away,
-        game_date=kick,
-        consensus_spread_home=float(cs) if cs is not None else None,
-        consensus_total=float(ct) if ct is not None else None,
-        **sched,
-    )
     ps = lines.get("pinnacle_spread_home")
     pt = lines.get("pinnacle_total")
     sd_m = float(proj["sd_margin"])
@@ -252,8 +242,6 @@ def _proj_row(
         "home_excluded": inj.get("home_excluded") or [],
         "away_excluded": inj.get("away_excluded") or [],
         "lines": lines,
-        "large_gap_warning": bool(proj.get("large_gap_warning")),
-        "market_gap_margin": proj.get("market_gap_margin"),
     }
     absences = (row["home_absences"] or []) + (row["away_absences"] or [])
     row["injury_news_after_line"] = injury_news_after_first_line(
@@ -295,6 +283,15 @@ def record_score_model_scan(
         save_paper_store(store)
         return store
     engine = engine or ensure_score_engine()
+    shadow_engine = None
+    try:
+        from sharp_scout.nba.score_model.shadow_v2_proj import shadow_v2_enabled
+        from sharp_scout.nba.score_model.state_v2 import ensure_shadow_score_engine
+
+        if shadow_v2_enabled():
+            shadow_engine = ensure_shadow_score_engine()
+    except Exception:  # noqa: BLE001
+        shadow_engine = None
     try:
         from sharp_scout.nba.score_model.injury_lag import load_store as load_injury_store
 
@@ -325,6 +322,31 @@ def record_score_model_scan(
             injury_store=injury_store,
             first_scan_at=first_scan_at,
         )
+        kick_dt = parse_kickoff_utc(kick)
+        snap["after_tip"] = bool(kick_dt and now > kick_dt)
+        from sharp_scout.nba.score_model.pace_v1 import pace_display_pick_from_snapshot
+
+        v1_pick = pace_display_pick_from_snapshot(snap, home=home, away=away, engine=engine)
+        if v1_pick:
+            from sharp_scout.nba.score_model.pace_v1 import recommended_unit_fraction
+
+            snap["pace_v1_pick"] = v1_pick.get("pick")
+            snap["pace_v1_gap"] = v1_pick.get("gap")
+            snap["pace_v1_recommended_units"] = recommended_unit_fraction(
+                snap, v1_pick, home=home, away=away, engine=engine
+            )
+        if shadow_engine is not None:
+            from sharp_scout.nba.score_model.shadow_v2_proj import shadow_v2_proj_row
+
+            snap["shadow_v2"] = shadow_v2_proj_row(
+                shadow_engine,
+                ev,
+                at=at,
+                lines=lines,
+                prior_status=prior_status,
+                injury_store=injury_store,
+                first_scan_at=first_scan_at,
+            )
         if existing is None:
             existing = {
                 "event_id": eid,
@@ -427,17 +449,11 @@ def _tip_snapshot(
     return base
 
 
-def freeze_and_close_lines(
-    store: dict[str, Any],
-    *,
-    now: datetime | None = None,
-    engine: V2Engine | None = None,
-) -> int:
-    """Lock pre-tip snapshot; re-check gap at tip (drop sub-threshold injury-only edges)."""
+def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None) -> int:
+    """Lock one tip-time snapshot (merged pre-tip lines + v1 pick; shadow v2 sidecar)."""
     now = now or datetime.now(timezone.utc)
-    engine = engine or ensure_score_engine()
     frozen = 0
-    from sharp_scout.nba.score_model.pace_qualify import pace_display_pick_from_snapshot
+    from sharp_scout.nba.score_model.official_pace import pace_display_pick_from_snapshot
 
     for g in store.get("games") or []:
         if _game_excluded(g) or g.get("frozen") or g.get("graded"):
@@ -448,21 +464,20 @@ def freeze_and_close_lines(
         scans = g.get("scans") or []
         if not scans:
             continue
-        last = _tip_snapshot(g, engine=engine, now=now)
-        if not last:
-            last = scans[-1]
-            merged = _merged_lines_from_scans(scans)
-            if merged:
-                last = dict(last)
-                last["lines"] = merged
+        pre_tip = [s for s in scans if not s.get("after_tip")] or scans
+        last = dict(pre_tip[-1])
+        merged = _merged_lines_from_scans(pre_tip)
+        if merged:
+            last["lines"] = merged
         home = str(g.get("home") or "")
         away = str(g.get("away") or "")
-        display_pick = pace_display_pick_from_snapshot(last, home=home, away=away, engine=engine)
+        display_pick = pace_display_pick_from_snapshot(last, home=home, away=away)
         g["frozen"] = {
             "frozen_at": now.isoformat(),
             "snapshot": last,
             "first_snapshot": scans[0],
             "pace_display_pick": display_pick,
+            "shadow_v2": last.get("shadow_v2"),
         }
         frozen += 1
     if frozen:
@@ -531,8 +546,7 @@ def grade_score_model_paper(
     store = store or load_paper_store()
     void_score_paper_outside_horizon(store)
     dedupe_paper_games_by_matchup(store)
-    engine = ensure_score_engine()
-    freeze_and_close_lines(store, engine=engine)
+    freeze_and_close_lines(store)
     if scores is None:
         try:
             scores = fetch_espn_nba_scores(lookback_days=14)

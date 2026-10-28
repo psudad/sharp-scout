@@ -13,7 +13,7 @@ def test_effective_rating_prior_heavy_early_season():
     engine.team_off["OKC"] = 90.0
     engine.team_games["OKC"] = 3
     eff = engine._effective_rating("OKC", "off")
-    w = min(1.0, (3 / 18) ** 0.55)
+    w = 3 / 18
     expected = w * 90.0 + (1 - w) * 120.0
     assert abs(eff - expected) < 0.01
 

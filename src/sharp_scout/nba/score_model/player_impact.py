@@ -16,8 +16,8 @@ MAX_MARGIN_IMPACT = 8.0
 MAX_OFF_PTS_GAME = 6.0
 MAX_DEF_PTS_GAME = 4.5
 MAX_PACE_PTS_GAME = 2.0
-OFF_BPM_SHARE = 0.52
-DEF_BPM_SHARE = 0.48
+OFF_BPM_SHARE = 0.62
+DEF_BPM_SHARE = 0.38
 MIN_GAMES_TRUST_CURRENT = 8
 ROTATION_MIN_MPG = 8.0
 
@@ -122,8 +122,7 @@ def bpm_proxy_per100(row: dict[str, Any]) -> float:
     reb48 = float(row.get("reb_per_min") or 0) * 48.0
     ast48 = float(row.get("ast_per_min") or 0) * 48.0
     usage = float(row.get("usage_share") or 0.20)
-    rim = max(0.0, reb48 - 6.0) * 0.06
-    return pts48 * 0.40 + reb48 * 0.14 + ast48 * 0.16 + usage * 12.0 + rim - 14.0
+    return pts48 * 0.45 + reb48 * 0.08 + ast48 * 0.18 + usage * 12.0 - 14.0
 
 
 def _scale_bpm_to_game_pts(bpm: float, row: dict[str, Any], *, pace: float = LEAGUE_PACE) -> float:
@@ -201,13 +200,11 @@ def resolve_player_rate_row(
     name: str,
     team: str,
     table: dict[str, dict[str, Any]],
-) -> dict[str, Any] | None:
-    """Rates file, then ESPN by-athlete stats — no synthetic minutes placeholder."""
+) -> dict[str, Any]:
+    """Rates file, then ESPN by-athlete / minutes fallback for rotation injuries."""
     hit = lookup_player_row(name, team, table)
     if hit is None:
         hit = build_supplemental_rate_row(name, team)
-    if hit is None:
-        return None
     return impact_rate_row(hit)
 
 

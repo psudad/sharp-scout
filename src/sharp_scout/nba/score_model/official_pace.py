@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 OFFICIAL_PATH = DATA_DIR / "paper" / "nba_pace_of_play_official.json"
 OFFICIAL_CSV_PATH = DATA_DIR / "paper" / "nba_pace_of_play_official.csv"
-MIN_AUTO_GAP = 3.0  # legacy default; sync uses pace_qualify.pace_min_gap_pts
+MIN_AUTO_GAP = 3.0
 
 
 def _empty() -> dict[str, Any]:
@@ -171,16 +171,44 @@ def injury_adj_pace_picks(
     home: str,
     away: str,
     min_gap: float = MIN_AUTO_GAP,
-    engine: Any | None = None,
 ) -> list[dict[str, Any]]:
-    from sharp_scout.nba.score_model.pace_qualify import injury_adj_pace_picks as _picks
-
-    gap = min_gap
-    if engine is not None and min_gap == MIN_AUTO_GAP:
-        from sharp_scout.nba.score_model.pace_qualify import pace_min_gap_pts
-
-        gap = pace_min_gap_pts(engine=engine, home=home, away=away)
-    return _picks(snap, home=home, away=away, min_gap=gap, engine=engine, require_raw_gap=True)
+    lines = snap.get("lines") or {}
+    cs, ct = lines.get("consensus_spread_home"), lines.get("consensus_total")
+    pm_i = float(
+        snap.get("injury_margin") if snap.get("injury_margin") is not None else snap.get("margin") or 0
+    )
+    pt_i = float(
+        snap.get("injury_total") if snap.get("injury_total") is not None else snap.get("total") or 0
+    )
+    picks: list[dict[str, Any]] = []
+    if cs is not None:
+        edge = pm_i + float(cs)
+        if abs(edge) >= min_gap:
+            side = "home" if edge > 0 else "away"
+            picks.append(
+                {
+                    "kind": "spread",
+                    "pick": _format_spread_pick(home, away, float(cs), edge),
+                    "side": side,
+                    "line": float(cs) if side == "home" else -float(cs),
+                    "gap": abs(edge),
+                }
+            )
+    if ct is not None:
+        edge_t = pt_i - float(ct)
+        if abs(edge_t) >= min_gap:
+            side = "over" if edge_t > 0 else "under"
+            label = "Over" if edge_t > 0 else "Under"
+            picks.append(
+                {
+                    "kind": "total",
+                    "pick": f"{away} @ {home}: {label} {float(ct):g}",
+                    "side": side,
+                    "line": float(ct),
+                    "gap": abs(edge_t),
+                }
+            )
+    return picks
 
 
 def pace_display_pick_from_snapshot(
@@ -188,12 +216,13 @@ def pace_display_pick_from_snapshot(
     *,
     home: str,
     away: str,
-    min_gap: float | None = None,
-    engine: Any | None = None,
+    min_gap: float = MIN_AUTO_GAP,
 ) -> dict[str, Any] | None:
-    from sharp_scout.nba.score_model.pace_qualify import pace_display_pick_from_snapshot as _pick
-
-    return _pick(snap, home=home, away=away, min_gap=min_gap, engine=engine)
+    """Primary injury-adj Pace card pick at tip (same rule as the public page)."""
+    picks = injury_adj_pace_picks(snap, home=home, away=away, min_gap=min_gap)
+    if not picks:
+        return None
+    return max(picks, key=lambda x: float(x.get("gap") or 0))
 
 
 def append_auto_graded_pace_play(
@@ -251,13 +280,10 @@ def _format_spread_pick(home: str, away: str, spread_home: float, margin_edge: f
 def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -> int:
     """Append auto-graded Pace plays after backfill: Oct 27+ ET, page-display picks only."""
     from sharp_scout.nba.score_model.paper import _game_excluded, _grade_ats_margin, _grade_ou
-    from sharp_scout.nba.score_model.pace_qualify import pace_min_gap_pts
-    from sharp_scout.nba.score_model.state import ensure_score_engine
 
     paper_store = paper_store or {}
     added = 0
     official = load_official_pace()
-    engine = ensure_score_engine()
     backfill_through = last_official_backfill_date_et(official)
     for g in paper_store.get("games") or []:
         if _game_excluded(g) or not g.get("graded"):
@@ -273,10 +299,9 @@ def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -
         home, away = str(g.get("home") or ""), str(g.get("away") or "")
         primary = frozen.get("pace_display_pick")
         if not primary:
-            primary = pace_display_pick_from_snapshot(snap, home=home, away=away, engine=engine)
+            primary = pace_display_pick_from_snapshot(snap, home=home, away=away)
         if not primary:
             continue
-        min_gap = pace_min_gap_pts(engine=engine, home=home, away=away)
         cs, ct = gr.get("close_spread_home"), gr.get("close_total")
         pm_i = float(
             snap.get("injury_margin") if snap.get("injury_margin") is not None else snap.get("margin") or 0
@@ -289,9 +314,9 @@ def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -
         home_score = (act_total + act_margin) // 2
         away_score = (act_total - act_margin) // 2
         if primary["kind"] == "spread" and cs is not None:
-            res = _grade_ats_margin(act_margin, cs, min_edge=min_gap, proj_margin=pm_i)
+            res = _grade_ats_margin(act_margin, cs, min_edge=MIN_AUTO_GAP, proj_margin=pm_i)
         elif primary["kind"] == "total" and ct is not None:
-            res = _grade_ou(act_total, ct, min_edge=min_gap, proj_total=pt_i)
+            res = _grade_ou(act_total, ct, min_edge=MIN_AUTO_GAP, proj_total=pt_i)
         else:
             continue
         if res not in ("win", "loss", "push"):

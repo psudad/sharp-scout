@@ -13,7 +13,6 @@ from sharp_scout.data.espn_nba import fetch_espn_nba_finals_by_event, fetch_game
 from sharp_scout.nba.franchises import is_nba_franchise, is_nba_regular_matchup
 from sharp_scout.nba.score_model.engine import V2Engine, V2Params, TeamPrior
 from sharp_scout.nba.score_model.teams_geo import travel_miles
-from sharp_scout.nba.slate_et import kickoff_date_et
 from sharp_scout.nba.teams import normalize_nba_team
 from sharp_scout.utils.kickoff import parse_kickoff_utc
 
@@ -53,11 +52,7 @@ def _rest_days(team: str, dt: datetime, last: dict[str, datetime]) -> int | None
     prev = last.get(team)
     if prev is None:
         return None
-    day_k = kickoff_date_et(dt)
-    day_p = kickoff_date_et(prev)
-    if day_k is None or day_p is None:
-        return max((dt.date() - prev.date()).days, 0)
-    return max((day_k - day_p).days, 0)
+    return max((dt.date() - prev.date()).days, 0)
 
 
 def _games_from_scores(
@@ -160,9 +155,6 @@ def engine_to_state(
         "margin_residuals": engine.margin_residuals[-400:],
         "total_residuals": engine.total_residuals[-400:],
         "_team_index": engine._team_index,
-        "team_last_played": dict(engine.team_last_played),
-        "team_last_venue": dict(engine.team_last_venue),
-        "team_recent_dates_et": {k: list(v) for k, v in engine.team_recent_dates_et.items()},
     }
 
 
@@ -176,12 +168,6 @@ def engine_from_state(raw: dict[str, Any]) -> tuple[V2Engine, set[str], dict[str
     engine.margin_residuals = [float(x) for x in raw.get("margin_residuals") or []]
     engine.total_residuals = [float(x) for x in raw.get("total_residuals") or []]
     engine._team_index = {k: int(v) for k, v in (raw.get("_team_index") or {}).items()}
-    engine.team_last_played = {str(k): str(v) for k, v in (raw.get("team_last_played") or {}).items()}
-    engine.team_last_venue = {str(k): str(v) for k, v in (raw.get("team_last_venue") or {}).items()}
-    engine.team_recent_dates_et = {
-        str(k): [str(x) for x in (v or [])]
-        for k, v in (raw.get("team_recent_dates_et") or {}).items()
-    }
 
     def _priors(blob: dict[str, Any]) -> dict[str, TeamPrior]:
         out: dict[str, TeamPrior] = {}
@@ -219,11 +205,6 @@ def _strip_non_franchise(engine: V2Engine) -> bool:
         if not is_nba_franchise(k):
             del engine.player_track[k]
             removed = True
-    for blob in (engine.team_last_played, engine.team_last_venue, engine.team_recent_dates_et):
-        for k in list(blob.keys()):
-            if not is_nba_franchise(k):
-                del blob[k]
-                removed = True
     return removed
 
 
@@ -294,16 +275,6 @@ def _replay_games(engine: V2Engine, games: list[dict[str, Any]], processed: set[
         team_last_site[away] = away
         team_dates.setdefault(home, []).append(dt)
         team_dates.setdefault(away, []).append(dt)
-        day_et = kickoff_date_et(dt)
-        if day_et is not None:
-            ds = day_et.isoformat()
-            for t in (home, away):
-                engine.team_last_played[t] = dt.isoformat()
-                engine.team_last_venue[t] = team_last_site[t]
-                recent = engine.team_recent_dates_et.setdefault(t, [])
-                if not recent or recent[-1] != ds:
-                    recent.append(ds)
-                engine.team_recent_dates_et[t] = recent[-6:]
     return max_day
 
 

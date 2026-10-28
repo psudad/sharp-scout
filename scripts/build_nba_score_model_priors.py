@@ -20,6 +20,7 @@ from sharp_scout.nba.score_model.roster_priors import ROSTER_PRIOR_WEIGHT, build
 from sharp_scout.nba.score_model.state import _games_from_scores, _replay_games, _season_label
 
 DEFAULT_OUT = DATA_DIR / "paper" / "nba_score_model_priors.json"
+DEFAULT_V2_OUT = DATA_DIR / "paper" / "nba_score_model_priors_v2.json"
 
 
 def main() -> int:
@@ -28,8 +29,18 @@ def main() -> int:
     parser.add_argument("--season-end", default="2026-06-30", help="ISO date (inclusive)")
     parser.add_argument("--for-season", default="2026-27", help="Label for priors target season")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument(
+        "--v2-no-current-season",
+        action="store_true",
+        help="Write look-ahead-free v2 priors (2024-25 finals only) to nba_score_model_priors_v2.json",
+    )
     args = parser.parse_args()
 
+    if args.v2_no_current_season:
+        args.season_start = "2024-10-01"
+        args.season_end = "2025-06-30"
+        args.for_season = "2026-27"
+        args.out = DEFAULT_V2_OUT
     since = datetime.fromisoformat(args.season_start).replace(tzinfo=timezone.utc)
     until = datetime.fromisoformat(args.season_end).replace(tzinfo=timezone.utc)
     scores = fetch_espn_nba_finals_by_event(since=since, until=until)

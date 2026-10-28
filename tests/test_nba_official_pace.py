@@ -14,7 +14,11 @@ from sharp_scout.nba.score_model.official_pace import (
 
 def test_official_pace_backfill_record():
     store = load_official_pace()
-    summary = summarize_official_pace(store)
+    backfill = {
+        **store,
+        "plays": [p for p in store.get("plays") or [] if p.get("source") == "official_backfill"],
+    }
+    summary = summarize_official_pace(backfill)
     assert summary["record"] == "9-2"
     assert summary["n_plays"] == 11
     assert abs(summary["units"] - 6.18) < 0.02
@@ -29,7 +33,8 @@ def test_sync_skips_games_already_on_official_card(tmp_path, monkeypatch):
     path = tmp_path / "official.json"
     monkeypatch.setattr(op, "OFFICIAL_PATH", path)
     monkeypatch.setattr(op, "OFFICIAL_CSV_PATH", tmp_path / "official.csv")
-    op.save_official_pace({"version": 1, "plays": list(store.get("plays") or [])}, path=path)
+    seed = [p for p in store.get("plays") or [] if p.get("source") == "official_backfill"]
+    op.save_official_pace({"version": 1, "plays": list(seed)}, path=path)
     paper = {
         "games": [
             {
@@ -57,7 +62,12 @@ def test_sync_skips_games_already_on_official_card(tmp_path, monkeypatch):
     }
     n = op.sync_auto_pace_from_paper_store(paper)
     assert n == 0
-    assert len(op.load_official_pace(path).get("plays") or []) == 11
+    backfill_n = sum(
+        1
+        for p in op.load_official_pace(path).get("plays") or []
+        if p.get("source") == "official_backfill"
+    )
+    assert backfill_n == 11
 
 
 def test_official_plays_have_espn_finals():
@@ -75,7 +85,11 @@ def test_backfill_through_oct_26_and_was_cha_final():
     assert was_cha["away"] == "WAS"
     assert was_cha["espn_away_score"] == 103
     assert was_cha["espn_home_score"] == 110
-    summary = summarize_official_pace(store)
+    backfill = {
+        **store,
+        "plays": [p for p in store["plays"] if p.get("source") == "official_backfill"],
+    }
+    summary = summarize_official_pace(backfill)
     assert summary["date_range_et"] == "2026-10-25 – 2026-10-26"
 
 
@@ -86,7 +100,8 @@ def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monk
     path = tmp_path / "official.json"
     monkeypatch.setattr(op, "OFFICIAL_PATH", path)
     monkeypatch.setattr(op, "OFFICIAL_CSV_PATH", tmp_path / "official.csv")
-    op.save_official_pace({"version": 1, "plays": list(store.get("plays") or [])}, path=path)
+    seed = [p for p in store.get("plays") or [] if p.get("source") == "official_backfill"]
+    op.save_official_pace({"version": 1, "plays": list(seed)}, path=path)
 
     paper = {
         "games": [

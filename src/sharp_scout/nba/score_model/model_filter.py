@@ -6,7 +6,6 @@ from typing import Any
 
 from sharp_scout.nba.score_model.engine import V2Engine
 from sharp_scout.nba.score_model.lines import snapshot_game_lines
-from sharp_scout.nba.score_model.schedule_ctx import schedule_projection_kwargs
 from sharp_scout.nba.score_model.state import ensure_score_engine
 from sharp_scout.nba.teams import normalize_nba_team
 from sharp_scout.utils.kickoff import parse_kickoff_utc
@@ -42,18 +41,8 @@ def model_view_for_event(
     home = normalize_nba_team(str(ev.get("home_team") or ""))
     away = normalize_nba_team(str(ev.get("away_team") or ""))
     kick = parse_kickoff_utc(ev.get("commence_time"))
+    proj = engine.project(home, away, game_date=kick)
     lines = snapshot_game_lines(ev)
-    sched = schedule_projection_kwargs(engine, home=home, away=away, kickoff=kick)
-    cs = lines.get("consensus_spread_home")
-    ct = lines.get("consensus_total")
-    proj = engine.project(
-        home,
-        away,
-        game_date=kick,
-        consensus_spread_home=float(cs) if cs is not None else None,
-        consensus_total=float(ct) if ct is not None else None,
-        **sched,
-    )
     cs = lines.get("consensus_spread_home")
     ct = lines.get("consensus_total")
     return {

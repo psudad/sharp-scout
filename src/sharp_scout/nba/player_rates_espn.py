@@ -193,7 +193,7 @@ def build_supplemental_rate_row(
     team: str,
     *,
     season: int = ESPN_NBA_SEASON_END_YEAR,
-) -> dict[str, Any] | None:  # noqa: RET503
+) -> dict[str, Any] | None:
     """Rate row for injured/traded players missing from roster-built file (ESPN by-athlete)."""
     norm = roster_norm_name(player_name)
     current = season_stats_by_name(season=season)
@@ -219,7 +219,22 @@ def build_supplemental_rate_row(
             "rate_source": "espn_by_athlete_supplement",
             "out_teammates": [],
         }
-    return None
+    return {
+        "player_name": player_name.strip(),
+        "team": team.upper(),
+        "minutes": 18.0,
+        "games_played": 0,
+        "current_season_gp": 0,
+        "played_this_season": False,
+        "pts_per_min": 0.28,
+        "reb_per_min": 0.09,
+        "ast_per_min": 0.08,
+        "fg3_per_min": 0.03,
+        "usage_share": 0.16,
+        "stats_season": season,
+        "rate_source": "minutes_fallback",
+        "out_teammates": [],
+    }
 
 
 def refresh_nba_player_rates_file(

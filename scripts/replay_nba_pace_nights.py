@@ -84,13 +84,16 @@ def replay_day(store: dict, day: date, *, official: dict, use_espn: bool = True)
         mech = v1_pick(v1_snap, home=home, away=away)
         v2_pick, v2_meta = evaluate_pace_pick_v2(v2_snap, home=home, away=away, engine=v2_engine)
         off = official.get((day.isoformat(), away, home))
+        def _g(x: float | None) -> float | None:
+            return round(float(x), 2) if x is not None else None
+
         row = {
             "matchup": f"{away} @ {home}",
             "official_pick": (off or {}).get("pick"),
             "mechanical_v1_pick": (mech or {}).get("pick"),
-            "mechanical_v1_gap": (mech or {}).get("gap"),
+            "mechanical_v1_gap": _g((mech or {}).get("gap")),
             "v2_shadow_pick": (v2_pick or {}).get("pick") if v2_pick else (v2_meta or {}).get("would_be_pick", {}).get("pick"),
-            "v2_shadow_gap": (v2_pick or {}).get("gap") if v2_pick else (v2_meta or {}).get("would_be_pick", {}).get("gap"),
+            "v2_shadow_gap": _g((v2_pick or {}).get("gap") if v2_pick else (v2_meta or {}).get("would_be_pick", {}).get("gap")),
             "v2_note": (v2_meta or {}).get("exclusion_note"),
         }
         gr = g.get("graded")
@@ -156,11 +159,10 @@ def main() -> int:
     ow = sum(1 for p in jason if p.get("result") == "win")
     ol = sum(1 for p in jason if p.get("result") == "loss")
     print("=== Record Oct 25–27 ===")
+    aw = sum(1 for p in all_off if p.get("result") == "win")
+    al = sum(1 for p in all_off if p.get("result") == "loss")
     print(f"  Official Jason card (manual backfill Oct 25–26): {ow}-{ol} ({len(jason)} plays)")
-    if len(all_off) > len(jason):
-        aw = sum(1 for p in all_off if p.get("result") == "win")
-        al = sum(1 for p in all_off if p.get("result") == "loss")
-        print(f"  Full official ledger incl. auto Oct 27+: {aw}-{al} ({len(all_off)} plays)")
+    print(f"  Full official ledger through Oct 27: {aw}-{al} ({len(all_off)} plays)")
     print(f"  v1 mechanical (3 pt, replay): {_rec(all_rows, 'mechanical_v1_pick', 'mech_result')}")
     print(f"  v2 shadow (replay): {_rec(all_rows, 'v2_shadow_pick', 'v2_result')}")
     clv_hits = [r["mech_clv"] for r in all_rows if r.get("mech_clv") is not None]

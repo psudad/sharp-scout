@@ -93,7 +93,57 @@ def test_backfill_through_oct_26_and_was_cha_final():
     assert summary["date_range_et"] == "2026-10-25 – 2026-10-26"
 
 
-def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monkeypatch):
+def test_official_record_through_oct27_published_spreads():
+    store = load_official_pace()
+    plays = [p for p in store.get("plays") or [] if p.get("date_et") <= "2026-10-27"]
+    summary = summarize_official_pace({**store, "plays": plays})
+    assert summary["record"] == "9-6"
+    assert summary["n_plays"] == 15
+    oct27 = [p for p in plays if p.get("date_et") == "2026-10-27"]
+    assert len(oct27) == 4
+    assert all(p.get("source") == "published_card" for p in oct27)
+    assert all(p.get("market") == "spread" for p in oct27)
+    assert sum(1 for p in oct27 if p.get("result") == "loss") == 4
+
+
+def test_sync_never_invents_official_from_display_pick_only(tmp_path, monkeypatch):
+    from sharp_scout.nba.score_model import official_pace as op
+
+    path = tmp_path / "official.json"
+    monkeypatch.setattr(op, "OFFICIAL_PATH", path)
+    monkeypatch.setattr(op, "OFFICIAL_CSV_PATH", tmp_path / "official.csv")
+    op.save_official_pace({"version": 1, "plays": []}, path=path)
+    paper = {
+        "games": [
+            {
+                "event_id": "x99",
+                "away": "DET",
+                "home": "NYK",
+                "kickoff": "2026-10-28T00:10:00+00:00",
+                "graded": {
+                    "actual_margin": 14,
+                    "actual_total": 208,
+                    "close_spread_home": -4.0,
+                    "close_total": 220.5,
+                },
+                "frozen": {
+                    "snapshot": {"margin": 1, "injury_margin": 5, "lines": {"consensus_spread_home": -4.0}},
+                    "pace_display_pick": {
+                        "kind": "spread",
+                        "pick": "DET +4",
+                        "side": "away",
+                        "line": 4.0,
+                        "gap": 4.5,
+                    },
+                },
+            }
+        ]
+    }
+    assert sync_auto_pace_from_paper_store(paper) == 0
+    assert len(op.load_official_pace(path).get("plays") or []) == 0
+
+
+def test_auto_sync_skips_backfill_dates_and_requires_published_pick(tmp_path, monkeypatch):
     from sharp_scout.nba.score_model import official_pace as op
 
     store = load_official_pace()
@@ -180,13 +230,12 @@ def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monk
                         "injury_total": 231,
                         "lines": {"consensus_spread_home": -1.5, "consensus_total": 225.0},
                     },
-                    "pace_display_pick": {
+                    "pace_published_pick": {
                         "kind": "total",
                         "pick": "PHI @ IND: Over 225",
                         "side": "over",
                         "line": 225.0,
                         "gap": 6.0,
-                        "raw_signed_gap": 6.0,
                     },
                 },
             },
@@ -196,7 +245,6 @@ def test_auto_sync_skips_backfill_dates_and_requires_display_pick(tmp_path, monk
     assert n == 1
     plays = op.load_official_pace(path).get("plays") or []
     assert len(plays) == 12
-    auto = [p for p in plays if p.get("source") == "auto_grade"]
-    assert len(auto) == 1
-    assert auto[-1]["date_et"] == "2026-10-28"
-    assert auto[-1]["market"] == "total"
+    pub = [p for p in plays if p.get("source") == "published_card" and p.get("date_et") == "2026-10-28"]
+    assert len(pub) == 1
+    assert pub[-1]["market"] == "total"

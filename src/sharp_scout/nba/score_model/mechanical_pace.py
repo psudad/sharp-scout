@@ -79,29 +79,72 @@ def log_mechanical_play(entry: dict[str, Any], *, store: dict[str, Any] | None =
     return True
 
 
-def upsert_mechanical_from_graded_game(
-    g: dict[str, Any],
-    *,
-    pick: dict[str, Any],
-    result: str,
-    clv: dict[str, Any] | None = None,
-    recommended_units: float = 1.0,
-    on_official_card: bool = False,
-) -> None:
-    day = kickoff_date_et(g.get("kickoff"))
-    entry = {
-        "id": f"mech-{g.get('event_id')}-{pick.get('kind')}",
-        "date_et": day.isoformat() if day else None,
-        "kickoff": g.get("kickoff"),
-        "away": g.get("away"),
-        "home": g.get("home"),
-        "market": pick.get("kind"),
-        "pick": pick.get("pick"),
-        "gap_pts": round(float(pick.get("gap") or 0), 2),
-        "result": result,
-        "recommended_units": recommended_units,
-        "on_official_card": on_official_card,
-    }
-    if clv:
-        entry.update(clv)
-    log_mechanical_play(entry)
+def sync_mechanical_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -> int:
+    """Log v1 mechanical qualifiers (model gap rules) — never the official Jason card."""
+    from sharp_scout.nba.score_model.official_pace import (
+        last_official_backfill_date_et,
+        load_official_pace,
+        pace_display_pick_from_snapshot,
+    )
+    from sharp_scout.nba.score_model.pace_v1 import recommended_unit_fraction
+    from sharp_scout.nba.score_model.paper import _game_excluded, _grade_ats_margin, _grade_ou
+    from sharp_scout.nba.score_model.state import ensure_score_engine
+
+    paper_store = paper_store or {}
+    added = 0
+    store = load_mechanical_pace()
+    engine = ensure_score_engine()
+    backfill_through = last_official_backfill_date_et(load_official_pace())
+    for g in paper_store.get("games") or []:
+        if _game_excluded(g) or not g.get("graded"):
+            continue
+        day = kickoff_date_et(g.get("kickoff"))
+        if day is None:
+            continue
+        if backfill_through is not None and day <= backfill_through:
+            continue
+        frozen = g.get("frozen") or {}
+        if frozen.get("pace_published_pick"):
+            continue
+        snap = frozen.get("snapshot") or (g.get("scans") or [{}])[-1]
+        home, away = str(g.get("home") or ""), str(g.get("away") or "")
+        pick = frozen.get("pace_display_pick") or pace_display_pick_from_snapshot(
+            snap, home=home, away=away, engine=engine
+        )
+        if not pick:
+            continue
+        gr = g["graded"]
+        cs, ct = gr.get("close_spread_home"), gr.get("close_total")
+        pm_i = float(
+            snap.get("injury_margin") if snap.get("injury_margin") is not None else snap.get("margin") or 0
+        )
+        pt_i = float(
+            snap.get("injury_total") if snap.get("injury_total") is not None else snap.get("total") or 0
+        )
+        act_total = int(gr["actual_total"])
+        act_margin = int(gr["actual_margin"])
+        if pick["kind"] == "spread" and cs is not None:
+            res = _grade_ats_margin(act_margin, cs, min_edge=0.0, proj_margin=pm_i)
+        elif pick["kind"] == "total" and ct is not None:
+            res = _grade_ou(act_total, ct, min_edge=0.0, proj_total=pt_i)
+        else:
+            continue
+        if res not in ("win", "loss", "push"):
+            continue
+        units = recommended_unit_fraction(snap, pick, home=home, away=away, engine=engine)
+        entry = {
+            "id": f"mech-{g.get('event_id')}-{pick.get('kind')}",
+            "date_et": day.isoformat(),
+            "kickoff": g.get("kickoff"),
+            "away": away,
+            "home": home,
+            "market": pick.get("kind"),
+            "pick": pick.get("pick"),
+            "gap_pts": round(float(pick.get("gap") or 0), 2),
+            "result": res,
+            "recommended_units": units,
+            "on_official_card": False,
+        }
+        if log_mechanical_play(entry, store=store):
+            added += 1
+    return added

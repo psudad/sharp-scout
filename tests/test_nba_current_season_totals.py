@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sharp_scout.nba.score_model.current_season_totals import (
+    LEAGUE_AVG_TOTAL,
     project_total_current_season,
     project_total_legacy_prior_blend,
 )
@@ -203,6 +204,112 @@ def test_shadow_sidecar_differs_from_legacy_when_priors_dominate():
         live_injury_total=float(live["total"]),
     )
     assert side["shadow_total"] != side["live_total"]
+
+
+def test_current_season_totals_differ_for_distinct_matchups():
+    """Regression: empty history must not emit the league-average 224.0 for every game."""
+    engine = V2Engine(params=V2Params(), stage=3)
+    base_dt = datetime(2026, 10, 20, tzinfo=timezone.utc)
+    samples = (
+        ("CLE", "ATL", 98.0, 108.0, 104.0),
+        ("SAC", "NOP", 102.0, 106.0, 99.0),
+        ("MEM", "POR", 95.0, 110.0, 101.0),
+    )
+    for i, (home, away, pace, h_ortg, a_ortg) in enumerate(samples):
+        engine.history.append(
+            _row(
+                home=home,
+                away=away,
+                dt=base_dt + timedelta(days=i),
+                pace=pace,
+                h_ortg=h_ortg,
+                a_ortg=a_ortg,
+            )
+        )
+        engine.history.append(
+            _row(
+                home=away,
+                away=home,
+                dt=base_dt + timedelta(days=i, hours=2),
+                pace=pace + 1.0,
+                h_ortg=a_ortg,
+                a_ortg=h_ortg,
+            )
+        )
+    kick = datetime(2026, 10, 29, 23, 0, tzinfo=timezone.utc)
+    t1 = project_total_current_season(engine, "ATL", "CLE", game_date=kick)
+    t2 = project_total_current_season(engine, "NOP", "SAC", game_date=kick)
+    t3 = project_total_current_season(engine, "POR", "MEM", game_date=kick)
+    assert all(r.get("ok") for r in (t1, t2, t3))
+    totals = [float(r["total"]) for r in (t1, t2, t3)]
+    assert len(set(totals)) >= 2
+    assert not all(abs(x - LEAGUE_AVG_TOTAL) < 0.01 for x in totals)
+
+
+def test_current_season_totals_skip_without_game_log():
+    engine = V2Engine(params=V2Params(), stage=3)
+    kick = datetime(2026, 10, 29, 23, 0, tzinfo=timezone.utc)
+    out = project_total_current_season(engine, "BOS", "NYK", game_date=kick)
+    assert out.get("ok") is False
+    assert out.get("total") is None
+    assert out.get("reason") == "no_season_game_log"
+
+
+def test_ensure_score_engine_rebuilds_history_when_games_already_processed(monkeypatch):
+    """Processed keys skip observe but projection history must still populate."""
+    from sharp_scout.nba.score_model import state as state_mod
+
+    processed = {"eid:abc"}
+    engine = V2Engine(params=V2Params(), stage=3)
+    games = [
+        {
+            "home": "CLE",
+            "away": "ATL",
+            "home_pts": 110.0,
+            "away_pts": 105.0,
+            "date": datetime(2026, 10, 24, 23, 0, tzinfo=timezone.utc),
+            "season": "2026-27",
+            "game_poss": 100.0,
+            "event_id": "abc",
+        },
+        {
+            "home": "ATL",
+            "away": "CLE",
+            "home_pts": 112.0,
+            "away_pts": 109.0,
+            "date": datetime(2026, 10, 26, 23, 0, tzinfo=timezone.utc),
+            "season": "2026-27",
+            "game_poss": 99.0,
+            "event_id": "abc2",
+        },
+        {
+            "home": "SAC",
+            "away": "NOP",
+            "home_pts": 115.0,
+            "away_pts": 108.0,
+            "date": datetime(2026, 10, 25, 23, 0, tzinfo=timezone.utc),
+            "season": "2026-27",
+            "game_poss": 101.0,
+            "event_id": "def",
+        },
+        {
+            "home": "NOP",
+            "away": "SAC",
+            "home_pts": 114.0,
+            "away_pts": 111.0,
+            "date": datetime(2026, 10, 27, 23, 0, tzinfo=timezone.utc),
+            "season": "2026-27",
+            "game_poss": 100.0,
+            "event_id": "def2",
+        },
+    ]
+    state_mod.rebuild_projection_history(engine, games)
+    assert len(engine.history) == 4
+    kick = datetime(2026, 10, 29, 23, 0, tzinfo=timezone.utc)
+    a = project_total_current_season(engine, "ATL", "CLE", game_date=kick)
+    b = project_total_current_season(engine, "NOP", "SAC", game_date=kick)
+    assert a.get("ok") and b.get("ok")
+    assert a["total"] != b["total"]
 
 
 def test_live_scan_and_page_survive_shadow_record_failure(tmp_path, monkeypatch):

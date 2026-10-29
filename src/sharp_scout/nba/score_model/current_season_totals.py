@@ -11,6 +11,8 @@ from sharp_scout.nba.score_model.engine import HistRow, LEAGUE_ORTG, LEAGUE_PACE
 from sharp_scout.nba.score_model.state import _season_label, _season_start_date
 
 MIN_SPLIT_GAMES = 2
+MIN_TEAM_GAMES = 2
+LEAGUE_AVG_TOTAL = round(2 * LEAGUE_PACE * LEAGUE_ORTG / 100.0, 2)  # 224.0 at defaults
 
 
 @dataclass
@@ -114,6 +116,32 @@ def project_total_current_season(
     hs = teams.get(home, TeamTotalSample())
     as_ = teams.get(away, TeamTotalSample())
 
+    if not hist:
+        return {
+            "ok": False,
+            "reason": "no_season_game_log",
+            "total": None,
+            "total_diagnostics": {
+                "season": _season_for_kickoff(game_date),
+                "league_games": 0,
+                "home": {"team": home, "games": hs.games},
+                "away": {"team": away, "games": as_.games},
+            },
+        }
+    if hs.games < MIN_TEAM_GAMES or as_.games < MIN_TEAM_GAMES:
+        return {
+            "ok": False,
+            "reason": "insufficient_team_games",
+            "total": None,
+            "total_diagnostics": {
+                "season": _season_for_kickoff(game_date),
+                "league_games": len(hist),
+                "min_team_games": MIN_TEAM_GAMES,
+                "home": {"team": home, "games": hs.games},
+                "away": {"team": away, "games": as_.games},
+            },
+        }
+
     h_pace = _pick_split(hs.pace_home, hs.pace_away, hs.pace, at_home=True, default=lg_pace)
     a_pace = _pick_split(as_.pace_home, as_.pace_away, as_.pace, at_home=False, default=lg_pace)
     exp_pace = (h_pace + a_pace) / 2.0
@@ -173,6 +201,7 @@ def project_total_current_season(
         "away_matchup_ortg": round(away_ortg, 2),
     }
     return {
+        "ok": True,
         "total": round(total, 2),
         "total_home_pts": round(home_pts, 2),
         "total_away_pts": round(away_pts, 2),

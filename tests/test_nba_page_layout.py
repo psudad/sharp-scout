@@ -162,7 +162,7 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     assert "Tonight's play" in html or "nba-day-heading" in html
     assert "DAL @ MIA: Under 240.75" in html
     assert "Projections &amp; detail" in html
-    assert "Leans, projections &amp; history" in html
+    assert "Watch List, projections &amp; history" in html
     assert "Player props (separate)" not in html
     assert "nba-rec-chip" in html
     assert "Export tables" not in html.split("Diagnostics")[0]
@@ -236,7 +236,7 @@ def test_render_nba_page_no_live_scan_message():
         analytics_head="",
     )
     assert NO_LIVE_SCAN_MESSAGE in html
-    assert "4:30 PM" in html
+    assert "3:00 PM" in html
     assert "no-cache" in html.lower()
 
 

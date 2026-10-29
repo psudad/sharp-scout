@@ -43,6 +43,10 @@ NBA_BOOK_LABELS = {
 # Matches score-model paper grading bucket ge_3 in summarize_score_paper (display only).
 SCORE_MODELING_MIN_EDGE_PT = 3.0
 PACE_LEAN_MIN_EDGE_PT = 1.5
+PACE_WATCH_LIST_LABEL = "Watch List"
+PACE_WATCH_LIST_NOTE = (
+    "Below the official ≥3 pt Pace bar — tracking only, not part of the official record."
+)
 
 
 def _esc(s: Any) -> str:
@@ -1018,9 +1022,9 @@ def _render_score_lean_card(item: dict[str, Any], *, reference: date | None = No
     return (
         html.replace("badge-play", "badge-lean", 1)
         .replace("sharp-play", "sharp-lean", 1)
-        .replace("Tonight's play", "Lean", 1)
-        .replace("Tomorrow's play", "Lean", 1)
-        .replace("Slate play", "Lean", 1)
+        .replace("Tonight's play", PACE_WATCH_LIST_LABEL, 1)
+        .replace("Tomorrow's play", PACE_WATCH_LIST_LABEL, 1)
+        .replace("Slate play", PACE_WATCH_LIST_LABEL, 1)
     )
 
 
@@ -1908,8 +1912,9 @@ def render_nba_page_html(
             pace_leans_html = _render_waiting_for_lines(next_scan)
         else:
             pace_leans_html = (
-                '<p class="empty nba-leans-empty">No Pace of Play leans today (need '
-                f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
+                f'<p class="empty nba-leans-empty">No Pace of Play {PACE_WATCH_LIST_LABEL.lower()} '
+                f"entries today (need {PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g} pt "
+                "gap vs consensus).</p>"
             )
 
     pace_shadow_html = _render_pace_v1_v2_shadow_table(score_rows) if live_scan else ""
@@ -2022,6 +2027,8 @@ def render_nba_page_html(
         model_details=model_details,
         pace_play_threshold=f"{SCORE_MODELING_MIN_EDGE_PT:g}",
         pace_lean_range=f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g}",
+        pace_watch_list_label=PACE_WATCH_LIST_LABEL,
+        pace_watch_list_note=PACE_WATCH_LIST_NOTE,
         pace_lines_note=pace_lines_note,
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
@@ -2377,10 +2384,11 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     </div>
     {pace_shadow_html}
     <details class="nba-section-details">
-      <summary>Leans, projections &amp; history</summary>
+      <summary>{pace_watch_list_label}, projections &amp; history</summary>
       <p class="nba-section-note">{pace_auto_secondary}</p>
       <div class="nba-leans-block">
-        <div class="section-label">Leans ({pace_lean_range} pt gap)</div>
+        <div class="section-label">{pace_watch_list_label} ({pace_lean_range} pt gap)</div>
+        <p class="nba-section-note">{pace_watch_list_note}</p>
         {pace_leans_html}
       </div>
       <div class="section-label">Today&apos;s slate projections</div>

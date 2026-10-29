@@ -11,8 +11,8 @@ from typing import Any
 from sharp_scout.config import DATA_DIR
 from sharp_scout.data.espn_nba import fetch_espn_nba_finals_by_event, fetch_game_possessions
 from sharp_scout.nba.franchises import is_nba_franchise, is_nba_regular_matchup
-from sharp_scout.nba.score_model.engine import V2Engine, V2Params, TeamPrior
-from sharp_scout.nba.score_model.teams_geo import travel_miles
+from sharp_scout.nba.score_model.engine import HistRow, V2Engine, V2Params, TeamPrior
+from sharp_scout.nba.score_model.teams_geo import ALTITUDE_TEAMS, travel_miles
 from sharp_scout.nba.teams import normalize_nba_team
 from sharp_scout.utils.kickoff import parse_kickoff_utc
 
@@ -278,6 +278,87 @@ def _replay_games(engine: V2Engine, games: list[dict[str, Any]], processed: set[
     return max_day
 
 
+def _history_row_from_game(
+    engine: V2Engine,
+    game: dict[str, Any],
+    *,
+    ctx: dict[str, Any],
+) -> HistRow:
+    """Build one HistRow without mutating team ratings (projection history only)."""
+    home, away = game["home"], game["away"]
+    hs, as_ = float(game["home_pts"]), float(game["away_pts"])
+    dt: datetime = game["date"]
+    poss = float(game.get("game_poss") or game.get("home_poss") or max((hs + as_) / 2.2, 90.0))
+    home_ortg = 100.0 * hs / poss
+    away_ortg = 100.0 * as_ / poss
+    days_w = 1.0
+    if engine.history:
+        days = max((dt - engine.history[-1].date).days, 1)
+        days_w = 0.5 ** (days / max(engine.params.recency_half_life_days, 1.0))
+    return HistRow(
+        date=dt,
+        home=home,
+        away=away,
+        home_ortg=home_ortg,
+        away_ortg=away_ortg,
+        pace=poss,
+        home_rest=float(ctx.get("home_rest") or 3),
+        away_rest=float(ctx.get("away_rest") or 3),
+        home_b2b=1.0 if ctx.get("home_b2b") else 0.0,
+        away_b2b=1.0 if ctx.get("away_b2b") else 0.0,
+        home_3in4=1.0 if ctx.get("home_3in4") else 0.0,
+        away_3in4=1.0 if ctx.get("away_3in4") else 0.0,
+        home_travel=float(ctx.get("home_travel_mi") or 0),
+        away_travel=float(ctx.get("away_travel_mi") or 0),
+        home_alt=1.0 if home in ALTITUDE_TEAMS else 0.0,
+        away_alt=1.0 if away in ALTITUDE_TEAMS else 0.0,
+        weight=days_w,
+    )
+
+
+def rebuild_projection_history(engine: V2Engine, games: list[dict[str, Any]]) -> None:
+    """Rebuild in-memory game log for current-season totals (not persisted in state file)."""
+    engine.history = []
+    last_played: dict[str, datetime] = {}
+    team_last_site: dict[str, str] = {}
+    team_dates: dict[str, list[datetime]] = {}
+    current_season: str | None = None
+
+    for g in sorted(games, key=lambda x: x["date"]):
+        season = g["season"]
+        if current_season and season != current_season:
+            engine.history = []
+        current_season = season
+
+        dt: datetime = g["date"]
+        home, away = g["home"], g["away"]
+        hr = _rest_days(home, dt, last_played)
+        ar = _rest_days(away, dt, last_played)
+        cutoff = dt - timedelta(days=4)
+        home_3in4 = sum(1 for d in team_dates.get(home, []) if cutoff < d < dt) >= 2
+        away_3in4 = sum(1 for d in team_dates.get(away, []) if cutoff < d < dt) >= 2
+        ctx = {
+            "home_rest": hr,
+            "away_rest": ar,
+            "home_b2b": hr is not None and hr <= 1,
+            "away_b2b": ar is not None and ar <= 1,
+            "home_3in4": home_3in4,
+            "away_3in4": away_3in4,
+            "home_travel_mi": travel_miles(team_last_site.get(home, home), home)
+            if team_last_site.get(home, home) != home
+            else 0.0,
+            "away_travel_mi": travel_miles(team_last_site.get(away, away), away)
+            if team_last_site.get(away, away) != away
+            else 0.0,
+        }
+        engine.history.append(_history_row_from_game(engine, g, ctx=ctx))
+        last_played[home] = last_played[away] = dt
+        team_last_site[home] = home
+        team_last_site[away] = away
+        team_dates.setdefault(home, []).append(dt)
+        team_dates.setdefault(away, []).append(dt)
+
+
 def load_state_file(path: Path | None = None) -> dict[str, Any] | None:
     p = path or STATE_PATH
     if not p.exists():
@@ -380,4 +461,13 @@ def ensure_score_engine(*, lookback_days: int | None = None) -> V2Engine:
             last_processed_date=last_processed_date,
         )
         logger.info("score engine: ingested %d new finals", len(processed) - before)
+
+    season_start = datetime.combine(_season_start_date(now), datetime.min.time(), tzinfo=timezone.utc)
+    try:
+        hist_scores = fetch_espn_nba_finals_by_event(since=season_start, until=now)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("score engine: season history fetch failed (%s)", exc)
+        hist_scores = scores
+    hist_games = _games_from_scores(hist_scores, poss_cache=poss_cache)
+    rebuild_projection_history(engine, hist_games)
     return engine

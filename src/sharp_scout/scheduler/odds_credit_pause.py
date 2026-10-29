@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 ET = ZoneInfo("America/New_York")
 
 # Scheduled heavy workflows resume on this ET calendar date (inclusive).
-ODDS_CREDIT_RESUME_ET_DATE = date(2026, 11, 5)
+ODDS_CREDIT_RESUME_ET_DATE = date(2026, 11, 6)
 
 # One-off NFL Sunday scan during the pause (Nov 1 2026, EST — DST ends earlier that day).
 NOV1_2026_ET_DATE = date(2026, 11, 1)
@@ -26,7 +26,7 @@ def et_calendar_date(when: datetime | None = None) -> date:
 
 
 def scheduled_odds_pause_active(when: datetime | None = None) -> bool:
-    """True while ET date is strictly before the Nov 5, 2026 billing reset."""
+    """True while ET date is strictly before the Nov 6, 2026 billing reset."""
     return et_calendar_date(when) < ODDS_CREDIT_RESUME_ET_DATE
 
 

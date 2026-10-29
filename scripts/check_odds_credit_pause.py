@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI gate for scheduled Odds API workflows during the Nov 5 2026 billing pause."""
+"""CI gate for scheduled Odds API workflows during the Nov 6 2026 billing pause."""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def main() -> None:
     else:
         print(
             f"Skipping scheduled {args.workflow}: Odds credit pause until "
-            f"2026-11-05 ET (cron={cron!r})"
+            f"2026-11-06 ET (cron={cron!r})"
         )
 
     out = os.environ.get("GITHUB_OUTPUT")

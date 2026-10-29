@@ -84,6 +84,8 @@ def main() -> int:
                 "lines": {
                     "consensus_spread_home": parsed.get("consensus_spread_home"),
                     "consensus_total": parsed.get("consensus_total"),
+                    "open_spread_home": parsed.get("open_spread_home"),
+                    "open_total": parsed.get("open_total"),
                 },
                 "provider": parsed.get("provider"),
                 "line_timing": parsed.get("line_timing"),

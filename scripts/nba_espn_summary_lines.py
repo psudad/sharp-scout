@@ -88,6 +88,16 @@ def lines_from_espn_summary(summary: dict[str, Any]) -> dict[str, Any]:
     if total is None and pick.get("overUnder") is not None:
         total = float(pick["overUnder"])
 
+    open_home_line = _parse_spread_line((ps.get("home") or {}).get("open", {}).get("line"))
+    if open_home_line is None:
+        away_open = _parse_spread_line((ps.get("away") or {}).get("open", {}).get("line"))
+        if away_open is not None:
+            open_home_line = -away_open
+    open_total_line = None
+    over_open = (tot_block.get("over") or {}).get("open") or {}
+    if over_open.get("line"):
+        open_total_line = _parse_spread_line(str(over_open.get("line")).replace("o", "").replace("O", ""))
+
     open_home = (ps.get("home") or {}).get("open") or {}
     open_total = (tot_block.get("over") or {}).get("open") or {}
     has_open = bool(open_home or open_total)
@@ -95,6 +105,8 @@ def lines_from_espn_summary(summary: dict[str, Any]) -> dict[str, Any]:
     return {
         "consensus_spread_home": spread_home,
         "consensus_total": total,
+        "open_spread_home": open_home_line,
+        "open_total": open_total_line,
         "provider": provider,
         "pickcenter_details": pick.get("details"),
         "line_timing": "close" if (ps.get("home") or {}).get("close") else ("open" if has_open else "unknown"),

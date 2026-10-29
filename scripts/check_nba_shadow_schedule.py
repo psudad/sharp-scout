@@ -11,7 +11,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from sharp_scout.nba.schedule_guard import scheduled_cron_run_allowed  # noqa: E402
+from sharp_scout.nba.schedule_guard import (  # noqa: E402
+    intended_et_date_from_cron,
+    is_backup_cron,
+    primary_scan_satisfied_for_et_date,
+    scheduled_cron_run_allowed,
+)
 from sharp_scout.scheduler.odds_credit_pause import scheduled_odds_pause_active  # noqa: E402
 
 
@@ -20,6 +25,16 @@ def main() -> None:
     cron = os.environ.get("GITHUB_SCHEDULE_CRON", "").strip()
     ok = bool(cron) and scheduled_cron_run_allowed(cron, now)
     skip_props = ok and scheduled_odds_pause_active(now)
+
+    if ok and is_backup_cron(cron):
+        et_day = intended_et_date_from_cron(cron, now)
+        if et_day is not None and primary_scan_satisfied_for_et_date(et_day):
+            print(
+                f"Skipping backup run: primary scan already recorded for {et_day.isoformat()} ET "
+                f"(cron={cron!r})"
+            )
+            ok = False
+
     if ok:
         msg = f"Allowed scheduled run: cron={cron!r} now={now.isoformat()}"
         if skip_props:
@@ -28,7 +43,7 @@ def main() -> None:
     else:
         print(
             f"Skipping scheduled run: cron={cron!r} now={now.isoformat()} "
-            "(wrong seasonal line, outside late window, or unknown cron)"
+            "(wrong seasonal line, outside late window, backup unnecessary, or unknown cron)"
         )
 
     out = os.environ.get("GITHUB_OUTPUT")

@@ -2,21 +2,34 @@ name: NBA Shadow (private)
 
 # Paper-trading scan — data/shadow/ plus docs/nba.html (testing page only; no football docs).
 #
-# Schedule (America/New_York): Mon–Fri 4:30 PM; Sat–Sun 11:00 AM.
+# Schedule (America/New_York):
+#   Mon–Fri primary 3:00 PM ET, backup 5:00 PM ET
+#   Sat–Sun primary 11:00 AM ET, backup 1:00 PM ET
 # Two UTC crons per slot (EDT vs EST); check_nba_shadow_schedule.py keeps the seasonal line only.
+# Backup runs skip when today's primary scan already succeeded (cheap fallback).
 
 on:
   schedule:
-    # Weekday 4:30 PM ET — 20:30 UTC (EDT) and 21:30 UTC (EST)
-    - cron: "30 20 * * 1-5"
-    - cron: "30 21 * * 1-5"
+    # Weekday 3:00 PM ET — 19:00 UTC (EDT) and 20:00 UTC (EST)
+    - cron: "0 19 * * 1-5"
+    - cron: "0 20 * * 1-5"
+    # Weekday 5:00 PM ET backup — 21:00 UTC (EDT) and 22:00 UTC (EST)
+    - cron: "0 21 * * 1-5"
+    - cron: "0 22 * * 1-5"
     # Weekend 11:00 AM ET — 15:00 UTC (EDT) and 16:00 UTC (EST)
     - cron: "0 15 * * 0,6"
     - cron: "0 16 * * 0,6"
+    # Weekend 1:00 PM ET backup — 17:00 UTC (EDT) and 18:00 UTC (EST)
+    - cron: "0 17 * * 0,6"
+    - cron: "0 18 * * 0,6"
   workflow_dispatch:
     inputs:
       demo:
         description: "Use offline demo fixture (no Odds API)"
+        type: boolean
+        default: false
+      game_lines_only:
+        description: "Game lines only (skip player props — saves ~48 Odds API credits)"
         type: boolean
         default: false
 
@@ -76,7 +89,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
           EXTRA=""
-          if [ "${{ steps.gate.outputs.skip_props }}" = "true" ]; then
+          if [ "${{ steps.gate.outputs.skip_props }}" = "true" ] || [ "${{ github.event.inputs.game_lines_only }}" = "true" ]; then
             EXTRA="--no-props"
           fi
           if [ "${{ github.event.inputs.demo }}" = "true" ]; then

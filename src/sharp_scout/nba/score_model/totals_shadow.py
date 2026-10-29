@@ -163,6 +163,16 @@ def compute_shadow_totals_sidecar(
 ) -> dict[str, Any]:
     """Pure shadow math — never mutates live projection fields."""
     cs = project_total_current_season(engine, home, away, game_date=kickoff)
+    if not cs.get("ok", True) or cs.get("total") is None:
+        return {
+            "shadow_total": None,
+            "shadow_injury_total": None,
+            "shadow_diagnostics": cs.get("total_diagnostics") or {},
+            "shadow_skip_reason": cs.get("reason"),
+            "shadow_total_pick": None,
+            "live_total": live_total,
+            "live_injury_total": live_injury_total,
+        }
     inj_t = _shadow_injury_total(
         cs,
         home_abs=home_absences or [],

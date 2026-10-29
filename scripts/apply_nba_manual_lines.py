@@ -6,7 +6,12 @@ from __future__ import annotations
 import argparse
 import sys
 
-from sharp_scout.nba.manual_lines import apply_manual_lines_to_paper_store, load_manual_lines
+from sharp_scout.nba.manual_lines import (
+    apply_manual_lines_to_paper_store,
+    load_manual_lines,
+    load_manual_lines_raw,
+    manual_lines_for_current_slate,
+)
 from sharp_scout.nba.score_model.paper import refresh_espn_slate_injury_scans
 from sharp_scout.nba.score_model.state import ensure_score_engine
 from sharp_scout.site.nba_page import build_nba_page
@@ -21,8 +26,14 @@ def main() -> int:
     args = parser.parse_args()
     setup_logging(args.log_level)
 
-    if not load_manual_lines():
+    raw = load_manual_lines_raw()
+    if not raw or not raw.get("games"):
         print("No manual lines file or empty games list.", file=sys.stderr)
+        return 1
+    if not manual_lines_for_current_slate(raw):
+        print("Manual lines slate_date_et does not match today's ET slate; not applying.", file=sys.stderr)
+        return 1
+    if not load_manual_lines():
         return 1
 
     n_inj = 0

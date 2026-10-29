@@ -97,13 +97,83 @@ def test_official_record_through_oct27_published_spreads():
     store = load_official_pace()
     plays = [p for p in store.get("plays") or [] if p.get("date_et") <= "2026-10-27"]
     summary = summarize_official_pace({**store, "plays": plays})
-    assert summary["record"] == "9-6"
-    assert summary["n_plays"] == 15
+    assert summary["record"] == "9-4"
+    assert summary["n_plays"] == 13
+    assert abs(summary["units"] - 4.18) < 0.02
     oct27 = [p for p in plays if p.get("date_et") == "2026-10-27"]
-    assert len(oct27) == 4
+    assert len(oct27) == 2
     assert all(p.get("source") == "published_card" for p in oct27)
     assert all(p.get("market") == "spread" for p in oct27)
-    assert sum(1 for p in oct27 if p.get("result") == "loss") == 4
+    assert sum(1 for p in oct27 if p.get("result") == "loss") == 2
+
+
+def test_official_pace_wrapper_accepts_engine_kw():
+    from sharp_scout.nba.score_model import official_pace as op
+    from sharp_scout.nba.score_model.state import ensure_score_engine
+
+    snap = {
+        "margin": 5.0,
+        "total": 230.0,
+        "injury_margin": 5.0,
+        "injury_total": 230.0,
+        "lines": {"consensus_spread_home": -3.0, "consensus_total": 220.0},
+    }
+    engine = ensure_score_engine()
+    pick = op.pace_display_pick_from_snapshot(snap, home="BOS", away="NYK", engine=engine)
+    assert pick is None or pick.get("kind") in ("spread", "total")
+
+
+def test_official_record_through_oct28():
+    store = load_official_pace()
+    summary = summarize_official_pace(store)
+    assert summary["record"] == "10-7"
+    assert summary["n_plays"] == 17
+    assert abs(summary["units"] - 2.09) < 0.02
+
+
+def test_mechanical_pace_sync_does_not_raise(tmp_path, monkeypatch):
+    from sharp_scout.nba.score_model import mechanical_pace as mp
+    from sharp_scout.nba.score_model import official_pace as op
+
+    monkeypatch.setattr(op, "OFFICIAL_PATH", tmp_path / "official.json")
+    monkeypatch.setattr(op, "OFFICIAL_CSV_PATH", tmp_path / "official.csv")
+    monkeypatch.setattr(mp, "MECHANICAL_PATH", tmp_path / "mech.json")
+    monkeypatch.setattr(mp, "MECHANICAL_CSV_PATH", tmp_path / "mech.csv")
+    op.save_official_pace({"version": 1, "plays": []})
+    mp.save_mechanical_pace({"version": 1, "plays": []})
+    paper = {
+        "games": [
+            {
+                "event_id": "g1",
+                "away": "DET",
+                "home": "NYK",
+                "kickoff": "2026-10-28T00:10:00+00:00",
+                "graded": {
+                    "actual_margin": 14,
+                    "actual_total": 208,
+                    "close_spread_home": -4.0,
+                    "close_total": 220.5,
+                },
+                "frozen": {
+                    "snapshot": {
+                        "margin": 1,
+                        "injury_margin": 5,
+                        "total": 225,
+                        "injury_total": 225,
+                        "lines": {"consensus_spread_home": -4.0, "consensus_total": 220.5},
+                    },
+                    "pace_display_pick": {
+                        "kind": "spread",
+                        "pick": "DET +4",
+                        "side": "away",
+                        "line": 4.0,
+                        "gap": 4.5,
+                    },
+                },
+            }
+        ]
+    }
+    assert mp.sync_mechanical_pace_from_paper_store(paper) == 1
 
 
 def test_sync_never_invents_official_from_display_pick_only(tmp_path, monkeypatch):

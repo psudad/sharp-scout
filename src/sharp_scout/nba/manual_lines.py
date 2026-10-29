@@ -126,6 +126,8 @@ def apply_manual_lines_to_paper_store(
         g["scans"].append(snap)
         if len(g["scans"]) > 40:
             g["scans"] = g["scans"][-40:]
+        if v1_pick:
+            g["pace_published_pick"] = v1_pick
         updated += 1
 
     if updated:

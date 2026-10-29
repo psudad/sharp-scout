@@ -36,9 +36,23 @@ def load_official_pace(path: Path | None = None) -> dict[str, Any]:
     return raw
 
 
+def dedupe_official_plays(store: dict[str, Any]) -> int:
+    """Drop duplicate slot rows (keep last); returns number removed."""
+    rows = store.get("plays") or []
+    seen: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for p in rows:
+        seen[_play_dedupe_key(p)] = p
+    deduped = list(seen.values())
+    removed = len(rows) - len(deduped)
+    if removed:
+        store["plays"] = deduped
+    return removed
+
+
 def save_official_pace(store: dict[str, Any], path: Path | None = None) -> None:
     p = path or OFFICIAL_PATH
     p.parent.mkdir(parents=True, exist_ok=True)
+    dedupe_official_plays(store)
     store["updated_at"] = datetime.now(timezone.utc).isoformat()
     p.write_text(json.dumps(store, indent=2, default=str) + "\n")
     _write_csv(store, OFFICIAL_CSV_PATH)
@@ -183,11 +197,12 @@ def pace_display_pick_from_snapshot(
     home: str,
     away: str,
     min_gap: float = MIN_AUTO_GAP,
+    engine: Any | None = None,
 ) -> dict[str, Any] | None:
     """Primary Pace card pick at tip (raw gap gate + injury adj; same as public page)."""
     from sharp_scout.nba.score_model.pace_v1 import pace_display_pick_from_snapshot as v1_display
 
-    return v1_display(snap, home=home, away=away, min_gap=min_gap)
+    return v1_display(snap, home=home, away=away, min_gap=min_gap, engine=engine)
 
 
 def append_auto_graded_pace_play(

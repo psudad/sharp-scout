@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ from sharp_scout.nba.slate_et import (
 from sharp_scout.utils.slate import ET, parse_commence
 
 DOCS_DIR = ROOT / "docs"
+logger = logging.getLogger(__name__)
 
 NO_LIVE_SCAN_MESSAGE = (
     "No live NBA scan yet. Test plays will appear after the next scan."
@@ -1914,9 +1916,17 @@ def render_nba_page_html(
     pace_projections_html = (
         _render_pace_projections_table(score_rows, reference=slate_ref) if live_scan else ""
     )
-    pace_totals_shadow_html = (
-        _render_current_season_totals_tracking(score_rows, reference=slate_ref) if live_scan else ""
-    )
+    pace_totals_shadow_html = ""
+    if live_scan:
+        try:
+            pace_totals_shadow_html = _render_current_season_totals_tracking(
+                score_rows, reference=slate_ref
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("NBA totals shadow page section skipped: %s", exc)
+            pace_totals_shadow_html = (
+                '<p class="empty">Current-season totals tracking temporarily unavailable.</p>'
+            )
     from sharp_scout.nba.manual_lines import manual_lines_page_note
 
     pace_lines_note = manual_lines_page_note()

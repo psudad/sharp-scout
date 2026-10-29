@@ -238,6 +238,42 @@ def maybe_record_totals_shadow_for_scan(
     )
 
 
+def safe_maybe_record_totals_shadow_for_scan(
+    engine: Any,
+    *,
+    event_id: str | None,
+    home: str,
+    away: str,
+    kickoff: Any,
+    scan_at: str,
+    snap: dict[str, Any],
+    store: dict[str, Any] | None = None,
+) -> None:
+    """Never raises — live scans must continue if shadow logging fails."""
+    try:
+        maybe_record_totals_shadow_for_scan(
+            engine,
+            event_id=event_id,
+            home=home,
+            away=away,
+            kickoff=kickoff,
+            scan_at=scan_at,
+            snap=snap,
+            store=store,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NBA totals shadow record skipped: %s", exc)
+
+
+def safe_grade_shadow_from_paper_store(paper_store: dict[str, Any] | None = None) -> int:
+    """Never raises — settlement must not depend on shadow grading."""
+    try:
+        return grade_shadow_from_paper_store(paper_store)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NBA totals shadow grade skipped: %s", exc)
+        return 0
+
+
 def record_shadow_scan(
     *,
     event_id: str | None,

@@ -375,9 +375,9 @@ def record_score_model_scan(
         if v1_pick and not snap.get("after_tip"):
             existing["pace_published_pick"] = v1_pick
         if kick_dt and not snap.get("after_tip"):
-            from sharp_scout.nba.score_model.totals_shadow import maybe_record_totals_shadow_for_scan
+            from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
 
-            maybe_record_totals_shadow_for_scan(
+            safe_maybe_record_totals_shadow_for_scan(
                 engine,
                 event_id=eid,
                 home=home,
@@ -876,9 +876,9 @@ def refresh_espn_slate_injury_scans(
             existing["scans"] = existing["scans"][-40:]
         kick_dt = parse_kickoff_utc(kick)
         if kick_dt:
-            from sharp_scout.nba.score_model.totals_shadow import maybe_record_totals_shadow_for_scan
+            from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
 
-            maybe_record_totals_shadow_for_scan(
+            safe_maybe_record_totals_shadow_for_scan(
                 engine,
                 event_id=eid,
                 home=home,

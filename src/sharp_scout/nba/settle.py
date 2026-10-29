@@ -213,13 +213,16 @@ def settle_nba_ledger(
             from sharp_scout.nba.score_model.mechanical_pace import sync_mechanical_pace_from_paper_store
 
             sync_mechanical_pace_from_paper_store(paper)
-            from sharp_scout.nba.score_model.totals_shadow import grade_shadow_from_paper_store
-
-            n_shadow = grade_shadow_from_paper_store(paper)
-            if n_shadow:
-                logger.info("NBA totals shadow: graded %d play(s)", n_shadow)
         except Exception as sync_exc:  # noqa: BLE001
             logger.warning("NBA official pace sync skipped: %s", sync_exc)
+        try:
+            from sharp_scout.nba.score_model.totals_shadow import safe_grade_shadow_from_paper_store
+
+            n_shadow = safe_grade_shadow_from_paper_store(paper)
+            if n_shadow:
+                logger.info("NBA totals shadow: graded %d play(s)", n_shadow)
+        except Exception as shadow_exc:  # noqa: BLE001
+            logger.warning("NBA totals shadow grade skipped: %s", shadow_exc)
         grade_injury_lag_entries()
         ensure_score_engine(lookback_days=100)
     except Exception as exc:  # noqa: BLE001

@@ -203,3 +203,79 @@ def test_shadow_sidecar_differs_from_legacy_when_priors_dominate():
         live_injury_total=float(live["total"]),
     )
     assert side["shadow_total"] != side["live_total"]
+
+
+def test_live_scan_and_page_survive_shadow_record_failure(tmp_path, monkeypatch):
+    from sharp_scout.nba.score_model.paper import (
+        PAPER_PATH,
+        load_paper_store,
+        record_score_model_scan,
+    )
+    from sharp_scout.nba.score_model import totals_shadow as ts
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("shadow recorder failed")
+
+    monkeypatch.setattr(ts, "maybe_record_totals_shadow_for_scan", _boom)
+
+    store_path = tmp_path / "paper.json"
+    monkeypatch.setattr("sharp_scout.nba.score_model.paper.PAPER_PATH", store_path)
+
+    engine = V2Engine(params=V2Params(), stage=3)
+    fake_pick = {"pick": "Over 220.5", "gap": 4.0, "kind": "total", "side": "over", "line": 220.5}
+    monkeypatch.setattr(
+        "sharp_scout.nba.score_model.pace_v1.pace_display_pick_from_snapshot",
+        lambda *a, **k: fake_pick,
+    )
+
+    ev = {
+        "event_id": "0123456789abcdef0123456789ab",
+        "home_team": "BOS",
+        "away_team": "NYK",
+        "commence_time": datetime(2026, 10, 26, 23, 0, tzinfo=timezone.utc),
+        "bookmakers": {
+            "draftkings": {
+                "key": "draftkings",
+                "markets": {
+                    "totals": [
+                        {"side": "over", "point": 220.5, "price": -110},
+                        {"side": "under", "point": 220.5, "price": -110},
+                    ],
+                },
+            },
+        },
+    }
+    now = datetime(2026, 10, 26, 12, 0, tzinfo=timezone.utc)
+    record_score_model_scan(
+        [ev], engine=engine, store=load_paper_store(store_path), now=now, horizon_hours=36.0
+    )
+    store = load_paper_store(store_path)
+    assert len(store["games"]) == 1
+    assert store["games"][0]["scans"]
+    assert store["games"][0].get("pace_published_pick") == fake_pick
+
+    monkeypatch.setattr(
+        "sharp_scout.site.nba_page._render_current_season_totals_tracking",
+        _boom,
+    )
+    from sharp_scout.site.nba_page import render_nba_page_html
+
+    html = render_nba_page_html(
+        signals_payload={"ok": True, "demo": False, "signals": [], "possible_signals": []},
+        ledger={"plays": []},
+        report={"in_window": True, "paper_window": {}},
+        analytics_head="",
+        score_model_rows=[
+            {
+                "home": "BOS",
+                "away": "NYK",
+                "kickoff": ev["commence_time"],
+                "margin": 1.0,
+                "total": 225.0,
+                "injury_total": 225.0,
+                "lines": {"consensus_total": 220.5},
+            }
+        ],
+    )
+    assert "Current-season totals tracking temporarily unavailable" in html
+    assert "Pace of Play model" in html

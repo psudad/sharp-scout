@@ -48,6 +48,7 @@ from sharp_scout.utils.slate import ET  # noqa: E402
 
 REPORT_MD = ROOT / "docs" / "nba_pace_original_backtest.md"
 CSV_OUT = ROOT / "data" / "paper" / "nba_pace_original_backtest.csv"
+ESPN_LINES_PATH = DATA_DIR / "paper" / "nba_espn_pregame_lines.json"
 
 
 def _tip_src(g: dict[str, Any]) -> dict[str, Any]:
@@ -86,24 +87,134 @@ def _grade_pick(pick: dict[str, Any], gr: dict[str, Any], snap: dict[str, Any], 
     return None
 
 
-def _collect_games(store: dict[str, Any], *, through: date) -> tuple[list[dict[str, Any]], dict[str, int]]:
-    stats = {"graded": 0, "no_lines": 0, "included": 0}
-    out: list[dict[str, Any]] = []
+def _load_espn_lines(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"games": []}
+    return json.loads(path.read_text())
+
+
+def _paper_by_slot(store: dict[str, Any]) -> dict[tuple[str, str, str], dict[str, Any]]:
+    out: dict[tuple[str, str, str], dict[str, Any]] = {}
     for g in store.get("games") or []:
-        gr = g.get("graded")
-        if not gr:
+        day = kickoff_date_et(g.get("kickoff"))
+        if day is None:
             continue
-        stats["graded"] += 1
+        out[(str(g.get("away")), str(g.get("home")), day.isoformat())] = g
+    return out
+
+
+def _collect_unified_games(
+    store: dict[str, Any],
+    espn_doc: dict[str, Any],
+    *,
+    through: date,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Unified backtest rows: repo pre-tip lines + ESPN pickcenter backfill."""
+    stats = {
+        "espn_season_finals": 0,
+        "with_repo_lines": 0,
+        "with_espn_lines": 0,
+        "included": 0,
+        "still_missing": 0,
+    }
+    paper_slots = _paper_by_slot(store)
+    seen_slots: set[tuple[str, str, str]] = set()
+    out: list[dict[str, Any]] = []
+
+    for g in store.get("games") or []:
+        if not g.get("graded"):
+            continue
         day = kickoff_date_et(g.get("kickoff"))
         if day is None or day > through:
             continue
+        slot = (str(g.get("away")), str(g.get("home")), day.isoformat())
         tip = _tip_src(g)
-        lines = tip.get("lines") or {}
+        lines = dict(tip.get("lines") or {})
         if lines.get("consensus_spread_home") is None and lines.get("consensus_total") is None:
-            stats["no_lines"] += 1
             continue
+        stats["with_repo_lines"] += 1
         stats["included"] += 1
-        out.append(g)
+        seen_slots.add(slot)
+        out.append(
+            {
+                "away": slot[0],
+                "home": slot[1],
+                "kickoff": g.get("kickoff"),
+                "event_id": g.get("event_id"),
+                "line_source": "repo_odds_api",
+                "lines": lines,
+                "injury": {
+                    "home_absences": tip.get("home_absences") or [],
+                    "away_absences": tip.get("away_absences") or [],
+                },
+                "graded": g["graded"],
+            }
+        )
+
+    for eg in espn_doc.get("games") or []:
+        day_s = str(eg.get("date_et") or "")
+        try:
+            day = date.fromisoformat(day_s)
+        except ValueError:
+            continue
+        if day > through:
+            continue
+        slot = (str(eg.get("away")), str(eg.get("home")), day_s)
+        if slot in seen_slots:
+            continue
+        lines = dict(eg.get("lines") or {})
+        if lines.get("consensus_spread_home") is None and lines.get("consensus_total") is None:
+            continue
+        hs = int(eg["espn_home_score"])
+        as_ = int(eg["espn_away_score"])
+        cs = lines.get("consensus_spread_home")
+        ct = lines.get("consensus_total")
+        paper_g = paper_slots.get(slot)
+        inj = {"home_absences": [], "away_absences": []}
+        if paper_g:
+            tip = _tip_src(paper_g)
+            inj = {
+                "home_absences": tip.get("home_absences") or [],
+                "away_absences": tip.get("away_absences") or [],
+            }
+        stats["with_espn_lines"] += 1
+        stats["included"] += 1
+        seen_slots.add(slot)
+        out.append(
+            {
+                "away": slot[0],
+                "home": slot[1],
+                "kickoff": eg.get("kickoff"),
+                "event_id": eg.get("espn_event_id"),
+                "line_source": "espn_pickcenter",
+                "lines": lines,
+                "injury": inj,
+                "graded": {
+                    "actual_margin": hs - as_,
+                    "actual_total": hs + as_,
+                    "close_spread_home": cs,
+                    "close_total": ct,
+                },
+            }
+        )
+
+    season_start = _season_start_date(datetime.combine(through, time(12, 0), tzinfo=ET))
+    since = datetime.combine(season_start, datetime.min.time(), tzinfo=timezone.utc)
+    until = datetime.combine(through, datetime.min.time(), tzinfo=ET).astimezone(timezone.utc)
+    try:
+        scores = fetch_espn_nba_finals_by_event(since=since, until=until)
+    except Exception:
+        scores = []
+    for s in scores:
+        kick = parse_kickoff_utc(s.get("kickoff"))
+        day = kickoff_date_et(kick)
+        if day is None or day > through:
+            continue
+        stats["espn_season_finals"] += 1
+        slot = (str(s["away_team"]), str(s["home_team"]), day.isoformat())
+        if slot not in seen_slots:
+            stats["still_missing"] += 1
+
     out.sort(key=lambda x: parse_kickoff_utc(x.get("kickoff")) or datetime.min.replace(tzinfo=timezone.utc))
     return out, stats
 
@@ -125,7 +236,9 @@ def _espn_games_through(through: date) -> int:
     return n
 
 
-def _summarize_plays(plays: list[dict[str, Any]], model: str) -> dict[str, Any]:
+def _summarize_plays(
+    plays: list[dict[str, Any]], model: str, *, line_source: str | None = None
+) -> dict[str, Any]:
     overall = Record()
     spreads = Record()
     totals = Record()
@@ -134,6 +247,8 @@ def _summarize_plays(plays: list[dict[str, Any]], model: str) -> dict[str, Any]:
     under = Record()
     for r in plays:
         if r.get("model") != model:
+            continue
+        if line_source is not None and r.get("line_source") != line_source:
             continue
         res = r.get("result")
         overall.add(res)
@@ -167,12 +282,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--through", default="2026-10-28", help="Last ET slate date (inclusive)")
     parser.add_argument("--paper", type=Path, default=DATA_DIR / "paper" / "nba_score_model.json")
-    parser.add_argument("--no-espn", action="store_true", help="Skip ESPN season game count")
+    parser.add_argument("--espn-lines", type=Path, default=ESPN_LINES_PATH)
+    parser.add_argument("--no-espn", action="store_true", help="Skip walk-forward ESPN game logs in engine")
     args = parser.parse_args()
     through = date.fromisoformat(args.through)
     store = load_paper_store(args.paper)
-    games, line_stats = _collect_games(store, through=through)
-    espn_n = 0 if args.no_espn else _espn_games_through(through)
+    espn_doc = _load_espn_lines(args.espn_lines)
+    games, line_stats = _collect_unified_games(store, espn_doc, through=through)
 
     per_play: list[dict[str, Any]] = []
     engine_by_day: dict[date, Any] = {}
@@ -188,9 +304,9 @@ def main() -> int:
         home, away = str(g["home"]), str(g["away"])
         day = kickoff_date_et(g.get("kickoff"))
         gr = g["graded"]
-        tip = _tip_src(g)
-        lines = dict(tip.get("lines") or {})
-        inj = {"home_absences": tip.get("home_absences") or [], "away_absences": tip.get("away_absences") or []}
+        lines = dict(g.get("lines") or {})
+        inj = g.get("injury") or {"home_absences": [], "away_absences": []}
+        line_source = str(g.get("line_source") or "unknown")
         engine = _engine_for(day)
         snap = recompute_v1_tip_snapshot(
             engine, home=home, away=away, kickoff=g.get("kickoff"), lines=lines, injury_snap=inj
@@ -229,6 +345,7 @@ def main() -> int:
                         "home": home,
                         "kickoff": g.get("kickoff"),
                         "event_id": g.get("event_id"),
+                        "line_source": line_source,
                         "market": pick.get("kind"),
                         "pick": pick.get("pick"),
                         "side": pick.get("side"),
@@ -290,13 +407,12 @@ def main() -> int:
         + ("yes" if _played("current_inj", "LAL", "LAC", "Over") else "no"),
     ]
 
-    missing = (espn_n - line_stats["included"]) if espn_n else line_stats["graded"] - line_stats["included"]
-
     md: list[str] = [
         "# NBA Pace of Play — original vs live backtest (research)",
         "",
-        "Isolated replay using walk-forward stage-3 engine, pre-tip lines from `data/paper/nba_score_model.json` scans, "
-        "and ESPN finals for grading. **Does not change live model code or picks.**",
+        "Isolated replay using walk-forward stage-3 engine. Lines: **repo** pre-tip Odds API scans "
+        "(`data/paper/nba_score_model.json`) plus **ESPN pickcenter backfill** "
+        "(`data/paper/nba_espn_pregame_lines.json`, backtest-only). **Does not change live model code or picks.**",
         "",
         "## Commits identified (git)",
         "",
@@ -310,12 +426,19 @@ def main() -> int:
         "",
         "## Sample coverage",
         "",
-        f"- ESPN completed regular-season games through **{through.isoformat()}** (ET): **{espn_n}**",
-        f"- Paper store graded rows in window: **{line_stats['graded']}**",
-        f"- With pre-tip consensus spread and/or total in repo: **{line_stats['included']}**",
-        f"- **Excluded (no stored pre-tip lines):** **{max(0, missing)}**",
+        f"- ESPN completed regular-season games through **{through.isoformat()}** (ET): **{line_stats['espn_season_finals']}**",
+        f"- Games with **repo** pre-tip lines: **{line_stats['with_repo_lines']}**",
+        f"- Games with **ESPN pickcenter** backfill only: **{line_stats['with_espn_lines']}**",
+        f"- **Total with any line (target 68):** **{line_stats['included']}**",
+        f"- Still missing lines: **{line_stats['still_missing']}**",
         "",
-        "## Head-to-head summary (same {n} graded games with lines; multiple plays per game when both markets qualify)".format(
+        "### ESPN line caveat",
+        "",
+        "ESPN summary `pickcenter` numbers are usually **closing** (sometimes **open**) DraftKings/ESPN BET lines — "
+        "**not** T−1h pre-tip consensus. For ESPN-only games, the same line is used for model gap **and** grading "
+        "(optimistic bias vs real CLV). Repo lines are pre-tip merged scans where available.",
+        "",
+        "## Head-to-head summary (all {n} games; spread + total may both qualify)".format(
             n=line_stats["included"]
         ),
         "",
@@ -331,6 +454,27 @@ def main() -> int:
     }
     for key in labels:
         md.append(_md_table_row(labels[key], summaries[key]["overall"]))
+
+    md.extend(["", "### By line source (original raw + current injury-adj)", ""])
+    md.append("| Line source | Games | Original raw W–L / u | Current inj-adj W–L / u |")
+    md.append("|-------------|-------|----------------------|-------------------------|")
+    for src, label in (("repo_odds_api", "Repo pre-tip"), ("espn_pickcenter", "ESPN pickcenter")):
+        gcount = line_stats["with_repo_lines"] if src == "repo_odds_api" else line_stats["with_espn_lines"]
+        o = _summarize_plays(per_play, "original", line_source=src)["overall"]
+        c = _summarize_plays(per_play, "current_inj", line_source=src)["overall"]
+        md.append(f"| {label} | {gcount} | {o.wl()} / {o.units:+.2f}u | {c.wl()} / {c.units:+.2f}u |")
+
+    md.extend(["", "#### Subset detail — original raw", ""])
+    for src, label in (("repo_odds_api", "Repo"), ("espn_pickcenter", "ESPN")):
+        s = _summarize_plays(per_play, "original", line_source=src)
+        md.append(
+            f"- **{label}:** spreads **{s['spreads'].wl()}** ({s['spreads'].units:+.2f}u), "
+            f"totals **{s['totals'].wl()}** ({s['totals'].units:+.2f}u); "
+            f"Over **{s['over'].wl()}** / Under **{s['under'].wl()}**; "
+            f"gaps 3–5 **{s['buckets'].get('3-5', Record()).wl()}**, "
+            f"5–8 **{s['buckets'].get('5-8', Record()).wl()}**, "
+            f"8+ **{s['buckets'].get('8+', Record()).wl()}**"
+        )
 
     md.extend(["", "### By market (plays taken)", ""])
     md.append("| Model | Spreads W–L | Spreads u | Totals W–L | Totals u |")
@@ -402,15 +546,25 @@ def main() -> int:
             "",
         ]
     )
+    o_repo = _summarize_plays(per_play, "original", line_source="repo_odds_api")["overall"]
+    o_espn = _summarize_plays(per_play, "original", line_source="espn_pickcenter")["overall"]
     verdict = (
-        f"Across **{line_stats['included']}** games with stored pre-tip lines, mechanical original raw rules produce **{o.wl()} ({o.units:+.2f}u)** on **{o.n}** plays — "
-        "**below break-even** and not separable from noise (Wilson CI spans 52.4%). "
-        f"Oct **26** replays the published **5–1**; Oct **25** is **{_night_record('original', '2026-10-25')}** vs official **4–1** because DET was a manual sub-3 pt play. "
-        f"Current injury-adj + raw gate: **{c.wl()} ({c.units:+.2f}u)** on the same universe — slightly fewer losses but still losing. "
-        "The opening hot streak does **not** hold on the full available 2026-27 sample; it reads as **variance on ~10–12 plays**, not proof the untouched early engine had lasting skill."
+        f"With **{line_stats['included']}** games lined (**{line_stats['with_repo_lines']}** repo + **{line_stats['with_espn_lines']}** ESPN), "
+        f"original raw is **{o.wl()} ({o.units:+.2f}u)** on **{o.n}** plays — still **below break-even**; Wilson 95% CI spans 52.4%. "
+        f"Repo-only subset: **{o_repo.wl()} ({o_repo.units:+.2f}u)**; ESPN pickcenter subset: **{o_espn.wl()} ({o_espn.units:+.2f}u)** "
+        "(ESPN lines are likely closes, so this subset is useful for coverage but not for claiming CLV). "
+        f"Current injury-adj + raw gate: **{c.wl()} ({c.units:+.2f}u)**. "
+        "The Oct 25–26 hot start does **not** extend to the full 68-game sample — treat early wins as **small-n variance**, not validated skill."
     )
     md.append(verdict)
-    md.extend(["", f"Per-play CSV: `{CSV_OUT.relative_to(ROOT)}`", ""])
+    md.extend(
+        [
+            "",
+            f"ESPN backfill file: `{ESPN_LINES_PATH.relative_to(ROOT)}`",
+            f"Per-play CSV: `{CSV_OUT.relative_to(ROOT)}`",
+            "",
+        ]
+    )
 
     REPORT_MD.parent.mkdir(parents=True, exist_ok=True)
     REPORT_MD.write_text("\n".join(md) + "\n")

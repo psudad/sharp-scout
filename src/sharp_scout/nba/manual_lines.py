@@ -188,6 +188,21 @@ def apply_manual_lines_to_paper_store(
             g["scans"] = g["scans"][-40:]
         if v1_pick:
             g["pace_published_pick"] = v1_pick
+        from sharp_scout.utils.kickoff import parse_kickoff_utc
+
+        kick_dt = parse_kickoff_utc(g.get("kickoff"))
+        if kick_dt:
+            from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
+
+            safe_maybe_record_totals_shadow_for_scan(
+                engine,
+                event_id=str(g.get("event_id") or ""),
+                home=home,
+                away=away,
+                kickoff=kick_dt,
+                scan_at=at,
+                snap=snap,
+            )
         updated += 1
 
     if updated:

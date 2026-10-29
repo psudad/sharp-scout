@@ -374,6 +374,18 @@ def record_score_model_scan(
             existing["scans"] = existing["scans"][-40:]
         if v1_pick and not snap.get("after_tip"):
             existing["pace_published_pick"] = v1_pick
+        if kick_dt and not snap.get("after_tip"):
+            from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
+
+            safe_maybe_record_totals_shadow_for_scan(
+                engine,
+                event_id=eid,
+                home=home,
+                away=away,
+                kickoff=kick_dt,
+                scan_at=at,
+                snap=snap,
+            )
 
     save_paper_store(store)
     return store
@@ -862,6 +874,19 @@ def refresh_espn_slate_injury_scans(
         existing["scans"].append(snap)
         if len(existing["scans"]) > 40:
             existing["scans"] = existing["scans"][-40:]
+        kick_dt = parse_kickoff_utc(kick)
+        if kick_dt:
+            from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
+
+            safe_maybe_record_totals_shadow_for_scan(
+                engine,
+                event_id=eid,
+                home=home,
+                away=away,
+                kickoff=kick_dt,
+                scan_at=at,
+                snap=snap,
+            )
         updated += 1
 
     if updated:

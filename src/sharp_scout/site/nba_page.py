@@ -1123,6 +1123,18 @@ def _pace_projection_row_html(r: dict[str, Any]) -> str:
         market_s = f"{spr if spr is not None else '—'} / {tot if tot is not None else '—'}"
         gap_s = f"{spr_gap or '—'} / {tot_gap or '—'}"
     tip = format_kickoff_day_time_et(r.get("kickoff"))
+    diag = r.get("total_diagnostics") or {}
+    sample_s = "—"
+    if diag:
+        h = diag.get("home") or {}
+        a = diag.get("away") or {}
+        sample_s = (
+            f"{h.get('team', home)} {h.get('games', 0)}g "
+            f"(p {h.get('pace', '—')} ortg {h.get('ortg', '—')}) · "
+            f"{a.get('team', away)} {a.get('games', 0)}g "
+            f"(p {a.get('pace', '—')} ortg {a.get('ortg', '—')}) · "
+            f"exp pace {diag.get('expected_pace', '—')}"
+        )
     return (
         "<tr>"
         f'<td data-label="Tip">{_esc(tip)}</td>'
@@ -1133,6 +1145,7 @@ def _pace_projection_row_html(r: dict[str, Any]) -> str:
         f'<td data-label="Total (raw / inj)">{total:.1f} / {inj_t:.1f}</td>'
         f'<td data-label="Market">{_esc(market_s)}</td>'
         f'<td data-label="Gap spr / tot">{_esc(gap_s)}</td>'
+        f'<td data-label="2026-27 total sample">{_esc(sample_s)}</td>'
         f'<td data-label="Injuries">{_injury_list_summary(r)}</td>'
         "</tr>"
     )
@@ -1150,7 +1163,7 @@ def _render_pace_projections_table(
     table_head = (
         "<thead><tr><th>Tip</th><th>Game</th><th>Raw score</th><th>Injury-adj score</th>"
         "<th>Margin (raw / inj)</th><th>Total (raw / inj)</th><th>Market spr/tot</th>"
-        "<th>Gap spr / tot</th><th>Injuries</th></tr></thead>"
+        "<th>Gap spr / tot</th><th>2026-27 total sample</th><th>Injuries</th></tr></thead>"
     )
     chunks: list[str] = []
     for _day, label, group in groups:

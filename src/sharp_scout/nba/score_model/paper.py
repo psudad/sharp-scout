@@ -239,6 +239,7 @@ def _proj_row(
         "away_pts": round(proj["away_pts"], 2),
         "margin": round(proj["margin"], 2),
         "total": round(proj["total"], 2),
+        "total_diagnostics": proj.get("total_diagnostics") or {},
         "injury_home_pts": inj.get("injury_home_pts"),
         "injury_away_pts": inj.get("injury_away_pts"),
         "injury_margin": inj.get("injury_margin"),
@@ -774,6 +775,7 @@ def slate_projections_for_page(store: dict[str, Any] | None = None) -> list[dict
                 "first_scan_at": first_at,
                 "lines": last.get("lines"),
                 "frozen": bool(g.get("frozen")),
+                "total_diagnostics": last.get("total_diagnostics") or {},
             }
         )
     return dedupe_slate_projection_rows(out)

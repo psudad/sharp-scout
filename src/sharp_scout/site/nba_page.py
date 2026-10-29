@@ -1123,18 +1123,6 @@ def _pace_projection_row_html(r: dict[str, Any]) -> str:
         market_s = f"{spr if spr is not None else '—'} / {tot if tot is not None else '—'}"
         gap_s = f"{spr_gap or '—'} / {tot_gap or '—'}"
     tip = format_kickoff_day_time_et(r.get("kickoff"))
-    diag = r.get("total_diagnostics") or {}
-    sample_s = "—"
-    if diag:
-        h = diag.get("home") or {}
-        a = diag.get("away") or {}
-        sample_s = (
-            f"{h.get('team', home)} {h.get('games', 0)}g "
-            f"(p {h.get('pace', '—')} ortg {h.get('ortg', '—')}) · "
-            f"{a.get('team', away)} {a.get('games', 0)}g "
-            f"(p {a.get('pace', '—')} ortg {a.get('ortg', '—')}) · "
-            f"exp pace {diag.get('expected_pace', '—')}"
-        )
     return (
         "<tr>"
         f'<td data-label="Tip">{_esc(tip)}</td>'
@@ -1145,7 +1133,6 @@ def _pace_projection_row_html(r: dict[str, Any]) -> str:
         f'<td data-label="Total (raw / inj)">{total:.1f} / {inj_t:.1f}</td>'
         f'<td data-label="Market">{_esc(market_s)}</td>'
         f'<td data-label="Gap spr / tot">{_esc(gap_s)}</td>'
-        f'<td data-label="2026-27 total sample">{_esc(sample_s)}</td>'
         f'<td data-label="Injuries">{_injury_list_summary(r)}</td>'
         "</tr>"
     )
@@ -1163,7 +1150,7 @@ def _render_pace_projections_table(
     table_head = (
         "<thead><tr><th>Tip</th><th>Game</th><th>Raw score</th><th>Injury-adj score</th>"
         "<th>Margin (raw / inj)</th><th>Total (raw / inj)</th><th>Market spr/tot</th>"
-        "<th>Gap spr / tot</th><th>2026-27 total sample</th><th>Injuries</th></tr></thead>"
+        "<th>Gap spr / tot</th><th>Injuries</th></tr></thead>"
     )
     chunks: list[str] = []
     for _day, label, group in groups:
@@ -1173,6 +1160,112 @@ def _render_pace_projections_table(
             f'<div class="table-wrap"><table class="export-table plays-table nba-table nba-proj-table">'
             f"{table_head}<tbody>{body}</tbody></table></div>"
         )
+    return "\n".join(chunks)
+
+
+def _render_current_season_totals_tracking(
+    score_rows: list[dict[str, Any]],
+    *,
+    reference: date | None = None,
+) -> str:
+    """Shadow-only 2026-27 totals experiment — not official Pace plays."""
+    from sharp_scout.nba.score_model.totals_shadow import (
+        load_totals_shadow,
+        summarize_totals_shadow,
+    )
+    from sharp_scout.nba.slate_et import kickoff_date_et
+    from sharp_scout.nba.teams import normalize_nba_team
+
+    summary = summarize_totals_shadow()
+    record_line = (
+        f"Shadow record (2026-27 totals method, tracking only): "
+        f"{summary.get('record', '—')} · {summary.get('win_pct', '—')} · "
+        f"{float(summary.get('units') or 0):+.2f}u · n={summary.get('n_plays', 0)}"
+    )
+    store = load_totals_shadow()
+    pending_by_slot = {
+        (
+            str(p.get("date_et") or ""),
+            normalize_nba_team(str(p.get("away") or "")),
+            normalize_nba_team(str(p.get("home") or "")),
+        ): p
+        for p in store.get("pending") or []
+    }
+    if not score_rows:
+        return (
+            '<div class="nba-shadow-totals-note">'
+            "<p><strong>Current-season totals (tracking only, not plays)</strong> — "
+            "2026-27 game-log totals run in shadow alongside live projections. "
+            "Nothing here is an official Pace play.</p>"
+            f"<p>{_esc(record_line)}</p>"
+            '<p class="empty">No open slate rows for sample-size diagnostics.</p></div>'
+        )
+    ref = reference or _slate_reference_date()
+    groups = group_items_by_kickoff_et_date(score_rows, kickoff_key="kickoff", reference=ref)
+    table_head = (
+        "<thead><tr><th>Tip</th><th>Game</th><th>Live total (raw / inj)</th>"
+        "<th>Shadow total (raw / inj)</th><th>2026-27 sample</th>"
+        "<th>Shadow gap (not a play)</th></tr></thead>"
+    )
+    chunks: list[str] = [
+        '<div class="nba-shadow-totals-note">',
+        "<p><strong>Current-season totals (tracking only, not plays)</strong> — "
+        "Experimental totals from 2026-27 games only (no prior-season blend). "
+        "Official Pace card still uses legacy totals above.</p>",
+        f"<p>{_esc(record_line)}</p>",
+    ]
+    for _day, label, group in groups:
+        body_rows: list[str] = []
+        for r in group:
+            home, away = str(r.get("home") or ""), str(r.get("away") or "")
+            day = kickoff_date_et(r.get("kickoff"))
+            slot = (
+                day.isoformat() if day else "",
+                normalize_nba_team(away),
+                normalize_nba_team(home),
+            )
+            pending = pending_by_slot.get(slot) or {}
+            live_t = float(r.get("total") or 0)
+            live_inj = float(
+                r.get("injury_total") if r.get("injury_total") is not None else live_t
+            )
+            sh_t = pending.get("shadow_total")
+            sh_inj = pending.get("shadow_injury_total")
+            sh_raw_s = f"{float(sh_t):.1f}" if sh_t is not None else "—"
+            sh_inj_s = f"{float(sh_inj):.1f}" if sh_inj is not None else "—"
+            diag = pending.get("shadow_diagnostics") or {}
+            sample_s = "—"
+            if diag:
+                h = diag.get("home") or {}
+                a = diag.get("away") or {}
+                sample_s = (
+                    f"{h.get('team', home)} {h.get('games', 0)}g · "
+                    f"{a.get('team', away)} {a.get('games', 0)}g · "
+                    f"pace {diag.get('expected_pace', '—')}"
+                )
+            would = pending.get("would_play") or {}
+            gap_s = "—"
+            if would:
+                gap_s = f"{would.get('pick', '—')} ({float(would.get('gap') or 0):+.1f} pt shadow)"
+            tip = format_kickoff_day_time_et(r.get("kickoff"))
+            game = f"{away} @ {home}"
+            body_rows.append(
+                "<tr>"
+                f'<td data-label="Tip">{_esc(tip)}</td>'
+                f'<td data-label="Game">{_esc(game)}</td>'
+                f'<td data-label="Live total">{live_t:.1f} / {live_inj:.1f}</td>'
+                f'<td data-label="Shadow total">{sh_raw_s} / {sh_inj_s}</td>'
+                f'<td data-label="Sample">{_esc(sample_s)}</td>'
+                f'<td data-label="Shadow gap">{_esc(gap_s)}</td>'
+                "</tr>"
+            )
+        body = "".join(body_rows)
+        chunks.append(
+            f'<h4 class="nba-h4">{_esc(label)}</h4>'
+            f'<div class="table-wrap"><table class="export-table plays-table nba-table nba-proj-table">'
+            f"{table_head}<tbody>{body}</tbody></table></div>"
+        )
+    chunks.append("</div>")
     return "\n".join(chunks)
 
 
@@ -1821,6 +1914,9 @@ def render_nba_page_html(
     pace_projections_html = (
         _render_pace_projections_table(score_rows, reference=slate_ref) if live_scan else ""
     )
+    pace_totals_shadow_html = (
+        _render_current_season_totals_tracking(score_rows, reference=slate_ref) if live_scan else ""
+    )
     from sharp_scout.nba.manual_lines import manual_lines_page_note
 
     pace_lines_note = manual_lines_page_note()
@@ -1911,6 +2007,7 @@ def render_nba_page_html(
         pace_shadow_html=pace_shadow_html,
         pace_leans_html=pace_leans_html,
         pace_projections_html=pace_projections_html,
+        pace_totals_shadow_html=pace_totals_shadow_html,
         pace_history_html=pace_history_html,
         model_details=model_details,
         pace_play_threshold=f"{SCORE_MODELING_MIN_EDGE_PT:g}",
@@ -2278,6 +2375,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
       </div>
       <div class="section-label">Today&apos;s slate projections</div>
       {pace_projections_html}
+      {pace_totals_shadow_html}
       <div class="section-label">Results tracking</div>
       {pace_history_html}
     </details>

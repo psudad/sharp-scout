@@ -48,7 +48,7 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ledger.json data/props_ledger.json data/ncaaf_ledger.json data/shadow/ data/paper/nba_score_model.json data/paper/nba_pace_of_play_official.json data/paper/nba_pace_of_play_official.csv reports/ncaaf_totals_high_ev.md docs/
+          git add data/ledger.json data/props_ledger.json data/ncaaf_ledger.json data/shadow/ data/paper/nba_score_model.json data/paper/nba_pace_of_play_official.json data/paper/nba_pace_of_play_official.csv data/paper/nba_totals_current_season_shadow.json data/paper/nba_totals_current_season_shadow.csv reports/ncaaf_totals_high_ev.md docs/
           if git diff --staged --quiet; then
             echo "No settlement/site changes"
           else

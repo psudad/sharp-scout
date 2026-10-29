@@ -11,11 +11,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from sharp_scout.nba.score_model.current_season_totals import project_total_legacy_prior_blend
+from sharp_scout.nba.score_model.current_season_totals import (
+    project_total_current_season,
+    project_total_legacy_prior_blend,
+)
+from sharp_scout.nba.score_model.injury_adjust import apply_team_adjustments
 from sharp_scout.nba.score_model.pace_v1 import injury_adj_pace_picks, pace_min_gap_pts
 from sharp_scout.nba.score_model.paper import _merged_lines_from_scans, load_paper_store
 from sharp_scout.nba.score_model.replay_engine import engine_at_start_of_et_date
-from sharp_scout.nba.score_model.replay_project import recompute_v1_tip_snapshot
+from sharp_scout.utils.kickoff import parse_kickoff_utc
 from sharp_scout.nba.slate_et import kickoff_date_et
 
 OUT = ROOT / "docs" / "nba_totals_current_season.md"
@@ -52,9 +56,10 @@ def main() -> int:
     lines_out: list[str] = [
         "# NBA Pace totals — current-season method backtest",
         "",
-        "Compares **legacy** totals (prior-blended pace/ORTG from committed priors + history) "
-        "vs **2026-27 only** game-log averages (this PR). Injury-adj totals use the same "
-        "ESPN absence rules; spreads unchanged.",
+        "Compares **legacy live** totals (official Pace path) vs **2026-27-only shadow** "
+        "game-log averages. Shadow runs in `data/paper/nba_totals_current_season_shadow.*` "
+        "and does not change live plays. Injury-adj totals use the same ESPN absence rules; "
+        "spreads unchanged.",
         "",
         f"Min gap for play flag: **{MIN_GAP} pt** raw + injury rules (v1).",
         "",
@@ -82,21 +87,24 @@ def main() -> int:
                 continue
             act = int(gr["actual_total"])
             kick = g.get("kickoff")
-            old_t = project_total_legacy_prior_blend(engine, home, away, game_date=kick)
-            new_snap = recompute_v1_tip_snapshot(
-                engine,
-                home=home,
-                away=away,
-                kickoff=kick,
-                lines=snap.get("lines") or {},
-                injury_snap={
-                    "home_absences": snap.get("home_absences") or [],
-                    "away_absences": snap.get("away_absences") or [],
-                },
+            kick_dt = parse_kickoff_utc(kick)
+            old_t = project_total_legacy_prior_blend(engine, home, away, game_date=kick_dt)
+            cs = project_total_current_season(engine, home, away, game_date=kick_dt)
+            new_t = float(cs["total"])
+            _h, _a, _m, new_inj = apply_team_adjustments(
+                float(cs["total_home_pts"]),
+                float(cs["total_away_pts"]),
+                home_abs=snap.get("home_absences") or [],
+                away_abs=snap.get("away_absences") or [],
             )
-            new_t = float(new_snap["total"])
+            new_snap = {
+                "margin": float(snap.get("margin") or 0),
+                "total": new_t,
+                "injury_margin": float(snap.get("injury_margin") or 0),
+                "injury_total": new_inj,
+                "lines": snap.get("lines") or {},
+            }
             old_inj = float(snap.get("injury_total") or old_t)
-            new_inj = float(new_snap["injury_total"])
             old_gap = old_inj - float(ct)
             new_gap = new_inj - float(ct)
             pick = _qualify_total(new_snap, home=home, away=away)

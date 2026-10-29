@@ -1,14 +1,17 @@
-"""Current-season-only totals (no prior-year blend on total path)."""
+"""Current-season-only totals shadow (live totals stay legacy)."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from sharp_scout.nba.score_model.current_season_totals import (
     project_total_current_season,
     project_total_legacy_prior_blend,
 )
 from sharp_scout.nba.score_model.engine import HistRow, V2Engine, V2Params, TeamPrior
+from sharp_scout.nba.score_model.paper import _proj_row
+from sharp_scout.nba.score_model.pace_v1 import pace_display_pick_from_snapshot
 
 
 def _row(*, home: str, away: str, dt: datetime, pace: float, h_ortg: float, a_ortg: float) -> HistRow:
@@ -38,7 +41,6 @@ def test_current_season_total_ignores_prior_season_history():
     engine.season_priors["DEN"] = TeamPrior(off=118.0, def_=110.0, pace=102.0)
     engine.season_priors["NOP"] = TeamPrior(off=115.0, def_=112.0, pace=101.0)
     engine.team_games.update({"DEN": 3, "NOP": 3})
-    # Old-season high-scoring games (would inflate legacy total via priors + observe)
     engine.history.append(
         _row(
             home="DEN",
@@ -49,7 +51,6 @@ def test_current_season_total_ignores_prior_season_history():
             a_ortg=118.0,
         )
     )
-    # Current season: slow games only
     engine.history.append(
         _row(
             home="DEN",
@@ -78,11 +79,27 @@ def test_current_season_total_ignores_prior_season_history():
     assert cs["total_diagnostics"]["away"]["games"] >= 1
 
 
-def test_engine_project_total_uses_current_season_path():
+def _proj_row_live_fields(row: dict[str, Any]) -> dict[str, Any]:
+    keys = (
+        "home_pts",
+        "away_pts",
+        "margin",
+        "total",
+        "injury_home_pts",
+        "injury_away_pts",
+        "injury_margin",
+        "injury_total",
+        "home_absences",
+        "away_absences",
+    )
+    return {k: row.get(k) for k in keys}
+
+
+def test_live_projection_unchanged_when_shadow_module_runs(monkeypatch, tmp_path):
     engine = V2Engine(params=V2Params(), stage=3)
     engine.season_priors["MIN"] = TeamPrior(off=120.0, def_=108.0, pace=102.0)
     engine.season_priors["GSW"] = TeamPrior(off=118.0, def_=110.0, pace=100.0)
-    engine.team_games.update({"MIN": 2, "GSW": 2})
+    engine.team_games.update({"MIN": 4, "GSW": 4})
     engine.history.append(
         _row(
             home="MIN",
@@ -93,8 +110,96 @@ def test_engine_project_total_uses_current_season_path():
             a_ortg=107.0,
         )
     )
+    kick = datetime(2026, 10, 29, 23, 0, tzinfo=timezone.utc)
+    ev = {
+        "event_id": "test-shadow-parity",
+        "home_team": "MIN",
+        "away_team": "GSW",
+        "commence_time": kick,
+    }
+    lines = {"consensus_total": 227.5, "consensus_spread_home": -3.5}
+    at = datetime(2026, 10, 29, 18, 0, tzinfo=timezone.utc).isoformat()
+
+    baseline = _proj_row_live_fields(
+        _proj_row(engine, ev, at=at, lines=lines, prior_status={}, injury_store={})
+    )
+    pick_base = pace_display_pick_from_snapshot(
+        _proj_row(engine, ev, at=at, lines=lines, prior_status={}, injury_store={}),
+        home="MIN",
+        away="GSW",
+        engine=engine,
+    )
+
+    import sharp_scout.nba.score_model.totals_shadow as ts
+
+    shadow_path = tmp_path / "shadow.json"
+    monkeypatch.setattr(ts, "SHADOW_PATH", shadow_path)
+    monkeypatch.setattr(ts, "SHADOW_CSV_PATH", tmp_path / "shadow.csv")
+
+    from sharp_scout.nba.score_model import totals_shadow as ts_mod
+
+    ts_mod.maybe_record_totals_shadow_for_scan(
+        engine,
+        event_id="test-shadow-parity",
+        home="MIN",
+        away="GSW",
+        kickoff=kick,
+        scan_at=at,
+        snap=_proj_row(engine, ev, at=at, lines=lines, prior_status={}, injury_store={}),
+    )
+    with_shadow = _proj_row_live_fields(
+        _proj_row(engine, ev, at=at, lines=lines, prior_status={}, injury_store={})
+    )
+    pick_shadow = pace_display_pick_from_snapshot(
+        _proj_row(engine, ev, at=at, lines=lines, prior_status={}, injury_store={}),
+        home="MIN",
+        away="GSW",
+        engine=engine,
+    )
+
+    assert baseline == with_shadow
+    assert (pick_base or {}).get("pick") == (pick_shadow or {}).get("pick")
+    assert shadow_path.exists()
+    store = ts.load_totals_shadow(shadow_path)
+    assert store.get("pending")
+
+
+def test_shadow_sidecar_differs_from_legacy_when_priors_dominate():
+    engine = V2Engine(params=V2Params(), stage=3)
+    engine.season_priors["DEN"] = TeamPrior(off=118.0, def_=110.0, pace=102.0)
+    engine.season_priors["NOP"] = TeamPrior(off=115.0, def_=112.0, pace=101.0)
+    engine.team_games.update({"DEN": 3, "NOP": 3})
+    engine.history.append(
+        _row(
+            home="DEN",
+            away="NOP",
+            dt=datetime(2025, 3, 1, tzinfo=timezone.utc),
+            pace=105.0,
+            h_ortg=120.0,
+            a_ortg=118.0,
+        )
+    )
+    engine.history.append(
+        _row(
+            home="DEN",
+            away="NOP",
+            dt=datetime(2026, 10, 20, tzinfo=timezone.utc),
+            pace=95.0,
+            h_ortg=105.0,
+            a_ortg=104.0,
+        )
+    )
     kick = datetime(2026, 10, 28, 23, 0, tzinfo=timezone.utc)
-    p = engine.project("MIN", "GSW", game_date=kick)
-    assert "total_diagnostics" in p
-    assert p["total"] == project_total_current_season(engine, "MIN", "GSW", game_date=kick)["total"]
-    assert p["total_home_pts"] + p["total_away_pts"] == p["total"]
+    live = engine.project("NOP", "DEN", game_date=kick)
+    from sharp_scout.nba.score_model.totals_shadow import compute_shadow_totals_sidecar
+
+    side = compute_shadow_totals_sidecar(
+        engine,
+        home="DEN",
+        away="NOP",
+        kickoff=kick,
+        lines={"consensus_total": 240.0},
+        live_total=float(live["total"]),
+        live_injury_total=float(live["total"]),
+    )
+    assert side["shadow_total"] != side["live_total"]

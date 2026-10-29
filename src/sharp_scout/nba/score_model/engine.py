@@ -301,10 +301,7 @@ class V2Engine:
         away_pts = away_pts_base + a_adj
 
         margin = home_pts - away_pts
-        from sharp_scout.nba.score_model.current_season_totals import project_total_current_season
-
-        cs_total = project_total_current_season(self, home, away, game_date=game_date)
-        total = float(cs_total["total"])
+        total = home_pts_base + away_pts_base
 
         # Stage 4: optional margin-only injury proxy (does not deflate totals).
         if self.stage >= 4 and home_player_mins and away_player_mins:
@@ -321,9 +318,6 @@ class V2Engine:
             "away_pts": away_pts,
             "margin": margin,
             "total": total,
-            "total_home_pts": float(cs_total["total_home_pts"]),
-            "total_away_pts": float(cs_total["total_away_pts"]),
-            "total_diagnostics": cs_total.get("total_diagnostics") or {},
             "sd_margin": sd_m,
             "sd_total": sd_t,
         }

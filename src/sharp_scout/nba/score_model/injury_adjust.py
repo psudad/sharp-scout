@@ -321,29 +321,18 @@ def apply_injury_to_projection(
     bundle = build_game_injury_bundle(
         home, away, injuries=injuries, prior_status=prior_status, rates=rates
     )
-    home_pts, away_pts, margin, _total_from_margin = apply_team_adjustments(
+    home_pts, away_pts, margin, total = apply_team_adjustments(
         float(base["home_pts"]),
         float(base["away_pts"]),
         home_abs=bundle["home_absences"],
         away_abs=bundle["away_absences"],
     )
-    th = base.get("total_home_pts")
-    ta = base.get("total_away_pts")
-    if th is not None and ta is not None:
-        _h2, _a2, _m2, injury_total = apply_team_adjustments(
-            float(th),
-            float(ta),
-            home_abs=bundle["home_absences"],
-            away_abs=bundle["away_absences"],
-        )
-    else:
-        injury_total = _total_from_margin
     return {
         **bundle,
         "injury_home_pts": round(home_pts, 2),
         "injury_away_pts": round(away_pts, 2),
         "injury_margin": round(margin, 2),
-        "injury_total": round(injury_total, 2),
+        "injury_total": round(total, 2),
     }
 
 

@@ -1,4 +1,4 @@
-"""Odds API credit pause gates (through Nov 5 2026 ET) and Nov 1 NFL exception."""
+"""Odds API credit pause gates (through Nov 6 2026 ET) and Nov 1 NFL exception."""
 
 from __future__ import annotations
 
@@ -21,9 +21,9 @@ def _utc(y, m, d, h, mi=0) -> datetime:
     return datetime(y, m, d, h, mi, tzinfo=UTC)
 
 
-def test_pause_active_before_nov5_et():
-    assert scheduled_odds_pause_active(_utc(2026, 11, 4, 23, 59))
-    assert not scheduled_odds_pause_active(_utc(2026, 11, 5, 5, 0))  # 00:00 ET Nov 5 (EST)
+def test_pause_active_before_nov6_et():
+    assert scheduled_odds_pause_active(_utc(2026, 11, 6, 4, 59))  # 23:59 ET Nov 5 (EST)
+    assert not scheduled_odds_pause_active(_utc(2026, 11, 6, 5, 0))  # 00:00 ET Nov 6 (EST)
 
 
 def test_pregame_blocked_during_pause_except_nov1():
@@ -66,7 +66,7 @@ def test_nov1_late_start_keeps_intended_sunday_not_utc_monday():
 
 
 def test_after_resume_normal_pregame_schedule_allowed():
-    proceed, nov1 = pregame_scheduled_allowed("5,35 * * * *", _utc(2026, 11, 5, 12, 0))
+    proceed, nov1 = pregame_scheduled_allowed("5,35 * * * *", _utc(2026, 11, 6, 12, 0))
     assert proceed and not nov1
 
 

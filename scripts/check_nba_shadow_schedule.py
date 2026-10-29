@@ -23,7 +23,7 @@ def main() -> None:
     if ok:
         msg = f"Allowed scheduled run: cron={cron!r} now={now.isoformat()}"
         if skip_props:
-            msg += " (game lines only — props paused until 2026-11-05 ET)"
+            msg += " (game lines only — props paused until 2026-11-06 ET)"
         print(msg)
     else:
         print(

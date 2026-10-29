@@ -1808,6 +1808,9 @@ def render_nba_page_html(
     pace_projections_html = (
         _render_pace_projections_table(score_rows, reference=slate_ref) if live_scan else ""
     )
+    from sharp_scout.nba.manual_lines import manual_lines_page_note
+
+    pace_lines_note = manual_lines_page_note()
     pace_history_html = _render_official_pace_history(official_pace)
     raw_p = pace_summary.get("raw") or {}
     inj_p = pace_summary.get("injury") or {}
@@ -1899,6 +1902,7 @@ def render_nba_page_html(
         model_details=model_details,
         pace_play_threshold=f"{SCORE_MODELING_MIN_EDGE_PT:g}",
         pace_lean_range=f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g}",
+        pace_lines_note=pace_lines_note,
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
     )
@@ -2245,6 +2249,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   <section class="nba-model-panel pace-panel" aria-labelledby="pace-heading">
     <h2 class="nba-h2" id="pace-heading">Pace of Play model</h2>
     <p class="nba-section-note">Possession-pace projections vs consensus (injury-adjusted when available). Plays need ≥{pace_play_threshold} pt gap.</p>
+    {pace_lines_note}
     {pace_compact_record}
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays</div>

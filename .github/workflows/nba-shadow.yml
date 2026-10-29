@@ -101,13 +101,17 @@ jobs:
             data/paper/nba_score_model_priors.json \
             data/paper/nba_score_model_state.json \
             data/paper/nba_injury_lag.json \
+            data/paper/nba_pace_of_play_official.json \
+            data/paper/nba_pace_of_play_official.csv \
             docs/nba.html \
             docs/nba-props.html \
             docs/nba_latest_signals.json \
             docs/nba_ledger.json \
             docs/nba_paper_report.json \
             docs/nba_score_model.json \
-            docs/nba_injury_lag.json
+            docs/nba_injury_lag.json \
+            docs/nba_pace_of_play_official.json \
+            docs/nba_pace_of_play_official.csv
           if git diff --staged --quiet; then
             echo "No shadow changes"
           else

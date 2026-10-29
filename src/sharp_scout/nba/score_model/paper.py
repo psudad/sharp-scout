@@ -180,9 +180,9 @@ def void_score_paper_outside_horizon(
     settings = get_settings()
     hours = horizon_hours if horizon_hours is not None else settings.nba_prop_horizon_hours
     now = now or datetime.now(timezone.utc)
-    voided = 0
+    changed = 0
     for g in store.get("games") or []:
-        if _game_excluded(g) or g.get("graded"):
+        if g.get("graded"):
             continue
         created = _first_scan_at(g) or parse_kickoff_utc(g.get("kickoff"))
         kick = parse_kickoff_utc(g.get("kickoff"))
@@ -191,14 +191,20 @@ def void_score_paper_outside_horizon(
         outside = kick > created + timedelta(hours=hours + 1) or not kickoff_in_horizon(
             g.get("kickoff"), hours, now=created
         )
-        if outside:
+        if not outside and _game_excluded(g):
+            g.pop("excluded", None)
+            g.pop("exclude_reason", None)
+            g.pop("voided_at", None)
+            changed += 1
+            continue
+        if outside and not _game_excluded(g):
             g["excluded"] = True
             g["exclude_reason"] = "kickoff_outside_horizon"
             g["voided_at"] = now.isoformat()
-            voided += 1
-    if voided:
+            changed += 1
+    if changed:
         store["summary"] = summarize_score_paper(store)
-    return voided
+    return changed
 
 
 def _proj_row(
@@ -366,6 +372,8 @@ def record_score_model_scan(
         existing["scans"].append(snap)
         if len(existing["scans"]) > 40:
             existing["scans"] = existing["scans"][-40:]
+        if v1_pick and not snap.get("after_tip"):
+            existing["pace_published_pick"] = v1_pick
 
     save_paper_store(store)
     return store
@@ -477,6 +485,7 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
             "snapshot": last,
             "first_snapshot": scans[0],
             "pace_display_pick": display_pick,
+            "pace_published_pick": g.get("pace_published_pick"),
             "shadow_v2": last.get("shadow_v2"),
         }
         frozen += 1

@@ -4,7 +4,7 @@ name: NFL Props (10 AM ET daily)
 # grades finished props, and rebuilds the NFL Props page. Props are tracked separately
 # from the NFL sides card.
 #
-# Scheduled runs pause until 2026-11-05 ET (Odds API billing reset); workflow_dispatch unchanged.
+# Scheduled runs gated by scripts/check_odds_credit_pause.py (workflow_dispatch always runs).
 
 on:
   schedule:

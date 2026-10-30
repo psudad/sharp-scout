@@ -1,8 +1,8 @@
-"""Odds API credit pause gates (through Nov 6 2026 ET) and Nov 1 NFL exception."""
+"""Odds API credit pause gates and Nov 1 NFL exception helpers."""
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from sharp_scout.scheduler.odds_credit_pause import (
@@ -21,9 +21,20 @@ def _utc(y, m, d, h, mi=0) -> datetime:
     return datetime(y, m, d, h, mi, tzinfo=UTC)
 
 
-def test_pause_active_before_nov6_et():
-    assert scheduled_odds_pause_active(_utc(2026, 11, 6, 4, 59))  # 23:59 ET Nov 5 (EST)
-    assert not scheduled_odds_pause_active(_utc(2026, 11, 6, 5, 0))  # 00:00 ET Nov 6 (EST)
+def test_pause_active_before_resume_et_date():
+    resume = ODDS_CREDIT_RESUME_ET_DATE
+    # Last minute before resume ET calendar day (resume day itself is not paused)
+    before = datetime(
+        resume.year,
+        resume.month,
+        resume.day,
+        4,
+        59,
+        tzinfo=UTC,
+    ) - timedelta(days=1)
+    assert scheduled_odds_pause_active(before)
+    on_resume = datetime.combine(resume, datetime.min.time(), tzinfo=ET).astimezone(UTC)
+    assert not scheduled_odds_pause_active(on_resume)
 
 
 def test_pregame_blocked_during_pause_except_nov1():
@@ -34,13 +45,18 @@ def test_pregame_blocked_during_pause_except_nov1():
 def test_nov1_exception_on_time_est():
     # Nov 1 2026 09:00 ET (EST) = 14:00 UTC Sunday
     assert nov1_2026_nfl_sunday_pregame_allowed(NOV1_NFL_PREGAME_CRON, _utc(2026, 11, 1, 14, 0))
-    proceed, nov1 = pregame_scheduled_allowed(NOV1_NFL_PREGAME_CRON, _utc(2026, 11, 1, 14, 0))
-    assert proceed and nov1
 
 
 def test_nov1_exception_three_hours_late():
     assert nov1_2026_nfl_sunday_pregame_allowed(NOV1_NFL_PREGAME_CRON, _utc(2026, 11, 1, 17, 0))
-    proceed, nov1 = pregame_scheduled_allowed(NOV1_NFL_PREGAME_CRON, _utc(2026, 11, 1, 17, 0))
+
+
+def test_pregame_nov1_exception_only_while_pause_active(monkeypatch):
+    """Nov 1 NFL-only flag is set only when billing pause is still in effect."""
+    import sharp_scout.scheduler.odds_credit_pause as mod
+
+    monkeypatch.setattr(mod, "ODDS_CREDIT_RESUME_ET_DATE", date(2026, 11, 6))
+    proceed, nov1 = pregame_scheduled_allowed(NOV1_NFL_PREGAME_CRON, _utc(2026, 11, 1, 14, 0))
     assert proceed and nov1
 
 

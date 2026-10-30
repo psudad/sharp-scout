@@ -9,7 +9,7 @@ name: NCAAF Line Snapshots (CLV)
 #
 # Requires repo secret: ODDS_API_KEY (ACTION_NETWORK_TOKEN optional for money %)
 #
-# Scheduled Odds API usage pauses until 2026-11-05 ET (billing reset); workflow_dispatch unchanged.
+# Scheduled Odds API usage gated by scripts/check_odds_credit_pause.py (workflow_dispatch always runs).
 
 on:
   schedule:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI gate for scheduled Odds API workflows during the Nov 6 2026 billing pause."""
+"""CI gate for scheduled Odds API workflows during billing/credit pauses."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.scheduler.odds_credit_pause import (  # noqa: E402
+    ODDS_CREDIT_RESUME_ET_DATE,
     pregame_scheduled_allowed,
     scheduled_odds_pause_active,
     workflow_scheduled_allowed_during_pause,
@@ -48,7 +49,7 @@ def main() -> None:
     else:
         print(
             f"Skipping scheduled {args.workflow}: Odds credit pause until "
-            f"2026-11-06 ET (cron={cron!r})"
+            f"{ODDS_CREDIT_RESUME_ET_DATE.isoformat()} ET (cron={cron!r})"
         )
 
     out = os.environ.get("GITHUB_OUTPUT")

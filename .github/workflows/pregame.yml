@@ -3,8 +3,8 @@ name: Pregame Windows (T-12 / T-4..T-1)
 # Uses data/pregame_run_plan.json (NFL schedule + NCAAF Odds API board) to fire only
 # near real kickoff windows — not every 30 minutes.
 #
-# Scheduled Odds API usage pauses until 2026-11-05 ET (billing reset), except one
-# Nov 1 2026 NFL Sunday sides scan (see cron 0 14 * * 0 + check_odds_credit_pause.py).
+# Scheduled Odds API usage gated by scripts/check_odds_credit_pause.py (includes optional pause
+# exceptions such as Nov 1 NFL-only cron 0 14 * * 0 when a billing pause is active).
 #
 # Secrets (repo Settings → Secrets and variables → Actions → Repository secrets):
 #   ODDS_API_KEY (required for live runs)

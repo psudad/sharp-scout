@@ -17,7 +17,10 @@ from sharp_scout.nba.schedule_guard import (  # noqa: E402
     primary_scan_satisfied_for_et_date,
     scheduled_cron_run_allowed,
 )
-from sharp_scout.scheduler.odds_credit_pause import scheduled_odds_pause_active  # noqa: E402
+from sharp_scout.scheduler.odds_credit_pause import (  # noqa: E402
+    ODDS_CREDIT_RESUME_ET_DATE,
+    scheduled_odds_pause_active,
+)
 
 
 def main() -> None:
@@ -38,7 +41,7 @@ def main() -> None:
     if ok:
         msg = f"Allowed scheduled run: cron={cron!r} now={now.isoformat()}"
         if skip_props:
-            msg += " (game lines only — props paused until 2026-11-06 ET)"
+            msg += f" (game lines only — props paused until {ODDS_CREDIT_RESUME_ET_DATE.isoformat()} ET)"
         print(msg)
     else:
         print(

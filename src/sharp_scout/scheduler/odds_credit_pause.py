@@ -8,7 +8,8 @@ from zoneinfo import ZoneInfo
 ET = ZoneInfo("America/New_York")
 
 # Scheduled heavy workflows resume on this ET calendar date (inclusive).
-ODDS_CREDIT_RESUME_ET_DATE = date(2026, 11, 6)
+# Lifted 2026-10-30 ET after Odds API plan upgrade (was 2026-11-06 during low credits).
+ODDS_CREDIT_RESUME_ET_DATE = date(2026, 10, 30)
 
 # One-off NFL Sunday scan during the pause (Nov 1 2026, EST — DST ends earlier that day).
 NOV1_2026_ET_DATE = date(2026, 11, 1)

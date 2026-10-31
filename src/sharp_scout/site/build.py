@@ -468,7 +468,47 @@ def _pick_nfl_signals() -> dict[str, Any]:
 
 
 def _pick_ncaaf_signals() -> dict[str, Any]:
-    return _pick_signals((NCAAF.artifact_name, "latest_ncaaf_signals.json"))
+    picked = _pick_signals((NCAAF.artifact_name, "latest_ncaaf_signals.json"))
+    # When the artifact is newer than docs, use it even if docs has more games (stale
+    # full-week board vs current college week). Ranking by n_games alone kept week-9
+    # docs on the site after a successful week-10 pipeline run.
+    art_path = ARTIFACTS_DIR / NCAAF.artifact_name
+    doc_path = DOCS_DIR / "latest_ncaaf_signals.json"
+    if art_path.exists() and doc_path.exists():
+        try:
+            art = json.loads(art_path.read_text())
+            doc = json.loads(doc_path.read_text())
+            art_ts = parse_commence(art.get("generated_at"))
+            doc_ts = parse_commence(doc.get("generated_at"))
+            if art_ts and doc_ts and art_ts > doc_ts:
+                return _strip_demo_signals(art)
+        except (OSError, json.JSONDecodeError):
+            pass
+    return _strip_demo_signals(picked)
+
+
+def publish_ncaaf_board_docs(
+    payload: dict[str, Any],
+    *,
+    docs_dir: Path | None = None,
+) -> None:
+    """Write the in-memory NCAAF pipeline payload to committed docs/ JSON (not via _pick)."""
+    out = docs_dir or DOCS_DIR
+    out.mkdir(parents=True, exist_ok=True)
+    sig = _strip_demo_signals(payload)
+    if not sig:
+        return
+    blob = json.dumps(sig, indent=2, default=str) + "\n"
+    (out / "latest_ncaaf_signals.json").write_text(blob)
+    (out / "ncaaf_plays.json").write_text(
+        json.dumps(sig.get("plays") or [], indent=2, default=str) + "\n"
+    )
+    (out / "ncaaf_stages.json").write_text(
+        json.dumps(sig.get("stage_picks") or [], indent=2, default=str) + "\n"
+    )
+    (out / "ncaaf_ratings.json").write_text(
+        json.dumps(sig.get("ratings") or [], indent=2, default=str) + "\n"
+    )
 
 
 def _strip_demo_signals(sig: dict[str, Any]) -> dict[str, Any]:

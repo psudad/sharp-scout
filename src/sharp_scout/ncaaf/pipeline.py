@@ -324,8 +324,9 @@ def run_ncaaf_pipeline(
         logger.warning("QA gate Layer 1 failed: %s", [i.message for i in qa_result.layer1_issues])
 
     if build_pages:
-        from sharp_scout.site.build import build_site
+        from sharp_scout.site.build import build_site, publish_ncaaf_board_docs
 
+        publish_ncaaf_board_docs(payload)
         payload["site"] = str(build_site())
         logger.info("Rebuilt GitHub Pages with NCAAF board")
 

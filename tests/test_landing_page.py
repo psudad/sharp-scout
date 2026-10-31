@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from sharp_scout.site.build import build_site
+from sharp_scout.site.landing_page import _landing_team_display
 
 
 @pytest.fixture()
@@ -83,3 +84,35 @@ def test_landing_model_leans_section(site: Path):
     html = (site / "index.html").read_text()
     assert "Model leans" in html
     assert "Lean only" in html
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("UNC", "UNC"),
+        ("UCLA", "UCLA"),
+        ("ND", "ND"),
+        ("LIB", "LIB"),
+        ("North Carolina Tar Heels", "UNC"),
+        ("Notre Dame Fighting Irish", "ND"),
+    ],
+)
+def test_landing_team_display_ncaaf_codes(name: str, expected: str):
+    assert _landing_team_display(name, sport="ncaaf") == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("MIA", "MIA"),
+        ("Miami Dolphins", "MIA"),
+    ],
+)
+def test_landing_team_display_nfl_codes(name: str, expected: str):
+    assert _landing_team_display(name, sport="nfl") == expected
+
+
+def test_landing_team_display_ncaaf_registered_short_codes():
+    assert _landing_team_display("Indiana State Sycamores", sport="ncaaf") == "INST"
+    assert _landing_team_display("Missouri State Bears", sport="ncaaf") == "MOST"
+    assert _landing_team_display("Tennessee State Tigers", sport="ncaaf") == "TNST"

@@ -74,7 +74,7 @@ def schedule_projection_kwargs(
         "home_travel_mi": travel_miles(last_site.get(home, home), home)
         if last_site.get(home, home) != home
         else 0.0,
-        "away_travel_mi": travel_miles(last_site.get(away, away), away)
-        if last_site.get(away, away) != away
+        "away_travel_mi": travel_miles(last_site.get(away, away), home)
+        if last_site.get(away, away) != home
         else 0.0,
     }

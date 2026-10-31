@@ -49,6 +49,14 @@ def _estimate_poss(hs: float, as_: float) -> float:
     return max((hs + as_) / 2.2, 90.0)
 
 
+def _three_in_four(team: str, day_et: date | None, team_dates_et: dict[str, list[date]]) -> bool:
+    if day_et is None:
+        return False
+    window_start = day_et - timedelta(days=4)
+    count = sum(1 for d in team_dates_et.get(team, []) if window_start < d < day_et)
+    return count >= 2
+
+
 def _rest_days(team: str, dt: datetime, last: dict[str, datetime]) -> int | None:
     prev = last.get(team)
     if prev is None:
@@ -244,7 +252,7 @@ def _reset_engine_to_committed_priors(engine: ShadowV2Engine) -> bool:
 def _replay_games(engine: ShadowV2Engine, games: list[dict[str, Any]], processed: set[str]) -> date | None:
     last_played: dict[str, datetime] = {}
     team_last_site: dict[str, str] = {}
-    team_dates: dict[str, list[datetime]] = {}
+    team_dates_et: dict[str, list[date]] = {}
     current_season: str | None = None
     max_day: date | None = None
 
@@ -270,9 +278,9 @@ def _replay_games(engine: ShadowV2Engine, games: list[dict[str, Any]], processed
         home, away = g["home"], g["away"]
         hr = _rest_days(home, dt, last_played)
         ar = _rest_days(away, dt, last_played)
-        cutoff = dt - timedelta(days=4)
-        home_3in4 = sum(1 for d in team_dates.get(home, []) if cutoff < d < dt) >= 2
-        away_3in4 = sum(1 for d in team_dates.get(away, []) if cutoff < d < dt) >= 2
+        day_et = kickoff_date_et(dt)
+        home_3in4 = _three_in_four(home, day_et, team_dates_et)
+        away_3in4 = _three_in_four(away, day_et, team_dates_et)
         ctx = {
             "home_rest": hr,
             "away_rest": ar,
@@ -283,18 +291,18 @@ def _replay_games(engine: ShadowV2Engine, games: list[dict[str, Any]], processed
             "home_travel_mi": travel_miles(team_last_site.get(home, home), home)
             if team_last_site.get(home, home) != home
             else 0.0,
-            "away_travel_mi": travel_miles(team_last_site.get(away, away), away)
-            if team_last_site.get(away, away) != away
+            "away_travel_mi": travel_miles(team_last_site.get(away, away), home)
+            if team_last_site.get(away, away) != home
             else 0.0,
         }
         engine.observe(g, ctx=ctx)
         processed.add(key)
         last_played[home] = last_played[away] = dt
         team_last_site[home] = home
-        team_last_site[away] = away
-        team_dates.setdefault(home, []).append(dt)
-        team_dates.setdefault(away, []).append(dt)
-        day_et = kickoff_date_et(dt)
+        team_last_site[away] = home
+        if day_et is not None:
+            for t in (home, away):
+                team_dates_et.setdefault(t, []).append(day_et)
         if day_et is not None:
             ds = day_et.isoformat()
             for t in (home, away):

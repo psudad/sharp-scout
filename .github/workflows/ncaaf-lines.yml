@@ -39,7 +39,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: sharp-scout-main-commits
+  group: ncaaf-lines
   cancel-in-progress: false
 
 jobs:
@@ -160,8 +160,8 @@ jobs:
           fi
           # Pipeline auto-determines current CFB week if not specified
           python scripts/run_ncaaf.py --build-site
-          # Stamp the rebuild so the gate can throttle the next runs.
-          printf '{"last_rebuild": "%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" > data/ncaaf_rebuild_state.json
+          chmod +x scripts/stamp_ncaaf_rebuild_state.sh
+          scripts/stamp_ncaaf_rebuild_state.sh
 
       - name: Flag whether a Pages deploy is needed
         id: deployflag

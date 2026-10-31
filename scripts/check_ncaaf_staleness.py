@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lightweight CI gate: run a full NCAAF board refresh if signals are stale on a game day."""
+"""Lightweight CI gate: run a full NCAAF board refresh if last_rebuild is stale on a game day."""
 
 from __future__ import annotations
 
@@ -18,13 +18,14 @@ from sharp_scout.scheduler.ncaaf_lines import (  # noqa: E402
 )
 from sharp_scout.utils.slate import parse_commence  # noqa: E402
 
-SIGNALS_PATH = ROOT / "docs" / "latest_ncaaf_signals.json"
 STATE_PATH = ROOT / "data" / "ncaaf_rebuild_state.json"
 PLAN_PATH = ROOT / "data" / "ncaaf_line_plan.json"
 
 STALE_AFTER = timedelta(hours=2)
 # Align with check_ncaaf_snapshot_plan — avoids duplicate full runs when crons cluster.
 REBUILD_THROTTLE = timedelta(minutes=45)
+# ncaaf.yml backup slots (+25 / +50 min after primary): skip if primary already refreshed.
+BACKUP_MIN_AGE = timedelta(minutes=20)
 
 
 def _parse_ts(raw: str | None) -> datetime | None:
@@ -39,23 +40,36 @@ def _parse_ts(raw: str | None) -> datetime | None:
     return dt
 
 
-def _last_full_run() -> datetime | None:
-    candidates: list[datetime] = []
-    if SIGNALS_PATH.exists():
-        try:
-            ts = json.loads(SIGNALS_PATH.read_text()).get("generated_at")
-            if parsed := _parse_ts(ts):
-                candidates.append(parsed)
-        except (OSError, json.JSONDecodeError):
-            pass
-    if STATE_PATH.exists():
-        try:
-            ts = json.loads(STATE_PATH.read_text()).get("last_rebuild")
-            if parsed := _parse_ts(ts):
-                candidates.append(parsed)
-        except (OSError, json.JSONDecodeError):
-            pass
-    return max(candidates) if candidates else None
+def last_rebuild_at() -> datetime | None:
+    """Authoritative full-board refresh time (written by every full NCAAF CI path)."""
+    if not STATE_PATH.exists():
+        return None
+    try:
+        ts = json.loads(STATE_PATH.read_text()).get("last_rebuild")
+        return _parse_ts(ts)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def needs_pipeline_backup_refresh(
+    *,
+    now: datetime | None = None,
+    min_age: timedelta = BACKUP_MIN_AGE,
+) -> bool:
+    """True when a scheduled ncaaf.yml *backup* slot should run (primary did not refresh recently)."""
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    last = last_rebuild_at()
+    if last is None:
+        print("No last_rebuild — backup slot will run")
+        return True
+    age = now - last
+    if age >= min_age:
+        print(f"last_rebuild {last.isoformat()} is {age.total_seconds() / 60:.0f}m old — backup runs")
+        return True
+    print(f"last_rebuild {last.isoformat()} is fresh ({age.total_seconds() / 60:.0f}m ago) — skip backup")
+    return False
 
 
 def _kickoffs_today_et(plan: dict, now: datetime) -> bool:
@@ -93,27 +107,22 @@ def should_run_full_refresh(*, now: datetime | None = None) -> bool:
         print("Not an NCAAF game day (no kickoffs today ET, not in pregame zone) — skip")
         return False
 
-    last = _last_full_run()
+    last = last_rebuild_at()
     if last is None:
-        print("No prior full-run timestamp — stale by default")
+        print("No last_rebuild — stale by default")
         stale = True
     else:
         age = now - last
         stale = age > STALE_AFTER
-        print(f"Last full run {last.isoformat()} ({age.total_seconds() / 3600:.2f}h ago)")
+        print(f"last_rebuild {last.isoformat()} ({age.total_seconds() / 3600:.2f}h ago)")
 
     if not stale:
-        print(f"Signals fresh (≤ {STALE_AFTER.total_seconds() / 3600:g}h) — skip")
+        print(f"Board fresh (≤ {STALE_AFTER.total_seconds() / 3600:g}h since last_rebuild) — skip")
         return False
 
-    if STATE_PATH.exists():
-        try:
-            rb = _parse_ts(json.loads(STATE_PATH.read_text()).get("last_rebuild"))
-            if rb and (now - rb) < REBUILD_THROTTLE:
-                print(f"Throttled — rebuild {rb.isoformat()} ({(now - rb).total_seconds() / 60:.0f}m ago)")
-                return False
-        except (OSError, json.JSONDecodeError):
-            pass
+    if last is not None and (now - last) < REBUILD_THROTTLE:
+        print(f"Throttled — last_rebuild {last.isoformat()} ({(now - last).total_seconds() / 60:.0f}m ago)")
+        return False
 
     print("Stale NCAAF board on game day — full run warranted")
     return True

@@ -1,8 +1,8 @@
 name: NCAAF Staleness Guard
 
-# Lightweight scheduled check: if docs/latest_ncaaf_signals.json (or last rebuild)
-# is older than 2h on an NCAAF game day, run the full board pipeline. Queued behind
-# other repo commits via the shared concurrency group.
+# Lightweight scheduled check: if data/ncaaf_rebuild_state.json last_rebuild is older
+# than 2h on an NCAAF game day, run the full board pipeline. Shares ncaaf-full-board
+# with ncaaf.yml so only one heavy full-board run queues at a time.
 
 on:
   schedule:
@@ -15,7 +15,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: sharp-scout-main-commits
+  group: ncaaf-full-board
   cancel-in-progress: false
 
 jobs:
@@ -79,7 +79,8 @@ jobs:
             exit 0
           fi
           python scripts/run_ncaaf.py --build-site
-          printf '{"last_rebuild": "%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" > data/ncaaf_rebuild_state.json
+          chmod +x scripts/stamp_ncaaf_rebuild_state.sh
+          scripts/stamp_ncaaf_rebuild_state.sh
 
       - id: deployflag
         if: steps.credit.outputs.proceed == 'true'
@@ -97,7 +98,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           chmod +x scripts/ci_git_push_retry.sh scripts/ci_git_add_paths.sh
           export ADD_PATHS="data/ncaaf_ledger.json data/ncaaf_line_plan.json data/line_history.json data/open_lines.json data/ncaaf_rebuild_state.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
-          ./scripts/ci_git_push_retry.sh "chore: NCAAF stale-guard board refresh" bash -c "python scripts/run_ncaaf.py --build-site && printf '{\"last_rebuild\": \"%s\"}\n' \"\$(date -u +%Y-%m-%dT%H:%M:%S+00:00)\" > data/ncaaf_rebuild_state.json"
+          ./scripts/ci_git_push_retry.sh "chore: NCAAF stale-guard board refresh" bash -c "python scripts/run_ncaaf.py --build-site && scripts/stamp_ncaaf_rebuild_state.sh"
 
       - name: Upload Pages artifact
         if: steps.deployflag.outputs.deploy == 'true'

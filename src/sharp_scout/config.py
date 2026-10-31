@@ -169,7 +169,10 @@ class Settings(BaseSettings):
     # Priority order is the comma list (first = highest). Replaces spread/total
     # product guardrails and multi-book corroboration for lane plays only.
     product_narrow_lanes_enabled: bool = True
-    product_narrow_lanes: str = "ncaaf:totals,ncaaf:spreads,nfl:spreads"
+    product_narrow_lanes: str = "ncaaf:totals,nfl:spreads"
+    # Phase-4 plays tracked on the research board (watchlist) but never LOCKED / ledger-official.
+    # NCAAF spreads removed from narrow lanes Oct 2026 (21-22 graded, -4.75u); still shadow-tracked.
+    product_research_shadow_lanes: str = "ncaaf:spreads"
     # Per narrow-lane EV floors as sport:market:min (comma-separated). Unlisted lanes use product_ev_min.
     product_narrow_lane_ev_mins: str = "nfl:spreads:0.03"
 

@@ -106,25 +106,36 @@ def test_ev_ceiling_applies_to_ncaaf_totals_lane(narrow_lanes_on):
     assert not r.ok and "ceiling" in r.note()
 
 
-def test_ncaaf_spreads_lane_certifies_with_four_to_twelve_ev(narrow_lanes_on):
+def test_ncaaf_spreads_not_in_locked_lane(narrow_lanes_on):
     play = _sig(market="spreads", side="home", line=-3.5, edge=0.07, p_fair=0.51)
     r = evaluate_product_play(play, signals=None, sport="ncaaf")
-    assert r.ok, r.note()
+    assert not r.ok and "narrow" in r.note().lower()
     out = select_certified_plays([play], signals={"signals": [play]}, sport="ncaaf")
-    assert len(out) == 1
-    assert out[0]["market"] == "spreads"
+    assert out == []
 
 
-def test_ncaaf_spread_below_four_percent_rejected(narrow_lanes_on):
+def test_ncaaf_spread_research_shadow_when_quality_bar_met(narrow_lanes_on):
+    from sharp_scout.qa.product_gate import (
+        NCAAF_SPREAD_SHADOW_FLAG,
+        select_research_shadow_plays,
+    )
+
+    play = _sig(market="spreads", side="home", line=-3.5, edge=0.07, p_fair=0.51)
+    shadow = select_research_shadow_plays(
+        [play], signals={"signals": [play]}, sport="ncaaf"
+    )
+    assert len(shadow) == 1
+    assert shadow[0].get("product_shadow") is True
+    assert NCAAF_SPREAD_SHADOW_FLAG in (shadow[0].get("board_flags") or [])
+
+
+def test_ncaaf_spread_below_four_percent_not_research_shadow(narrow_lanes_on):
+    from sharp_scout.qa.product_gate import select_research_shadow_plays
+
     play = _sig(market="spreads", side="home", line=-3.5, edge=0.035, p_fair=0.51)
-    r = evaluate_product_play(play, signals=None, sport="ncaaf")
-    assert not r.ok and "4%" in r.note()
-
-
-def test_ncaaf_spread_at_twelve_percent_rejected(narrow_lanes_on):
-    play = _sig(market="spreads", side="home", line=-3.5, edge=0.12, p_fair=0.55)
-    r = evaluate_product_play(play, signals=None, sport="ncaaf")
-    assert not r.ok and "ceiling" in r.note()
+    assert select_research_shadow_plays(
+        [play], signals={"signals": [play]}, sport="ncaaf"
+    ) == []
 
 
 def test_lane_skips_spread_money_guardrail(narrow_lanes_on):
@@ -183,9 +194,9 @@ def test_nfl_spreads_lane_on_nfl_run(narrow_lanes_on):
     assert len(out) == 1
 
 
-def test_lane_priority_ncaaf_totals_before_spreads(narrow_lanes_on):
+def test_lane_priority_ncaaf_totals_then_nfl_spreads(narrow_lanes_on):
     assert narrow_lane_rank(_sig(market="totals"), "ncaaf") == 0
-    assert narrow_lane_rank(_sig(market="spreads", side="home", line=-3.5), "ncaaf") == 1
+    assert narrow_lane_rank(_sig(market="spreads", side="home", line=-3.5), "ncaaf") is None
     nfl_sp = _sig(
         market="spreads",
         side="away",
@@ -193,7 +204,7 @@ def test_lane_priority_ncaaf_totals_before_spreads(narrow_lanes_on):
         home_team="BUF",
         away_team="KC",
     )
-    assert narrow_lane_rank(nfl_sp, "nfl") == 2
+    assert narrow_lane_rank(nfl_sp, "nfl") == 1
 
 
 def test_apply_high_confidence_flag_only_when_both_signals(narrow_lanes_on):

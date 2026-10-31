@@ -289,7 +289,11 @@ def run_ncaaf_pipeline(
     if update_ledger and ledger_ok:
         from sharp_scout.ledger.tracker import append_signals, append_stage_cards, compute_record
 
-        from sharp_scout.qa.product_gate import select_certified_plays, select_shadow_plays
+        from sharp_scout.qa.product_gate import (
+            select_certified_plays,
+            select_research_shadow_plays,
+            select_shadow_plays,
+        )
 
         certified = select_certified_plays(validated, signals=payload, sport="ncaaf")
         payload["certified_plays"] = certified
@@ -297,10 +301,14 @@ def run_ncaaf_pipeline(
         if certified:
             append_signals(certified, season=season, week=week, path=ledger_path)
         shadow = select_shadow_plays(validated, signals=payload, sport="ncaaf")
-        payload["n_shadow"] = len(shadow)
-        if shadow:
+        research_shadow = select_research_shadow_plays(
+            validated, signals=payload, sport="ncaaf"
+        )
+        payload["n_shadow"] = len(shadow) + len(research_shadow)
+        watchlist = shadow + research_shadow
+        if watchlist:
             append_signals(
-                shadow, season=season, week=week, path=ledger_path, status="watchlist"
+                watchlist, season=season, week=week, path=ledger_path, status="watchlist"
             )
         from sharp_scout.qa.product_gate import product_gate_certification_log_message
 

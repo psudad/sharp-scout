@@ -575,14 +575,19 @@ def review_play(
     if settings.product_gate_enabled:
         from sharp_scout.qa.product_gate import (
             evaluate_product_play,
+            is_grandfathered_ncaaf_spread_official,
             is_shadow_only,
             play_for_product_gate,
         )
 
-        pg = evaluate_product_play(
-            play_for_product_gate(play, signals), signals=signals, sport=sport
-        )
-        if not pg.ok:
+        pg_ok = True
+        pg = None
+        if not is_grandfathered_ncaaf_spread_official(play, sport=sport):
+            pg = evaluate_product_play(
+                play_for_product_gate(play, signals), signals=signals, sport=sport
+            )
+            pg_ok = pg.ok
+        if not pg_ok and pg is not None:
             book_only_fail = (
                 str(market or "") == "totals"
                 and pg.reasons

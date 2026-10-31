@@ -496,3 +496,63 @@ def test_single_book_total_goes_watchlist_not_quarantine():
     review = review_play(play, signals, sport="nfl", validated_keys=_validated_keys(signals))
     assert review.action == "approve"
     assert not any(i.code == "single_book" for i in review.issues)
+
+
+def test_apply_qa_gate_layer1_fail_does_not_mutate_ledger(tmp_path):
+    import json
+
+    ledger_path = tmp_path / "ledger.json"
+    play = {
+        "id": "keep-pending",
+        "event_id": "ev-missing",
+        "home_team": "LV",
+        "away_team": "MIA",
+        "market": "spreads",
+        "side": "home",
+        "line": 3.0,
+        "book": "draftkings",
+        "price": -110,
+        "p_true": 0.55,
+        "edge": 0.05,
+        "kickoff": _kickoff_in_nfl_display_week(),
+        "status": "pending",
+        "tier": "play",
+    }
+    ledger_path.write_text(json.dumps({"plays": [play], "stage_cards": []}, indent=2))
+    before = ledger_path.read_bytes()
+    signals = _base_signals(demo=True)
+    result = apply_qa_gate("nfl", signals=signals, apply=True, ledger_path=ledger_path)
+    assert not result.layer1_passed
+    assert ledger_path.read_bytes() == before
+    assert result.voided >= 1
+
+
+def test_apply_qa_gate_layer1_pass_still_applies_void(tmp_path):
+    signals = _base_signals()
+    ledger_path = tmp_path / "ledger.json"
+    ledger_path.write_text(
+        """{
+  "plays": [{
+    "id": "stale",
+    "event_id": "old",
+    "home_team": "DAL",
+    "away_team": "NYG",
+    "market": "spreads",
+    "side": "away",
+    "line": 4.5,
+    "book": "draftkings",
+    "price": -110,
+    "p_true": 0.66,
+    "edge": 0.26,
+    "kickoff": "2027-01-03T18:00:00+00:00",
+    "status": "pending"
+  }],
+  "stage_cards": []
+}"""
+    )
+    result = apply_qa_gate("nfl", signals=signals, apply=True, ledger_path=ledger_path)
+    assert result.layer1_passed
+    import json
+
+    ledger = json.loads(ledger_path.read_text())
+    assert ledger["plays"][0]["status"] == "void"

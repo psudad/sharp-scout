@@ -672,6 +672,7 @@ def apply_qa_gate(
 
     layer1 = review_signals(signals, sport=sport, allow_demo=allow_demo)
     layer1_passed = not any(i.severity == "block" for i in layer1)
+    apply = apply and layer1_passed
 
     path = ledger_path or (DATA_DIR / sport_cfg.ledger_name)
     ledger = load_ledger(path)

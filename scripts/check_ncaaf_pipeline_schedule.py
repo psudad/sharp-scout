@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
-"""Gate ncaaf.yml scheduled runs: primary slots always run; backups only if last_rebuild is stale."""
+"""Gate ncaaf.yml scheduled runs: primary vs backup slots use last_rebuild + nominal UTC times."""
 
 from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.check_ncaaf_staleness import needs_pipeline_backup_refresh  # noqa: E402
+from scripts.check_ncaaf_staleness import (  # noqa: E402
+    last_rebuild_at,
+    needs_pipeline_backup_refresh,
+    should_run_primary_slot,
+)
 
-# Primary cron lines (always run full pipeline when scheduled).
+# Primary cron lines (full pipeline when gate passes).
 PRIMARY_CRONS = frozenset(
     {
         "7 15 * * 1-6",  # ~11:07 AM ET Mon–Sat
@@ -22,7 +27,6 @@ PRIMARY_CRONS = frozenset(
     }
 )
 
-# Backup crons (+25 / +50 min after each primary).
 BACKUP_CRONS = frozenset(
     {
         "32 15 * * 1-6",
@@ -40,6 +44,7 @@ BACKUP_CRONS = frozenset(
 def main() -> None:
     event = os.environ.get("GITHUB_EVENT_NAME", "schedule").strip()
     cron = os.environ.get("GITHUB_SCHEDULE_CRON", "").strip()
+    now = datetime.now(timezone.utc)
 
     if event != "schedule":
         print("Non-schedule event — run pipeline")
@@ -47,12 +52,16 @@ def main() -> None:
         return
 
     if cron in PRIMARY_CRONS:
-        print(f"Primary slot {cron!r} — always run")
-        _set_output(True)
+        run = should_run_primary_slot(cron=cron, now=now)
+        if run:
+            print(f"Primary slot {cron!r} — run")
+        else:
+            print(f"Primary slot {cron!r} — skip (recent rebuild)")
+        _set_output(run)
         return
 
     if cron in BACKUP_CRONS:
-        run = needs_pipeline_backup_refresh()
+        run = needs_pipeline_backup_refresh(now=now, backup_cron=cron)
         _set_output(run)
         return
 

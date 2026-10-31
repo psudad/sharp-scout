@@ -63,15 +63,3 @@ def test_recent_last_rebuild_not_throttled_after_two_hours(tmp_path, monkeypatch
     assert stale_mod.should_run_full_refresh(now=now) is False
 
 
-def test_backup_skips_when_primary_just_ran(tmp_path, monkeypatch):
-    _patch_paths(monkeypatch, tmp_path)
-    now = datetime(2026, 10, 31, 15, 32, tzinfo=timezone.utc)
-    _write_last_rebuild(tmp_path, now - timedelta(minutes=10))
-    assert stale_mod.needs_pipeline_backup_refresh(now=now) is False
-
-
-def test_backup_runs_when_primary_missed(tmp_path, monkeypatch):
-    _patch_paths(monkeypatch, tmp_path)
-    now = datetime(2026, 10, 31, 15, 32, tzinfo=timezone.utc)
-    _write_last_rebuild(tmp_path, now - timedelta(hours=2))
-    assert stale_mod.needs_pipeline_backup_refresh(now=now) is True

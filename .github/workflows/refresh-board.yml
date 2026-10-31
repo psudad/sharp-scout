@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
       skip_pbp:
-        description: "Skip nflverse / cfbfastR PBP download"
+        description: "Skip nflverse / cfbfastR PBP download (NCAAF: placeholder ratings; will NOT publish CFB plays to docs/ or append ledger locks)"
         type: boolean
         default: false
 
@@ -85,9 +85,12 @@ jobs:
           elif [ "${{ inputs.skip_pbp }}" = "true" ]; then
             ARGS="$ARGS --skip-pbp"
           fi
+          set +e
           python scripts/run_ncaaf.py $ARGS
-          chmod +x scripts/stamp_ncaaf_rebuild_state.sh
-          scripts/stamp_ncaaf_rebuild_state.sh
+          RC=$?
+          set -e
+          chmod +x scripts/ncaaf_ci_post_run.sh
+          scripts/ncaaf_ci_post_run.sh "$RC"
 
       - name: Assert NCAAF docs match pipeline artifact
         if: inputs.ncaaf
@@ -128,7 +131,7 @@ jobs:
               CFB_ARGS="--build-site"
               if [ "$REFRESH_DEMO" = "true" ] || [ -z "${ODDS_API_KEY:-}" ]; then CFB_ARGS="$CFB_ARGS --demo --skip-pbp"; fi
               if [ "$REFRESH_SKIP_PBP" = "true" ]; then CFB_ARGS="$CFB_ARGS --skip-pbp"; fi
-              RERUN="${RERUN}python scripts/run_ncaaf.py $CFB_ARGS && scripts/stamp_ncaaf_rebuild_state.sh && "
+              RERUN="${RERUN}set +e; python scripts/run_ncaaf.py $CFB_ARGS; scripts/ncaaf_ci_post_run.sh \$?; set -e && "
             fi
             RERUN="${RERUN}true"
             ./scripts/ci_git_push_retry.sh "chore: refresh board from live market" bash -c "$RERUN"

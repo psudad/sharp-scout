@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.ncaaf.pipeline import run_ncaaf_pipeline  # noqa: E402
+from sharp_scout.ncaaf.publish_gate import EXIT_PUBLISH_BLOCKED  # noqa: E402
 
 
 def main() -> None:
@@ -29,9 +31,14 @@ def main() -> None:
         help="Include all posted Odds API games (default: current college week only)",
     )
     args = p.parse_args()
+    demo = args.demo or os.environ.get("SHARP_SCOUT_DEMO", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
 
     result = run_ncaaf_pipeline(
-        demo=args.demo,
+        demo=demo,
         persist=not args.no_persist,
         skip_pbp=args.skip_pbp or args.demo,
         update_ledger=not args.no_ledger,
@@ -63,6 +70,9 @@ def main() -> None:
         ],
     }
     print(json.dumps(summary, indent=2))
+    if result.get("publish_blocked"):
+        print(result.get("publish_block_summary") or "NCAAF publish blocked", file=sys.stderr)
+        sys.exit(EXIT_PUBLISH_BLOCKED)
 
 
 if __name__ == "__main__":

@@ -435,13 +435,19 @@ def _live_score_html(play: dict[str, Any], *, sport: str) -> str:
     )
 
 
-def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
+def _pick_signals(
+    path_names: tuple[str, ...],
+    *,
+    publishable_only: bool = False,
+) -> dict[str, Any]:
     """Load the best signals JSON for site generation.
 
     Prefer whichever copy (``artifacts/`` or committed ``docs/``) has the most
     games, then the newest ``generated_at``. A stale partial artifact must not
     beat a full ``docs/`` board after a Refresh Board run.
     """
+    from sharp_scout.ncaaf.publish_gate import is_ncaaf_payload_publishable
+
     best: dict[str, Any] = {}
     best_rank: tuple[int, float] = (-1, 0.0)
     for name in path_names:
@@ -452,6 +458,8 @@ def _pick_signals(path_names: tuple[str, ...]) -> dict[str, Any]:
             try:
                 data = json.loads(path.read_text())
             except json.JSONDecodeError:
+                continue
+            if publishable_only and not is_ncaaf_payload_publishable(data):
                 continue
             n = int(data.get("n_games") or len(data.get("games") or []))
             if n <= 0:
@@ -468,7 +476,12 @@ def _pick_nfl_signals() -> dict[str, Any]:
 
 
 def _pick_ncaaf_signals() -> dict[str, Any]:
-    picked = _pick_signals((NCAAF.artifact_name, "latest_ncaaf_signals.json"))
+    from sharp_scout.ncaaf.publish_gate import is_ncaaf_payload_publishable
+
+    picked = _pick_signals(
+        (NCAAF.artifact_name, "latest_ncaaf_signals.json"),
+        publishable_only=True,
+    )
     # When the artifact is newer than docs, use it even if docs has more games (stale
     # full-week board vs current college week). Ranking by n_games alone kept week-9
     # docs on the site after a successful week-10 pipeline run.
@@ -480,7 +493,12 @@ def _pick_ncaaf_signals() -> dict[str, Any]:
             doc = json.loads(doc_path.read_text())
             art_ts = parse_commence(art.get("generated_at"))
             doc_ts = parse_commence(doc.get("generated_at"))
-            if art_ts and doc_ts and art_ts > doc_ts:
+            if (
+                art_ts
+                and doc_ts
+                and art_ts > doc_ts
+                and is_ncaaf_payload_publishable(art)
+            ):
                 return _strip_demo_signals(art)
         except (OSError, json.JSONDecodeError):
             pass
@@ -493,6 +511,16 @@ def publish_ncaaf_board_docs(
     docs_dir: Path | None = None,
 ) -> None:
     """Write the in-memory NCAAF pipeline payload to committed docs/ JSON (not via _pick)."""
+    from sharp_scout.ncaaf.publish_gate import (
+        decide_ncaaf_publish,
+        is_ncaaf_payload_publishable,
+        log_publish_blocked,
+    )
+
+    if not is_ncaaf_payload_publishable(payload):
+        skip_pbp = bool(payload.get("skip_pbp"))
+        log_publish_blocked(decide_ncaaf_publish(payload, skip_pbp=skip_pbp))
+        return
     out = docs_dir or DOCS_DIR
     out.mkdir(parents=True, exist_ok=True)
     sig = _strip_demo_signals(payload)

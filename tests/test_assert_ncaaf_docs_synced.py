@@ -36,6 +36,28 @@ def test_assert_fails_when_docs_older_than_artifact(tmp_path, monkeypatch):
         mod.main()
 
 
+def test_assert_skips_when_artifact_unpublishable(tmp_path, monkeypatch):
+    art = tmp_path / "artifacts"
+    doc = tmp_path / "docs"
+    art.mkdir(parents=True)
+    doc.mkdir(parents=True)
+    stale = {"generated_at": "2026-10-27T19:56:00+00:00", "week": 9}
+    fresh = {
+        "generated_at": "2026-10-31T14:04:00+00:00",
+        "week": 10,
+        "publishable": False,
+        "publish_block_reason": "skip_pbp",
+    }
+    (art / "latest_ncaaf_signals.json").write_text(json.dumps(fresh))
+    (doc / "latest_ncaaf_signals.json").write_text(json.dumps(stale))
+
+    from scripts import assert_ncaaf_docs_synced as mod
+
+    monkeypatch.setattr(mod, "ARTIFACTS_DIR", art)
+    monkeypatch.setattr(mod, "DOCS_DIR", doc)
+    mod.main()
+
+
 def test_assert_passes_when_docs_match_artifact(tmp_path, monkeypatch):
     art = tmp_path / "artifacts"
     doc = tmp_path / "docs"

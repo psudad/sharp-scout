@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from sharp_scout.site.build import build_site
+from sharp_scout.site.landing_page import _landing_team_display
 
 
 @pytest.fixture()
@@ -83,3 +84,55 @@ def test_landing_model_leans_section(site: Path):
     html = (site / "index.html").read_text()
     assert "Model leans" in html
     assert "Lean only" in html
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("North Carolina Tar Heels", "North Carolina"),
+        ("Notre Dame Fighting Irish", "Notre Dame"),
+        ("Oklahoma State Cowboys", "Oklahoma State"),
+        ("Texas State Bobcats", "Texas State"),
+        ("UCLA Bruins", "UCLA"),
+        ("LSU Tigers", "LSU"),
+        ("Indiana State Sycamores", "Indiana State"),
+    ],
+)
+def test_landing_team_display_ncaaf_full_names(name: str, expected: str):
+    assert _landing_team_display(name, sport="ncaaf") == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("UNC", "North Carolina"),
+        ("NAVY", "Navy"),
+        ("LIB", "Liberty"),
+        ("ND", "Notre Dame"),
+        ("UCLA", "UCLA"),
+        ("LSU", "LSU"),
+        ("INST", "Indiana State"),
+        ("MOST", "Missouri State"),
+    ],
+)
+def test_landing_team_display_ncaaf_bare_codes(name: str, expected: str):
+    assert _landing_team_display(name, sport="ncaaf") == expected
+
+
+def test_landing_team_display_ncaaf_never_title_cases_codes():
+    assert _landing_team_display("unc", sport="ncaaf") == "North Carolina"
+    assert _landing_team_display("ucla", sport="ncaaf") == "UCLA"
+    assert _landing_team_display("lsu", sport="ncaaf") == "LSU"
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("MIA", "MIA"),
+        ("Miami Dolphins", "MIA"),
+    ],
+)
+def test_landing_team_display_nfl_codes(name: str, expected: str):
+    assert _landing_team_display(name, sport="nfl") == expected
+
+

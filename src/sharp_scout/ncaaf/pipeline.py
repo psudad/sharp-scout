@@ -253,6 +253,7 @@ def run_ncaaf_pipeline(
         "sport": "ncaaf",
         "season": season,
         "week": week,
+        "skip_pbp": skip_pbp,
         "demo": demo or not settings.odds_api_key,
         "n_games": len(game_results),
         "n_candidates": len(all_signals),
@@ -282,7 +283,10 @@ def run_ncaaf_pipeline(
         _persist(rating_rows, validated)
 
     ledger_path = DATA_DIR / sport.ledger_name
-    if update_ledger:
+    from sharp_scout.ncaaf.publish_gate import may_append_ncaaf_ledger
+
+    ledger_ok = may_append_ncaaf_ledger(payload, skip_pbp=skip_pbp, demo=demo)
+    if update_ledger and ledger_ok:
         from sharp_scout.ledger.tracker import append_signals, append_stage_cards, compute_record
 
         from sharp_scout.qa.product_gate import select_certified_plays, select_shadow_plays
@@ -310,6 +314,12 @@ def run_ncaaf_pipeline(
             refresh_ledger_closing_lines(ledger_path)
         except Exception as exc:  # noqa: BLE001
             logger.warning("CLV refresh skipped: %s", exc)
+    elif update_ledger and not ledger_ok:
+        logger.error(
+            "Skipping NCAAF ledger append — provenance gate failed (demo=%s skip_pbp=%s)",
+            demo or payload.get("demo"),
+            skip_pbp,
+        )
 
     from sharp_scout.qa.gate import apply_qa_gate
 
@@ -323,12 +333,30 @@ def run_ncaaf_pipeline(
     if qa_result.block_deploy:
         logger.warning("QA gate Layer 1 failed: %s", [i.message for i in qa_result.layer1_issues])
 
+    from sharp_scout.ncaaf.publish_gate import (
+        decide_ncaaf_publish,
+        log_publish_blocked,
+        publish_block_summary,
+        stamp_publishable,
+    )
+
+    publish_decision = decide_ncaaf_publish(payload, skip_pbp=skip_pbp, qa_result=qa_result)
+    stamp_publishable(payload, publish_decision)
+    out_path.write_text(json.dumps(payload, indent=2, default=str))
+
     if build_pages:
         from sharp_scout.site.build import build_site, publish_ncaaf_board_docs
 
-        publish_ncaaf_board_docs(payload)
-        payload["site"] = str(build_site())
-        logger.info("Rebuilt GitHub Pages with NCAAF board")
+        if publish_decision.publishable:
+            publish_ncaaf_board_docs(payload)
+            payload["site"] = str(build_site())
+            logger.info("Rebuilt GitHub Pages with NCAAF board")
+        else:
+            log_publish_blocked(publish_decision)
+            payload["site"] = str(build_site())
+            payload["publish_blocked"] = True
+            payload["publish_block_summary"] = publish_block_summary(publish_decision)
+            logger.error(payload["publish_block_summary"])
 
     try:
         from sharp_scout.ncaaf.shadow.capture import record_from_pipeline

@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.config import ARTIFACTS_DIR  # noqa: E402
+from sharp_scout.ncaaf.publish_gate import is_ncaaf_payload_publishable  # noqa: E402
 from sharp_scout.site.build import DOCS_DIR  # noqa: E402
 from sharp_scout.sports import NCAAF  # noqa: E402
 from sharp_scout.utils.slate import parse_commence  # noqa: E402
@@ -26,6 +27,12 @@ def main() -> None:
         raise SystemExit(f"Missing {doc_path} after NCAAF run (artifact exists)")
 
     art = json.loads(art_path.read_text())
+    if not is_ncaaf_payload_publishable(art):
+        reason = art.get("publish_block_reason") or "publishable=false"
+        print(
+            f"NCAAF artifact not publishable ({reason}) — keeping existing docs/ board unchanged"
+        )
+        return
     doc = json.loads(doc_path.read_text())
     art_ts = parse_commence(art.get("generated_at"))
     doc_ts = parse_commence(doc.get("generated_at"))

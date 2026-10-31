@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -29,9 +30,14 @@ def main() -> None:
         help="Include all posted Odds API games (default: current college week only)",
     )
     args = p.parse_args()
+    demo = args.demo or os.environ.get("SHARP_SCOUT_DEMO", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
 
     result = run_ncaaf_pipeline(
-        demo=args.demo,
+        demo=demo,
         persist=not args.no_persist,
         skip_pbp=args.skip_pbp or args.demo,
         update_ledger=not args.no_ledger,
@@ -63,6 +69,10 @@ def main() -> None:
         ],
     }
     print(json.dumps(summary, indent=2))
+    if result.get("publish_blocked"):
+        print(result.get("publish_block_summary") or "NCAAF publish blocked", file=sys.stderr)
+        # Non-zero signals CI, but docs/ were intentionally left unchanged.
+        sys.exit(1)
 
 
 if __name__ == "__main__":

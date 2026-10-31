@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
       skip_pbp:
-        description: "Skip nflverse / cfbfastR PBP download"
+        description: "Skip nflverse / cfbfastR PBP download (NCAAF: placeholder ratings; will NOT publish CFB plays to docs/ or append ledger locks)"
         type: boolean
         default: false
 
@@ -85,7 +85,15 @@ jobs:
           elif [ "${{ inputs.skip_pbp }}" = "true" ]; then
             ARGS="$ARGS --skip-pbp"
           fi
+          set +e
           python scripts/run_ncaaf.py $ARGS
+          RC=$?
+          set -e
+          if [ "$RC" -eq 1 ]; then
+            echo "::warning::NCAAF pipeline finished but docs publish was blocked (see log above)."
+          elif [ "$RC" -ne 0 ]; then
+            exit "$RC"
+          fi
           chmod +x scripts/stamp_ncaaf_rebuild_state.sh
           scripts/stamp_ncaaf_rebuild_state.sh
 

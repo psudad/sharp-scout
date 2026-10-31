@@ -24,8 +24,22 @@ PLAN_PATH = ROOT / "data" / "ncaaf_line_plan.json"
 STALE_AFTER = timedelta(hours=2)
 # Align with check_ncaaf_snapshot_plan — avoids duplicate full runs when crons cluster.
 REBUILD_THROTTLE = timedelta(minutes=45)
-# ncaaf.yml backup slots (+25 / +50 min after primary): skip if primary already refreshed.
-BACKUP_MIN_AGE = timedelta(minutes=20)
+# ncaaf.yml: skip a delayed primary if a backup (or other run) refreshed recently.
+PRIMARY_SLOT_RECENT = timedelta(minutes=40)
+# Backups skip when last_rebuild is at/after (nominal primary UTC − slack).
+PRIMARY_SLOT_SLACK = timedelta(minutes=5)
+
+# Backup cron → nominal primary fire (hour, minute) UTC for the same calendar day.
+BACKUP_TO_PRIMARY_UTC: dict[str, tuple[int, int]] = {
+    "32 15 * * 1-6": (15, 7),
+    "57 15 * * 1-6": (15, 7),
+    "48 18 * * 6": (18, 23),
+    "13 19 * * 6": (18, 23),
+    "32 22 * * 5,6": (22, 7),
+    "57 22 * * 5,6": (22, 7),
+    "32 12 * * 0": (12, 7),
+    "57 12 * * 0": (12, 7),
+}
 
 
 def _parse_ts(raw: str | None) -> datetime | None:
@@ -51,25 +65,88 @@ def last_rebuild_at() -> datetime | None:
         return None
 
 
-def needs_pipeline_backup_refresh(
+def _github_utc_dow(dt: datetime) -> int:
+    return (dt.weekday() + 1) % 7
+
+
+def _cron_dow_matches(dt: datetime, dow_field: str) -> bool:
+    if dow_field == "*":
+        return True
+    allowed: set[int] = set()
+    for part in dow_field.split(","):
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            allowed.update(range(int(start_s), int(end_s) + 1))
+        else:
+            allowed.add(int(part))
+    return _github_utc_dow(dt) in allowed
+
+
+def nominal_primary_utc_for_backup(backup_cron: str, now: datetime) -> datetime | None:
+    """Today's nominal primary UTC time for this backup line, or None if DOW does not match."""
+    backup_cron = backup_cron.strip()
+    hm = BACKUP_TO_PRIMARY_UTC.get(backup_cron)
+    if hm is None:
+        return None
+    parts = backup_cron.split()
+    if len(parts) != 5:
+        return None
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    if not _cron_dow_matches(now, parts[4]):
+        return None
+    hour, minute = hm
+    return datetime(now.year, now.month, now.day, hour, minute, tzinfo=timezone.utc)
+
+
+def should_run_primary_slot(
     *,
+    cron: str,
     now: datetime | None = None,
-    min_age: timedelta = BACKUP_MIN_AGE,
 ) -> bool:
-    """True when a scheduled ncaaf.yml *backup* slot should run (primary did not refresh recently)."""
+    """False when GitHub starts a primary late but a rebuild already happened (e.g. backup)."""
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
     last = last_rebuild_at()
+    if last is not None and (now - last) < PRIMARY_SLOT_RECENT:
+        print(
+            f"Primary skip: last_rebuild {last.isoformat()} "
+            f"({(now - last).total_seconds() / 60:.0f}m ago, within {PRIMARY_SLOT_RECENT.total_seconds() / 60:.0f}m)"
+        )
+        return False
+    return True
+
+
+def needs_pipeline_backup_refresh(
+    *,
+    now: datetime | None = None,
+    backup_cron: str,
+) -> bool:
+    """True when no rebuild since this window's nominal primary time (± slack)."""
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    primary_at = nominal_primary_utc_for_backup(backup_cron, now)
+    if primary_at is None:
+        print(f"Backup cron {backup_cron!r} does not apply today — skip")
+        return False
+    cutoff = primary_at - PRIMARY_SLOT_SLACK
+    last = last_rebuild_at()
     if last is None:
-        print("No last_rebuild — backup slot will run")
+        print(f"No last_rebuild — backup {backup_cron!r} runs (primary was {primary_at.isoformat()})")
         return True
-    age = now - last
-    if age >= min_age:
-        print(f"last_rebuild {last.isoformat()} is {age.total_seconds() / 60:.0f}m old — backup runs")
-        return True
-    print(f"last_rebuild {last.isoformat()} is fresh ({age.total_seconds() / 60:.0f}m ago) — skip backup")
-    return False
+    if last >= cutoff:
+        print(
+            f"Backup skip: last_rebuild {last.isoformat()} >= primary window start {cutoff.isoformat()} "
+            f"(nominal primary {primary_at.isoformat()})"
+        )
+        return False
+    print(
+        f"Backup run: last_rebuild {last.isoformat()} before primary window {cutoff.isoformat()} "
+        f"(nominal primary {primary_at.isoformat()})"
+    )
+    return True
 
 
 def _kickoffs_today_et(plan: dict, now: datetime) -> bool:

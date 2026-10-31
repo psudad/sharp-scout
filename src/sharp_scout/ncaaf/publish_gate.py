@@ -3,18 +3,12 @@
 from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass
 from typing import Any
 
 from sharp_scout.qa.gate import MIN_RATED_TEAMS_NCAAF
 
 logger = logging.getLogger(__name__)
-
-
-def demo_run_allowed() -> bool:
-    """Explicit opt-in for local demo / skip-pbp runs (does not enable docs publish)."""
-    return os.environ.get("SHARP_SCOUT_DEMO", "").strip().lower() in ("1", "true", "yes")
 
 
 @dataclass(frozen=True)

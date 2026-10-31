@@ -340,7 +340,7 @@ def run_ncaaf_pipeline(
         stamp_publishable,
     )
 
-    publish_decision = decide_ncaaf_publish(payload, skip_pbp=skip_pbp, qa_result=qa_result)
+    publish_decision = decide_ncaaf_publish(payload, skip_pbp=skip_pbp)
     stamp_publishable(payload, publish_decision)
     out_path.write_text(json.dumps(payload, indent=2, default=str))
 

@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-from sharp_scout.qa.gate import MIN_RATED_TEAMS_NCAAF, QAGateResult, review_signals
+from sharp_scout.qa.gate import MIN_RATED_TEAMS_NCAAF
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +30,13 @@ def decide_ncaaf_publish(
     payload: dict[str, Any],
     *,
     skip_pbp: bool = False,
-    qa_result: QAGateResult | None = None,
 ) -> NcaafPublishDecision:
-    """Return whether this pipeline payload may be written to committed docs/."""
+    """Return whether this pipeline payload may be written to committed docs/.
+
+    Only the approved provenance checks: demo mode, skip_pbp, or fewer than 80 rated
+    teams. Other QA Layer 1 failures are logged by ``apply_qa_gate`` but do not block
+    publishing here.
+    """
     n_teams = len(payload.get("ratings") or [])
     threshold = MIN_RATED_TEAMS_NCAAF
 
@@ -50,14 +54,6 @@ def decide_ncaaf_publish(
             skip_pbp,
         )
 
-    if qa_result is not None:
-        if qa_result.block_deploy:
-            return NcaafPublishDecision(False, "qa_layer1", n_teams, skip_pbp)
-    else:
-        layer1 = review_signals(payload, sport="ncaaf", allow_demo=False)
-        if any(i.severity == "block" for i in layer1):
-            return NcaafPublishDecision(False, "qa_layer1", n_teams, skip_pbp)
-
     return NcaafPublishDecision(True, "ok", n_teams, skip_pbp)
 
 
@@ -68,12 +64,7 @@ def may_append_ncaaf_ledger(
     demo: bool = False,
 ) -> bool:
     """Ledger locks / paper rows require the same provenance as a public board publish."""
-    if demo or payload.get("demo"):
-        return False
-    if skip_pbp:
-        return False
-    layer1 = review_signals(payload, sport="ncaaf", allow_demo=False)
-    return not any(i.severity == "block" for i in layer1)
+    return decide_ncaaf_publish(payload, skip_pbp=skip_pbp).publishable and not demo
 
 
 def stamp_publishable(payload: dict[str, Any], decision: NcaafPublishDecision) -> None:

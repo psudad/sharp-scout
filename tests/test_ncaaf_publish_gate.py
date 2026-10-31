@@ -16,9 +16,19 @@ from sharp_scout.ncaaf.publish_gate import (
     is_ncaaf_payload_publishable,
     stamp_publishable,
 )
-from sharp_scout.qa.gate import MIN_RATED_TEAMS_NCAAF, QAGateResult
+from sharp_scout.qa.gate import MIN_RATED_TEAMS_NCAAF
 from sharp_scout.site import build as site_build
 from sharp_scout.site.build import publish_ncaaf_board_docs
+from sharp_scout.utils import teams as teams_mod
+
+
+@pytest.fixture(autouse=True)
+def _reset_learned_mascots():
+    """Pipeline integration tests call register_mascots; do not leak into other modules."""
+    saved = set(teams_mod._LEARNED_MASCOTS)
+    yield
+    teams_mod._LEARNED_MASCOTS.clear()
+    teams_mod._LEARNED_MASCOTS.update(saved)
 
 
 def _good_ratings(n: int = MIN_RATED_TEAMS_NCAAF) -> list[dict]:
@@ -57,15 +67,16 @@ def test_decide_allows_full_ratings_without_skip_pbp():
     d = decide_ncaaf_publish(
         _payload(n_teams=MIN_RATED_TEAMS_NCAAF, skip_pbp=False),
         skip_pbp=False,
-        qa_result=QAGateResult(
-            sport="ncaaf",
-            layer1_passed=True,
-            layer1_issues=[],
-            play_reviews=[],
-            block_deploy=False,
-        ),
     )
     assert d.publishable
+
+
+def test_decide_allows_publish_when_other_layer1_would_block_game_count():
+    """Low game count blocks QA deploy but must not block NCAAF docs publish."""
+    payload = _payload(n_teams=MIN_RATED_TEAMS_NCAAF, skip_pbp=False, demo=False)
+    payload["n_games"] = 1
+    payload["games"] = [{}]
+    assert decide_ncaaf_publish(payload, skip_pbp=False).publishable
 
 
 def test_publish_ncaaf_board_docs_leaves_existing_docs_byte_identical(tmp_path, caplog):
@@ -105,20 +116,7 @@ def test_publish_ncaaf_board_docs_writes_when_publishable(tmp_path):
 
     good = _payload(n_teams=MIN_RATED_TEAMS_NCAAF, skip_pbp=False, demo=False)
     good["week"] = 10
-    stamp_publishable(
-        good,
-        decide_ncaaf_publish(
-            good,
-            skip_pbp=False,
-            qa_result=QAGateResult(
-            sport="ncaaf",
-            layer1_passed=True,
-            layer1_issues=[],
-            play_reviews=[],
-            block_deploy=False,
-        ),
-        ),
-    )
+    stamp_publishable(good, decide_ncaaf_publish(good, skip_pbp=False))
     publish_ncaaf_board_docs(good, docs_dir=docs)
     written = json.loads((docs / "latest_ncaaf_signals.json").read_text())
     assert written["week"] == 10

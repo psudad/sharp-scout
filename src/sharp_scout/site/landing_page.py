@@ -12,7 +12,7 @@ from sharp_scout.copy.explain import (
     kickoff_sort_key,
     _signal_rank,
 )
-from sharp_scout.utils.teams import ncaaf_display_code
+from sharp_scout.utils.teams import ncaaf_landing_display
 from sharp_scout.utils.odds import normalize_team
 from sharp_scout.site.bottom_bar import (
     BOTTOM_BAR_SCRIPT,
@@ -59,7 +59,7 @@ def _landing_team_display(name: str, *, sport: str) -> str:
     if not raw:
         return ""
     if sport == "ncaaf":
-        return ncaaf_display_code(raw)
+        return ncaaf_landing_display(raw)
     return normalize_team(raw, "nfl") or raw
 
 

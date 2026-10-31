@@ -89,16 +89,40 @@ def test_landing_model_leans_section(site: Path):
 @pytest.mark.parametrize(
     ("name", "expected"),
     [
-        ("UNC", "UNC"),
-        ("UCLA", "UCLA"),
-        ("ND", "ND"),
-        ("LIB", "LIB"),
-        ("North Carolina Tar Heels", "UNC"),
-        ("Notre Dame Fighting Irish", "ND"),
+        ("North Carolina Tar Heels", "North Carolina"),
+        ("Notre Dame Fighting Irish", "Notre Dame"),
+        ("Oklahoma State Cowboys", "Oklahoma State"),
+        ("Texas State Bobcats", "Texas State"),
+        ("UCLA Bruins", "UCLA"),
+        ("LSU Tigers", "LSU"),
+        ("Indiana State Sycamores", "Indiana State"),
     ],
 )
-def test_landing_team_display_ncaaf_codes(name: str, expected: str):
+def test_landing_team_display_ncaaf_full_names(name: str, expected: str):
     assert _landing_team_display(name, sport="ncaaf") == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("UNC", "North Carolina"),
+        ("NAVY", "Navy"),
+        ("LIB", "Liberty"),
+        ("ND", "Notre Dame"),
+        ("UCLA", "UCLA"),
+        ("LSU", "LSU"),
+        ("INST", "Indiana State"),
+        ("MOST", "Missouri State"),
+    ],
+)
+def test_landing_team_display_ncaaf_bare_codes(name: str, expected: str):
+    assert _landing_team_display(name, sport="ncaaf") == expected
+
+
+def test_landing_team_display_ncaaf_never_title_cases_codes():
+    assert _landing_team_display("unc", sport="ncaaf") == "North Carolina"
+    assert _landing_team_display("ucla", sport="ncaaf") == "UCLA"
+    assert _landing_team_display("lsu", sport="ncaaf") == "LSU"
 
 
 @pytest.mark.parametrize(
@@ -112,7 +136,3 @@ def test_landing_team_display_nfl_codes(name: str, expected: str):
     assert _landing_team_display(name, sport="nfl") == expected
 
 
-def test_landing_team_display_ncaaf_registered_short_codes():
-    assert _landing_team_display("Indiana State Sycamores", sport="ncaaf") == "INST"
-    assert _landing_team_display("Missouri State Bears", sport="ncaaf") == "MOST"
-    assert _landing_team_display("Tennessee State Tigers", sport="ncaaf") == "TNST"

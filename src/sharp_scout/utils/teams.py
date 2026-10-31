@@ -180,7 +180,6 @@ _MASCOTS = {
     "SKYHAWKS",
     "GOLDEN BEARS",
     "FIGHTING CAMELS",
-    "FLAMES",
 }
 
 # Maps school / nickname / Odds API full name → stable code
@@ -929,6 +928,17 @@ _NCAF_LANDING_LABEL_OVERRIDES: dict[str, str] = {
     "CONNECTICUT": "Connecticut",
 }
 
+# Landing-page only — not used by normalize_ncaaf / team matching.
+_NCAF_LANDING_EXTRA_MASCOTS: frozenset[str] = frozenset({"FLAMES"})
+
+
+def _strip_mascot_for_landing(name: str) -> str:
+    up = _strip_mascot(name)
+    for mascot in sorted(_NCAF_LANDING_EXTRA_MASCOTS, key=len, reverse=True):
+        if up.endswith(" " + mascot):
+            return up[: -len(mascot) - 1].strip()
+    return up
+
 
 def _best_ncaaf_school_label_for_code(canon: str) -> str | None:
     """Longest reasonable alias school name for a short canonical code."""
@@ -938,8 +948,8 @@ def _best_ncaaf_school_label_for_code(canon: str) -> str | None:
     for key, val in NCAAF_ALIASES.items():
         if val != canon:
             continue
-        candidates.add(_simplify_punct(_strip_mascot(key)))
-    candidates = {_simplify_punct(_strip_mascot(c)) for c in candidates}
+        candidates.add(_simplify_punct(_strip_mascot_for_landing(key)))
+    candidates = {_simplify_punct(_strip_mascot_for_landing(c)) for c in candidates}
     candidates.discard("")
     if len(candidates) > 1:
         candidates.discard(canon)
@@ -982,7 +992,7 @@ def ncaaf_landing_display(name: str) -> str:
     if not raw:
         return ""
     if " " in raw:
-        label_up = _simplify_punct(_strip_mascot(raw))
+        label_up = _simplify_punct(_strip_mascot_for_landing(raw))
         return _format_ncaaf_landing_label(label_up)
 
     canon = normalize_ncaaf(raw)

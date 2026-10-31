@@ -904,6 +904,108 @@ def ncaaf_display_code(name: str) -> str:
     return "".join(p[0] for p in parts)[:6]
 
 
+# School labels that stay all-caps on the human-readable landing page (not .title()).
+_NCAF_LANDING_ACRONYM_CODES: frozenset[str] = frozenset(
+    {
+        "UCLA",
+        "LSU",
+        "UCF",
+        "SMU",
+        "BYU",
+        "TCU",
+        "UNLV",
+        "UTEP",
+        "UTSA",
+        "UAB",
+        "FIU",
+        "USC",
+        "UCONN",
+    }
+)
+
+_NCAF_LANDING_LABEL_OVERRIDES: dict[str, str] = {
+    "UCONN": "UConn",
+    "CONNECTICUT": "Connecticut",
+}
+
+# Landing-page only — not used by normalize_ncaaf / team matching.
+_NCAF_LANDING_EXTRA_MASCOTS: frozenset[str] = frozenset({"FLAMES"})
+
+
+def _strip_mascot_for_landing(name: str) -> str:
+    up = _strip_mascot(name)
+    for mascot in sorted(_NCAF_LANDING_EXTRA_MASCOTS, key=len, reverse=True):
+        if up.endswith(" " + mascot):
+            return up[: -len(mascot) - 1].strip()
+    return up
+
+
+def _best_ncaaf_school_label_for_code(canon: str) -> str | None:
+    """Longest reasonable alias school name for a short canonical code."""
+    if canon in _NCAF_LANDING_ACRONYM_CODES:
+        return None
+    candidates: set[str] = set()
+    for key, val in NCAAF_ALIASES.items():
+        if val != canon:
+            continue
+        candidates.add(_simplify_punct(_strip_mascot_for_landing(key)))
+    candidates = {_simplify_punct(_strip_mascot_for_landing(c)) for c in candidates}
+    candidates.discard("")
+    if len(candidates) > 1:
+        candidates.discard(canon)
+    if not candidates:
+        return None
+    with_space = [c for c in candidates if " " in c]
+    if with_space:
+        return min(with_space, key=len)
+    return min(candidates, key=len)
+
+
+def _format_ncaaf_landing_label(label_up: str) -> str:
+    """Human-readable landing label; never title-case known acronym schools."""
+    label_up = re.sub(r"\s+", " ", (label_up or "").strip().upper())
+    if not label_up:
+        return ""
+    if label_up in _NCAF_LANDING_LABEL_OVERRIDES:
+        return _NCAF_LANDING_LABEL_OVERRIDES[label_up]
+    if label_up in _NCAF_LANDING_ACRONYM_CODES:
+        return label_up
+    parts = label_up.split()
+    if len(parts) == 1:
+        return parts[0].capitalize()
+    formatted: list[str] = []
+    for part in parts:
+        if part in _NCAF_LANDING_ACRONYM_CODES:
+            formatted.append(part)
+        elif part in _NCAF_LANDING_LABEL_OVERRIDES:
+            formatted.append(_NCAF_LANDING_LABEL_OVERRIDES[part])
+        elif part in {"AND", "OF"}:
+            formatted.append(part.lower())
+        else:
+            formatted.append(part.capitalize())
+    return " ".join(formatted)
+
+
+def ncaaf_landing_display(name: str) -> str:
+    """Readable NCAAF team label for landing cards (not dense board codes)."""
+    raw = str(name or "").strip()
+    if not raw:
+        return ""
+    if " " in raw:
+        label_up = _simplify_punct(_strip_mascot_for_landing(raw))
+        return _format_ncaaf_landing_label(label_up)
+
+    canon = normalize_ncaaf(raw)
+    if " " in canon:
+        return _format_ncaaf_landing_label(canon)
+    if canon in _NCAF_LANDING_ACRONYM_CODES:
+        return _format_ncaaf_landing_label(canon)
+    school_up = _best_ncaaf_school_label_for_code(canon)
+    if school_up:
+        return _format_ncaaf_landing_label(school_up)
+    return raw.upper()
+
+
 def team_search_tokens(name: str, *, sport: str = "nfl") -> set[str]:
     """Lowercase tokens used to match user search queries on the board."""
     if not name:

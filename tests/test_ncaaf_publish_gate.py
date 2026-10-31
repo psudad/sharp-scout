@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -12,6 +13,7 @@ import pytest
 
 from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR
 from sharp_scout.ncaaf.publish_gate import (
+    EXIT_PUBLISH_BLOCKED,
     decide_ncaaf_publish,
     is_ncaaf_payload_publishable,
     stamp_publishable,
@@ -172,6 +174,108 @@ def test_pick_ncaaf_ignores_unpublishable_newer_artifact(tmp_path, monkeypatch):
 def test_is_ncaaf_payload_publishable_defaults_true_for_legacy():
     assert is_ncaaf_payload_publishable({"n_games": 1, "games": [{}]})
     assert not is_ncaaf_payload_publishable({"publishable": False})
+
+
+def test_run_ncaaf_cli_exits_publish_blocked_code(monkeypatch):
+    root = Path(__file__).resolve().parents[1]
+    sys.path.insert(0, str(root / "scripts"))
+    sys.path.insert(0, str(root / "src"))
+    import run_ncaaf as cli  # noqa: E402
+
+    monkeypatch.setattr(
+        cli,
+        "run_ncaaf_pipeline",
+        lambda **_: {
+            "generated_at": "2026-01-01T00:00:00+00:00",
+            "demo": False,
+            "n_games": 0,
+            "n_candidates": 0,
+            "n_validated": 0,
+            "plays": [],
+            "publish_blocked": True,
+            "publish_block_summary": "blocked",
+        },
+    )
+    monkeypatch.setattr(sys, "argv", ["run_ncaaf.py", "--build-site"])
+    with pytest.raises(SystemExit) as exc:
+        cli.main()
+    assert exc.value.code == EXIT_PUBLISH_BLOCKED
+
+
+def test_ncaaf_ci_post_run_blocked_skips_stamp(tmp_path):
+    import subprocess
+
+    root = Path(__file__).resolve().parents[1]
+    repo_stamp = root / "data" / "ncaaf_rebuild_state.json"
+    before = repo_stamp.read_text() if repo_stamp.exists() else ""
+    proc = subprocess.run(
+        ["bash", str(root / "scripts" / "ncaaf_ci_post_run.sh"), str(EXIT_PUBLISH_BLOCKED)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0
+    assert "publish was blocked" in proc.stdout
+    after = repo_stamp.read_text() if repo_stamp.exists() else ""
+    assert before == after
+
+
+def test_ncaaf_ci_post_run_propagates_real_failure(tmp_path):
+    import subprocess
+
+    root = Path(__file__).resolve().parents[1]
+    proc = subprocess.run(
+        ["bash", str(root / "scripts" / "ncaaf_ci_post_run.sh"), "1"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 1
+
+
+def test_ncaaf_ci_post_run_success_stamps(tmp_path):
+    import subprocess
+
+    root = Path(__file__).resolve().parents[1]
+    stamp = tmp_path / "data" / "ncaaf_rebuild_state.json"
+    stamp.parent.mkdir(parents=True)
+    wrapper = tmp_path / "ncaaf_ci_post_run.sh"
+    wrapper.write_text(
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+PUBLISH_BLOCKED={EXIT_PUBLISH_BLOCKED}
+RC="${{1:?}}"
+if [ "$RC" -eq "$PUBLISH_BLOCKED" ]; then exit 0; fi
+if [ "$RC" -ne 0 ]; then exit "$RC"; fi
+bash "{root / "scripts/stamp_ncaaf_rebuild_state.sh"}"
+"""
+    )
+    wrapper.chmod(0o755)
+    env = {"ROOT": str(tmp_path)}
+    # stamp script resolves ROOT from its own path — copy a minimal stamp for tmp_path
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "stamp_ncaaf_rebuild_state.sh").write_text(
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p "{tmp_path / "data"}"
+printf '{{"last_rebuild": "%s"}}\\n' "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" > "{stamp}"
+"""
+    )
+    (tmp_path / "scripts" / "stamp_ncaaf_rebuild_state.sh").chmod(0o755)
+    post = tmp_path / "post.sh"
+    post.write_text(
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+PUBLISH_BLOCKED={EXIT_PUBLISH_BLOCKED}
+RC="${{1:?}}"
+if [ "$RC" -eq "$PUBLISH_BLOCKED" ]; then exit 0; fi
+if [ "$RC" -ne 0 ]; then exit "$RC"; fi
+bash "{tmp_path / "scripts/stamp_ncaaf_rebuild_state.sh"}"
+"""
+    )
+    post.chmod(0o755)
+    subprocess.run([str(post), "0"], check=True)
+    assert stamp.exists()
 
 
 def test_pipeline_skip_pbp_blocks_docs_publish(tmp_path, monkeypatch):

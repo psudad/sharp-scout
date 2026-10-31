@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.ncaaf.pipeline import run_ncaaf_pipeline  # noqa: E402
+from sharp_scout.ncaaf.publish_gate import EXIT_PUBLISH_BLOCKED  # noqa: E402
 
 
 def main() -> None:
@@ -71,8 +72,7 @@ def main() -> None:
     print(json.dumps(summary, indent=2))
     if result.get("publish_blocked"):
         print(result.get("publish_block_summary") or "NCAAF publish blocked", file=sys.stderr)
-        # Non-zero signals CI, but docs/ were intentionally left unchanged.
-        sys.exit(1)
+        sys.exit(EXIT_PUBLISH_BLOCKED)
 
 
 if __name__ == "__main__":

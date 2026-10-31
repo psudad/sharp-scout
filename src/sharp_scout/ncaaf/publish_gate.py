@@ -10,6 +10,11 @@ from sharp_scout.qa.gate import MIN_RATED_TEAMS_NCAAF
 
 logger = logging.getLogger(__name__)
 
+# CLI exit code when the pipeline completes but docs/ publish was blocked.
+# GitHub Actions workflows treat only this code as a non-fatal publish skip (see
+# scripts/ncaaf_ci_post_run.sh). Must stay in sync with that script.
+EXIT_PUBLISH_BLOCKED = 3
+
 
 @dataclass(frozen=True)
 class NcaafPublishDecision:

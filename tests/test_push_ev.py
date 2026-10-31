@@ -1,4 +1,4 @@
-"""Regression: push-aware EV must not double-count push mass."""
+"""Regression: symmetric push-aware anchoring and EV on whole-number lines."""
 
 from __future__ import annotations
 
@@ -11,7 +11,13 @@ from sharp_scout.phase2.monte_carlo import (
     simulate_game,
 )
 from sharp_scout.phase3.market import anchor_probability
-from sharp_scout.utils.odds import expected_value, expected_value_with_push
+from sharp_scout.utils.odds import (
+    expected_value,
+    expected_value_whole_line_cond,
+    expected_value_with_push,
+    marginal_win_prob,
+    win_prob_to_conditional,
+)
 
 
 def _ev_three_way(p_win: float, p_push: float, price: float = -110.0) -> float:
@@ -35,21 +41,39 @@ def sim():
     )
 
 
-def test_home_minus_13_no_double_push_in_ev(sim):
+def test_symmetric_fifty_fifty_market_equal_ev():
+    """Two-way no-vig 50/50 at -110/-110: same p_cond and p_push => same EV all sides."""
+    p_push = 0.03
+    p_cond = 0.5
+    price = -110.0
+    ev_spread_home = expected_value_whole_line_cond(p_cond, price, p_push)
+    ev_spread_away = expected_value_whole_line_cond(p_cond, price, p_push)
+    ev_over = expected_value_whole_line_cond(p_cond, price, p_push)
+    ev_under = expected_value_whole_line_cond(p_cond, price, p_push)
+    assert ev_spread_home == pytest.approx(ev_spread_away, abs=1e-12)
+    assert ev_over == pytest.approx(ev_under, abs=1e-12)
+    assert ev_spread_home == pytest.approx(ev_over, abs=1e-12)
+
+
+def test_home_minus_13_conditional_ev(sim):
     p_win = p_true_for_market(sim, "spreads", "home", -13.0, sport="ncaaf")
     p_push = p_push_for_market(sim, "spreads", "home", -13.0, sport="ncaaf")
-    p_true = anchor_probability(p_win, 0.5286, 0.35, 0.03)
-    ev_home_rule = expected_value(p_true, -110.0)
-    ev_double = expected_value(p_true, -110.0) + p_push
-    assert ev_double - ev_home_rule == pytest.approx(p_push, abs=0.001)
-    # Win-only three-way EV is lower; home spread uses p_true EV without extra +p_push.
-    assert ev_home_rule > expected_value_with_push(p_win, -110.0, p_push)
+    p_cond = win_prob_to_conditional(p_win, p_push)
+    p_cond = anchor_probability(p_cond, 0.5286, 0.35, 0.03)
+    p_marg = marginal_win_prob(p_cond, p_push)
+    ev = expected_value_whole_line_cond(p_cond, -110.0, p_push)
+    assert ev == pytest.approx(_ev_three_way(p_marg, p_push), abs=1e-9)
+    assert ev == pytest.approx(expected_value_with_push(p_marg, -110.0, p_push), abs=1e-9)
+    # Pre-#127 double-count path on wrongly anchored marginal p_true.
+    wrong_marg = anchor_probability(p_win, 0.5286, 0.35, 0.03)
+    assert expected_value(wrong_marg, -110.0) + p_push > ev + 0.01
 
 
 def test_away_plus_3_ev_matches_three_way(sim):
     p_win = p_true_for_market(sim, "spreads", "away", 3.0, sport="ncaaf")
     p_push = p_push_for_market(sim, "spreads", "away", 3.0, sport="ncaaf")
-    edge = expected_value_with_push(p_win, -110.0, p_push)
+    p_cond = win_prob_to_conditional(p_win, p_push)
+    edge = expected_value_whole_line_cond(p_cond, -110.0, p_push)
     assert edge == pytest.approx(_ev_three_way(p_win, p_push), abs=1e-9)
     legacy_p = 1.0 - _interp_prob(sim.cover_probs, -3.0)
     legacy_ev = expected_value(legacy_p, -110.0) + p_push
@@ -60,7 +84,8 @@ def test_whole_total_49_over_under(sim):
     for side in ("over", "under"):
         p_win = p_true_for_market(sim, "totals", side, 49.0)
         p_push = p_push_for_market(sim, "totals", side, 49.0)
-        edge = expected_value_with_push(p_win, -110.0, p_push)
+        p_cond = win_prob_to_conditional(p_win, p_push)
+        edge = expected_value_whole_line_cond(p_cond, -110.0, p_push)
         assert edge == pytest.approx(_ev_three_way(p_win, p_push), abs=1e-9)
 
 

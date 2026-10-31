@@ -25,7 +25,7 @@ def main() -> None:
     ap.add_argument(
         "--workflow",
         required=True,
-        choices=("pregame", "props", "ncaaf-lines"),
+        choices=("pregame", "props", "ncaaf-lines", "ncaaf-staleness"),
     )
     args = ap.parse_args()
     now = datetime.now(timezone.utc)

@@ -13,7 +13,7 @@ ODDS_CREDIT_RESUME_ET_DATE = date(2026, 10, 30)
 
 # One-off NFL Sunday scan during the pause (Nov 1 2026, EST — DST ends earlier that day).
 NOV1_2026_ET_DATE = date(2026, 11, 1)
-NOV1_NFL_PREGAME_CRON = "0 14 * * 0"  # 09:00 ET when EST (UTC-5); tolerate late GitHub starts
+NOV1_NFL_PREGAME_CRON = "7 14 * * 0"  # ~09:07 ET when EST (UTC-5); tolerate late GitHub starts
 NOV1_NOMINAL_ET = time(9, 0)
 DEFAULT_MAX_LATE_HOURS = 4.0
 

@@ -1,0 +1,117 @@
+name: NCAAF Staleness Guard
+
+# Lightweight scheduled check: if docs/latest_ncaaf_signals.json (or last rebuild)
+# is older than 2h on an NCAAF game day, run the full board pipeline. Queued behind
+# other repo commits via the shared concurrency group.
+
+on:
+  schedule:
+    - cron: "11,31,51 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: sharp-scout-main-commits
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.deployflag.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gate — odds credit pause (scheduled)
+        id: credit
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
+        run: python3 scripts/check_odds_credit_pause.py --workflow ncaaf-staleness
+
+      - name: Gate — staleness on game days only
+        id: stale
+        if: steps.credit.outputs.proceed == 'true'
+        run: python3 scripts/check_ncaaf_staleness.py
+
+      - uses: actions/setup-python@v5
+        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
+        run: pip install -e .
+
+      - name: Cache CFB play-by-play
+        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: data/cfb_pbp_cache
+          key: cfb-pbp-${{ github.run_id }}
+          restore-keys: |
+            cfb-pbp-
+
+      - name: Configure env
+        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
+        run: |
+          echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
+          echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
+          echo "ACTION_NETWORK_COOKIE=${{ secrets.ACTION_NETWORK_COOKIE }}" >> $GITHUB_ENV
+          echo "MONTE_CARLO_SIMS=5000" >> $GITHUB_ENV
+          echo "GA_MEASUREMENT_ID=${{ secrets.GA_MEASUREMENT_ID }}" >> $GITHUB_ENV
+
+      - name: Settle prior NCAAF plays
+        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
+        continue-on-error: true
+        run: python scripts/settle_plays.py --sport ncaaf --build-site
+
+      - name: Full NCAAF board refresh (stale guard)
+        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
+        run: |
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "No ODDS_API_KEY — skipping stale guard run"
+            exit 0
+          fi
+          python scripts/run_ncaaf.py --build-site
+          printf '{"last_rebuild": "%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" > data/ncaaf_rebuild_state.json
+
+      - id: deployflag
+        if: steps.credit.outputs.proceed == 'true'
+        run: |
+          if [ "${{ steps.stale.outputs.run }}" = "true" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit ledger + site
+        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          chmod +x scripts/ci_git_push_retry.sh scripts/ci_git_add_paths.sh
+          export ADD_PATHS="data/ncaaf_ledger.json data/ncaaf_line_plan.json data/line_history.json data/open_lines.json data/ncaaf_rebuild_state.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
+          ./scripts/ci_git_push_retry.sh "chore: NCAAF stale-guard board refresh" bash -c "python scripts/run_ncaaf.py --build-site && printf '{\"last_rebuild\": \"%s\"}\n' \"\$(date -u +%Y-%m-%dT%H:%M:%S+00:00)\" > data/ncaaf_rebuild_state.json"
+
+      - name: Upload Pages artifact
+        if: steps.deployflag.outputs.deploy == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: guard
+    if: needs.guard.outputs.deploy == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

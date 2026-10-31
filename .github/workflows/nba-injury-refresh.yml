@@ -16,7 +16,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: nba-shadow
+  group: sharp-scout-main-commits
   cancel-in-progress: false
 
 jobs:
@@ -51,9 +51,9 @@ jobs:
           if git diff --staged --quiet; then
             echo "No injury refresh changes"
           else
-            git commit -m "chore(nba): ESPN injury refresh (no odds scan)"
-            git pull --rebase --autostash origin main
-            git push
+            chmod +x scripts/ci_git_push_retry.sh
+            export ADD_PATHS="data/shadow/nba_player_rates.json data/paper/nba_score_model.json data/paper/nba_injury_lag.json docs/nba.html docs/nba_score_model.json docs/nba_injury_lag.json"
+            ./scripts/ci_git_push_retry.sh "chore(nba): ESPN injury refresh (no odds scan)" python scripts/run_nba_injury_refresh.py
           fi
 
       - name: Upload Pages artifact

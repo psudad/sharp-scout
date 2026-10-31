@@ -29,7 +29,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: refresh-board
+  group: sharp-scout-main-commits
   cancel-in-progress: false
 
 jobs:
@@ -104,9 +104,9 @@ jobs:
           if git diff --staged --quiet; then
             echo "No board changes to commit"
           else
-            git commit -m "chore: refresh board from live market"
-            git pull --rebase --autostash origin main
-            git push
+            chmod +x scripts/ci_git_push_retry.sh
+            export ADD_PATHS="data/ncaaf_ledger.json data/ledger.json data/nfl_game_totals.json data/props_ledger.json data/line_history.json data/line_history_archive.json data/paper/nfl_totals_momentum_follow.json data/open_lines.json data/calibration.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
+            ./scripts/ci_git_push_retry.sh "chore: refresh board from live market"
           fi
 
       - name: Upload Pages artifact

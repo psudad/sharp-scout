@@ -1,8 +1,8 @@
 name: NCAAF Line Snapshots (CLV)
 
 # Schedule-driven sharp line capture + gameday board refresh for college football:
-#   • Tuesday 10:00 ET — rebuild plan + opening lines for the college week
-#   • Hourly gate — only calls the Odds API when a game is at T-6h / T-4h / T-3h / T-1h
+#   • Tuesday ~10:07 ET — rebuild plan + opening lines for the college week
+#   • :07 / :23 / :41 UTC gate — only calls the Odds API when a game is at T-6h / T-4h / T-3h / T-1h
 #   • T-3h / T-1h — full board rebuild (plays, splits, open→now, When-to-bet) → docs/
 #     and an in-workflow GitHub Pages deploy (pushes from the Actions token don't
 #     trigger the separate pages.yml, so this workflow deploys itself).
@@ -13,14 +13,11 @@ name: NCAAF Line Snapshots (CLV)
 
 on:
   schedule:
-    # Tuesday 14:00 UTC (~10:00 ET) — weekly opening lines + refresh plan
-    - cron: "0 14 * * 2"
-    # Every 15 min (best effort). GitHub does NOT honor this reliably — on this repo
-    # it fires roughly every 3–5h. So we do NOT rely on hitting a narrow T-3h/T-1h
-    # point; instead the gate rebuilds whenever a game is within REBUILD_LEAD_HOURS
-    # (~6.5h) of kickoff, which is wider than the real cron gap, so every game gets a
-    # pregame refresh. Rebuilds are throttled to ~45 min apart to bound API usage.
-    - cron: "*/15 * * * *"
+    # Tuesday 14:07 UTC (~10:07 ET) — weekly opening lines + refresh plan
+    - cron: "7 14 * * 2"
+    # Off-minute times (GitHub schedule is best-effort, often 3–5h apart). Gate uses
+    # REBUILD_LEAD_HOURS so every game still gets a pregame refresh when a fire lands.
+    - cron: "7,23,41 * * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -42,7 +39,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: ncaaf-lines
+  group: sharp-scout-main-commits
   cancel-in-progress: false
 
 jobs:
@@ -110,7 +107,7 @@ jobs:
       - name: Tuesday — rebuild plan and capture opening lines
         if: >-
           steps.credit.outputs.proceed == 'true' &&
-          (github.event.schedule == '0 14 * * 2' ||
+          (github.event.schedule == '7 14 * * 2' ||
           (github.event_name == 'workflow_dispatch' && inputs.rebuild_plan))
         run: |
           if [ -z "$ODDS_API_KEY" ]; then
@@ -125,7 +122,7 @@ jobs:
         if: >-
           steps.credit.outputs.proceed == 'true' &&
           github.event_name == 'schedule' &&
-          github.event.schedule != '0 14 * * 2'
+          github.event.schedule != '7 14 * * 2'
         run: python scripts/check_ncaaf_snapshot_plan.py
 
       - name: Run due pre-kick line snapshots
@@ -181,18 +178,9 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          chmod +x scripts/ci_git_add_paths.sh
-          scripts/ci_git_add_paths.sh \
-            data/ncaaf_line_plan.json data/line_history.json data/line_history_archive.json \
-            data/open_lines.json data/ncaaf_ledger.json data/ncaaf_rebuild_state.json \
-            data/shadow/ reports/ncaaf_totals_high_ev.md docs/
-          if git diff --staged --quiet; then
-            echo "No plan/line history/site changes"
-          else
-            git commit -m "chore: NCAAF line snapshots + gameday board refresh (scheduled)"
-            git pull --rebase --autostash origin main
-            git push
-          fi
+          chmod +x scripts/ci_git_push_retry.sh scripts/ci_git_add_paths.sh
+          export ADD_PATHS="data/ncaaf_line_plan.json data/line_history.json data/line_history_archive.json data/open_lines.json data/ncaaf_ledger.json data/ncaaf_rebuild_state.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
+          ./scripts/ci_git_push_retry.sh "chore: NCAAF line snapshots + gameday board refresh (scheduled)" bash -c "python scripts/run_ncaaf.py --build-site"
 
       - name: Upload Pages artifact
         if: steps.deployflag.outputs.deploy == 'true'

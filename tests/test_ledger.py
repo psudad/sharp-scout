@@ -225,6 +225,40 @@ def test_prune_pending_stage_cards_outside_display_slate(monkeypatch):
     assert ids == {"keep", "history"}
 
 
+def test_append_signals_skips_void_row_and_reports_summary(tmp_path: Path, caplog):
+    import logging
+
+    path = tmp_path / "ledger.json"
+    save_ledger(empty_ledger(), path)
+    sig = {
+        "event_id": "e1",
+        "away_team": "TEMPLE",
+        "home_team": "EAST CAROLINA",
+        "market": "totals",
+        "side": "over",
+        "line": 49.5,
+        "book": "ballybet",
+        "price": -109,
+        "edge": 0.05,
+        "p_true": 0.55,
+        "tier": "play",
+        "filter_passed": True,
+        "rationale": "test",
+        "kickoff": "2099-01-01T19:00:00+00:00",
+    }
+    append_signals([sig], path=path, season=2026, week=9)
+    ledger = load_ledger(path)
+    ledger["plays"][0]["status"] = "void"
+    save_ledger(ledger, path)
+    with caplog.at_level(logging.INFO):
+        out = append_signals([sig], path=path, season=2026, week=9)
+    assert out["_append_summary"]["skipped_existing_non_pending"] == 1
+    assert "1 skipped (existing void/quarantined row)" in caplog.text
+    data = json.loads(path.read_text())
+    assert data["plays"][0]["status"] == "void"
+    assert "_append_summary" not in data
+
+
 def test_ledger_append_dedupe(tmp_path: Path):
     path = tmp_path / "ledger.json"
     save_ledger(empty_ledger(), path)

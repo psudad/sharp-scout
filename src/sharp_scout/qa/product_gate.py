@@ -74,7 +74,7 @@ def is_grandfathered_ncaaf_spread_official(
         return False
     if (play.get("tier") or "") != "play":
         return False
-    status = (play.get("status") or "pending").lower()
+    status = (play.get("status") or "").lower()
     return status in _GRANDFATHER_OFFICIAL_STATUSES
 
 

@@ -94,7 +94,7 @@ def test_nfl_spread_still_certifies(narrow_lanes_on):
 def test_grandfather_official_ncaaf_spread_skips_product_gate_qa(narrow_lanes_on):
     from sharp_scout.qa.gate import _logical_play_key
 
-    play = _ncaaf_spread(p_true=0.53)
+    play = _ncaaf_spread(p_true=0.53, status="pending")
     assert is_grandfathered_ncaaf_spread_official(play, sport="ncaaf")
     assert not evaluate_product_play(play, sport="ncaaf").ok
     signals = {
@@ -152,3 +152,20 @@ def test_grandfather_official_ncaaf_spread_skips_product_gate_qa(narrow_lanes_on
 def test_watchlist_ncaaf_spread_not_grandfathered(narrow_lanes_on):
     play = _ncaaf_spread(tier="watch", status="watchlist")
     assert not is_grandfathered_ncaaf_spread_official(play, sport="ncaaf")
+
+
+def test_play_tier_without_status_not_grandfathered(narrow_lanes_on):
+    play = _ncaaf_spread()
+    play.pop("status", None)
+    assert not is_grandfathered_ncaaf_spread_official(play, sport="ncaaf")
+
+
+def test_wmu_minus_13_pending_still_grandfathered(narrow_lanes_on):
+    import json
+    from pathlib import Path
+
+    ledger = json.loads(Path("data/ncaaf_ledger.json").read_text())
+    wmu = next(p for p in ledger["plays"] if p.get("id") == "a5f2fefa")
+    assert wmu.get("status") == "pending"
+    assert wmu.get("line") == -13.0
+    assert is_grandfathered_ncaaf_spread_official(wmu, sport="ncaaf")

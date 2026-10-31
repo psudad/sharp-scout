@@ -13,7 +13,13 @@ from sharp_scout.phase2.monte_carlo import (
     p_push_for_market,
     p_true_for_market,
 )
-from sharp_scout.utils.odds import american_to_implied_prob, expected_value, expected_value_with_push
+from sharp_scout.utils.odds import (
+    american_to_implied_prob,
+    expected_value,
+    expected_value_whole_line_cond,
+    marginal_win_prob,
+    win_prob_to_conditional,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -262,31 +268,42 @@ def discover_edges(
                     # when we would otherwise be model-only (k=1 means no anchoring).
                     p_fair = p_mkt if k_anchor < 1.0 else None
 
+                p_push = p_push_for_market(
+                    sim, market, side, line, sport=(cfg.key if cfg is not None else None)
+                )
+                push_whole = (
+                    market in ("spreads", "totals") and _is_whole(line) and p_push > 0.0
+                )
+                p_model_cond = (
+                    win_prob_to_conditional(p_model, p_push) if push_whole else p_model
+                )
+
                 if k_anchor < 1.0:
                     tilt_cap = cfg.anchor_tilt_cap if cfg is not None else None
                     if cfg is not None and market == "totals" and not cfg.anchor_tilt_cap_totals:
                         tilt_cap = None
-                    p_true = anchor_probability(p_model, p_fair, k_anchor, tilt_cap)
-
-                # Push-aware EV (PR #67): away/under p_true is P(win); add push refund once.
-                # Home whole spread: anchored p_true already embeds push vs strict sim win
-                # (see research Oct 2026); adding p_push again double-counts ~p_push·(dec−1).
-                p_push = p_push_for_market(
-                    sim, market, side, line, sport=(cfg.key if cfg is not None else None)
-                )
-                if market == "spreads" and _is_whole(line) and side == "home":
-                    edge = expected_value(p_true, float(price))
-                elif market in ("spreads", "totals") and _is_whole(line):
-                    edge = expected_value_with_push(p_true, float(price), p_push)
+                    p_true_cond = anchor_probability(p_model_cond, p_fair, k_anchor, tilt_cap)
                 else:
+                    p_true_cond = p_model_cond
+
+                if push_whole:
+                    p_true = marginal_win_prob(p_true_cond, p_push)
+                    edge = expected_value_whole_line_cond(p_true_cond, float(price), p_push)
+                else:
+                    p_true = p_true_cond
                     edge = expected_value(p_true, float(price))
+
                 if k_anchor < 1.0:
                     # Anchored: EV already embeds the sharp reference (line gain + tilt).
                     # Only require that the model does not lean against the play.
-                    ok_dev = p_fair is None or p_model >= p_fair - 0.01
+                    ok_dev = p_fair is None or p_model_cond >= p_fair - 0.01
                 else:
                     # Model-only: require a meaningful deviation from the sharp reference.
-                    ok_dev = (abs(p_true - p_mkt) if p_mkt is not None else 1.0) >= 0.01
+                    ref = p_mkt if p_mkt is not None else None
+                    if ref is not None and push_whole:
+                        ok_dev = abs(p_true_cond - ref) >= 0.01
+                    else:
+                        ok_dev = (abs(p_true - ref) if ref is not None else 1.0) >= 0.01
                 if edge >= thr and ok_dev:
                     edges.append(
                         EdgeCandidate(

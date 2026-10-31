@@ -170,6 +170,22 @@ def expected_value_with_push(p_win: float, american_odds: float, p_push: float =
     return float(p_win) * (decimal - 1.0) - p_loss
 
 
+def win_prob_to_conditional(p_win: float, p_push: float) -> float:
+    """Map marginal P(win) to P(win | not push) for two-way anchoring."""
+    denom = max(1.0 - float(p_push), 1e-9)
+    return float(min(max(float(p_win) / denom, 1e-6), 1.0 - 1e-6))
+
+
+def marginal_win_prob(p_cond: float, p_push: float) -> float:
+    """Map conditional win prob back to marginal P(win)."""
+    return float(p_cond) * (1.0 - float(p_push))
+
+
+def expected_value_whole_line_cond(p_cond: float, american_odds: float, p_push: float) -> float:
+    """EV when ``p_cond`` is P(win|no push) and push returns stake with prob ``p_push``."""
+    return (1.0 - float(p_push)) * expected_value(float(p_cond), american_odds)
+
+
 def setup_logging(level: str = "INFO") -> None:
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),

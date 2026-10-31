@@ -6,7 +6,8 @@ spread + moneyline sharp confirmation (option B).
 Research signals and stage leans are unchanged; only ledger posting uses certified.
 
 When ``product_narrow_lanes_enabled``, certification is limited to configured
-``sport:market`` lanes (default: NCAAF totals, NFL spreads, NCAAF spreads). Lane plays
+``sport:market`` lanes (default: NCAAF totals, NFL spreads). NCAAF spreads are
+research-shadow only (``product_research_shadow_lanes``). Lane plays
 must be Phase-4 confirmed with a Pinnacle no-vig reference ≥50% on our side; missing
 Pinnacle numbers stay on the research board with a ``no_pinnacle`` flag.
 """
@@ -24,7 +25,11 @@ from sharp_scout.utils.odds import american_to_implied_prob
 from sharp_scout.utils.slate import parse_commence
 
 SHADOW_MARKET_NOTE = "shadow market"
+RESEARCH_SHADOW_NOTE = "research shadow lane"
+NCAAF_SPREAD_SHADOW_FLAG = "ncaaf_spread_shadow"
 PINNACLE_BOOK = "pinnacle"
+
+_GRANDFATHER_OFFICIAL_STATUSES = frozenset({"pending", "win", "loss", "push"})
 
 
 def shadow_markets(settings: Any | None = None) -> set[str]:
@@ -35,6 +40,42 @@ def shadow_markets(settings: Any | None = None) -> set[str]:
 def is_shadow_only(reasons: tuple[str, ...] | list[str]) -> bool:
     """True when the only thing keeping a play off the card is its shadow market."""
     return bool(reasons) and all(r.startswith(SHADOW_MARKET_NOTE) for r in reasons)
+
+
+def parse_research_shadow_lanes(settings: Any | None = None) -> list[tuple[str, str]]:
+    """(sport, market) pairs logged to watchlist / research board, never LOCKED."""
+    s = settings or get_settings()
+    out: list[tuple[str, str]] = []
+    for raw in (s.product_research_shadow_lanes or "").split(","):
+        raw = raw.strip()
+        if ":" not in raw:
+            continue
+        sport, market = raw.split(":", 1)
+        out.append((sport.strip().lower(), market.strip().lower()))
+    return out
+
+
+def in_research_shadow_lane(
+    play: dict[str, Any], sport: str, lanes: list[tuple[str, str]] | None = None
+) -> bool:
+    lanes = lanes if lanes is not None else parse_research_shadow_lanes()
+    key = (str(sport).lower(), str(play.get("market") or "").lower())
+    return key in set(lanes)
+
+
+def is_grandfathered_ncaaf_spread_official(
+    play: dict[str, Any], *, sport: str
+) -> bool:
+    """Posted NCAAF spread Sharp Plays stay official; lane policy is not retroactive."""
+    if str(sport).lower() != "ncaaf":
+        return False
+    market = str(play.get("market") or "").lower()
+    if market not in ("spreads", "spread"):
+        return False
+    if (play.get("tier") or "") != "play":
+        return False
+    status = (play.get("status") or "pending").lower()
+    return status in _GRANDFATHER_OFFICIAL_STATUSES
 
 
 def parse_narrow_lanes(settings: Any | None = None) -> list[tuple[str, str]]:
@@ -652,6 +693,43 @@ def select_shadow_plays(
         if is_shadow_only(res.reasons):
             s["product_shadow"] = True
             passed.append(s)
+    passed.sort(key=lambda x: float(x.get("edge") or 0), reverse=True)
+    return _best_per_event_market(passed, cap=None)
+
+
+def select_research_shadow_plays(
+    candidates: list[dict[str, Any]],
+    *,
+    signals: dict[str, Any],
+    sport: str = "nfl",
+) -> list[dict[str, Any]]:
+    """Research-board shadow lanes (e.g. NCAAF spreads) — quality bar, not LOCKED."""
+    settings = get_settings()
+    research_lanes = set(parse_research_shadow_lanes(settings))
+    if not research_lanes:
+        return []
+    narrow = parse_narrow_lanes(settings) if settings.product_narrow_lanes_enabled else []
+    passed: list[dict[str, Any]] = []
+    for s in candidates:
+        if not s.get("filter_passed"):
+            continue
+        key = (str(sport).lower(), str(s.get("market") or "").lower())
+        if key not in research_lanes or in_narrow_lane(s, sport, narrow):
+            continue
+        lane_eval = _evaluate_narrow_lane_play(
+            s, sport=sport, settings=settings, signals=signals
+        )
+        if not lane_eval.ok:
+            continue
+        s["product_shadow"] = True
+        s["product_gate_notes"] = [
+            f"{RESEARCH_SHADOW_NOTE}: {sport}:{s.get('market')} (not LOCKED)"
+        ]
+        flags: list[str] = list(s.get("board_flags") or [])
+        if NCAAF_SPREAD_SHADOW_FLAG not in flags:
+            flags.append(NCAAF_SPREAD_SHADOW_FLAG)
+        s["board_flags"] = flags
+        passed.append(s)
     passed.sort(key=lambda x: float(x.get("edge") or 0), reverse=True)
     return _best_per_event_market(passed, cap=None)
 

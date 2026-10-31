@@ -178,6 +178,7 @@ def test_line_gap_conflict_blocks_qa_promote_lock_despite_model_margin_copy():
 
 
 def test_spread_model_conflict_quarantined():
+    kickoff = _kickoff_in_nfl_display_week()
     signals = _base_signals(
         plays=[
             {
@@ -197,7 +198,7 @@ def test_spread_model_conflict_quarantined():
                 "away_team": "MIA",
                 "p_home_win": 0.65,
                 "model_spread": -4.5,
-                "commence_time": "2026-10-12T20:25:00+00:00",
+                "commence_time": kickoff,
             }
         ],
         signals=[
@@ -219,7 +220,7 @@ def test_spread_model_conflict_quarantined():
         "p_mkt": 0.486,
         "model_spread": -4.48,
         "edge": 0.364,
-        "kickoff": "2026-10-12T20:25:00+00:00",
+        "kickoff": kickoff,
         "status": "pending",
     }
     review = review_play(play, signals, sport="nfl")

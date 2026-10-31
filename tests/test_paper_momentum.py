@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 
 from sharp_scout.data import line_store
@@ -13,6 +14,8 @@ def test_paper_momentum_logs_first_move(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(paper_momentum, "PAPER_PATH", paper)
 
     eid = "abc123"
+    open_ts = datetime(2026, 10, 25, 12, 0, tzinfo=timezone.utc)
+    scan_ts = datetime(2026, 10, 25, 14, 0, tzinfo=timezone.utc)
     line_store.record_snapshot(
         [
             {
@@ -34,6 +37,7 @@ def test_paper_momentum_logs_first_move(tmp_path: Path, monkeypatch):
             }
         ],
         path=lh,
+        now=open_ts,
     )
     line_store.record_snapshot(
         [
@@ -56,7 +60,7 @@ def test_paper_momentum_logs_first_move(tmp_path: Path, monkeypatch):
             }
         ],
         path=lh,
-        now=__import__("datetime").datetime(2026, 10, 25, 14, 0, tzinfo=__import__("datetime").timezone.utc),
+        now=scan_ts,
     )
     hist = line_store.load_history(lh)
     n = paper_momentum.record_paper_momentum_scans(

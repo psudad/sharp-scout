@@ -19,7 +19,15 @@ def _hist(now: datetime, moves: dict[str, tuple[float, float]]) -> dict:
 def test_steam_detected_across_multiple_books():
     now = datetime.now(timezone.utc)
     # Three sharp books all move home from -2.5 to -4.0 (toward home).
-    hist = _hist(now, {"pinnacle": (-2.5, -4.0), "circa": (-2.5, -4.0), "betonline": (-2.5, -3.5)})
+    # Use books in settings.sharp_books (betonline is not a configured sharp book).
+    hist = _hist(
+        now,
+        {
+            "pinnacle": (-2.5, -4.0),
+            "circa": (-2.5, -4.0),
+            "betfair_ex_eu": (-2.5, -4.0),
+        },
+    )
     sig = steam_signal("e1", "spreads", "home", now=now, window_minutes=90, history=hist)
     assert sig["steam"] is True
     assert sig["n_books"] == 3

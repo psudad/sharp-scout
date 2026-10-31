@@ -118,7 +118,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No board changes to commit"
           else
-            chmod +x scripts/ci_git_push_retry.sh
+            chmod +x scripts/ci_git_push_retry.sh scripts/ncaaf_ci_run_and_post.sh scripts/ncaaf_ci_post_run.sh
             export ADD_PATHS="data/ncaaf_ledger.json data/ncaaf_rebuild_state.json data/ledger.json data/nfl_game_totals.json data/props_ledger.json data/line_history.json data/line_history_archive.json data/paper/nfl_totals_momentum_follow.json data/open_lines.json data/calibration.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
             RERUN=""
             if [ "$REFRESH_NFL" = "true" ]; then
@@ -131,7 +131,7 @@ jobs:
               CFB_ARGS="--build-site"
               if [ "$REFRESH_DEMO" = "true" ] || [ -z "${ODDS_API_KEY:-}" ]; then CFB_ARGS="$CFB_ARGS --demo --skip-pbp"; fi
               if [ "$REFRESH_SKIP_PBP" = "true" ]; then CFB_ARGS="$CFB_ARGS --skip-pbp"; fi
-              RERUN="${RERUN}set +e; python scripts/run_ncaaf.py $CFB_ARGS; scripts/ncaaf_ci_post_run.sh \$?; set -e && "
+              RERUN="${RERUN}scripts/ncaaf_ci_run_and_post.sh $CFB_ARGS && "
             fi
             RERUN="${RERUN}true"
             ./scripts/ci_git_push_retry.sh "chore: refresh board from live market" bash -c "$RERUN"

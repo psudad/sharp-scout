@@ -181,6 +181,25 @@ def _is_whole(x: float | None) -> bool:
     return x is not None and float(x) == int(float(x))
 
 
+def _sim_push_for_market(
+    sim: GameSimResult,
+    market: str,
+    side: str,
+    line: float | None,
+) -> float:
+    """Empirical P(push) from sim scores only (no key-number floor)."""
+    if market not in ("spreads", "totals") or not _is_whole(line):
+        return 0.0
+    hs = getattr(sim, "home_scores", None)
+    aw = getattr(sim, "away_scores", None)
+    if hs is None or aw is None:
+        return 0.0
+    if market == "spreads":
+        home_line = float(line) if side == "home" else -float(line)
+        return float(np.mean((hs + home_line) == aw))
+    return float(np.mean((hs + aw) == float(line)))
+
+
 def p_push_for_market(
     sim: GameSimResult,
     market: str,
@@ -191,19 +210,36 @@ def p_push_for_market(
     """P(push) at a whole-number spread/total line (0 for half-point lines / ML)."""
     if market not in ("spreads", "totals") or not _is_whole(line):
         return 0.0
-    p = 0.0
-    hs = getattr(sim, "home_scores", None)
-    aw = getattr(sim, "away_scores", None)
-    if hs is not None and aw is not None:
-        if market == "spreads":
-            home_line = float(line) if side == "home" else -float(line)
-            p = float(np.mean((hs + home_line) == aw))
-        else:
-            p = float(np.mean((hs + aw) == float(line)))
+    p = _sim_push_for_market(sim, market, side, line)
     if market == "spreads" and sport:
         floor = KEY_MARGIN_RATES.get(sport, {}).get(abs(int(float(line))), 0.0) / 2.0
         p = max(p, floor)
     return p
+
+
+def _p_win_spread(
+    sim: GameSimResult,
+    side: str,
+    line: float,
+    sport: str | None,
+) -> float:
+    """P(win) for a spread side; push mass is excluded from wins."""
+    home_line = float(line) if side == "home" else -float(line)
+    if side == "away":
+        home_line = -float(line)
+    p_home_cover = _interp_prob(sim.cover_probs, home_line)
+    if side == "home":
+        return p_home_cover
+    p_push = p_push_for_market(sim, "spreads", side, line, sport=sport)
+    return max(0.0, 1.0 - p_home_cover - p_push)
+
+
+def _p_win_total(sim: GameSimResult, side: str, line: float) -> float:
+    p_over = _interp_prob(sim.over_probs, float(line))
+    if side == "over":
+        return p_over
+    p_push = p_push_for_market(sim, "totals", side, line)
+    return max(0.0, 1.0 - p_over - p_push)
 
 
 def p_true_for_market(
@@ -222,24 +258,12 @@ def p_true_for_market(
     if market == "spreads":
         if line is None:
             raise ValueError("spread requires line")
-        # cover_probs keyed by home line
-        home_line = float(line) if side == "home" else -float(line)
-        # If side is away with away_line=-2.5, home_line=+2.5
-        if side == "away":
-            home_line = -float(line)
-        p_home_cover = _interp_prob(sim.cover_probs, home_line)
-        if side == "home":
-            return p_home_cover
-        # P(win) for the away side: a push is not a win (was counted as one).
-        return max(0.0, 1.0 - p_home_cover - p_push_for_market(sim, market, side, line, sport))
+        return _p_win_spread(sim, side, float(line), sport)
 
     if market == "totals":
         if line is None:
             raise ValueError("total requires line")
-        p_over = _interp_prob(sim.over_probs, float(line))
-        if side == "over":
-            return p_over
-        return max(0.0, 1.0 - p_over - p_push_for_market(sim, market, side, line))
+        return _p_win_total(sim, side, float(line))
 
     raise ValueError(f"Unknown market {market}")
 

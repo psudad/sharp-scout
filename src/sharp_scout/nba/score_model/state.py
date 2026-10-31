@@ -13,6 +13,7 @@ from sharp_scout.data.espn_nba import fetch_espn_nba_finals_by_event, fetch_game
 from sharp_scout.nba.franchises import is_nba_franchise, is_nba_regular_matchup
 from sharp_scout.nba.score_model.engine import HistRow, V2Engine, V2Params, TeamPrior
 from sharp_scout.nba.score_model.teams_geo import ALTITUDE_TEAMS, travel_miles
+from sharp_scout.nba.slate_et import kickoff_date_et
 from sharp_scout.nba.teams import normalize_nba_team
 from sharp_scout.utils.kickoff import parse_kickoff_utc
 
@@ -52,7 +53,19 @@ def _rest_days(team: str, dt: datetime, last: dict[str, datetime]) -> int | None
     prev = last.get(team)
     if prev is None:
         return None
-    return max((dt.date() - prev.date()).days, 0)
+    day_k = kickoff_date_et(dt)
+    day_p = kickoff_date_et(prev)
+    if day_k is None or day_p is None:
+        return max((dt.date() - prev.date()).days, 0)
+    return max((day_k - day_p).days, 0)
+
+
+def _three_in_four(team: str, day_et: date | None, team_dates_et: dict[str, list[date]]) -> bool:
+    if day_et is None:
+        return False
+    window_start = day_et - timedelta(days=4)
+    count = sum(1 for d in team_dates_et.get(team, []) if window_start < d < day_et)
+    return count >= 2
 
 
 def _games_from_scores(
@@ -225,7 +238,7 @@ def _reset_engine_to_committed_priors(engine: V2Engine) -> bool:
 def _replay_games(engine: V2Engine, games: list[dict[str, Any]], processed: set[str]) -> date | None:
     last_played: dict[str, datetime] = {}
     team_last_site: dict[str, str] = {}
-    team_dates: dict[str, list[datetime]] = {}
+    team_dates_et: dict[str, list[date]] = {}
     current_season: str | None = None
     max_day: date | None = None
 
@@ -251,9 +264,9 @@ def _replay_games(engine: V2Engine, games: list[dict[str, Any]], processed: set[
         home, away = g["home"], g["away"]
         hr = _rest_days(home, dt, last_played)
         ar = _rest_days(away, dt, last_played)
-        cutoff = dt - timedelta(days=4)
-        home_3in4 = sum(1 for d in team_dates.get(home, []) if cutoff < d < dt) >= 2
-        away_3in4 = sum(1 for d in team_dates.get(away, []) if cutoff < d < dt) >= 2
+        day_et = kickoff_date_et(dt)
+        home_3in4 = _three_in_four(home, day_et, team_dates_et)
+        away_3in4 = _three_in_four(away, day_et, team_dates_et)
         ctx = {
             "home_rest": hr,
             "away_rest": ar,
@@ -264,17 +277,18 @@ def _replay_games(engine: V2Engine, games: list[dict[str, Any]], processed: set[
             "home_travel_mi": travel_miles(team_last_site.get(home, home), home)
             if team_last_site.get(home, home) != home
             else 0.0,
-            "away_travel_mi": travel_miles(team_last_site.get(away, away), away)
-            if team_last_site.get(away, away) != away
+            "away_travel_mi": travel_miles(team_last_site.get(away, away), home)
+            if team_last_site.get(away, away) != home
             else 0.0,
         }
         engine.observe(g, ctx=ctx)
         processed.add(key)
         last_played[home] = last_played[away] = dt
         team_last_site[home] = home
-        team_last_site[away] = away
-        team_dates.setdefault(home, []).append(dt)
-        team_dates.setdefault(away, []).append(dt)
+        team_last_site[away] = home
+        if day_et is not None:
+            for t in (home, away):
+                team_dates_et.setdefault(t, []).append(day_et)
     return max_day
 
 
@@ -321,7 +335,7 @@ def rebuild_projection_history(engine: V2Engine, games: list[dict[str, Any]]) ->
     engine.history = []
     last_played: dict[str, datetime] = {}
     team_last_site: dict[str, str] = {}
-    team_dates: dict[str, list[datetime]] = {}
+    team_dates_et: dict[str, list[date]] = {}
     current_season: str | None = None
 
     for g in sorted(games, key=lambda x: x["date"]):
@@ -334,9 +348,9 @@ def rebuild_projection_history(engine: V2Engine, games: list[dict[str, Any]]) ->
         home, away = g["home"], g["away"]
         hr = _rest_days(home, dt, last_played)
         ar = _rest_days(away, dt, last_played)
-        cutoff = dt - timedelta(days=4)
-        home_3in4 = sum(1 for d in team_dates.get(home, []) if cutoff < d < dt) >= 2
-        away_3in4 = sum(1 for d in team_dates.get(away, []) if cutoff < d < dt) >= 2
+        day_et = kickoff_date_et(dt)
+        home_3in4 = _three_in_four(home, day_et, team_dates_et)
+        away_3in4 = _three_in_four(away, day_et, team_dates_et)
         ctx = {
             "home_rest": hr,
             "away_rest": ar,
@@ -347,16 +361,17 @@ def rebuild_projection_history(engine: V2Engine, games: list[dict[str, Any]]) ->
             "home_travel_mi": travel_miles(team_last_site.get(home, home), home)
             if team_last_site.get(home, home) != home
             else 0.0,
-            "away_travel_mi": travel_miles(team_last_site.get(away, away), away)
-            if team_last_site.get(away, away) != away
+            "away_travel_mi": travel_miles(team_last_site.get(away, away), home)
+            if team_last_site.get(away, away) != home
             else 0.0,
         }
         engine.history.append(_history_row_from_game(engine, g, ctx=ctx))
         last_played[home] = last_played[away] = dt
         team_last_site[home] = home
-        team_last_site[away] = away
-        team_dates.setdefault(home, []).append(dt)
-        team_dates.setdefault(away, []).append(dt)
+        team_last_site[away] = home
+        if day_et is not None:
+            for t in (home, away):
+                team_dates_et.setdefault(t, []).append(day_et)
 
 
 def load_state_file(path: Path | None = None) -> dict[str, Any] | None:

@@ -9,7 +9,7 @@ RERUN=("$@")
 # Space-separated paths to restage after a conflict reset (optional)
 ADD_PATHS="${ADD_PATHS:-}"
 
-MAX_ATTEMPTS=3
+MAX_ATTEMPTS=5
 attempt=1
 
 while (( attempt <= MAX_ATTEMPTS )); do
@@ -37,6 +37,11 @@ while (( attempt <= MAX_ATTEMPTS )); do
       echo "Re-running: ${RERUN[*]}"
       "${RERUN[@]}"
     fi
+  fi
+  if (( attempt < MAX_ATTEMPTS )); then
+    backoff=$((4 ** attempt))
+    echo "Backing off ${backoff}s before retry"
+    sleep "$backoff"
   fi
   ((attempt++)) || true
 done

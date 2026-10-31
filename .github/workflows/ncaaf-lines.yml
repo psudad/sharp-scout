@@ -163,6 +163,13 @@ jobs:
           chmod +x scripts/stamp_ncaaf_rebuild_state.sh
           scripts/stamp_ncaaf_rebuild_state.sh
 
+      - name: Assert NCAAF docs match pipeline artifact
+        if: |
+          steps.credit.outputs.proceed == 'true' && (
+          (github.event_name == 'workflow_dispatch' && inputs.rebuild_report) ||
+          (steps.gate.outputs.rebuild == 'true'))
+        run: python scripts/assert_ncaaf_docs_synced.py
+
       - name: Flag whether a Pages deploy is needed
         id: deployflag
         if: steps.credit.outputs.proceed == 'true'

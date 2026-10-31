@@ -114,6 +114,10 @@ jobs:
         continue-on-error: true
         run: python scripts/plan_ncaaf_snapshots.py
 
+      - name: Assert NCAAF docs match pipeline artifact
+        if: github.event_name == 'workflow_dispatch' || steps.slot.outputs.run == 'true'
+        run: python scripts/assert_ncaaf_docs_synced.py
+
       - name: Commit ledger + site
         if: github.event_name == 'workflow_dispatch' || steps.slot.outputs.run == 'true'
         run: |

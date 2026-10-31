@@ -82,6 +82,10 @@ jobs:
           chmod +x scripts/stamp_ncaaf_rebuild_state.sh
           scripts/stamp_ncaaf_rebuild_state.sh
 
+      - name: Assert NCAAF docs match pipeline artifact
+        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
+        run: python scripts/assert_ncaaf_docs_synced.py
+
       - id: deployflag
         if: steps.credit.outputs.proceed == 'true'
         run: |

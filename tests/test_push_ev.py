@@ -95,3 +95,90 @@ def test_nfl_key_number_partition():
     p_push = p_push_for_market(sim, "spreads", "home", -3.0, sport="nfl")
     p_away = p_true_for_market(sim, "spreads", "away", 3.0, sport="nfl")
     assert p_win + p_away + p_push == pytest.approx(1.0, abs=1e-9)
+
+
+def _symmetric_pick_em_event() -> dict:
+    """Pinnacle pick'em spread and whole total, both sides -110 (no-vig 50/50)."""
+    return {
+        "event_id": "sym-push",
+        "home_team": "H",
+        "away_team": "A",
+        "bookmakers": {
+            "pinnacle": {
+                "key": "pinnacle",
+                "is_sharp": True,
+                "markets": {
+                    "spreads": [
+                        {"side": "home", "price": -110, "point": 0.0},
+                        {"side": "away", "price": -110, "point": 0.0},
+                    ],
+                    "totals": [
+                        {"side": "over", "price": -110, "point": 48.0},
+                        {"side": "under", "price": -110, "point": 48.0},
+                    ],
+                },
+            },
+        },
+    }
+
+
+def _symmetric_centered_sim(*, n_sims: int = 80_000, seed: int = 7):
+    """Sim centered on pick'em / total 48 with matched push mass on both sides."""
+    import numpy as np
+
+    from sharp_scout.phase2.monte_carlo import GameSimResult
+
+    rng = np.random.default_rng(seed)
+    pairs = [(24, 24), (25, 23), (23, 25), (23, 23), (25, 25)]
+    weights = np.array([0.12, 0.22, 0.22, 0.22, 0.22], dtype=float)
+    weights /= weights.sum()
+    idx = rng.choice(len(pairs), size=n_sims, p=weights)
+    home_scores = np.array([pairs[i][0] for i in idx])
+    away_scores = np.array([pairs[i][1] for i in idx])
+    margin = home_scores - away_scores
+    total = home_scores + away_scores
+    return GameSimResult(
+        home_team="H",
+        away_team="A",
+        mu_home=24.0,
+        mu_away=24.0,
+        n_sims=n_sims,
+        model_spread=0.0,
+        model_total=48.0,
+        p_home_win=float(np.mean(margin > 0)),
+        p_away_win=float(np.mean(margin < 0)),
+        p_push_ml=float(np.mean(margin == 0)),
+        cover_probs={0.0: float(np.mean(margin > 0))},
+        over_probs={48.0: float(np.mean(total > 48))},
+        home_scores=home_scores,
+        away_scores=away_scores,
+    )
+
+
+def test_discover_edges_symmetric_whole_line_equal_ev():
+    """End-to-end: symmetric -110/-110 whole spread/total → equal EV on both sides."""
+    from sharp_scout.phase3.market import discover_edges
+
+    sim = _symmetric_centered_sim()
+    edges = discover_edges(
+        _symmetric_pick_em_event(),
+        sim,
+        ev_threshold=-10.0,
+        sport="ncaaf",
+    )
+    by_side = {(e.market, e.side): e for e in edges}
+    for key in (
+        ("spreads", "home"),
+        ("spreads", "away"),
+        ("totals", "over"),
+        ("totals", "under"),
+    ):
+        assert key in by_side, f"missing edge {key}"
+        assert by_side[key].p_fair == pytest.approx(0.5, abs=1e-4)
+
+    ev_home = by_side[("spreads", "home")].edge
+    ev_away = by_side[("spreads", "away")].edge
+    ev_over = by_side[("totals", "over")].edge
+    ev_under = by_side[("totals", "under")].edge
+    assert ev_home == pytest.approx(ev_away, abs=0.001)
+    assert ev_over == pytest.approx(ev_under, abs=0.001)

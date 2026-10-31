@@ -118,6 +118,7 @@ def append_signals(
     added = 0
     replaced = 0
     refreshed = 0
+    skipped_existing_non_pending = 0
     frozen = 0
     past_kickoff = 0
     clock = now or datetime.now(timezone.utc)
@@ -196,6 +197,7 @@ def append_signals(
             # pending, refresh the model-derived fields: ratings and sims can change even
             # when the market line does not, so edge/p_true/tier must never go stale
             # (e.g. a bad-ratings run must be correctable by a later good run).
+            refreshed_this = False
             for p in ledger["plays"]:
                 if (p.get("status") or "pending") == status and _play_key(p) == key:
                     for field in (
@@ -222,7 +224,10 @@ def append_signals(
                     p["tier"] = row["tier"]
                     p["units"] = row["units"]
                     refreshed += 1
+                    refreshed_this = True
                     break
+            if not refreshed_this:
+                skipped_existing_non_pending += 1
             continue
         logical = _logical_play_key(row)
         before_len = len(ledger["plays"])
@@ -237,18 +242,29 @@ def append_signals(
         ledger["plays"].append(row)
         existing.add(key)
         added += 1
+    append_summary = {
+        "added": added,
+        "replaced": replaced,
+        "refreshed": refreshed,
+        "skipped_existing_non_pending": skipped_existing_non_pending,
+        "frozen": frozen,
+        "past_kickoff": past_kickoff,
+    }
     save_ledger(ledger, path)
     logger.info(
         "Ledger: added %d plays, replaced %d pending, refreshed %d pending, "
+        "%d skipped (existing void/quarantined row), "
         "%d frozen (inside T-%dh), %d past kickoff (total %d)",
         added,
         replaced,
         refreshed,
+        skipped_existing_non_pending,
         frozen,
         int(freeze.total_seconds() // 3600),
         past_kickoff,
         len(ledger["plays"]),
     )
+    ledger["_append_summary"] = append_summary
     return ledger
 
 

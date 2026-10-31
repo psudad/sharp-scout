@@ -326,7 +326,7 @@ def run_ncaaf_pipeline(
     qa_result = apply_qa_gate(
         "ncaaf",
         signals=payload,
-        apply=update_ledger,
+        apply=update_ledger and ledger_ok,
         ledger_path=ledger_path,
     )
     payload["qa"] = qa_result.summary()

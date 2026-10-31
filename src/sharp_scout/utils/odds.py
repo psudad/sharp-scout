@@ -160,6 +160,16 @@ def expected_value(p_true: float, american_odds: float) -> float:
     return p_true * decimal - 1.0
 
 
+def expected_value_with_push(p_win: float, american_odds: float, p_push: float = 0.0) -> float:
+    """EV with a push refund: p_win pays full, push returns stake, loss loses stake."""
+    p_loss = max(0.0, 1.0 - float(p_win) - float(p_push))
+    if american_odds > 0:
+        decimal = 1 + american_odds / 100.0
+    else:
+        decimal = 1 + 100.0 / abs(american_odds)
+    return float(p_win) * (decimal - 1.0) - p_loss
+
+
 def setup_logging(level: str = "INFO") -> None:
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),

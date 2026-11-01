@@ -6,7 +6,7 @@ from typing import Literal
 
 from sharp_scout.site.site_nav import nba_nav_label
 
-BottomBarActive = Literal["plays", "results", "props", "comments", "board"]
+BottomBarActive = Literal["plays", "results", "comments", "board"]
 
 # Height of the fixed bar (px), used for body padding and slip positioning.
 BOTTOM_BAR_PX = 62
@@ -75,12 +75,11 @@ def _tab_class(active: BottomBarActive, tab: str) -> str:
 
 
 def render_bottom_bar(*, active: BottomBarActive) -> str:
-    """Fixed bottom nav. ``active`` highlights Plays, Results, Props, or Comments when applicable."""
+    """Fixed bottom nav. ``active`` highlights Home, Results, or Comments when applicable."""
     comments_em = ' style="font-weight:800"' if active == "comments" else ""
-    props_em = ' style="font-weight:800"' if active == "props" else ""
     return f"""
 <nav class="lp-bbar" aria-label="Site">
-  <a{_tab_class(active, "plays")} href="index.html"><span class="i">★</span>Plays</a>
+  <a{_tab_class(active, "plays")} href="index.html"><span class="i">★</span>Home</a>
   <button type="button" id="lp-bbar-slip"><span class="i">🧾</span>My card <span class="lp-badge" id="lp-bbar-count">0</span></button>
   <a{_tab_class(active, "results")} href="board.html#tab-plays"><span class="i">📈</span>Results</a>
   <button type="button" id="lp-more-open"><span class="i">☰</span>More</button>
@@ -88,21 +87,19 @@ def render_bottom_bar(*, active: BottomBarActive) -> str:
 <div class="lp-more-panel" id="lp-more-panel">
   <div class="lp-more-sheet">
     <button type="button" id="lp-more-close" style="float:right;border:0;background:none;font-size:22px;cursor:pointer">×</button>
-    <h3 style="margin-top:0">More</h3>
-    <a href="board.html">Full board</a>
+    <h3 style="margin-top:0">Boards</h3>
+    <a href="board.html#tab-cfb">NCAAF board</a>
     <a href="board.html#tab-plays">NFL board</a>
-    <a href="board.html#tab-cfb">College board</a>
-    <a href="board.html#tab-guide">How it works</a>
-    <a href="comments.html"{comments_em}>Comments</a>
-    <a href="props.html"{props_em}>NFL Props</a>
     <a href="nba.html">{nba_nav_label()}</a>
+    <a href="ncaam.html">College Basketball</a>
+    <a href="comments.html"{comments_em}>Comments</a>
   </div>
 </div>
 """
 
 
 def render_slip_overlay() -> str:
-    """Floating My card panel (used on board / props / comments; landing uses inline sidebar too)."""
+    """Floating My card panel (used on board / comments; landing uses inline sidebar too)."""
     return """
 <aside class="lp-slip-overlay" id="lp-slip-overlay" aria-label="My card">
   <h2>My card <span class="lp-badge" id="lp-slip-overlay-count">0</span></h2>

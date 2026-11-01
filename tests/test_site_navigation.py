@@ -24,16 +24,16 @@ def site(tmp_path: Path, monkeypatch) -> Path:
 TAB_NAMES = (
     "plays",
     "cfb",
-    "guide",
 )
 
 
-def test_landing_links_to_board_and_more_menu(site: Path):
+def test_landing_links_to_boards(site: Path):
     html = (site / "index.html").read_text()
-    assert 'href="board.html"' in html
-    assert 'href="comments.html"' in html
-    assert 'href="props.html"' in html
+    assert 'href="board.html#tab-cfb"' in html
+    assert 'href="board.html#tab-plays"' in html
     assert 'href="nba.html"' in html
+    assert 'href="ncaam.html"' in html
+    assert "props.html" not in html
 
 
 def test_landing_header_is_above_hero(site: Path):
@@ -50,12 +50,30 @@ def test_landing_has_bottom_bar(site: Path):
 
 
 def test_all_public_pages_share_bottom_bar(site: Path):
-    for name in ("board.html", "props.html", "comments.html", "nba.html"):
+    for name in ("board.html", "comments.html", "nba.html", "ncaam.html"):
         html = (site / name).read_text()
         assert "lp-bbar" in html, name
         assert "id=\"lp-bbar-slip\"" in html, name
         assert "ssSlip" in html, name
         assert "ss-bottom-bar" in html, name
+
+
+def test_props_pages_not_built_when_disabled(site: Path):
+    assert not (site / "props.html").exists()
+
+
+def test_ncaam_page_shell(site: Path):
+    html = (site / "ncaam.html").read_text()
+    assert "Plays post once the model run starts" in html
+    assert "ncaam_latest_signals.json" in html
+
+
+def test_guide_archived_not_on_board(site: Path):
+    board = (site / "board.html").read_text()
+    assert 'id="tab-guide"' not in board
+    assert "How to use" not in board
+    archive = (site / "archive" / "how-it-works.html").read_text()
+    assert "How to use this site" in archive
 
 
 def test_board_tabs_are_anchors_with_hash_targets(site: Path):
@@ -68,7 +86,7 @@ def test_board_tabs_are_anchors_with_hash_targets(site: Path):
 def test_nfl_and_cfb_tabs_are_symmetric(site: Path):
     html = (site / "board.html").read_text()
     nfl = html[html.index('id="tab-plays"'):html.index('id="tab-cfb"')]
-    cfb = html[html.index('id="tab-cfb"'):html.index('id="tab-guide"')]
+    cfb = html[html.index('id="tab-cfb"'): html.index("<p class=\"footer\">")]
     shared = (
         "Season Overview",
         "LOCKED PLAYS — BET THESE",

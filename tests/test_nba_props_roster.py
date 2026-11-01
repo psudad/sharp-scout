@@ -70,8 +70,13 @@ def test_live_shadow_skips_props_when_rate_file_is_stub(tmp_path, monkeypatch):
     monkeypatch.setattr(odds_api.OddsClient, "fetch_odds", fake_fetch)
     monkeypatch.setattr(odds_api.OddsClient, "fetch_event_props", fake_props)
     monkeypatch.setenv("ODDS_API_KEY", "test-key-for-stub")
+    monkeypatch.setenv("NBA_PROPS_SCAN_ENABLED", "true")
 
+    from sharp_scout.config import get_settings
+
+    get_settings.cache_clear()
     payload = run_nba_shadow(demo=False, fetch_props=True, append_ledger=False)
+    get_settings.cache_clear()
     assert payload["ok"]
     diag = payload.get("prop_diagnostics") or {}
     assert "0123456789abcdef0123456789ab" in (diag.get("props_skipped_thin_rate_file") or [])

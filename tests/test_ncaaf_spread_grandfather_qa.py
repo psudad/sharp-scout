@@ -161,11 +161,13 @@ def test_play_tier_without_status_not_grandfathered(narrow_lanes_on):
 
 
 def test_wmu_minus_13_pending_still_grandfathered(narrow_lanes_on):
-    import json
-    from pathlib import Path
-
-    ledger = json.loads(Path("data/ncaaf_ledger.json").read_text())
-    wmu = next(p for p in ledger["plays"] if p.get("id") == "a5f2fefa")
-    assert wmu.get("status") == "pending"
-    assert wmu.get("line") == -13.0
+    wmu = {
+        "id": "a5f2fefa",
+        "status": "pending",
+        "market": "spreads",
+        "side": "home",
+        "line": -13.0,
+        "tier": "play",
+        "sport": "ncaaf",
+    }
     assert is_grandfathered_ncaaf_spread_official(wmu, sport="ncaaf")

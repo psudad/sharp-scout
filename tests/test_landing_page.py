@@ -1,4 +1,4 @@
-"""Landing page — card layout, filters, and My card."""
+"""Landing page — board hub and navigation."""
 
 from __future__ import annotations
 
@@ -27,21 +27,19 @@ def test_landing_and_board_are_both_written(site: Path):
     assert (site / "board.html").exists()
 
 
-def test_landing_leads_with_best_plays_and_board_link(site: Path):
+def test_landing_hub_links_to_all_boards(site: Path):
     html = (site / "index.html").read_text()
-    assert "Today's best plays" in html
-    assert 'href="board.html"' in html
-    assert "See the full research board" in html
-    assert "Official play" in html or "No official plays" in html
+    assert "Model boards" in html
+    assert 'href="board.html#tab-cfb"' in html
+    assert 'href="board.html#tab-plays"' in html
+    assert 'href="nba.html"' in html
+    assert 'href="ncaam.html"' in html
+    assert "Open board" in html
 
 
-def test_landing_has_filters_and_my_card(site: Path):
+def test_landing_has_my_card_via_bottom_bar(site: Path):
     html = (site / "index.html").read_text()
-    assert 'data-f="sport"' in html
-    assert "Any confidence" in html
-    assert "Strong or better" in html
-    assert "Add to my card" in html
-    assert "Copy my card" in html
+    assert "My card" in html
     assert "ssSlip" in html or "localStorage" in html
 
 
@@ -58,12 +56,6 @@ def test_landing_is_much_smaller_than_board(site: Path):
     assert landing < board / 2
 
 
-def test_landing_keeps_timing_script(site: Path):
-    html = (site / "index.html").read_text()
-    assert "js-timing" in html or "play-timing" in html
-    assert "setInterval(tick" in html
-
-
 def test_landing_hides_early_season_banner_after_week_three(site: Path):
     html = (site / "index.html").read_text()
     assert "WEEK 1 — READ THIS FIRST" not in html
@@ -78,12 +70,6 @@ def test_landing_redirects_legacy_tab_deep_links(site: Path):
 def test_board_links_back_to_landing(site: Path):
     html = (site / "board.html").read_text()
     assert 'href="index.html"' in html
-
-
-def test_landing_model_leans_section(site: Path):
-    html = (site / "index.html").read_text()
-    assert "Model leans" in html
-    assert "Lean only" in html
 
 
 @pytest.mark.parametrize(
@@ -134,5 +120,3 @@ def test_landing_team_display_ncaaf_never_title_cases_codes():
 )
 def test_landing_team_display_nfl_codes(name: str, expected: str):
     assert _landing_team_display(name, sport="nfl") == expected
-
-

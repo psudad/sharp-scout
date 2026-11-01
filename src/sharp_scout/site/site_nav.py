@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-LpTopnavActive = Literal["plays", "results", "guide", "board", "nba"]
-SiteTabsActive = Literal["plays", "results", "guide", "comments", "props", "nba", "nba_props"]
-BoardTabsContext = Literal["board"]  # board uses its own NFL/CFB tablist + NBA link
+from sharp_scout.config import get_settings
+
+LpTopnavActive = Literal["home", "ncaaf", "nfl", "nba", "ncaam"]
+SiteTabsActive = Literal["ncaaf", "nfl", "nba", "ncaam", "comments"]
+BoardTabsContext = Literal["board"]
 
 NBA_TEST_BADGE = '<span class="nav-test-badge">test</span>'
 
@@ -33,18 +35,18 @@ def nba_nav_label() -> str:
     return f"NBA {NBA_TEST_BADGE}"
 
 
-def nba_props_nav_label() -> str:
-    return f"NBA Props {NBA_TEST_BADGE}"
+def site_player_props_enabled() -> bool:
+    return get_settings().site_player_props_enabled
 
 
 def render_lp_topnav(*, active: LpTopnavActive) -> str:
-    """Sticky header nav on index.html (desktop + horizontal scroll on narrow screens)."""
+    """Sticky header nav on index.html — direct links to sport boards."""
     items: list[tuple[LpTopnavActive, str, str]] = [
-        ("plays", "index.html", "Today's plays"),
-        ("results", "board.html#tab-plays", "Results"),
+        ("home", "index.html", "Home"),
+        ("ncaaf", "board.html#tab-cfb", "NCAAF"),
+        ("nfl", "board.html#tab-plays", "NFL"),
         ("nba", "nba.html", nba_nav_label()),
-        ("guide", "board.html#tab-guide", "How it works"),
-        ("board", "board.html", "Full board"),
+        ("ncaam", "ncaam.html", "College BB"),
     ]
     parts: list[str] = []
     for key, href, label in items:
@@ -57,37 +59,42 @@ def render_lp_topnav(*, active: LpTopnavActive) -> str:
 
 
 def render_site_tabs(*, active: SiteTabsActive) -> str:
-    """Top tab bar on props, comments, and nba.html."""
-    home = '<a class="tab tab-home" href="index.html">Today&apos;s plays</a>'
-    results = '<a class="tab" href="board.html#tab-plays">Results</a>'
-    guide = '<a class="tab" href="board.html#tab-guide">How it works</a>'
+    """Top tab bar on comments, nba.html, ncaam.html, and board-adjacent pages."""
+    home = '<a class="tab tab-home" href="index.html">Home</a>'
+
+    def _tab(key: SiteTabsActive, href: str, label: str) -> str:
+        if active == key:
+            return f'<span class="tab active">{label}</span>'
+        return f'<a class="tab" href="{href}">{label}</a>'
+
+    ncaaf = _tab("ncaaf", "board.html#tab-cfb", "NCAAF")
+    nfl = _tab("nfl", "board.html#tab-plays", "NFL")
+    nba_label = nba_nav_label()
+    nba = (
+        f'<span class="tab tab-nba active">{nba_label}</span>'
+        if active == "nba"
+        else f'<a class="tab tab-aux tab-nba" href="nba.html">{nba_label}</a>'
+    )
+    ncaam = _tab("ncaam", "ncaam.html", "College BB")
     comments = (
         '<span class="tab tab-comments active">Comments</span>'
         if active == "comments"
         else '<a class="tab tab-aux tab-comments" href="comments.html">Comments</a>'
     )
-    props = (
-        '<span class="tab active">NFL Props</span>'
-        if active == "props"
-        else '<a class="tab tab-aux" href="props.html">NFL Props</a>'
-    )
-    nba = (
-        f'<span class="tab tab-nba active">{nba_nav_label()}</span>'
-        if active == "nba"
-        else f'<a class="tab tab-aux tab-nba" href="nba.html">{nba_nav_label()}</a>'
-    )
-    nba_props = (
-        f'<span class="tab tab-aux tab-nba-props active">{nba_props_nav_label()}</span>'
-        if active == "nba_props"
-        else f'<a class="tab tab-aux tab-nba-props" href="nba-props.html">{nba_props_nav_label()}</a>'
-    )
     return (
         f'<div class="tabs" role="navigation" aria-label="Sections">'
-        f"{home}{results}{guide}{comments}{props}{nba}{nba_props}"
+        f"{home}{ncaaf}{nfl}{nba}{ncaam}{comments}"
         f"</div>"
     )
 
 
+def render_board_aux_tab_links() -> str:
+    """NBA + NCAAM entries on the football board tab strip."""
+    nba = f'<a class="tab tab-aux tab-nba" href="nba.html">{nba_nav_label()}</a>'
+    ncaam = '<a class="tab tab-aux tab-ncaam" href="ncaam.html">College BB</a>'
+    return nba + ncaam
+
+
 def render_board_nba_tab_link() -> str:
-    """NBA entry appended to the main board tablist (NFL / CFB / …)."""
+    """Backward-compatible alias for tests importing board NBA link."""
     return f'<a class="tab tab-aux tab-nba" href="nba.html">{nba_nav_label()}</a>'

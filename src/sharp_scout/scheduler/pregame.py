@@ -225,7 +225,7 @@ def run_due_pregame(
         for p in side.get("plays") or []:
             p["window"] = window_map.get(str(p.get("event_id")), 3.0)
             p["pregame_window"] = p["window"]
-        if not skip_props:
+        if not skip_props and settings.nfl_props_scan_enabled:
             from sharp_scout.props.pipeline import run_props_pipeline
 
             props = run_props_pipeline(
@@ -259,7 +259,7 @@ def run_due_pregame(
             if shadow:
                 append_signals(shadow, status="watchlist")
 
-        if not skip_props:
+        if not skip_props and settings.nfl_props_scan_enabled:
             from sharp_scout.props.pipeline import run_props_pipeline
 
             # Props for due events only

@@ -88,12 +88,10 @@ jobs:
       - name: Run NBA shadow pipeline
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         run: |
-          EXTRA=""
-          if [ "${{ steps.gate.outputs.skip_props }}" = "true" ] || [ "${{ github.event.inputs.game_lines_only }}" = "true" ]; then
-            EXTRA="--no-props"
-          fi
+          # Player props scans disabled site-wide (NBA_PROPS_SCAN_ENABLED=false); game lines only.
+          EXTRA="--no-props"
           if [ "${{ github.event.inputs.demo }}" = "true" ]; then
-            python scripts/run_nba_shadow.py --demo
+            python scripts/run_nba_shadow.py --demo $EXTRA
           else
             python scripts/run_nba_shadow.py $EXTRA
           fi
@@ -119,7 +117,6 @@ jobs:
             data/paper/nba_totals_current_season_shadow.json \
             data/paper/nba_totals_current_season_shadow.csv \
             docs/nba.html \
-            docs/nba-props.html \
             docs/nba_latest_signals.json \
             docs/nba_ledger.json \
             docs/nba_paper_report.json \
@@ -131,7 +128,7 @@ jobs:
             echo "No shadow changes"
           else
             chmod +x scripts/ci_git_push_retry.sh
-            export ADD_PATHS="data/shadow/ data/paper/nba_score_model.json data/paper/nba_score_model_priors.json data/paper/nba_score_model_state.json data/paper/nba_injury_lag.json data/paper/nba_pace_of_play_official.json data/paper/nba_pace_of_play_official.csv data/paper/nba_totals_current_season_shadow.json data/paper/nba_totals_current_season_shadow.csv docs/nba.html docs/nba-props.html docs/nba_latest_signals.json docs/nba_ledger.json docs/nba_paper_report.json docs/nba_score_model.json docs/nba_injury_lag.json docs/nba_pace_of_play_official.json docs/nba_pace_of_play_official.csv"
+            export ADD_PATHS="data/shadow/ data/paper/nba_score_model.json data/paper/nba_score_model_priors.json data/paper/nba_score_model_state.json data/paper/nba_injury_lag.json data/paper/nba_pace_of_play_official.json data/paper/nba_pace_of_play_official.csv data/paper/nba_totals_current_season_shadow.json data/paper/nba_totals_current_season_shadow.csv docs/nba.html docs/nba_latest_signals.json docs/nba_ledger.json docs/nba_paper_report.json docs/nba_score_model.json docs/nba_injury_lag.json docs/nba_pace_of_play_official.json docs/nba_pace_of_play_official.csv"
             ./scripts/ci_git_push_retry.sh "chore(nba): shadow paper-trading scan"
           fi
 

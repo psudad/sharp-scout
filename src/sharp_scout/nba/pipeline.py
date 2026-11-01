@@ -71,6 +71,7 @@ def run_nba_shadow(
     settings = get_settings()
     if not settings.nba_shadow_enabled:
         return {"ok": False, "reason": "nba_shadow_disabled"}
+    fetch_props = fetch_props and settings.nba_props_scan_enabled
 
     client = OddsClient(sport=NBA)
     use_demo = demo or not settings.odds_api_key

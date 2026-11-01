@@ -7,9 +7,7 @@ name: NFL Props (10 AM ET daily)
 # Scheduled runs gated by scripts/check_odds_credit_pause.py (workflow_dispatch always runs).
 
 on:
-  schedule:
-    # 10:00 AM ET (EDT = UTC-4) on NFL game days: Thu, Sat, Sun, Mon, plus Tue to grade MNF
-    - cron: "0 14 * * 0,1,2,4,6"
+  # Schedule disabled — NFL props scans off (NFL_PROPS_SCAN_ENABLED=false). Manual dispatch only.
   workflow_dispatch:
 
 permissions:
@@ -25,12 +23,19 @@ jobs:
   props:
     runs-on: ubuntu-latest
     outputs:
-      ran: ${{ steps.credit.outputs.proceed }}
+      ran: ${{ steps.scan.outputs.proceed == 'true' && steps.credit.outputs.proceed == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Gate — props scan enabled
+        id: scan
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: python3 scripts/check_props_scan_enabled.py nfl
+
       - name: Gate — odds credit pause (scheduled)
         id: credit
+        if: steps.scan.outputs.proceed == 'true'
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}

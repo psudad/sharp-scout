@@ -155,8 +155,7 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     idx_plays = html.index('<div class="section-label">Upcoming plays</div>')
     idx_diag = html.index("Diagnostics")
     assert idx_pace < idx_plays < idx_sharp < idx_diag
-    assert 'href="nba.html"' not in html or "nba-props.html" in html
-    assert 'href="nba-props.html"' in html
+    assert "nba-props.html" not in html
     assert "nav-test-badge" in html
     assert "WAS @ CHA: Over 227.5" in html
     assert "Tonight's play" in html or "nba-day-heading" in html
@@ -324,5 +323,5 @@ def test_render_nba_props_page_empty_when_no_props():
         analytics_head="",
     )
     assert "No NBA prop picks on today&apos;s slate" in html
-    assert "tab-nba-props active" in html
+    assert "tab-nba-props" not in html
     assert "WAS @ CHA" not in html

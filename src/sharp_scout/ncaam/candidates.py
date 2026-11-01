@@ -243,7 +243,8 @@ def evaluate_game(
 
 
 def _market_rank(market: str) -> int:
-    return 0 if market == "spreads" else 1
+    """Higher wins: spreads first; ML only when no spread qualifies for the game."""
+    return 1 if market == "spreads" else 0
 
 
 def pick_best_per_game(candidates: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:

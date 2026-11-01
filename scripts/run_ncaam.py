@@ -14,7 +14,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.config import DATA_DIR  # noqa: E402
 from sharp_scout.ncaam.lock import LEDGER_PATH  # noqa: E402
-from sharp_scout.ncaam.runner import run_loop, run_pass  # noqa: E402
+from sharp_scout.ncaam.runner import (  # noqa: E402
+    _git_commit_push,
+    restore_from_backup,
+    run_loop,
+    run_pass,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +32,20 @@ def main() -> int:
     parser.add_argument("--pass-every-min", type=int, default=15)
     parser.add_argument("--budget-min", type=int, default=340)
     parser.add_argument("--commit", action="store_true", help="Git commit after locks (live only)")
+    parser.add_argument("--commit-only", action="store_true", help="Commit + push NCAAM files and exit")
+    parser.add_argument("--restore-from", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO))
+    # httpx logs full request URLs (including the apiKey query param) at INFO.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+    if args.restore_from:
+        restore_from_backup(Path(args.restore_from))
+        return 0
+    if args.commit_only:
+        return 0 if _git_commit_push("chore(ncaam): lock picks + board") else 1
 
     ledger_path = LEDGER_PATH
     if args.demo:
@@ -46,10 +62,12 @@ def main() -> int:
             budget_min=args.budget_min,
         )
     if args.loop and args.demo:
-        return run_loop(demo=True, pass_every_min=1, budget_min=1)
+        return run_loop(demo=True, pass_every_min=1, budget_min=1, ledger_path=ledger_path)
 
     summary = run_pass(demo=args.demo, ledger_path=ledger_path, commit=args.commit and not args.demo)
     print(summary)
+    if args.demo:
+        print(f"Demo output (not published): {ledger_path.parent / 'docs' / 'ncaam.html'}")
     return 0
 
 

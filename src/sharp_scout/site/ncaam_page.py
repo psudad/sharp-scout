@@ -35,10 +35,11 @@ def _esc(s: Any) -> str:
     )
 
 
-def _load_signals() -> dict[str, Any]:
-    if NCAAM_SIGNALS_PATH.exists():
+def _load_signals(path: Path | None = None) -> dict[str, Any]:
+    p = path or NCAAM_SIGNALS_PATH
+    if p.exists():
         try:
-            return json.loads(NCAAM_SIGNALS_PATH.read_text())
+            return json.loads(p.read_text())
         except json.JSONDecodeError:
             pass
     return {}
@@ -192,11 +193,17 @@ def render_ncaam_page_html(
     )
 
 
-def build_ncaam_page(*, docs_dir: Path | None = None) -> Path:
+def build_ncaam_page(
+    *,
+    docs_dir: Path | None = None,
+    signals_path: Path | None = None,
+    ledger_path: Path | None = None,
+) -> Path:
     out = docs_dir or DOCS_DIR
     out.mkdir(parents=True, exist_ok=True)
-    ledger = load_ledger(NCAAM_LEDGER_PATH)
-    signals = _load_signals()
+    ledger_path = ledger_path or NCAAM_LEDGER_PATH
+    ledger = load_ledger(ledger_path)
+    signals = _load_signals(signals_path)
     updated = signals.get("generated_at") or ledger.get("updated_at") or datetime.now(timezone.utc).isoformat()
     from sharp_scout.site.build import _SITE_CSS, _render_analytics_head
 
@@ -209,7 +216,7 @@ def build_ncaam_page(*, docs_dir: Path | None = None) -> Path:
     )
     (out / "ncaam.html").write_text(html)
     (out / "ncaam_ledger.json").write_text(json.dumps(ledger, indent=2, default=str) + "\n")
-    rec = compute_record(ledger, path=NCAAM_LEDGER_PATH)
+    rec = compute_record(ledger, path=ledger_path)
     (out / "ncaam_record.json").write_text(json.dumps(rec, indent=2, default=str) + "\n")
     return out / "ncaam.html"
 

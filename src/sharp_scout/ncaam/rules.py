@@ -54,11 +54,10 @@ def anchor_k_spread(when: datetime | None = None) -> float:
 
 
 def price_qualifies(price: float, *, market: str) -> bool:
-    if price >= RULES.price_floor:
-        return True
-    if market == "h2h" and RULES.ml_price_min <= price <= RULES.ml_price_max:
-        return True
-    return False
+    """Spreads: price -150 or better. Moneyline: only between -150 and +200."""
+    if market == "h2h":
+        return RULES.ml_price_min <= price <= RULES.ml_price_max
+    return price >= RULES.price_floor
 
 
 def ev_qualifies(ev: float) -> bool:
@@ -90,13 +89,21 @@ def stake_units(*, ev: float, beat_open: bool, units_already_today: float) -> fl
     return round(u, 2)
 
 
-def apply_daily_cap(candidates: list[dict], *, et_day: date) -> list[dict]:
-    """Keep top EV plays up to daily cap and 8u."""
+def apply_daily_cap(
+    candidates: list[dict],
+    *,
+    et_day: date,
+    already_plays: int = 0,
+    already_units: float = 0.0,
+) -> list[dict]:
+    """Keep top EV plays up to daily cap and 8u (counting plays already locked today)."""
+    if already_plays >= RULES.daily_cap_plays or already_units >= RULES.max_units_per_day:
+        return []
     day_rows = [c for c in candidates if c.get("et_day") == et_day.isoformat()]
     day_rows.sort(key=lambda c: (-float(c.get("ev") or 0), -hook_tiebreak_score(
         str(c.get("side")), float(c.get("line") or 0))))
     out: list[dict] = []
-    units = 0.0
+    units = float(already_units)
     games: set[str] = set()
     for c in day_rows:
         gid = str(c.get("event_id") or c.get("espn_id") or "")
@@ -113,7 +120,7 @@ def apply_daily_cap(candidates: list[dict], *, et_day: date) -> list[dict]:
         row = {**c, "units": u}
         out.append(row)
         units += u
-        if len(out) >= RULES.daily_cap_plays:
+        if len(out) + already_plays >= RULES.daily_cap_plays:
             break
     return out
 

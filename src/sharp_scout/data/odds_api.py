@@ -33,6 +33,7 @@ class OddsClient:
         self.sharp_books = set(settings.sharp_books)
         self.retail_books = set(settings.retail_books)
         self.last_remaining: int | None = None
+        self.last_cost: int | None = None
         if isinstance(sport, SportConfig):
             self.sport = sport
         else:
@@ -54,6 +55,12 @@ class OddsClient:
             resp = client.get(f"{BASE_URL}{path}", params=q)
             remaining = resp.headers.get("x-requests-remaining")
             used = resp.headers.get("x-requests-used")
+            last = resp.headers.get("x-requests-last")
+            if last is not None:
+                try:
+                    self.last_cost = int(float(last))
+                except ValueError:
+                    self.last_cost = None
             if remaining is not None:
                 try:
                     self.last_remaining = int(remaining)

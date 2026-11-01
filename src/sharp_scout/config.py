@@ -91,6 +91,10 @@ class Settings(BaseSettings):
     # Props publish to the ledger and public board (consensus no-vig pricing, #70).
     # Set PROPS_PUBLISH_ENABLED=false to return to shadow mode.
     props_publish_enabled: bool = True
+    # Scheduled/live Odds API props fetches (pages and nav respect site_player_props_enabled).
+    nfl_props_scan_enabled: bool = False
+    nba_props_scan_enabled: bool = False
+    site_player_props_enabled: bool = False
     # Pregame run windows (hours before kickoff)
     pregame_windows_hours: str = "12,4,3,2,1"
     pregame_window_tolerance_minutes: int = 25

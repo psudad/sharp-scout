@@ -59,9 +59,22 @@ def test_delayed_primary_skips_after_backup_ran(tmp_path, monkeypatch):
     assert stale_mod.should_run_primary_slot(cron="7 15 * * 1-6", now=late_primary) is False
 
 
+def _patch_sched_now(monkeypatch, when: datetime) -> None:
+    real_datetime = sched.datetime
+
+    class _FixedDatetime(real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return when if tz is None else when.astimezone(tz)
+
+    monkeypatch.setattr(sched, "datetime", _FixedDatetime)
+
+
 def test_primary_cron_runs_when_no_recent_rebuild(tmp_path, monkeypatch):
+    slot_now = datetime(2026, 10, 31, 15, 10, tzinfo=timezone.utc)
     state = _state(tmp_path, datetime(2026, 10, 31, 10, 0, tzinfo=timezone.utc))
     monkeypatch.setattr(stale_mod, "STATE_PATH", state)
+    _patch_sched_now(monkeypatch, slot_now)
     monkeypatch.setenv("GITHUB_EVENT_NAME", "schedule")
     monkeypatch.setenv("GITHUB_SCHEDULE_CRON", "7 15 * * 1-6")
     out: list[str] = []
@@ -75,8 +88,10 @@ def test_primary_cron_runs_when_no_recent_rebuild(tmp_path, monkeypatch):
 
 
 def test_primary_cron_skips_when_recent_rebuild(tmp_path, monkeypatch):
+    slot_now = datetime(2026, 10, 31, 15, 45, tzinfo=timezone.utc)
     state = _state(tmp_path, datetime(2026, 10, 31, 15, 35, tzinfo=timezone.utc))
     monkeypatch.setattr(stale_mod, "STATE_PATH", state)
+    _patch_sched_now(monkeypatch, slot_now)
     monkeypatch.setenv("GITHUB_EVENT_NAME", "schedule")
     monkeypatch.setenv("GITHUB_SCHEDULE_CRON", "7 15 * * 1-6")
     out: list[str] = []

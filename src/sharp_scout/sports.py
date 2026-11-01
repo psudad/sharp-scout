@@ -96,6 +96,28 @@ NCAAF = SportConfig(
     hybrid_model_market_gap=7.0,
 )
 
+NCAAM = SportConfig(
+    key="ncaam",
+    display="NCAAM",
+    odds_sport_key="basketball_ncaab",
+    action_league="ncaab",
+    action_referer="https://www.actionnetwork.com/ncaab/public-betting",
+    artifact_name="ncaam_latest_signals.json",
+    ledger_name="ncaam_ledger.json",
+    pbp_cache_prefix="ncaam_pbp",
+    base_hfa=3.0,
+    scoring_base=72.0,
+    epa_scale=1.0,
+    margin_sd=10.5,
+    total_sd=14.0,
+    anchor_k_spread=0.15,
+    anchor_k_total=0.0,
+    anchor_k_ml=0.15,
+    anchor_tilt_cap=0.03,
+    spread_model_line_gap=8.0,
+    hybrid_model_market_gap=99.0,
+)
+
 NBA = SportConfig(
     key="nba",
     display="NBA",
@@ -118,7 +140,7 @@ NBA = SportConfig(
     hybrid_model_market_gap=99.0,
 )
 
-SPORTS = {"nfl": NFL, "ncaaf": NCAAF, "nba": NBA}
+SPORTS = {"nfl": NFL, "ncaaf": NCAAF, "nba": NBA, "ncaam": NCAAM}
 
 
 def get_sport(key: str) -> SportConfig:

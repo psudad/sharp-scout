@@ -2011,8 +2011,7 @@ def render_nba_page_html(
         sharp_leans_html=sharp_leans_html,
         sharp_history_html=sharp_history_html,
         sharp_record_note=(
-            "Spreads/totals only (props on "
-            '<a href="nba-props.html">NBA Props</a>). '
+            "Spreads and totals only. "
             "Oct 24–26 ET includes pre-window shadow testing; configured paper window starts "
             f"{window.get('start', '—')}."
         ),
@@ -2120,7 +2119,7 @@ def render_nba_props_page_html(
     from sharp_scout.site.site_nav import render_site_tabs
 
     return NBA_PROPS_PAGE_TEMPLATE.format(
-        site_tabs=render_site_tabs(active="nba_props"),
+        site_tabs=render_site_tabs(active="nba"),
         site_css=_SITE_CSS,
         bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
@@ -2220,13 +2219,14 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
         score_model_store=paper_store,
     )
     (out / "nba.html").write_text(html)
-    props_html = render_nba_props_page_html(
-        signals_payload=signals_payload,
-        ledger=ledger,
-        report=report,
-        analytics_head=analytics_head,
-    )
-    (out / "nba-props.html").write_text(props_html)
+    if get_settings().site_player_props_enabled:
+        props_html = render_nba_props_page_html(
+            signals_payload=signals_payload,
+            ledger=ledger,
+            report=report,
+            analytics_head=analytics_head,
+        )
+        (out / "nba-props.html").write_text(props_html)
     return out / "nba.html"
 
 
@@ -2368,7 +2368,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     <div class="header-logo">{ssq_logo}</div>
     <div class="header-text">
       <h1>NBA tracking board</h1>
-      <p>Pace of Play and Sharp Scout game-line paper picks. Player props live on <a href="nba-props.html">NBA Props</a>. {window_note}</p>
+      <p>Pace of Play and Sharp Scout game-line paper picks. {window_note}</p>
     </div>
   </div>
 </header>

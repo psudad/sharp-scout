@@ -121,7 +121,8 @@ def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
     assert 'data-tab="cfb"' in html
     assert "NCAAF" in html or "CFB" in html
     assert "This Week — Pregame Stage Winners" in html
-    assert "Today's plays" in html or "Today's best plays" in (out / "index.html").read_text()
+    index = (out / "index.html").read_text()
+    assert "Model boards" in index or "Home" in index
     assert "NCAAF Ledger" in html
     assert "Quant Pick Leans" in html
     assert "lean-row-sharp-play" in html
@@ -133,7 +134,8 @@ def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
     assert "Prior weeks (archive)" in html
     assert "This Week — Pregame Stage Winners" in html
     assert "NCAAF Power Ratings" not in html
-    assert "Closing Line Value" in html
+    archive = (out / "archive" / "how-it-works.html").read_text()
+    assert "Closing Line Value" in archive
     assert "Cormorant Garamond" in html
     assert "Inconsolata" in html
     assert "--color-navy" in html

@@ -32,6 +32,8 @@ class OddsClient:
         self.api_key = api_key or settings.odds_api_key
         self.sharp_books = set(settings.sharp_books)
         self.retail_books = set(settings.retail_books)
+        self.last_remaining: int | None = None
+        self.last_cost: int | None = None
         if isinstance(sport, SportConfig):
             self.sport = sport
         else:
@@ -53,7 +55,17 @@ class OddsClient:
             resp = client.get(f"{BASE_URL}{path}", params=q)
             remaining = resp.headers.get("x-requests-remaining")
             used = resp.headers.get("x-requests-used")
+            last = resp.headers.get("x-requests-last")
+            if last is not None:
+                try:
+                    self.last_cost = int(float(last))
+                except ValueError:
+                    self.last_cost = None
             if remaining is not None:
+                try:
+                    self.last_remaining = int(remaining)
+                except ValueError:
+                    self.last_remaining = None
                 logger.info("Odds API quota used=%s remaining=%s", used, remaining)
             if resp.status_code == 401:
                 raise OddsAPIError("Odds API unauthorized — check ODDS_API_KEY")
@@ -67,17 +79,19 @@ class OddsClient:
         regions: str = "us,us2,eu",
         odds_format: str = "american",
         sport: str | None = None,
+        bookmakers: str | None = None,
     ) -> list[dict[str, Any]]:
         sport_key = sport or self.sport_key
-        raw = self._get(
-            f"/sports/{sport_key}/odds",
-            {
-                "regions": regions,
-                "markets": markets,
-                "oddsFormat": odds_format,
-                "dateFormat": "iso",
-            },
-        )
+        params: dict[str, Any] = {
+            "markets": markets,
+            "oddsFormat": odds_format,
+            "dateFormat": "iso",
+        }
+        if bookmakers:
+            params["bookmakers"] = bookmakers
+        else:
+            params["regions"] = regions
+        raw = self._get(f"/sports/{sport_key}/odds", params)
         return [self._normalize_event(ev) for ev in raw]
 
     def fetch_odds_all_sports(
@@ -183,6 +197,11 @@ class OddsClient:
             from sharp_scout.nba.teams import normalize_nba_team
 
             return normalize_nba_team(name)
+        if self.norm_sport == "ncaam":
+            from sharp_scout.ncaam.teams import normalize_ncaam
+
+            canon = normalize_ncaam(name)
+            return canon or name.strip()
         return normalize_team(name, self.norm_sport)
 
     def _normalize_event(self, ev: dict[str, Any]) -> dict[str, Any]:

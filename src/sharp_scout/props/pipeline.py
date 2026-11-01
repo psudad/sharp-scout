@@ -74,6 +74,17 @@ def run_props_pipeline(
     """
     settings = get_settings()
     setup_logging(settings.log_level)
+    if not settings.nfl_props_scan_enabled and not demo:
+        logger.info("NFL props scan disabled (NFL_PROPS_SCAN_ENABLED=false)")
+        return {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "demo": False,
+            "skipped": "nfl_props_scan_disabled",
+            "n_events": 0,
+            "n_validated": 0,
+            "plays": [],
+            "publish_enabled": settings.props_publish_enabled,
+        }
     inactive = inactive if inactive is not None else settings.inactive_list
     wind_by_event = wind_by_event or {}
     game_context = game_context or {}

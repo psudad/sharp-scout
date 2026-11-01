@@ -125,7 +125,8 @@ def test_official_pace_wrapper_accepts_engine_kw():
 
 def test_official_record_through_oct28():
     store = load_official_pace()
-    summary = summarize_official_pace(store)
+    plays = [p for p in store.get("plays") or [] if p.get("date_et") <= "2026-10-28"]
+    summary = summarize_official_pace({**store, "plays": plays})
     assert summary["record"] == "10-7"
     assert summary["n_plays"] == 17
     assert abs(summary["units"] - 2.09) < 0.02

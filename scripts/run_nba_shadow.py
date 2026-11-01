@@ -10,6 +10,7 @@ import argparse
 import json
 import sys
 
+from sharp_scout.config import get_settings
 from sharp_scout.nba.pipeline import run_nba_shadow
 from sharp_scout.utils.odds import setup_logging
 
@@ -22,9 +23,11 @@ def main() -> int:
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
     setup_logging(args.log_level)
+    settings = get_settings()
+    fetch_props = not args.no_props and settings.nba_props_scan_enabled
     payload = run_nba_shadow(
         demo=args.demo,
-        fetch_props=not args.no_props,
+        fetch_props=fetch_props,
         append_ledger=not args.no_ledger,
     )
     print(json.dumps({k: payload[k] for k in payload if k != "signals"}, indent=2))

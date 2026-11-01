@@ -398,9 +398,19 @@ LANDING_PAGE_CSS = """
   .lp-leans > summary { cursor: pointer; font-weight: 700; font-size: 17px; padding: 10px 0; list-style: none; }
   .lp-leans > summary::-webkit-details-marker { display: none; }
   .lp-leans-note { font-weight: 400; color: var(--color-text-muted); font-size: 14px; }
-  .lp-help { margin-top: 22px; background: #fff; border: 1px solid var(--color-border); border-radius: 16px;
-    padding: 14px 16px; font-size: 14px; color: var(--color-text-muted); line-height: 1.55; }
-  .lp-more { display: block; text-align: center; margin: 18px 0 8px; color: var(--color-navy); font-weight: 600; }
+  .lp-board-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 20px 0 8px; }
+  .lp-board-card {{
+    display: block; background: #fff; border: 1px solid var(--color-border); border-radius: 16px;
+    padding: 18px 18px 16px; text-decoration: none; color: inherit;
+    box-shadow: 0 1px 2px rgba(16,24,40,.04);
+  }}
+  .lp-board-card:hover {{ border-color: var(--color-navy); }}
+  .lp-board-title {{ font-size: 22px; font-weight: 800; color: var(--color-navy); }}
+  .lp-board-blurb {{ margin: 6px 0 10px; font-size: 15px; color: var(--color-text-muted); line-height: 1.45; }}
+  .lp-board-rec {{ font-size: 14px; color: var(--color-text-muted); }}
+  .lp-board-go {{ font-size: 14px; font-weight: 700; color: var(--color-navy); }}
+  @media (min-width: 700px) {{ .lp-board-grid {{ grid-template-columns: 1fr 1fr; }} }}
+  @media (min-width: 1024px) {{ .lp-board-grid {{ grid-template-columns: repeat(4, 1fr); }} }}
   .lp-slip { display: none; }
   .lp-slip-sidebar { display: none; }
   .lp-slip h2 { font-size: 18px; margin: 0 0 4px; font-family: var(--font-serif); }
@@ -464,6 +474,29 @@ LANDING_FILTER_SCRIPT = """
 """
 
 
+def _board_card(
+    *,
+    href: str,
+    title: str,
+    blurb: str,
+    record: dict[str, Any] | None = None,
+    badge: str = "",
+) -> str:
+    b = _site_build()
+    rec_line = ""
+    if record:
+        rec_line = (
+            f'<div class="lp-board-rec">{_season_record_chip("", record).replace("<b>", "").replace("</b>", "")}</div>'
+        )
+    badge_html = f" {badge}" if badge else ""
+    return (
+        f'<a class="lp-board-card" href="{b._esc(href)}">'
+        f'<div class="lp-board-title">{b._esc(title)}{badge_html}</div>'
+        f'<p class="lp-board-blurb">{b._esc(blurb)}</p>{rec_line}'
+        f'<span class="lp-board-go">Open board →</span></a>'
+    )
+
+
 def render_landing_page(
     *,
     site_css: str,
@@ -479,36 +512,41 @@ def render_landing_page(
     ncaaf_season_week: int | None = None,
     nfl_signal_plays: list[dict[str, Any]],
     ncaaf_signal_plays: list[dict[str, Any]],
+    ncaam_record: dict[str, Any] | None = None,
 ) -> str:
-    best_index = _best_price_index(list(nfl_signal_plays) + list(ncaaf_signal_plays))
-    official_ncaaf = [dict(p, sport="ncaaf") for p in ncaaf_plays]
-    official_nfl = [dict(p, sport="nfl") for p in nfl_plays]
-    official = sorted(
-        official_ncaaf + official_nfl,
-        key=lambda p: kickoff_sort_key(p.get("kickoff") or p.get("commence_time")),
-    )
-    leans = list(ncaaf_leans) + list(nfl_leans)
+    del ncaaf_plays, nfl_plays, ncaaf_leans, nfl_leans, nfl_signal_plays, ncaaf_signal_plays
+    del nfl_season_week, ncaaf_season_week
 
     b = _site_build()
-    banners = b.early_season_banner_html(nfl_season_week) + b.early_season_banner_html(ncaaf_season_week)
+    from sharp_scout.site.site_nav import nba_nav_label
 
-    official_html = "".join(
-        _render_landing_play_card(p, sport=str(p.get("sport")), official=True, best_index=best_index)
-        for p in official
-    )
-    if not official_html:
-        official_html = (
-            '<div class="lp-empty" id="lp-official-empty">'
-            "No official plays posted this week yet. New plays appear after each model run."
-            "</div>"
+    ncaam_rec = ncaam_record or {"record": "0-0", "pnl_units": 0}
+    board_cards_html = (
+        _board_card(
+            href="board.html#tab-cfb",
+            title="NCAAF",
+            blurb="College football totals card, research board, and ledger.",
+            record=ncaaf_record,
         )
-
-    leans_html = "".join(
-        _render_landing_play_card(p, sport=str(p.get("sport")), official=False, best_index=best_index)
-        for p in leans
+        + _board_card(
+            href="board.html#tab-plays",
+            title="NFL",
+            blurb="Weekly LOCKED card, stage winners, and season ledger.",
+            record=nfl_record,
+        )
+        + _board_card(
+            href="nba.html",
+            title="NBA",
+            blurb="Pace of Play and game-line paper picks (testing).",
+            badge=nba_nav_label()[3:].strip(),
+        )
+        + _board_card(
+            href="ncaam.html",
+            title="College Basketball",
+            blurb="Automated college basketball spread picks and ledger.",
+            record=ncaam_rec,
+        )
     )
-    if not leans_html:
-        leans_html = '<div class="lp-empty">No model leans on the current slate.</div>'
 
     record_html = (
         _season_record_chip("CFB", ncaaf_record)
@@ -524,16 +562,11 @@ def render_landing_page(
         ssq_logo=b._ssq_logo_svg(embedded=True),
         board_updated=b._esc(board_updated),
         record_html=record_html,
-        early_banners=banners,
-        official_cards=official_html,
-        lean_count=len(leans),
-        leans_cards=leans_html,
+        board_cards=board_cards_html,
         bottom_bar=render_bottom_bar(active="plays"),
         slip_overlay=render_slip_overlay(),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
-        landing_filter_script=LANDING_FILTER_SCRIPT,
-        timing_script=b._TIMING_SCRIPT,
-        lp_topnav=render_lp_topnav(active="plays"),
+        lp_topnav=render_lp_topnav(active="home"),
     )
 
 
@@ -543,8 +576,8 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Today's best plays · Sharp Scout Quant</title>
-<meta name="description" content="Sharp Scout Quant — today's recommended NFL and college football plays">
+<title>Sharp Scout Quant · Boards</title>
+<meta name="description" content="Sharp Scout Quant — NFL, NCAAF, NBA, and college basketball model boards">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
 <link rel="apple-touch-icon" href="assets/ssq-logo.svg">
 {analytics_head}
@@ -573,46 +606,11 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
 
 <main class="lp-main">
   <div class="lp-hero">
-    <h1>Today's best plays</h1>
-    <p>Only the bets we actually post. Tap <b>Add to my card</b> to save the ones you like.</p>
-    <div class="lp-updated">Updated {board_updated}</div>
-    <div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite" style="margin-top:10px"></div>
+    <h1>Model boards</h1>
+    <p>Pick a sport — each board has posted plays, research tables, and season results.</p>
+    <div class="lp-updated">Football boards updated {board_updated}</div>
   </div>
-
-  <div class="lp-filters" role="toolbar" aria-label="Filters">
-    <button type="button" class="lp-chip on" data-f="sport" data-v="all">All</button>
-    <button type="button" class="lp-chip" data-f="sport" data-v="ncaaf">College</button>
-    <button type="button" class="lp-chip" data-f="sport" data-v="nfl">NFL</button>
-    <span class="lp-filter-sep"></span>
-    <button type="button" class="lp-chip on" data-f="conf" data-v="0">Any confidence</button>
-    <button type="button" class="lp-chip" data-f="conf" data-v="2">💎 Strong or better</button>
-  </div>
-
-  {early_banners}
-
-  <div class="lp-layout">
-    <section>
-      <div class="lp-grid official-grid" id="lp-official">{official_cards}</div>
-      <details class="lp-leans">
-        <summary>Model leans ({lean_count})<br>
-          <span class="lp-leans-note">Not official bets. Smaller edges the model noticed. Tap to show.</span>
-        </summary>
-        <div class="lp-grid leans-grid">{leans_cards}</div>
-      </details>
-      <div class="lp-help">
-        <b>How to read a play.</b> <b>Confidence</b> is how likely the bet is to win, plus how good the price is.
-        💎💎 Top pick (wins about 7 in 10) · 💎 Strong (about 6 in 10) · Good (55%+) · Lean (under 55%).
-        Even top picks lose sometimes. <b>Bet size</b> is in units: 1 unit is your normal bet.
-      </div>
-      <a class="lp-more" href="board.html">See the full research board →</a>
-    </section>
-    <aside class="lp-slip lp-slip-sidebar" id="lp-slip">
-      <h2>My card <span class="lp-badge" id="lp-slip-count">0</span></h2>
-      <div class="lp-slip-sub">Saved on this phone or computer only.</div>
-      <ul id="lp-slip-list"></ul>
-      <button type="button" class="lp-copy" id="lp-copy-btn">Copy my card</button>
-    </aside>
-  </div>
+  <div class="lp-board-grid">{board_cards}</div>
 </main>
 
 {slip_overlay}
@@ -621,9 +619,7 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
   Sharp Scout Quant · research and entertainment only · not betting advice.<br>
   Updated {board_updated}
 </div>
-{timing_script}
 {bottom_bar_script}
-{landing_filter_script}
 </body>
 </html>
 """

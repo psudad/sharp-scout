@@ -1,0 +1,88 @@
+name: NCAAM picks (lock + publish)
+
+# Looping runner for College Basketball locks + GitHub Pages deploy.
+# Requires ODDS_API_KEY (NCAAM budget capped at 120 credits/day in code).
+
+on:
+  schedule:
+    - cron: "5 14 * * *"
+    - cron: "5 15 * * *"
+    - cron: "5 16 * * *"
+    - cron: "35 17 * * *"
+    - cron: "5 19 * * *"
+    - cron: "5 21 * * *"
+    - cron: "5 23 * * *"
+  workflow_dispatch:
+    inputs:
+      demo:
+        description: "Offline demo pass (no API keys)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ncaam
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Runner (loop until slate done / budget)
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "${{ github.event.inputs.demo }}" = "true" ]; then
+            python scripts/run_ncaam.py --demo --once
+            exit 0
+          fi
+          if [ -z "$ODDS_API_KEY" ]; then
+            echo "No ODDS_API_KEY; skipping live NCAAM run"
+            exit 0
+          fi
+          python scripts/run_ncaam.py --loop --budget-min 330 --pass-every-min 15
+
+      - name: Commit NCAAM artifacts (budget, heartbeat, ledger, board)
+        if: always() && github.event.inputs.demo != 'true'
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          chmod +x scripts/ci_git_push_retry.sh scripts/ci_git_add_paths.sh
+          python scripts/run_ncaam.py --commit-only
+
+      - name: Upload Pages artifact
+        # Never publish demo fixtures to the live site.
+        if: always() && github.event.inputs.demo != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: run
+    if: always() && github.ref == 'refs/heads/main' && github.event.inputs.demo != 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

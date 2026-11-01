@@ -1009,10 +1009,10 @@ def build_site(
         render_bottom_bar,
         render_slip_overlay,
     )
-    from sharp_scout.site.site_nav import render_board_nba_tab_link
+    from sharp_scout.site.site_nav import render_board_aux_tab_links
 
     html = SITE_TEMPLATE.format(
-        board_nba_tab=render_board_nba_tab_link(),
+        board_aux_tabs=render_board_aux_tab_links(),
         bottom_bar_css=bottom_bar_css(),
         slip_overlay=render_slip_overlay(),
         bottom_bar=render_bottom_bar(active="board"),
@@ -1075,13 +1075,16 @@ def build_site(
         ncaaf_alarm_stats_html=ncaaf_alarm_stats_html,
         stage_records_thead=stage_records_thead,
         stage_record_section_note=_esc(STAGE_RECORD_SECTION_NOTE),
-        guide_html=_render_guide_html(),
         site_css=_SITE_CSS,
         timing_script=_TIMING_SCRIPT,
     )
     # The full board lives at board.html; index.html is the plays-only landing page.
     (out / "board.html").write_text(html)
     from sharp_scout.site.landing_page import landing_lean_plays, render_landing_page
+    from sharp_scout.site.ncaam_page import NCAAM_LEDGER_PATH as _NCAAM_LEDGER
+    from sharp_scout.ledger.tracker import load_ledger as _load_ledger
+
+    ncaam_record = compute_record(_load_ledger(_NCAAM_LEDGER), path=_NCAAM_LEDGER)
 
     nfl_landing_leans = landing_lean_plays(
         nfl_current_stage_cards,
@@ -1113,6 +1116,7 @@ def build_site(
             ncaaf_season_week=ncaaf_season_week,
             nfl_signal_plays=signals.get("plays") or [],
             ncaaf_signal_plays=ncaaf_signals.get("plays") or [],
+            ncaam_record=ncaam_record,
         )
     )
     (out / "comments.html").write_text(
@@ -1120,18 +1124,26 @@ def build_site(
             analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
         )
     )
-    props_payload = _pick_props()
-    (out / "props.html").write_text(
-        _render_props_page(
-            props_payload,
-            analytics_head=_render_analytics_head(get_settings().ga_measurement_id),
-            props_ledger=props_ledger,
+    settings = get_settings()
+    if settings.site_player_props_enabled:
+        props_payload = _pick_props()
+        (out / "props.html").write_text(
+            _render_props_page(
+                props_payload,
+                analytics_head=_render_analytics_head(settings.ga_measurement_id),
+                props_ledger=props_ledger,
+            )
         )
-    )
-    if props_payload and not props_payload.get("demo"):
-        published = {k: v for k, v in props_payload.items() if k not in ("props", "events", "plays")}
-        published["plays"] = props_board_rows(props_payload)
-        (out / "latest_props.json").write_text(json.dumps(published, indent=2, default=str))
+        if props_payload and not props_payload.get("demo"):
+            published = {
+                k: v for k, v in props_payload.items() if k not in ("props", "events", "plays")
+            }
+            published["plays"] = props_board_rows(props_payload)
+            (out / "latest_props.json").write_text(json.dumps(published, indent=2, default=str))
+
+    archive_dir = out / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    (archive_dir / "how-it-works.html").write_text(_render_guide_standalone_page())
 
     assets_dir = out / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
@@ -1143,6 +1155,9 @@ def build_site(
     from sharp_scout.site.nba_page import build_nba_page
 
     build_nba_page(docs_dir=out)
+    from sharp_scout.site.ncaam_page import build_ncaam_page
+
+    build_ncaam_page(docs_dir=out)
     return out
 
 
@@ -1685,6 +1700,31 @@ def _render_guide_html() -> str:
     <li><b>Units</b> — stake size on the ledger; profit is tracked in units, not dollars.</li>
   </ul>
 </div>
+"""
+
+
+def _render_guide_standalone_page() -> str:
+    """Archived site guide (removed from public nav; kept for reference)."""
+    body = _render_guide_html()
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How it works (archive) · Sharp Scout Quant</title>
+<link rel="icon" type="image/svg+xml" href="../assets/ssq-logo.svg">
+<style>
+  body {{ font-family: system-ui, sans-serif; max-width: 820px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.55; }}
+  .guide-block {{ margin-bottom: 28px; }}
+  .guide-callout {{ background: #f5f7fa; border-left: 4px solid #1e3a5f; padding: 12px 16px; }}
+  a {{ color: #1e3a5f; }}
+</style>
+</head>
+<body>
+<p><a href="../index.html">← Back to boards</a></p>
+{body}
+</body>
+</html>
 """
 
 
@@ -4250,13 +4290,11 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   </div>
 <div id="gameday-scores-bar" class="gameday-scores-bar" aria-live="polite"></div>
 <div class="tabs" role="tablist">
-  <a class="tab tab-home" href="index.html">Today's plays</a>
+  <a class="tab tab-home" href="index.html">Home</a>
   <a class="tab active" href="#tab-plays" data-tab="plays">NFL</a>
-  <a class="tab" href="#tab-cfb" data-tab="cfb">CFB</a>
-  <a class="tab" href="#tab-guide" data-tab="guide">How to use</a>
+  <a class="tab" href="#tab-cfb" data-tab="cfb">NCAAF</a>
   <a class="tab tab-aux tab-comments" href="comments.html">Comments</a>
-  <a class="tab tab-aux" href="props.html">Props</a>
-  {board_nba_tab}
+  {board_aux_tabs}
 </div>
 </div>
 
@@ -4345,10 +4383,6 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <p class="phase-note" style="padding:8px 0">Archive of completed college weeks. Each Monday ET, the prior week's stage winners and quant pick leans move here. Use <b>Download CSV</b> on each table to export.</p>
     {ncaaf_historical_html}
   </details>
-</div>
-
-<div id="tab-guide" class="content">
-  {guide_html}
 </div>
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>

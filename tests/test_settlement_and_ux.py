@@ -39,13 +39,10 @@ def site(tmp_path: Path, monkeypatch) -> Path:
     return tmp_path
 
 
-def test_landing_explains_confidence_in_plain_english(site: Path):
+def test_landing_is_board_hub(site: Path):
     html = (site / "index.html").read_text()
-    assert "How to read a play" in html
-    for tier in ("Top pick", "Strong", "Good", "Lean"):
-        assert tier in html
-    assert "Chance to win" in html
-    assert "Bet size" in html
+    assert "Model boards" in html
+    assert "College Basketball" in html
 
 
 def test_board_headers_stick_on_scroll(site: Path):
@@ -110,10 +107,5 @@ def test_plays_table_has_win_pct_alongside_ev(site: Path):
     board = (site / "board.html").read_text()
     assert "<th>Win %</th>" in board
     
-    # Landing page only has Win % header if there are plays to show
     landing = (site / "index.html").read_text()
-    has_plays_table = '<table' in landing and 'plays-table' in landing
-    if has_plays_table:
-        assert "<th>Win %</th>" in landing, "Landing page has plays table but missing Win % header"
-    
-    assert "Chance to win" in landing
+    assert "Model boards" in landing

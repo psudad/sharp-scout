@@ -143,16 +143,24 @@ class ActionNetworkClient:
         Odds API names arrive as "School Mascot"; knowing the real mascot set is what
         lets us strip it without ever mistaking a school qualifier for a mascot.
         """
-        if self.norm_sport != "ncaaf":
-            return
-        from sharp_scout.utils.teams import register_mascots
+        if self.norm_sport == "ncaaf":
+            from sharp_scout.utils.teams import register_mascots
 
-        register_mascots(
-            str(t.get("short_name") or "")
-            for g in games
-            for t in (g.get("teams") or [])
-            if isinstance(t, dict)
-        )
+            register_mascots(
+                str(t.get("short_name") or "")
+                for g in games
+                for t in (g.get("teams") or [])
+                if isinstance(t, dict)
+            )
+        elif self.norm_sport == "ncaam":
+            from sharp_scout.ncaam.teams import register_ncaam_mascots
+
+            register_ncaam_mascots(
+                str(t.get("short_name") or "")
+                for g in games
+                for t in (g.get("teams") or [])
+                if isinstance(t, dict)
+            )
 
     def fetch_scoreboard_dates(self, dates: Iterable[str]) -> list[dict[str, Any]]:
         """Fetch and merge several slate dates (YYYYMMDD).

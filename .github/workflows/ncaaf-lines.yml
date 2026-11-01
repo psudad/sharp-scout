@@ -189,6 +189,12 @@ jobs:
           export ADD_PATHS="data/ncaaf_line_plan.json data/line_history.json data/line_history_archive.json data/open_lines.json data/ncaaf_ledger.json data/ncaaf_rebuild_state.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
           ./scripts/ci_git_push_retry.sh "chore: NCAAF line snapshots + gameday board refresh (scheduled)" bash -c "python scripts/run_ncaaf.py --build-site"
 
+      - name: Build unlisted NCAAM page (not committed, not linked)
+        if: always()
+        env:
+          NCAAM_LAB_SLUG: ${{ secrets.NCAAM_LAB_SLUG }}
+        run: python3 scripts/build_ncaam_lab.py || true
+
       - name: Upload Pages artifact
         if: steps.deployflag.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@v3

@@ -132,6 +132,12 @@ jobs:
             ./scripts/ci_git_push_retry.sh "chore(nba): shadow paper-trading scan"
           fi
 
+      - name: Build unlisted NCAAM page (not committed, not linked)
+        if: always()
+        env:
+          NCAAM_LAB_SLUG: ${{ secrets.NCAAM_LAB_SLUG }}
+        run: python3 scripts/build_ncaam_lab.py || true
+
       - name: Upload Pages artifact
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
         uses: actions/upload-pages-artifact@v3

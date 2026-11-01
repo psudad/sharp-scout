@@ -38,6 +38,8 @@ def _parse_event(ev: dict[str, Any]) -> dict[str, Any] | None:
             "location": loc,
             "abbrev": tm.get("abbreviation"),
             "score": t.get("score"),
+            "team_id": str(tm.get("id") or ""),
+            "conference_id": str(tm.get("conferenceId") or ""),
         }
         if t.get("homeAway") == "home":
             home, home_loc = row, loc
@@ -66,6 +68,12 @@ def _parse_event(ev: dict[str, Any]) -> dict[str, Any] | None:
         "home_score": int(home["score"]) if str(home.get("score") or "").isdigit() else None,
         "away_score": int(away["score"]) if str(away.get("score") or "").isdigit() else None,
         "season_type": (ev.get("season") or {}).get("type"),
+        "status_name": status.get("name"),
+        "conference_game": bool(comp.get("conferenceCompetition")),
+        "home_espn_team_id": home.get("team_id") or "",
+        "away_espn_team_id": away.get("team_id") or "",
+        "home_conference_id": home.get("conference_id") or "",
+        "away_conference_id": away.get("conference_id") or "",
     }
 
 

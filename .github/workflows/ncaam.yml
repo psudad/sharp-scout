@@ -18,6 +18,10 @@ on:
         description: "Offline demo pass (no API keys)"
         type: boolean
         default: false
+      splits_check:
+        description: "Only check Action Network splits access (counts only, no Odds API credits)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -26,7 +30,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: ncaam
+  # The counts-only splits check must not queue behind a long live runner.
+  group: ncaam-${{ github.event.inputs.splits_check == 'true' && 'splits-check' || 'run' }}
   cancel-in-progress: false
 
 jobs:
@@ -44,9 +49,19 @@ jobs:
       - name: Install
         run: pip install -e .
 
+      - name: Splits access check (counts only)
+        if: github.event.inputs.splits_check == 'true'
+        env:
+          ACTION_NETWORK_TOKEN: ${{ secrets.ACTION_NETWORK_TOKEN }}
+          ACTION_NETWORK_COOKIE: ${{ secrets.ACTION_NETWORK_COOKIE }}
+        run: python scripts/check_ncaam_splits.py
+
       - name: Runner (loop until slate done / budget)
+        if: github.event.inputs.splits_check != 'true'
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          ACTION_NETWORK_TOKEN: ${{ secrets.ACTION_NETWORK_TOKEN }}
+          ACTION_NETWORK_COOKIE: ${{ secrets.ACTION_NETWORK_COOKIE }}
           GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "sharp-scout-bot"
@@ -62,23 +77,29 @@ jobs:
           python scripts/run_ncaam.py --loop --budget-min 330 --pass-every-min 15
 
       - name: Commit NCAAM artifacts (budget, heartbeat, ledger, board)
-        if: always() && github.event.inputs.demo != 'true'
+        if: always() && github.event.inputs.demo != 'true' && github.event.inputs.splits_check != 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           chmod +x scripts/ci_git_push_retry.sh scripts/ci_git_add_paths.sh
           python scripts/run_ncaam.py --commit-only
 
+      - name: Build unlisted NCAAM page (not committed, not linked)
+        if: always()
+        env:
+          NCAAM_LAB_SLUG: ${{ secrets.NCAAM_LAB_SLUG }}
+        run: python3 scripts/build_ncaam_lab.py || true
+
       - name: Upload Pages artifact
         # Never publish demo fixtures to the live site.
-        if: always() && github.event.inputs.demo != 'true'
+        if: always() && github.event.inputs.demo != 'true' && github.event.inputs.splits_check != 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
   deploy:
     needs: run
-    if: always() && github.ref == 'refs/heads/main' && github.event.inputs.demo != 'true'
+    if: always() && github.ref == 'refs/heads/main' && github.event.inputs.demo != 'true' && github.event.inputs.splits_check != 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

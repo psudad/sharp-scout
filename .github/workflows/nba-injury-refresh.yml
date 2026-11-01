@@ -56,6 +56,12 @@ jobs:
             ./scripts/ci_git_push_retry.sh "chore(nba): ESPN injury refresh (no odds scan)" python scripts/run_nba_injury_refresh.py
           fi
 
+      - name: Build unlisted NCAAM page (not committed, not linked)
+        if: always()
+        env:
+          NCAAM_LAB_SLUG: ${{ secrets.NCAAM_LAB_SLUG }}
+        run: python3 scripts/build_ncaam_lab.py || true
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

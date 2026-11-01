@@ -27,11 +27,12 @@ def project_game(
     home_ratings: dict[str, float],
     away_ratings: dict[str, float],
     neutral_site: bool = False,
+    hfa: float | None = None,
 ) -> Projection:
     lg_adjt = home_ratings["lg_adjt"]
     lg_eff = home_ratings["lg_eff"]
     poss = home_ratings["adjt"] * away_ratings["adjt"] / max(lg_adjt, 1.0)
-    hfa = 0.0 if neutral_site else RULES.hfa
+    hfa = 0.0 if neutral_site else (RULES.hfa if hfa is None else float(hfa))
     pts_h = home_ratings["adjoe"] * away_ratings["adjde"] / lg_eff * poss / 100.0 + hfa / 2.0
     pts_a = away_ratings["adjoe"] * home_ratings["adjde"] / lg_eff * poss / 100.0 - hfa / 2.0
     return Projection(

@@ -72,3 +72,14 @@ def should_skip_snapshot(*, remaining_header: int | None, day: date | None = Non
     if remaining_header is not None and remaining_header < REMAINING_HEADER_FLOOR:
         return True, "global_remaining_floor"
     return False, ""
+
+
+SLOW_CADENCE_AT = 100
+SLOW_CADENCE_MIN = 30
+
+
+def pass_interval_min(default_min: int, *, day: date | None = None) -> int:
+    """Pass cadence: switch to 30 minutes for the rest of the day once 100 credits are used."""
+    if credits_used_today(day) >= SLOW_CADENCE_AT:
+        return max(int(default_min), SLOW_CADENCE_MIN)
+    return int(default_min)

@@ -134,6 +134,12 @@ jobs:
           chmod +x scripts/ncaaf_ci_run_and_post.sh scripts/ncaaf_ci_post_run.sh
           ./scripts/ci_git_push_retry.sh "chore: update NCAAF ledger and GitHub Pages site" bash -c "scripts/ncaaf_ci_run_and_post.sh --build-site"
 
+      - name: Build unlisted NCAAM page (not committed, not linked)
+        if: always()
+        env:
+          NCAAM_LAB_SLUG: ${{ secrets.NCAAM_LAB_SLUG }}
+        run: python3 scripts/build_ncaam_lab.py || true
+
       - name: Upload Pages artifact
         if: github.event_name == 'workflow_dispatch' || steps.slot.outputs.run == 'true'
         uses: actions/upload-pages-artifact@v3

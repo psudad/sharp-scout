@@ -14,11 +14,11 @@ from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT
 from sharp_scout.data import line_store
-from sharp_scout.data.action_network import ActionNetworkClient
 from sharp_scout.data.odds_api import OddsClient, OddsAPIError
 from sharp_scout.ncaam.candidates import NCAAM_BOOKS, evaluate_game, pick_best_per_game
 from sharp_scout.ncaam.credits import (
     CREDITS_PER_ODDS_CALL,
+    pass_interval_min,
     record_spend,
     should_skip_snapshot,
 )
@@ -171,10 +171,30 @@ def run_pass(
     elif skip:
         logger.info("Skipping odds snapshot: %s", reason)
 
+    demo_shift: timedelta | None = None
+    if demo and odds_events:
+        # Fixtures carry fixed tip times; move them so the first game tips 60 min from now.
+        first = min(e["commence_time"] for e in odds_events if isinstance(e.get("commence_time"), datetime))
+        demo_shift = (now + timedelta(minutes=60)) - first
+        for e in odds_events:
+            if isinstance(e.get("commence_time"), datetime):
+                e["commence_time"] = e["commence_time"] + demo_shift
+            for bm in (e.get("bookmakers") or {}).values():
+                lu = bm.get("last_update") if isinstance(bm, dict) else None
+                if isinstance(lu, str):
+                    try:
+                        bm["last_update"] = (datetime.fromisoformat(lu.replace("Z", "+00:00")) + demo_shift).isoformat()
+                    except ValueError:
+                        pass
+
     all_slate: list[dict[str, Any]] = []
     for d in et_days:
         if demo and DEMO_SLATE_FIXTURE.exists():
             slate = load_demo_slate(DEMO_SLATE_FIXTURE)
+            if demo_shift is not None:
+                for r in slate:
+                    if isinstance(r.get("commence_time"), datetime):
+                        r["commence_time"] = r["commence_time"] + demo_shift
         else:
             espn = espn_by_day.get(d) or []
             slate = build_slate(et_day=d, odds_events=odds_events, espn_rows=espn)
@@ -183,15 +203,6 @@ def run_pass(
         all_slate.extend(slate)
 
     odds_by_id = {str(e.get("event_id")): e for e in odds_events}
-    tags: dict[str, Any] = {}
-    if not demo:
-        try:
-            an = ActionNetworkClient(league="ncaam")
-            for row in an.fetch_scoreboard():
-                tags[str(row.get("event_id") or row.get("id") or "")] = row
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Action Network splits skipped: %s", exc)
-
     candidates: list[dict[str, Any]] = []
     locked: list[dict[str, Any]] = []
     for game in all_slate:
@@ -259,6 +270,10 @@ def run_pass(
         saved = find_play(load_ledger(ledger_path), str(play.get("espn_id")))
         locked.append(saved or play)
 
+    sharp_locked = 0
+    if not demo:
+        sharp_locked = run_sharp_systems(now=now, et_days=et_days, slate=all_slate, odds_by_id=odds_by_id, ratings=ratings)
+
     signals = {
         "generated_at": now.isoformat(),
         "model_version": get_sport("ncaam").key,
@@ -276,10 +291,60 @@ def run_pass(
     signals_path.write_text(json.dumps(signals, indent=2, default=str) + "\n")
     build_ncaam_page(docs_dir=docs_dir, signals_path=signals_path, ledger_path=ledger_path)
 
-    if commit and locked and not demo:
+    if commit and (locked or sharp_locked) and not demo:
         _git_commit_push()
 
-    return {"locked": len(locked), "candidates": len(candidates), "skip_reason": reason}
+    return {
+        "locked": len(locked),
+        "sharp_locked": sharp_locked,
+        "candidates": len(candidates),
+        "skip_reason": reason,
+    }
+
+
+def run_sharp_systems(
+    *,
+    now: datetime,
+    et_days: list[Any],
+    slate: list[dict[str, Any]],
+    odds_by_id: dict[str, dict[str, Any]],
+    ratings: dict[str, dict[str, float]],
+) -> int:
+    """Sharp 3 and Sharp 3.5 (unlisted page only). Never raises; never spends Odds API credits."""
+    try:
+        from sharp_scout.ncaam.espn import fetch_final_scores
+        from sharp_scout.ncaam.situational import Situational
+        from sharp_scout.ncaam.splits import fetch_splits
+        from sharp_scout.ncaam.systems import ENGINES, ledger_path, run_systems
+
+        try:
+            today = now.astimezone(ET).date()
+            scores = fetch_final_scores(start=today - timedelta(days=2), end=today)
+            for eng in ENGINES:
+                if ledger_path(eng).exists():
+                    settle_ncaam_ledger(path=ledger_path(eng), scores=scores)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Sharp ledgers settle skipped: %s", type(exc).__name__)
+        splits = fetch_splits(list(et_days))
+        logger.info(
+            "Action Network NCAAB splits: games=%s with_money=%s auth=%s http=%s",
+            len(splits.get("games") or []),
+            splits.get("n_with_money"),
+            splits.get("auth_mode"),
+            splits.get("status"),
+        )
+        res = run_systems(
+            now=now,
+            slate=slate,
+            odds_by_id=odds_by_id,
+            ratings=ratings,
+            splits_result=splits,
+            situational_factory=lambda d: Situational(d),
+        )
+        return len(res.get("locked") or [])
+    except Exception:  # noqa: BLE001 - must never break the New System pass
+        logger.exception("Sharp systems pass failed")
+        return 0
 
 
 def _git_commit_push(message: str = "chore(ncaam): lock picks", *, trigger_pages: bool = True) -> bool:
@@ -359,7 +424,8 @@ def run_loop(
             if left <= 60:
                 break
             # Never sleep past the budget, so the job ends well inside timeout-minutes.
-            time.sleep(min(max(60, pass_every_min * 60), left))
+            # Credit guard: 30-minute cadence once 100 credits are used today.
+            time.sleep(min(max(60, pass_interval_min(pass_every_min) * 60), left))
     finally:
         if not demo:
             write_heartbeat(runner_id=runner_id, note=EXITED_NOTE)

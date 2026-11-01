@@ -178,6 +178,12 @@ jobs:
           fi
           ./scripts/ci_git_push_retry.sh "chore: pregame window update (NFL + NCAAF sides)" bash -c "$PREGAME && python scripts/settle_now.py"
 
+      - name: Build unlisted NCAAM page (not committed, not linked)
+        if: always()
+        env:
+          NCAAM_LAB_SLUG: ${{ secrets.NCAAM_LAB_SLUG }}
+        run: python3 scripts/build_ncaam_lab.py || true
+
       - name: Upload Pages artifact
         if: >-
           steps.credit.outputs.proceed == 'true' &&

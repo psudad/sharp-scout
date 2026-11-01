@@ -33,16 +33,20 @@ jobs:
           GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
         run: python3 scripts/check_odds_credit_pause.py --workflow ncaaf-staleness
 
+      - uses: actions/setup-python@v5
+        if: steps.credit.outputs.proceed == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Gate deps (sharp_scout.config needs pydantic-settings)
+        if: steps.credit.outputs.proceed == 'true'
+        run: pip install -q pydantic-settings
+
       - name: Gate — staleness on game days only
         id: stale
         if: steps.credit.outputs.proceed == 'true'
         run: python3 scripts/check_ncaaf_staleness.py
-
-      - uses: actions/setup-python@v5
-        if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'
-        with:
-          python-version: "3.12"
-          cache: pip
 
       - name: Install
         if: steps.credit.outputs.proceed == 'true' && steps.stale.outputs.run == 'true'

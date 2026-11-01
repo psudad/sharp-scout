@@ -52,6 +52,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Gate deps (sharp_scout.config needs pydantic-settings)
+        if: github.event_name == 'schedule'
+        run: pip install -q pydantic-settings
+
       - name: Gate — primary vs conditional backup slot
         id: slot
         if: github.event_name == 'schedule'
@@ -59,12 +68,6 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
         run: python3 scripts/check_ncaaf_pipeline_schedule.py
-
-      - uses: actions/setup-python@v5
-        if: github.event_name == 'workflow_dispatch' || steps.slot.outputs.run == 'true'
-        with:
-          python-version: "3.12"
-          cache: pip
 
       - name: Install
         if: github.event_name == 'workflow_dispatch' || steps.slot.outputs.run == 'true'

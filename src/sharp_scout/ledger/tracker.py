@@ -577,7 +577,12 @@ def settle_from_scores(
         return kick <= datetime.now(timezone.utc) - timedelta(hours=3)
 
     ledger = load_ledger(path)
-    sport = "ncaaf" if path and "ncaaf" in path.name else "nfl"
+    if path and "ncaam" in path.name:
+        sport = "ncaam"
+    elif path and "ncaaf" in path.name:
+        sport = "ncaaf"
+    else:
+        sport = "nfl"
     index: dict[str, dict[str, Any]] = {}
 
     def _kickoff_date(row: dict[str, Any]) -> str | None:

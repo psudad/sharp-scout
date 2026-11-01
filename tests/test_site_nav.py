@@ -38,7 +38,7 @@ def test_site_tabs_nba_active_on_nba_page():
 
 def test_site_tabs_ncaam_active():
     html = render_site_tabs(active="ncaam")
-    assert "College BB" in html
+    assert "College Basketball" in html
     assert 'href="ncaam.html"' not in html
 
 

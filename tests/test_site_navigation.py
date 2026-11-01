@@ -64,8 +64,9 @@ def test_props_pages_not_built_when_disabled(site: Path):
 
 def test_ncaam_page_shell(site: Path):
     html = (site / "ncaam.html").read_text()
-    assert "Plays post once the model run starts" in html
-    assert "ncaam_latest_signals.json" in html
+    assert "College Basketball" in html
+    assert "barttorvik.com" in html
+    assert "Today's locked picks" in html or "Today&apos;s locked picks" in html
 
 
 def test_guide_archived_not_on_board(site: Path):

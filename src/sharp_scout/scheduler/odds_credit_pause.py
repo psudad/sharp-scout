@@ -120,3 +120,17 @@ def workflow_scheduled_allowed_during_pause(workflow: str) -> bool:
     """Props / NCAAF lines have no pause exceptions."""
     _ = workflow
     return False
+
+
+# NCAAM-only Odds API budget (basketball_ncaab snapshots).
+NCAAM_DAILY_ODDS_CAP = 120
+
+
+def ncaam_odds_budget_remaining(day: date | None = None) -> int:
+    from sharp_scout.ncaam.credits import NCAAM_DAILY_CAP, credits_used_today
+
+    return max(0, NCAAM_DAILY_CAP - credits_used_today(day))
+
+
+def ncaam_odds_call_allowed(*, cost: int = 2, day: date | None = None) -> bool:
+    return ncaam_odds_budget_remaining(day=day) >= cost

@@ -11,6 +11,11 @@ SiteTabsActive = Literal["ncaaf", "nfl", "nba", "ncaam", "comments"]
 BoardTabsContext = Literal["board"]
 
 NBA_TEST_BADGE = '<span class="nav-test-badge">test</span>'
+NCAAM_TEST_BADGE = '<span class="nav-test-badge">test</span>'
+
+
+def ncaam_nav_label() -> str:
+    return f"College Basketball {NCAAM_TEST_BADGE}"
 
 NAV_TEST_BADGE_CSS = """
   .nav-test-badge {
@@ -46,7 +51,7 @@ def render_lp_topnav(*, active: LpTopnavActive) -> str:
         ("ncaaf", "board.html#tab-cfb", "NCAAF"),
         ("nfl", "board.html#tab-plays", "NFL"),
         ("nba", "nba.html", nba_nav_label()),
-        ("ncaam", "ncaam.html", "College BB"),
+        ("ncaam", "ncaam.html", ncaam_nav_label()),
     ]
     parts: list[str] = []
     for key, href, label in items:
@@ -75,7 +80,7 @@ def render_site_tabs(*, active: SiteTabsActive) -> str:
         if active == "nba"
         else f'<a class="tab tab-aux tab-nba" href="nba.html">{nba_label}</a>'
     )
-    ncaam = _tab("ncaam", "ncaam.html", "College BB")
+    ncaam = _tab("ncaam", "ncaam.html", ncaam_nav_label())
     comments = (
         '<span class="tab tab-comments active">Comments</span>'
         if active == "comments"
@@ -91,7 +96,7 @@ def render_site_tabs(*, active: SiteTabsActive) -> str:
 def render_board_aux_tab_links() -> str:
     """NBA + NCAAM entries on the football board tab strip."""
     nba = f'<a class="tab tab-aux tab-nba" href="nba.html">{nba_nav_label()}</a>'
-    ncaam = '<a class="tab tab-aux tab-ncaam" href="ncaam.html">College BB</a>'
+    ncaam = f'<a class="tab tab-aux tab-ncaam" href="ncaam.html">{ncaam_nav_label()}</a>'
     return nba + ncaam
 
 

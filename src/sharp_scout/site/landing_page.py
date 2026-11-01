@@ -543,7 +543,7 @@ def render_landing_page(
         + _board_card(
             href="ncaam.html",
             title="College Basketball",
-            blurb="NCAAM board — plays post when the model run starts.",
+            blurb="Automated college basketball spread picks and ledger.",
             record=ncaam_rec,
         )
     )

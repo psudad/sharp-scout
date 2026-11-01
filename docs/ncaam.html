@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>College Basketball · Sharp Scout Quant</title>
-<meta name="description" content="Sharp Scout Quant NCAAM board — model plays and season record">
+<meta name="description" content="Sharp Scout Quant NCAAM board — automated spread picks and season record">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -807,7 +807,7 @@
   .ncaam-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px 48px; }
   .ncaam-hero { text-align: center; padding: 28px 16px 12px; }
   .ncaam-hero h1 { font-family: var(--font-serif); font-size: clamp(28px, 6vw, 38px); font-weight: 500; margin: 8px 0; }
-  .ncaam-hero p { color: var(--color-text-muted); font-size: 15px; max-width: 640px; margin: 0 auto; line-height: 1.5; }
+  .ncaam-hero p { color: var(--color-text-muted); font-size: 15px; max-width: 720px; margin: 0 auto; line-height: 1.5; }
   .ncaam-record { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 18px 0; }
   .ncaam-record .pr-card { border: 1px solid var(--color-border); border-radius: 8px; padding: 10px 18px; text-align: center; min-width: 110px; }
   .ncaam-record .pr-val { font-size: 24px; font-weight: 800; }
@@ -820,18 +820,32 @@
 </style>
 </head>
 <body class="ss-bottom-bar">
-<div class="tabs" role="navigation" aria-label="Sections"><a class="tab tab-home" href="index.html">Home</a><a class="tab" href="board.html#tab-cfb">NCAAF</a><a class="tab" href="board.html#tab-plays">NFL</a><a class="tab tab-aux tab-nba" href="nba.html">NBA <span class="nav-test-badge">test</span></a><span class="tab active">College BB</span><a class="tab tab-aux tab-comments" href="comments.html">Comments</a></div>
+<div class="tabs" role="navigation" aria-label="Sections"><a class="tab tab-home" href="index.html">Home</a><a class="tab" href="board.html#tab-cfb">NCAAF</a><a class="tab" href="board.html#tab-plays">NFL</a><a class="tab tab-aux tab-nba" href="nba.html">NBA <span class="nav-test-badge">test</span></a><span class="tab active">College Basketball <span class="nav-test-badge">test</span></span><a class="tab tab-aux tab-comments" href="comments.html">Comments</a></div>
 <div class="ncaam-wrap">
   <div class="ncaam-hero">
     <h1>College Basketball</h1>
-    <p>NCAAM sides and totals board. Model output lands here when the Gem2/Quant blend pipeline is wired.</p>
-    <p class="phase-note">Updated 2026-11-01T00:00:00+00:00</p>
-    <div class="ncaam-record"><div class="pr-card"><div class="pr-val">0-0</div><div class="pr-lbl">Season record</div></div><div class="pr-card"><div class="pr-val pos">+0.00u</div><div class="pr-lbl">Units P&amp;L</div></div></div>
+    <p>Automated NCAAM spread picks (blended Jan–Feb rules). Locks are timestamped before tip; results settle from ESPN finals.</p>
+    <p class="phase-note">Updated 2026-11-01T05:17:35.788083+00:00</p>
+    <div class="ncaam-record"><div class="pr-card"><div class="pr-val">0-0</div><div class="pr-lbl">Season record</div></div><div class="pr-card"><div class="pr-val pos">+0.00u</div><div class="pr-lbl">Units P&amp;L</div></div><div class="pr-card"><div class="pr-val">—</div><div class="pr-lbl">ROI</div></div><div class="pr-card"><div class="pr-val">—</div><div class="pr-lbl">CLV beat close</div></div></div>
   </div>
-  <h2 class="ncaam-h2">Today&apos;s plays</h2>
-  <div class="ncaam-empty"><p><b>Plays post once the model run starts.</b></p><p>The NCAAM engine will write picks to <code>data/ncaam_latest_signals.json</code> and the ledger below.</p></div>
+  <h2 class="ncaam-h2">Today&apos;s locked picks</h2>
+  <div class="table-wrap"><table class="export-table plays-table"><thead><tr><th>Game</th><th>Mkt</th><th>Play</th><th>EV</th><th>Stake</th><th>Locked (ET)</th><th>Tip (ET)</th></tr></thead><tbody><tr><td>North Carolina @ Duke</td><td>h2h</td><td><b>away</b> @ pinnacle (155.0)</td><td>20.0%</td><td>1.0u</td><td>Nov 1 01:17 AM ET</td><td>Nov 1 01:06 AM ET</td></tr></tbody></table></div>
   <h2 class="ncaam-h2">Ledger &amp; results</h2>
   <p class="ncaam-empty">No graded NCAAM plays yet.</p>
+  
+  <h2 class="ncaam-h2">How it works</h2>
+  <div class="ncaam-empty" style="text-align:left">
+    <p>Informational model picks only — <b>no automated betting</b>. Spreads first; moneylines only with their own edge between −150 and +200. Totals are tracked in shadow only, not published.</p>
+    <ul>
+      <li>Torvik efficiency × tempo projection, Monte Carlo σ=10.5, market anchor k=0.10 before Dec 1 ET then 0.15.</li>
+      <li>Qualify at ≥3% push-aware EV vs anchored Pinnacle no-vig, price ≥−150, |model−market| ≤8.</li>
+      <li>One play per game, max 8/day, 1.0u (1.5u if EV≥6% and beat open), max 8u/day.</li>
+      <li>Locks timestamped between T-90 and T-25 (late through T-5); missed after T-5.</li>
+    </ul>
+    <p><b>Ratings:</b> <a href="https://barttorvik.com" rel="noopener">barttorvik.com</a> (adjoe/adjde/adjt CSV, cached daily).</p>
+    <p class="phase-note">Model version: ncaam-blended-janfeb-v1</p>
+  </div>
+
 </div>
 
 <aside class="lp-slip-overlay" id="lp-slip-overlay" aria-label="My card">

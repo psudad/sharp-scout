@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT, get_settings
 from sharp_scout.ledger.tracker import compute_record, load_ledger
-from sharp_scout.ncaam.rules import MODEL_VERSION
+from sharp_scout.ncaam.rules import MODEL_VERSION, RULES
 from sharp_scout.site.bottom_bar import (
     BOTTOM_BAR_SCRIPT,
     bottom_bar_css,
@@ -43,6 +43,14 @@ def _load_signals(path: Path | None = None) -> dict[str, Any]:
         except json.JSONDecodeError:
             pass
     return {}
+
+
+def _pct(x: Any) -> str:
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return "—"
+    return f"{min(v, RULES.p_true_display_cap) * 100:.1f}%"
 
 
 def _fmt_et(iso: str | None) -> str:
@@ -111,18 +119,22 @@ def _render_locks(signals: dict[str, Any]) -> str:
             play += f" {line:+.1f}" if side == "away" else f" {line:.1f}"
         price = p.get("price")
         ev = p.get("ev")
+        note = p.get("note")
+        note_cell = f'<br><small class="phase-note">{_esc(note)}</small>' if note else ""
         rows.append(
             f"<tr><td>{away} @ {home}</td>"
             f"<td>{_esc(p.get('market'))}</td>"
-            f"<td><b>{_esc(play)}</b> @ {_esc(p.get('book'))} ({price})</td>"
+            f"<td><b>{_esc(play)}</b> @ {_esc(p.get('book'))} ({price}){note_cell}</td>"
             f"<td>{float(ev)*100:.1f}%</td>"
-            f"<td>{float(p.get('units') or 1):.1f}u</td>"
+            f"<td>{_pct(p.get('p_model'))} / {_pct(p.get('p_fair'))} / {_pct(p.get('p_true'))}</td>"
+            f"<td>{float(p['units'] if p.get('units') is not None else 1):.1f}u</td>"
             f"<td>{_fmt_et(p.get('locked_at'))}</td>"
             f"<td>{_fmt_et(p.get('tip'))}</td></tr>"
         )
     return (
         '<div class="table-wrap"><table class="export-table plays-table">'
-        "<thead><tr><th>Game</th><th>Mkt</th><th>Play</th><th>EV</th><th>Stake</th>"
+        "<thead><tr><th>Game</th><th>Mkt</th><th>Play</th><th>EV</th>"
+        "<th>Model / Fair / Anchor</th><th>Stake</th>"
         "<th>Locked (ET)</th><th>Tip (ET)</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )

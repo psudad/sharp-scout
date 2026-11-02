@@ -5,6 +5,8 @@ name: NCAAM picks (lock + publish)
 
 on:
   schedule:
+    # 6:20 AM ET — bridge gap after the overnight loop ends (~6:20) until the 9:05 AM ET cron.
+    - cron: "20 11 * * *"
     - cron: "5 14 * * *"
     - cron: "5 15 * * *"
     - cron: "5 16 * * *"

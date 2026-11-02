@@ -255,8 +255,9 @@ def build(out: Path, *, now: datetime | None = None) -> Path:
             + "</table></div>"
         )
     sp = state.get("splits") or {}
+    cov = sp.get("coverage") or f"{sp.get('n_with_money', 0)}/{sp.get('n_games', 0)}"
     splits_note = (
-        f"Splits: {sp.get('n_with_money', 0)} of {sp.get('n_games', 0)} games have money and ticket percentages."
+        f"Splits coverage (Sharp 3 / 3.5): {cov} slate games with money and ticket percentages."
         if splits_live
         else "Sharp 3 and Sharp 3.5 are waiting on splits data (money and ticket percentages)."
     )

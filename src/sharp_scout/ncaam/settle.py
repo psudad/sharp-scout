@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 ET = ZoneInfo("America/New_York")
 LEDGER_PATH = DATA_DIR / "ncaam_ledger.json"
+NCAAM_LINE_HISTORY_PATH = DATA_DIR / "ncaam" / "line_history.json"
 
 
 def _grade_spread(side: str, line: float, home_score: int, away_score: int) -> str:
@@ -51,10 +52,11 @@ def settle_ncaam_ledger(
     by_id = {str(s.get("espn_id") or s.get("event_id")): s for s in scores}
     changed = False
     for play in ledger.get("plays") or []:
-        if play.get("status") in ("win", "loss", "push", "void", "no_play", "missed"):
-            if play.get("settled_at") and play.get("status") in ("win", "loss", "push", "void"):
-                continue
+        if play.get("status") == "void":
+            continue
         if play.get("status") in ("no_play", "missed"):
+            continue
+        if play.get("status") in ("win", "loss", "push") and play.get("settled_at"):
             continue
         if not play.get("side"):
             continue
@@ -73,7 +75,8 @@ def settle_ncaam_ledger(
         play["status"] = result
         play["home_score"] = hs
         play["away_score"] = aw
-        units = float(play.get("units") or 1.0)
+        raw_units = play.get("units")
+        units = 1.0 if raw_units is None else float(raw_units)
         if result == "win":
             play["pnl_units"] = round(american_profit(units, float(play.get("price") or -110)), 3)
         elif result == "push":
@@ -85,8 +88,9 @@ def settle_ncaam_ledger(
     if changed:
         save_ledger(ledger, path)
     try:
-        finalize_closing_lines(ledger, path=path)
-        save_ledger(ledger, path)
+        n = finalize_closing_lines(ledger, history_path=NCAAM_LINE_HISTORY_PATH)
+        if n:
+            save_ledger(ledger, path)
     except Exception as exc:  # noqa: BLE001
         logger.warning("CLV finalize failed: %s", exc)
     return ledger

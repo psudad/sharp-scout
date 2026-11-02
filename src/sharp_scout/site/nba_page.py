@@ -182,9 +182,10 @@ def _edge_candidates(
     ct: float | None,
     min_edge: float,
     label_prefix: str = "",
+    kinds: frozenset[str] | None = None,
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
-    if cs is not None:
+    if cs is not None and (kinds is None or "spread" in kinds):
         margin_edge = margin + float(cs)
         if abs(margin_edge) >= min_edge:
             pick = _format_model_spread_pick(home, away, float(cs), margin_edge)
@@ -198,7 +199,7 @@ def _edge_candidates(
                     "consensus_line": f"Consensus {float(cs):+.1f}",
                 }
             )
-    if ct is not None:
+    if ct is not None and (kinds is None or "total" in kinds):
         total_edge = total - float(ct)
         if abs(total_edge) >= min_edge:
             side = "Over" if total_edge > 0 else "Under"
@@ -311,12 +312,17 @@ def total_gap_plain_english(
     )
 
 
+OFFICIAL_PACE_MARKET_KINDS = frozenset({"total"})
+PACE_SPREAD_SHADOW_KINDS = frozenset({"spread"})
+
+
 def score_modeling_display_plays(
     rows: list[dict[str, Any]],
     *,
     min_edge: float = SCORE_MODELING_MIN_EDGE_PT,
     max_edge: float | None = None,
     include_injury_watch: bool = False,
+    kinds: frozenset[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Display cards per game where injury-adj (or raw) gap vs consensus is in [min_edge, max_edge)."""
     from sharp_scout.nba.score_model.injury_adjust import format_absence_line
@@ -343,6 +349,7 @@ def score_modeling_display_plays(
             cs=cs,
             ct=ct,
             min_edge=min_edge,
+            kinds=kinds,
         )
         adj_candidates = _edge_candidates(
             home=home,
@@ -354,6 +361,7 @@ def score_modeling_display_plays(
             ct=ct,
             min_edge=min_edge,
             label_prefix="Injury-adj ",
+            kinds=kinds,
         )
         absence_lines: list[str] = []
         for team, key in ((home, "home_absences"), (away, "away_absences")):
@@ -1886,14 +1894,34 @@ def render_nba_page_html(
     score_rows = score_model_rows or []
     waiting_lines = live_scan and _score_rows_missing_lines(score_rows)
     pace_plays = (
-        score_modeling_display_plays(score_rows, include_injury_watch=False) if live_scan else []
+        score_modeling_display_plays(
+            score_rows,
+            include_injury_watch=False,
+            kinds=OFFICIAL_PACE_MARKET_KINDS,
+        )
+        if live_scan
+        else []
     )
     pace_plays = [p for p in pace_plays if not p.get("injury_watch_only")]
+    pace_spread_shadow = (
+        score_modeling_display_plays(
+            score_rows,
+            include_injury_watch=False,
+            kinds=PACE_SPREAD_SHADOW_KINDS,
+        )
+        if live_scan
+        else []
+    )
     pace_leans = score_modeling_display_leans(score_rows) if live_scan else []
 
     pace_plays_html = (
         _render_score_modeling_cards(pace_plays, reference=slate_ref)
         if live_scan and pace_plays
+        else ""
+    )
+    pace_spread_shadow_html = (
+        _render_score_modeling_cards(pace_spread_shadow, reference=slate_ref)
+        if live_scan and pace_spread_shadow
         else ""
     )
     if live_scan and not pace_plays_html:
@@ -2018,6 +2046,7 @@ def render_nba_page_html(
         pace_compact_record=pace_compact_record,
         pace_auto_secondary=_esc(pace_auto_secondary),
         pace_plays_html=pace_plays_html,
+        pace_spread_shadow_html=pace_spread_shadow_html,
         pace_shadow_html=pace_shadow_html,
         pace_leans_html=pace_leans_html,
         pace_projections_html=pace_projections_html,
@@ -2375,12 +2404,17 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 <div class="nba-content">
   <section class="nba-model-panel pace-panel" aria-labelledby="pace-heading">
     <h2 class="nba-h2" id="pace-heading">Pace of Play model</h2>
-    <p class="nba-section-note">Possession-pace projections vs consensus (injury-adjusted when available). Plays need ≥{pace_play_threshold} pt gap.</p>
+    <p class="nba-section-note">Possession-pace projections vs consensus (injury-adjusted when available). Official card plays are <strong>totals only</strong> (≥{pace_play_threshold} pt gap).</p>
     {pace_lines_note}
     {pace_compact_record}
     <div class="nba-plays-block">
-      <div class="section-label">Upcoming plays</div>
+      <div class="section-label">Upcoming plays (official card — totals only)</div>
       {pace_plays_html}
+    </div>
+    <div class="nba-pace-spread-shadow" aria-labelledby="pace-spread-shadow-heading">
+      <div class="section-label" id="pace-spread-shadow-heading">Spread tracking (shadow)</div>
+      <p class="nba-section-note">Spread Pace projections are tracked here only — not on the official card or season record.</p>
+      {pace_spread_shadow_html}
     </div>
     {pace_shadow_html}
     <details class="nba-section-details">

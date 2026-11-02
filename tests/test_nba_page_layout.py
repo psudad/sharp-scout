@@ -303,7 +303,7 @@ def test_render_nba_page_no_live_scan_message():
         analytics_head="",
     )
     assert NO_LIVE_SCAN_MESSAGE in html
-    assert "3:00 PM" in html
+    assert "1:07 PM" in html
     assert "no-cache" in html.lower()
 
 

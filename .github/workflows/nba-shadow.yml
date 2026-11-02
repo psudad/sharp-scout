@@ -3,25 +3,27 @@ name: NBA Shadow (private)
 # Paper-trading scan — data/shadow/ plus docs/nba.html (testing page only; no football docs).
 #
 # Schedule (America/New_York):
-#   Mon–Fri primary 3:00 PM ET, backup 5:00 PM ET
-#   Sat–Sun primary 11:00 AM ET, backup 1:00 PM ET
+#   Mon–Fri primary 1:07 PM ET, backup 4:07 PM ET
+#   Sat–Sun primary 9:07 AM ET, backup 11:07 AM ET
 # Two UTC crons per slot (EDT vs EST); check_nba_shadow_schedule.py keeps the seasonal line only.
+# Off-the-hour minutes (:07) because GitHub drops / delays top-of-hour schedules the most.
+# Late GitHub starts are allowed until shortly before the first tip-off of the ET day.
 # Backup runs skip when today's primary scan already succeeded (cheap fallback).
 
 on:
   schedule:
-    # Weekday 3:00 PM ET — 19:00 UTC (EDT) and 20:00 UTC (EST)
-    - cron: "0 19 * * 1-5"
-    - cron: "0 20 * * 1-5"
-    # Weekday 5:00 PM ET backup — 21:00 UTC (EDT) and 22:00 UTC (EST)
-    - cron: "0 21 * * 1-5"
-    - cron: "0 22 * * 1-5"
-    # Weekend 11:00 AM ET — 15:00 UTC (EDT) and 16:00 UTC (EST)
-    - cron: "0 15 * * 0,6"
-    - cron: "0 16 * * 0,6"
-    # Weekend 1:00 PM ET backup — 17:00 UTC (EDT) and 18:00 UTC (EST)
-    - cron: "0 17 * * 0,6"
-    - cron: "0 18 * * 0,6"
+    # Weekday 1:07 PM ET — 17:07 UTC (EDT) and 18:07 UTC (EST)
+    - cron: "7 17 * * 1-5"
+    - cron: "7 18 * * 1-5"
+    # Weekday 4:07 PM ET backup — 20:07 UTC (EDT) and 21:07 UTC (EST)
+    - cron: "7 20 * * 1-5"
+    - cron: "7 21 * * 1-5"
+    # Weekend 9:07 AM ET — 13:07 UTC (EDT) and 14:07 UTC (EST)
+    - cron: "7 13 * * 0,6"
+    - cron: "7 14 * * 0,6"
+    # Weekend 11:07 AM ET backup — 15:07 UTC (EDT) and 16:07 UTC (EST)
+    - cron: "7 15 * * 0,6"
+    - cron: "7 16 * * 0,6"
   workflow_dispatch:
     inputs:
       demo:
@@ -50,12 +52,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Install before the gate: the backup-slot check imports sharp_scout.nba.score_model
+      # (numpy), which crashed with ModuleNotFoundError when the gate ran first.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
       - name: Gate — scheduled ET window
         id: gate
         if: github.event_name == 'schedule'
         env:
           GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
-        run: python3 scripts/check_nba_shadow_schedule.py
+        run: python scripts/check_nba_shadow_schedule.py
 
       - id: ran_flag
         if: always()
@@ -65,16 +77,6 @@ jobs:
           else
             echo "ran=false" >> "$GITHUB_OUTPUT"
           fi
-
-      - uses: actions/setup-python@v5
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install
-        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'
-        run: pip install -e .
 
       - name: Configure env
         if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.run == 'true'

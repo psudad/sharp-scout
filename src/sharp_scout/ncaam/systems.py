@@ -152,12 +152,21 @@ def run_systems(
         state = _load_json(sp_path, {})
         state.setdefault("games", {})
         state["updated_at"] = now.isoformat()
+        n_with = sum(1 for g in games if has_splits(by_espn.get(str(g.get("espn_id")))))
+        n_games = len(games)
         state["splits"] = {
             "auth_mode": splits_result.get("auth_mode"),
             "status": splits_result.get("status"),
-            "n_with_money": sum(1 for g in games if has_splits(by_espn.get(str(g.get("espn_id"))))),
-            "n_games": len(games),
+            "n_with_money": n_with,
+            "n_games": n_games,
+            "coverage": f"{n_with}/{n_games}",
         }
+        logger.info(
+            "Sharp 3 / Sharp 3.5 splits coverage for %s: %s/%s games",
+            day.isoformat(),
+            n_with,
+            n_games,
+        )
         sit = None
         if situational_factory is not None:
             try:

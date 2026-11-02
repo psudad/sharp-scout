@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 ET = ZoneInfo("America/New_York")
 LEDGER_PATH = DATA_DIR / "ncaam_ledger.json"
+NCAAM_LINE_HISTORY_PATH = DATA_DIR / "ncaam" / "line_history.json"
 
 
 def _grade_spread(side: str, line: float, home_score: int, away_score: int) -> str:
@@ -85,8 +86,9 @@ def settle_ncaam_ledger(
     if changed:
         save_ledger(ledger, path)
     try:
-        finalize_closing_lines(ledger, path=path)
-        save_ledger(ledger, path)
+        n = finalize_closing_lines(ledger, history_path=NCAAM_LINE_HISTORY_PATH)
+        if n:
+            save_ledger(ledger, path)
     except Exception as exc:  # noqa: BLE001
         logger.warning("CLV finalize failed: %s", exc)
     return ledger

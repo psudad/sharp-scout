@@ -12,16 +12,18 @@ import httpx
 
 from sharp_scout.config import DATA_DIR
 from sharp_scout.ncaam.teams import normalize_ncaam
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
 TORVIK_URL = "https://barttorvik.com/2027_team_results.csv"
 UA = "SharpScout/1.0 (github.com/psudad/sharp-scout; NCAAM ratings cache)"
 NCAAM_DATA = DATA_DIR / "ncaam"
+ET = ZoneInfo("America/New_York")
 
 
 def ratings_path_for(day: date | None = None) -> Path:
-    day = day or datetime.now(timezone.utc).date()
+    day = day or datetime.now(ET).date()
     return NCAAM_DATA / f"ratings_{day.strftime('%Y%m%d')}.csv"
 
 
@@ -77,22 +79,36 @@ def ratings_for_team(name: str, ratings: dict[str, dict[str, float]]) -> dict[st
     return ratings.get(canon)
 
 
+def _fallback_ratings_path() -> Path | None:
+    latest = NCAAM_DATA / "ratings_latest.csv"
+    if latest.exists():
+        return latest
+    dated = sorted(NCAAM_DATA.glob("ratings_20*.csv"), reverse=True)
+    return dated[0] if dated else None
+
+
 def ensure_daily_ratings(*, demo: bool = False, fixture: Path | None = None) -> Path:
     if demo and fixture and fixture.exists():
         dest = NCAAM_DATA / "ratings_latest.csv"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(fixture.read_bytes())
         return dest
-    today = ratings_path_for()
-    if today.exists():
-        return today
-    latest = NCAAM_DATA / "ratings_latest.csv"
-    if latest.exists():
-        return latest
+    et_day = datetime.now(ET).date()
+    today_path = ratings_path_for(et_day)
+    if today_path.exists():
+        return today_path
     if demo:
         fx = DATA_DIR.parent / "tests" / "fixtures" / "ncaam" / "torvik_sample.csv"
         if fx.exists():
+            latest = NCAAM_DATA / "ratings_latest.csv"
             latest.parent.mkdir(parents=True, exist_ok=True)
             latest.write_bytes(fx.read_bytes())
             return latest
-    return fetch_torvik_csv(dest=today)
+    try:
+        return fetch_torvik_csv(dest=today_path)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Torvik daily fetch failed (%s); using last cached file", exc)
+        fb = _fallback_ratings_path()
+        if fb is None:
+            raise
+        return fb

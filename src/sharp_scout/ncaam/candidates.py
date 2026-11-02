@@ -14,7 +14,6 @@ from sharp_scout.ncaam.rules import (
     RULES,
     anchor_k_spread,
     candidate_ev,
-    display_confidence,
     ev_qualifies,
     hook_tiebreak_score,
     model_gap_qualifies,
@@ -74,6 +73,24 @@ def _outcomes_by_side(event: dict[str, Any], market: str) -> dict[str, list[dict
                 }
             )
     return out
+
+
+def _pinnacle_h2h_fair(event: dict[str, Any], side: str) -> float | None:
+    """No-vig Pinnacle moneyline fair win prob for ``side``, or None if Pinnacle has no h2h."""
+    books = event.get("bookmakers") or {}
+    pin = books.get("pinnacle")
+    if not pin:
+        return None
+    outs = (pin.get("markets") or {}).get("h2h") or []
+    prices = {str(o.get("side")): float(o.get("price")) for o in outs if o.get("price") is not None}
+    if "home" not in prices or "away" not in prices:
+        return None
+    from sharp_scout.utils.odds import american_to_implied_prob
+
+    ph = american_to_implied_prob(prices["home"])
+    pa = american_to_implied_prob(prices["away"])
+    p_home_fair, _ = fair_probs_from_two_way(ph, pa)
+    return p_home_fair if side == "home" else 1.0 - p_home_fair
 
 
 def _pinnacle_fair_spread(event: dict[str, Any], side: str, line: float, sd: float) -> tuple[float, float]:
@@ -177,7 +194,7 @@ def evaluate_game(
                     "price": price,
                     "book": offer["book"],
                     "ev": ev,
-                    "p_true": display_confidence(p_true),
+                    "p_true": round(p_true, 4),
                     "p_model": p_mod,
                     "p_fair": p_fair,
                     "p_push": p_push,
@@ -198,20 +215,9 @@ def evaluate_game(
             if not price_qualifies(price, market="h2h"):
                 continue
             p_mod, p_push = p_ml_side(margins, side)
-            # Devig pinnacle h2h
-            books = event.get("bookmakers") or {}
-            pin = books.get("pinnacle") or {}
-            outs = (pin.get("markets") or {}).get("h2h") or []
-            prices = {str(o.get("side")): float(o.get("price")) for o in outs}
-            if "home" in prices and "away" in prices:
-                from sharp_scout.utils.odds import american_to_implied_prob
-
-                ph = american_to_implied_prob(prices["home"])
-                pa = american_to_implied_prob(prices["away"])
-                p_home_fair, _ = fair_probs_from_two_way(ph, pa)
-                p_fair = p_home_fair if side == "home" else 1.0 - p_home_fair
-            else:
-                p_fair = 0.5
+            p_fair = _pinnacle_h2h_fair(event, side)
+            if p_fair is None:
+                continue
             p_true = anchor_probability(p_mod, p_fair, k, RULES.anchor_tilt_cap)
             p_cond = win_prob_to_conditional(p_true, p_push)
             ev = candidate_ev(p_cond, price, p_push)
@@ -227,7 +233,7 @@ def evaluate_game(
                     "price": price,
                     "book": offer["book"],
                     "ev": ev,
-                    "p_true": display_confidence(p_true),
+                    "p_true": round(p_true, 4),
                     "p_model": p_mod,
                     "p_fair": p_fair,
                     "p_push": p_push,

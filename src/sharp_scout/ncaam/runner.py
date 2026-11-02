@@ -326,10 +326,14 @@ def run_sharp_systems(
         except Exception as exc:  # noqa: BLE001
             logger.warning("Sharp ledgers settle skipped: %s", type(exc).__name__)
         splits = fetch_splits(list(et_days))
+        slate_n = len(slate)
+        with_money = int(splits.get("n_with_money") or 0)
         logger.info(
-            "Action Network NCAAB splits: games=%s with_money=%s auth=%s http=%s",
+            "Action Network NCAAB splits: coverage=%s/%s slate games with money+ticket data "
+            "(an_games=%s auth=%s http=%s)",
+            with_money,
+            slate_n,
             len(splits.get("games") or []),
-            splits.get("n_with_money"),
             splits.get("auth_mode"),
             splits.get("status"),
         )

@@ -163,6 +163,63 @@ def test_ensure_daily_ratings_fetches_once_per_et_day(tmp_path, monkeypatch):
     assert not called
 
 
+def test_void_play_without_settled_at_is_never_regraded(tmp_path):
+    ledger_path = tmp_path / "ncaam_ledger.json"
+    ledger_path.write_text(
+        json.dumps(
+            {
+                "plays": [
+                    {
+                        "espn_id": "401921422",
+                        "event_id": "401921422",
+                        "market": "h2h",
+                        "side": "home",
+                        "price": 150.0,
+                        "units": 0.0,
+                        "status": "void",
+                        "pnl_units": 0.0,
+                    }
+                ]
+            }
+        )
+    )
+    scores = [{"espn_id": "401921422", "home_score": 80, "away_score": 70}]
+    settle_ncaam_ledger(path=ledger_path, scores=scores)
+    play = json.loads(ledger_path.read_text())["plays"][0]
+    assert play["status"] == "void"
+    assert play.get("pnl_units") == 0.0
+    assert play.get("units") == 0.0
+
+
+def test_clv_uses_tip_not_in_game_lines(tmp_path):
+    from sharp_scout.ledger.clv import finalize_closing_lines
+
+    kickoff = "2026-11-01T19:00:00+00:00"
+    history = {
+        "ev1|spreads|home": [
+            {"ts": "2026-11-01T18:30:00+00:00", "book": "pinnacle", "line": -3.5, "price": -110},
+            {"ts": "2026-11-01T19:30:00+00:00", "book": "pinnacle", "line": -8.0, "price": -110},
+        ]
+    }
+    ledger = {
+        "plays": [
+            {
+                "event_id": "ev1",
+                "market": "spreads",
+                "side": "home",
+                "line": -3.5,
+                "price": -110,
+                "tip": kickoff,
+                "status": "pending",
+            }
+        ]
+    }
+    now = datetime(2026, 11, 1, 21, 0, tzinfo=timezone.utc)
+    assert finalize_closing_lines(ledger, history=history, now=now) == 1
+    assert ledger["plays"][0]["close_line"] == -3.5
+    assert ledger["plays"][0]["clv_at"] == "2026-11-01T18:30:00+00:00"
+
+
 def test_ensure_daily_ratings_falls_back_when_fetch_fails(tmp_path, monkeypatch):
     monkeypatch.setattr(ratings_mod, "NCAAM_DATA", tmp_path)
     fixed = datetime(2026, 11, 3, 8, tzinfo=ET)

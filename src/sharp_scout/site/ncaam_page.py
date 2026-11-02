@@ -127,7 +127,7 @@ def _render_locks(signals: dict[str, Any]) -> str:
             f"<td><b>{_esc(play)}</b> @ {_esc(p.get('book'))} ({price}){note_cell}</td>"
             f"<td>{float(ev)*100:.1f}%</td>"
             f"<td>{_pct(p.get('p_model'))} / {_pct(p.get('p_fair'))} / {_pct(p.get('p_true'))}</td>"
-            f"<td>{float(p.get('units') or 1):.1f}u</td>"
+            f"<td>{float(p['units'] if p.get('units') is not None else 1):.1f}u</td>"
             f"<td>{_fmt_et(p.get('locked_at'))}</td>"
             f"<td>{_fmt_et(p.get('tip'))}</td></tr>"
         )

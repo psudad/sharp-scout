@@ -115,6 +115,14 @@ def compute_clv_for_play(
     return play
 
 
+def _play_kickoff(play: dict[str, Any]) -> Any:
+    """Kickoff cutoff for closing lines (NCAAM rows often store ``tip`` only)."""
+    ko = play.get("kickoff")
+    if ko is not None:
+        return ko
+    return play.get("tip")
+
+
 def _play_eligible_for_clv(play: dict[str, Any]) -> bool:
     if play.get("play_type") == "prop" or str(play.get("market") or "").startswith("player_"):
         return False
@@ -128,7 +136,7 @@ def _should_refresh_clv(play: dict[str, Any], close: dict[str, Any], *, now: dat
     if not stored_ts:
         return True
 
-    ko = line_store._parse_ts(play.get("kickoff"))
+    ko = line_store._parse_ts(_play_kickoff(play))
     if ko is not None and now > ko:
         return (
             close_ts != stored_ts
@@ -172,7 +180,7 @@ def finalize_closing_lines(
             play.get("event_id"),
             str(play.get("market")),
             str(play.get("side")),
-            kickoff=play.get("kickoff"),
+            kickoff=_play_kickoff(play),
             history=hist,
         )
         if not close:

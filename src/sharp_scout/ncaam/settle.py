@@ -52,10 +52,11 @@ def settle_ncaam_ledger(
     by_id = {str(s.get("espn_id") or s.get("event_id")): s for s in scores}
     changed = False
     for play in ledger.get("plays") or []:
-        if play.get("status") in ("win", "loss", "push", "void", "no_play", "missed"):
-            if play.get("settled_at") and play.get("status") in ("win", "loss", "push", "void"):
-                continue
+        if play.get("status") == "void":
+            continue
         if play.get("status") in ("no_play", "missed"):
+            continue
+        if play.get("status") in ("win", "loss", "push") and play.get("settled_at"):
             continue
         if not play.get("side"):
             continue
@@ -74,7 +75,8 @@ def settle_ncaam_ledger(
         play["status"] = result
         play["home_score"] = hs
         play["away_score"] = aw
-        units = float(play.get("units") or 1.0)
+        raw_units = play.get("units")
+        units = 1.0 if raw_units is None else float(raw_units)
         if result == "win":
             play["pnl_units"] = round(american_profit(units, float(play.get("price") or -110)), 3)
         elif result == "push":

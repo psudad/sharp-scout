@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     prop_horizon_days: float = 8.0
     # Props publish to the ledger and public board (consensus no-vig pricing, #70).
     # Set PROPS_PUBLISH_ENABLED=false to return to shadow mode.
-    props_publish_enabled: bool = True
+    props_publish_enabled: bool = False
     # Scheduled/live Odds API props fetches (pages and nav respect site_player_props_enabled).
     nfl_props_scan_enabled: bool = False
     nba_props_scan_enabled: bool = False
@@ -237,6 +237,8 @@ class Settings(BaseSettings):
     nba_paper_end: str = "2026-12-13"
     nba_pace_min_gap_pts: float = 3.0  # v1 official card (production)
     nba_pace_require_raw_gap: bool = True  # v1: injury adj cannot create a play
+    # Official Pace card publishes totals only; spreads grade in shadow (weekly review Nov 2026).
+    nba_pace_spreads_official_enabled: bool = False
     nba_injury_day_to_day_weight: float = 0.18
     nba_injury_impact_scale: float = 0.5  # halve player hits until enough graded injury nights
     nba_injury_impact_scale_full_after_graded: int = 50

@@ -220,6 +220,14 @@ def run_props_pipeline(
     validated = [p for p in all_props if p.get("filter_passed")]
     validated.sort(key=lambda x: x["edge"], reverse=True)
 
+    if events and not demo:
+        try:
+            from sharp_scout.props.line_snapshots import record_prop_snapshots_from_events
+
+            record_prop_snapshots_from_events(events)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Prop line snapshot recording skipped: %s", exc)
+
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "demo": demo or not settings.odds_api_key,
@@ -254,10 +262,15 @@ def run_props_pipeline(
     side_path.write_text(json.dumps(side, indent=2, default=str))
 
     if update_ledger and validated and not settings.props_publish_enabled:
+        from sharp_scout.ledger.tracker import PROPS_SHADOW_LEDGER_PATH, append_signals, compute_record
+
+        ledger = append_signals(validated, season=season, week=week, path=PROPS_SHADOW_LEDGER_PATH)
+        payload["shadow_record"] = compute_record(ledger, path=PROPS_SHADOW_LEDGER_PATH)
         logger.warning(
-            "Props shadow mode: %d validated plays written to artifacts only "
-            "(set PROPS_PUBLISH_ENABLED=true to record them)",
+            "Props shadow mode: %d validated plays appended to %s "
+            "(set PROPS_PUBLISH_ENABLED=true for official ledger rows)",
             len(validated),
+            PROPS_SHADOW_LEDGER_PATH.name,
         )
     if update_ledger and validated and settings.props_publish_enabled:
         from sharp_scout.ledger.tracker import PROPS_LEDGER_PATH, append_signals, compute_record

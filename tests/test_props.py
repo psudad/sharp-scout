@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -164,6 +166,55 @@ def test_props_pipeline_demo(isolated_artifacts):
     assert result["n_events"] >= 1
     assert "plays" in result
     assert find_player(_demo_usage(), "Josh Allen") is not None
+
+
+def test_props_publish_disabled_uses_shadow_ledger_path(tmp_path, monkeypatch, isolated_artifacts):
+    from sharp_scout.config import Settings, get_settings
+    from sharp_scout.ledger import tracker
+
+    shadow_path = tmp_path / "shadow" / "props_ledger.json"
+    monkeypatch.setattr(tracker, "PROPS_SHADOW_LEDGER_PATH", shadow_path)
+    monkeypatch.setenv("PROPS_PUBLISH_ENABLED", "false")
+    get_settings.cache_clear()
+    assert Settings().props_publish_enabled is False
+
+    seen_paths: list[Path] = []
+
+    def _append(signals, **kwargs):
+        seen_paths.append(kwargs.get("path"))
+        ledger = tracker.load_ledger(kwargs.get("path"))
+        ledger["plays"].extend(signals)
+        tracker.save_ledger(ledger, kwargs.get("path"))
+        return ledger
+
+    monkeypatch.setattr(tracker, "append_signals", _append)
+    result = run_props_pipeline(demo=True, skip_pbp=True, update_ledger=True, build_pages=False)
+    assert result.get("publish_enabled") is False
+    assert seen_paths == [shadow_path]
+    assert len(result.get("plays") or []) >= 1
+
+
+def test_props_dedupe_one_row_per_game_player_market_side(tmp_path):
+    from sharp_scout.ledger import tracker
+
+    ledger = tracker.load_ledger(tmp_path / "props.json")
+    eid = "evt1"
+    base = {
+        "event_id": eid,
+        "player_name": "Test Player",
+        "market": "player_reception_yds",
+        "side": "over",
+        "play_type": "prop",
+        "status": "win",
+    }
+    ledger["plays"] = [
+        {**base, "id": "a", "line": 50.5, "created_at": "2026-10-01T00:00:00+00:00"},
+        {**base, "id": "b", "line": 49.5, "created_at": "2026-10-02T00:00:00+00:00"},
+    ]
+    removed = tracker.dedupe_props_ledger_plays(ledger)
+    assert removed == 1
+    assert len(ledger["plays"]) == 1
+    assert ledger["plays"][0]["id"] == "a"
 
 
 def test_normalize_pbp_keeps_receiving_columns():

@@ -174,9 +174,20 @@ def apply_manual_lines_to_paper_store(
             first_scan_at=first_scan_at,
         )
         snap["source"] = "manual_lines"
-        from sharp_scout.nba.score_model.pace_v1 import pace_display_pick_from_snapshot, recommended_unit_fraction
+        from sharp_scout.nba.score_model.pace_v1 import (
+            pace_display_pick_from_snapshot,
+            pace_official_published_pick_from_snapshot,
+            pace_spread_shadow_pick_from_snapshot,
+            recommended_unit_fraction,
+        )
 
         v1_pick = pace_display_pick_from_snapshot(snap, home=home, away=away, engine=engine)
+        official_pick = pace_official_published_pick_from_snapshot(
+            snap, home=home, away=away, engine=engine
+        )
+        spread_shadow_pick = pace_spread_shadow_pick_from_snapshot(
+            snap, home=home, away=away, engine=engine
+        )
         if v1_pick:
             snap["pace_v1_pick"] = v1_pick.get("pick")
             snap["pace_v1_gap"] = v1_pick.get("gap")
@@ -186,8 +197,10 @@ def apply_manual_lines_to_paper_store(
         g["scans"].append(snap)
         if len(g["scans"]) > 40:
             g["scans"] = g["scans"][-40:]
-        if v1_pick:
-            g["pace_published_pick"] = v1_pick
+        if official_pick:
+            g["pace_published_pick"] = official_pick
+        if spread_shadow_pick:
+            g["pace_spread_shadow_pick"] = spread_shadow_pick
         from sharp_scout.utils.kickoff import parse_kickoff_utc
 
         kick_dt = parse_kickoff_utc(g.get("kickoff"))

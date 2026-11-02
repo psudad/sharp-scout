@@ -334,6 +334,10 @@ def test_live_scan_and_page_survive_shadow_record_failure(tmp_path, monkeypatch)
         "sharp_scout.nba.score_model.pace_v1.pace_display_pick_from_snapshot",
         lambda *a, **k: fake_pick,
     )
+    monkeypatch.setattr(
+        "sharp_scout.nba.score_model.pace_v1.pace_official_published_pick_from_snapshot",
+        lambda *a, **k: fake_pick,
+    )
 
     ev = {
         "event_id": "0123456789abcdef0123456789ab",

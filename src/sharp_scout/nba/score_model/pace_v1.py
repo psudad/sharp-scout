@@ -119,6 +119,44 @@ def pace_display_pick_from_snapshot(
     return max(picks, key=lambda x: float(x.get("gap") or 0))
 
 
+def pace_official_published_pick_from_snapshot(
+    snap: dict[str, Any],
+    *,
+    home: str,
+    away: str,
+    min_gap: float | None = None,
+    engine: Any | None = None,
+) -> dict[str, Any] | None:
+    """Card pick written to the official ledger (totals-only when spreads are shadow)."""
+    if getattr(get_settings(), "nba_pace_spreads_official_enabled", False):
+        return pace_display_pick_from_snapshot(
+            snap, home=home, away=away, min_gap=min_gap, engine=engine
+        )
+    picks = injury_adj_pace_picks(snap, home=home, away=away, min_gap=min_gap, engine=engine)
+    totals = [p for p in picks if p.get("kind") == "total"]
+    if not totals:
+        return None
+    return max(totals, key=lambda x: float(x.get("gap") or 0))
+
+
+def pace_spread_shadow_pick_from_snapshot(
+    snap: dict[str, Any],
+    *,
+    home: str,
+    away: str,
+    min_gap: float | None = None,
+    engine: Any | None = None,
+) -> dict[str, Any] | None:
+    """Spread leg tracked in shadow when totals-only official mode is on."""
+    if getattr(get_settings(), "nba_pace_spreads_official_enabled", False):
+        return None
+    picks = injury_adj_pace_picks(snap, home=home, away=away, min_gap=min_gap, engine=engine)
+    spreads = [p for p in picks if p.get("kind") == "spread"]
+    if not spreads:
+        return None
+    return max(spreads, key=lambda x: float(x.get("gap") or 0))
+
+
 def recommended_unit_fraction(
     snap: dict[str, Any],
     pick: dict[str, Any],

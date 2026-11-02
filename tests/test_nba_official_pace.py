@@ -214,6 +214,70 @@ def test_sync_never_invents_official_from_display_pick_only(tmp_path, monkeypatc
     assert len(op.load_official_pace(path).get("plays") or []) == 0
 
 
+def test_pace_official_published_pick_is_totals_only_when_spreads_shadow(monkeypatch):
+    from sharp_scout.config import get_settings
+    from sharp_scout.nba.score_model.pace_v1 import (
+        pace_official_published_pick_from_snapshot,
+        pace_spread_shadow_pick_from_snapshot,
+    )
+
+    monkeypatch.setenv("NBA_PACE_SPREADS_OFFICIAL_ENABLED", "false")
+    get_settings.cache_clear()
+    snap = {
+        "margin": 8.0,
+        "total": 232.0,
+        "injury_margin": 8.0,
+        "injury_total": 232.0,
+        "lines": {"consensus_spread_home": -3.0, "consensus_total": 220.0},
+    }
+    official = pace_official_published_pick_from_snapshot(snap, home="BOS", away="NYK")
+    shadow = pace_spread_shadow_pick_from_snapshot(snap, home="BOS", away="NYK")
+    assert official is not None
+    assert official["kind"] == "total"
+    assert shadow is not None
+    assert shadow["kind"] == "spread"
+
+
+def test_spread_shadow_sync_from_paper_store(tmp_path, monkeypatch):
+    from sharp_scout.nba.score_model import pace_spreads_shadow as pss
+
+    path = tmp_path / "spread_shadow.json"
+    monkeypatch.setattr(pss, "SHADOW_PATH", path)
+    paper = {
+        "games": [
+            {
+                "event_id": "g-spread",
+                "away": "DET",
+                "home": "NYK",
+                "kickoff": "2026-10-29T00:10:00+00:00",
+                "graded": {
+                    "actual_margin": 14,
+                    "actual_total": 208,
+                    "close_spread_home": -4.0,
+                    "close_total": 220.5,
+                },
+                "frozen": {
+                    "snapshot": {
+                        "lines": {"pinnacle_spread_home": -4.5, "pinnacle_total": 221.0},
+                    },
+                    "pace_spread_shadow_pick": {
+                        "kind": "spread",
+                        "pick": "DET +4",
+                        "side": "away",
+                        "line": 4.0,
+                        "gap": 4.5,
+                    },
+                },
+            }
+        ]
+    }
+    n = pss.sync_spread_shadow_from_paper_store(paper)
+    assert n == 1
+    store = pss.load_spread_shadow(path)
+    assert len(store["plays"]) == 1
+    assert store["plays"][0]["result"] == "loss"
+
+
 def test_auto_sync_skips_backfill_dates_and_requires_published_pick(tmp_path, monkeypatch):
     from sharp_scout.nba.score_model import official_pace as op
 

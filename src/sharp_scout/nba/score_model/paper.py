@@ -330,12 +330,21 @@ def record_score_model_scan(
         )
         kick_dt = parse_kickoff_utc(kick)
         snap["after_tip"] = bool(kick_dt and now > kick_dt)
-        from sharp_scout.nba.score_model.pace_v1 import pace_display_pick_from_snapshot
+        from sharp_scout.nba.score_model.pace_v1 import (
+            pace_display_pick_from_snapshot,
+            pace_official_published_pick_from_snapshot,
+            pace_spread_shadow_pick_from_snapshot,
+            recommended_unit_fraction,
+        )
 
         v1_pick = pace_display_pick_from_snapshot(snap, home=home, away=away, engine=engine)
+        official_pick = pace_official_published_pick_from_snapshot(
+            snap, home=home, away=away, engine=engine
+        )
+        spread_shadow_pick = pace_spread_shadow_pick_from_snapshot(
+            snap, home=home, away=away, engine=engine
+        )
         if v1_pick:
-            from sharp_scout.nba.score_model.pace_v1 import recommended_unit_fraction
-
             snap["pace_v1_pick"] = v1_pick.get("pick")
             snap["pace_v1_gap"] = v1_pick.get("gap")
             snap["pace_v1_recommended_units"] = recommended_unit_fraction(
@@ -372,8 +381,10 @@ def record_score_model_scan(
         existing["scans"].append(snap)
         if len(existing["scans"]) > 40:
             existing["scans"] = existing["scans"][-40:]
-        if v1_pick and not snap.get("after_tip"):
-            existing["pace_published_pick"] = v1_pick
+        if official_pick and not snap.get("after_tip"):
+            existing["pace_published_pick"] = official_pick
+        if spread_shadow_pick and not snap.get("after_tip"):
+            existing["pace_spread_shadow_pick"] = spread_shadow_pick
         if kick_dt and not snap.get("after_tip"):
             from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
 
@@ -473,7 +484,10 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
     """Lock one tip-time snapshot (merged pre-tip lines + v1 pick; shadow v2 sidecar)."""
     now = now or datetime.now(timezone.utc)
     frozen = 0
-    from sharp_scout.nba.score_model.official_pace import pace_display_pick_from_snapshot
+    from sharp_scout.nba.score_model.pace_v1 import (
+        pace_display_pick_from_snapshot,
+        pace_spread_shadow_pick_from_snapshot,
+    )
 
     for g in store.get("games") or []:
         if _game_excluded(g) or g.get("frozen") or g.get("graded"):
@@ -492,12 +506,16 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
         home = str(g.get("home") or "")
         away = str(g.get("away") or "")
         display_pick = pace_display_pick_from_snapshot(last, home=home, away=away)
+        spread_shadow = g.get("pace_spread_shadow_pick") or pace_spread_shadow_pick_from_snapshot(
+            last, home=home, away=away
+        )
         g["frozen"] = {
             "frozen_at": now.isoformat(),
             "snapshot": last,
             "first_snapshot": scans[0],
             "pace_display_pick": display_pick,
             "pace_published_pick": g.get("pace_published_pick"),
+            "pace_spread_shadow_pick": spread_shadow,
             "shadow_v2": last.get("shadow_v2"),
         }
         frozen += 1

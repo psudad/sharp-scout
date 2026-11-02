@@ -115,5 +115,13 @@ def test_backup_cron_integration_skips_after_primary(tmp_path, monkeypatch):
         out.append(f"run={'true' if run else 'false'}")
 
     monkeypatch.setattr(sched, "_set_output", capture)
+
+    def _backup_at_fixed_time(*, now, backup_cron):
+        return stale_mod.needs_pipeline_backup_refresh(
+            now=datetime(2026, 10, 31, 15, 33, tzinfo=timezone.utc),
+            backup_cron=backup_cron,
+        )
+
+    monkeypatch.setattr(sched, "needs_pipeline_backup_refresh", _backup_at_fixed_time)
     sched.main()
     assert out == ["run=false"]

@@ -210,6 +210,9 @@ def settle_nba_ledger(
             from sharp_scout.nba.score_model.official_pace import sync_auto_pace_from_paper_store
 
             sync_auto_pace_from_paper_store(paper)
+            from sharp_scout.nba.score_model.pace_spreads_shadow import sync_spread_shadow_from_paper_store
+
+            sync_spread_shadow_from_paper_store(paper)
             from sharp_scout.nba.score_model.mechanical_pace import sync_mechanical_pace_from_paper_store
 
             sync_mechanical_pace_from_paper_store(paper)

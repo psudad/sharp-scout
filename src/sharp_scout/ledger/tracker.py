@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 LEDGER_PATH = DATA_DIR / "ledger.json"
 # NFL player props are graded on their own ledger/record, separate from the sides card.
 PROPS_LEDGER_PATH = DATA_DIR / "props_ledger.json"
+PROPS_SHADOW_LEDGER_PATH = DATA_DIR / "shadow" / "props_ledger.json"
 DEFAULT_UNITS = {"play": 1.5, "lean": 1.0, "candidate": 0.5}
 # Mirrors qa.gate.COMMITMENT_LOCK_BEFORE_KICKOFF: the card is frozen once QA can no
 # longer quarantine it, so nothing new can slip on unreviewed. NFL (sides + props)
@@ -266,6 +267,40 @@ def append_signals(
     )
     ledger["_append_summary"] = append_summary
     return ledger
+
+
+def _prop_slot_key(play: dict[str, Any]) -> str:
+    return "|".join(
+        [
+            str(play.get("event_id") or ""),
+            " ".join(str(play.get("player_name") or "").lower().split()),
+            str(play.get("market") or ""),
+            str(play.get("side") or ""),
+        ]
+    )
+
+
+def dedupe_props_ledger_plays(ledger: dict[str, Any]) -> int:
+    """One row per game/player/market/side (earliest created_at wins)."""
+    plays = ledger.get("plays") or []
+    buckets: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+    for p in plays:
+        key = _prop_slot_key(p)
+        prev = buckets.get(key)
+        if prev is None:
+            buckets[key] = p
+            order.append(key)
+            continue
+        prev_at = str(prev.get("created_at") or "")
+        cur_at = str(p.get("created_at") or "")
+        if cur_at and (not prev_at or cur_at < prev_at):
+            buckets[key] = p
+    deduped = [buckets[k] for k in order if k in buckets]
+    removed = len(plays) - len(deduped)
+    if removed:
+        ledger["plays"] = deduped
+    return removed
 
 
 def migrate_props_from_main_ledger(
@@ -797,8 +832,15 @@ def settle_from_scores(
     # Fill Closing Line Value for plays whose closing line is now available.
     try:
         from sharp_scout.ledger.clv import finalize_closing_lines
+        from sharp_scout.props.actuals import is_prop_play
 
-        finalize_closing_lines(ledger)
+        prop_path = path and path.name == "props_ledger.json"
+        if prop_path or any(is_prop_play(p) for p in ledger.get("plays") or []):
+            from sharp_scout.props.clv import finalize_prop_closing_lines
+
+            finalize_prop_closing_lines(ledger)
+        else:
+            finalize_closing_lines(ledger)
     except Exception as exc:  # noqa: BLE001
         logger.warning("CLV finalize skipped: %s", exc)
 

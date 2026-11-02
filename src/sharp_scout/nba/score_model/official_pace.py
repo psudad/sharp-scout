@@ -214,10 +214,13 @@ def append_auto_graded_pace_play(
     home_score: int,
     store: dict[str, Any] | None = None,
     source: str = "published_card",
+    frozen: dict[str, Any] | None = None,
 ) -> bool:
     """Append one graded published-card Pace play if not already in the official ledger."""
     store = store or load_official_pace()
     day = kickoff_date_et(game_row.get("kickoff"))
+    snap = (frozen or {}).get("snapshot") or {}
+    lines = snap.get("lines") or {}
     entry: dict[str, Any] = {
         "id": f"pop-auto-{game_row.get('event_id', '')}-{pick.get('kind', '')}",
         "source": source,
@@ -235,6 +238,8 @@ def append_auto_graded_pace_play(
         "units": _units_at_110(result),
         "espn_away_score": away_score,
         "espn_home_score": home_score,
+        "close_pinnacle_spread_home": lines.get("pinnacle_spread_home"),
+        "close_pinnacle_total": lines.get("pinnacle_total"),
         "graded_at": datetime.now(timezone.utc).isoformat(),
     }
     slot = _play_slot_key(
@@ -329,6 +334,7 @@ def sync_auto_pace_from_paper_store(paper_store: dict[str, Any] | None = None) -
             away_score=away_score,
             home_score=home_score,
             store=official,
+            frozen=frozen,
         ):
             added += 1
     if added:

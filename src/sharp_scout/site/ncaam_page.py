@@ -1,4 +1,4 @@
-"""College Basketball (NCAAM) public board — automated blended Jan–Feb picks."""
+"""College Basketball (NCAAM) public board."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT, get_settings
 from sharp_scout.ledger.tracker import compute_record, load_ledger
-from sharp_scout.ncaam.rules import MODEL_VERSION, RULES
+from sharp_scout.ncaam.rules import RULES
 from sharp_scout.site.bottom_bar import (
     BOTTOM_BAR_SCRIPT,
     bottom_bar_css,
@@ -163,19 +163,9 @@ def _ledger_rows(ledger: dict[str, Any]) -> str:
 
 
 def _how_it_works() -> str:
+    """Public disclaimer only — no method or model detail on the page."""
     return """
-  <h2 class="ncaam-h2">How it works</h2>
-  <div class="ncaam-empty" style="text-align:left">
-    <p>Informational model picks only — <b>no automated betting</b>. Spreads first; moneylines only with their own edge between −150 and +200. Totals are tracked in shadow only, not published.</p>
-    <ul>
-      <li>Torvik efficiency × tempo projection, Monte Carlo σ=10.5, market anchor k=0.10 before Dec 1 ET then 0.15.</li>
-      <li>Qualify at ≥3% push-aware EV vs anchored Pinnacle no-vig, price ≥−150, |model−market| ≤8.</li>
-      <li>One play per game, max 8/day, 1.0u (1.5u if EV≥6% and beat open), max 8u/day.</li>
-      <li>Locks timestamped between T-90 and T-25 (late through T-5); missed after T-5.</li>
-    </ul>
-    <p><b>Ratings:</b> <a href="https://barttorvik.com" rel="noopener">barttorvik.com</a> (adjoe/adjde/adjt CSV, cached daily).</p>
-    <p class="phase-note">Model version: """ + _esc(MODEL_VERSION) + """</p>
-  </div>
+  <p class="phase-note" style="text-align:center">Informational model picks only — <b>no automated betting</b>.</p>
 """
 
 
@@ -269,7 +259,7 @@ NCAAM_PAGE_TEMPLATE = """<!DOCTYPE html>
 <div class="ncaam-wrap">
   <div class="ncaam-hero">
     <h1>College Basketball</h1>
-    <p>Automated NCAAM spread picks (blended Jan–Feb rules). Locks are timestamped before tip; results settle from ESPN finals.</p>
+    <p>Automated NCAAM picks. Locks are timestamped before tip; results settle from ESPN finals.</p>
     <p class="phase-note">Updated {updated}</p>
     {record_block}
   </div>

@@ -134,8 +134,7 @@ def test_site_includes_board_updated_bar(tmp_path: Path, monkeypatch):
     assert "Prior weeks (archive)" in html
     assert "This Week — Pregame Stage Winners" in html
     assert "NCAAF Power Ratings" not in html
-    archive = (out / "archive" / "how-it-works.html").read_text()
-    assert "Closing Line Value" in archive
+    assert not (out / "archive" / "how-it-works.html").exists()
     assert "Cormorant Garamond" in html
     assert "Inconsolata" in html
     assert "--color-navy" in html

@@ -118,9 +118,9 @@ def sharp_cell(rec: dict[str, Any] | None, game: dict[str, Any], *, splits_live:
         return _play_cell(p, locked=False, extra=f" | {_esc(rec['reason'])}" if rec.get("reason") else "")
     why = {
         "trap": f"Trap: {rec.get('reason') or ''}",
-        "lean": "lean, edge under 2.5%",
-        "anomaly": "data anomaly, edge over 15%",
-        "not_shortlisted": "fewer than 2 signals",
+        "lean": "lean",
+        "anomaly": "data anomaly",
+        "not_shortlisted": "not enough signals",
     }.get(str(res), rec.get("reason") or "not evaluated")
     return f'<span class="muted">No play ({_esc(why)})</span>'
 
@@ -257,9 +257,9 @@ def build(out: Path, *, now: datetime | None = None) -> Path:
     sp = state.get("splits") or {}
     cov = sp.get("coverage") or f"{sp.get('n_with_money', 0)}/{sp.get('n_games', 0)}"
     splits_note = (
-        f"Splits coverage (Sharp 3 / 3.5): {cov} slate games with money and ticket percentages."
+        f"Splits coverage: {cov} slate games."
         if splits_live
-        else "Sharp 3 and Sharp 3.5 are waiting on splits data (money and ticket percentages)."
+        else "Sharp 3 and Sharp 3.5 are waiting on splits data."
     )
     updated = _dt(state.get("updated_at"))
     upd = updated.astimezone(ET).strftime("%b %-d, %-I:%M %p ET") if updated else "not yet"
@@ -280,7 +280,7 @@ def build(out: Path, *, now: datetime | None = None) -> Path:
 <h2>Records</h2>
 <div class="cards">{''.join(cards)}</div>
 {''.join(ledger_html)}
-<p class="sub">Picks lock 90 to 5 minutes before tip and never change after lock. Bold = locked pick; gray = preview or no play. Stakes are the systems' own unit sizes with no daily cap. Sharp 3.5 bounce-back spots are tagged only.</p>
+<p class="sub">Bold = locked pick; gray = preview or no play.</p>
 </body></html>
 """
     out.parent.mkdir(parents=True, exist_ok=True)

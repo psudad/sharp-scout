@@ -76,43 +76,55 @@ def _outcomes_by_side(event: dict[str, Any], market: str) -> dict[str, list[dict
 
 
 def _pinnacle_h2h_fair(event: dict[str, Any], side: str) -> float | None:
-    """No-vig Pinnacle moneyline fair win prob for ``side``, or None if Pinnacle has no h2h."""
+    """No-vig Pinnacle moneyline fair win prob for ``side``.
+
+    Uses Pinnacle's two moneyline prices for this game, de-vigged. Returns None (no ML play)
+    when Pinnacle has no h2h market, when either side is missing, or when the outcomes cannot
+    be matched to exactly one home and one away team. Never falls back to 50%.
+    """
+    if side not in ("home", "away"):
+        return None
     books = event.get("bookmakers") or {}
     pin = books.get("pinnacle")
     if not pin:
         return None
     outs = (pin.get("markets") or {}).get("h2h") or []
-    prices = {str(o.get("side")): float(o.get("price")) for o in outs if o.get("price") is not None}
-    if "home" not in prices or "away" not in prices:
+    prices: dict[str, float] = {}
+    for o in outs:
+        s = str(o.get("side"))
+        if s not in ("home", "away") or o.get("price") is None:
+            return None
+        if s in prices:
+            return None  # two outcomes claim the same side: cannot trust the mapping
+        prices[s] = float(o.get("price"))
+    if set(prices) != {"home", "away"}:
         return None
-    from sharp_scout.utils.odds import american_to_implied_prob
-
-    ph = american_to_implied_prob(prices["home"])
-    pa = american_to_implied_prob(prices["away"])
-    p_home_fair, _ = fair_probs_from_two_way(ph, pa)
-    return p_home_fair if side == "home" else 1.0 - p_home_fair
+    # fair_probs_from_two_way takes American prices and converts them itself.
+    p_home_fair, p_away_fair = fair_probs_from_two_way(prices["home"], prices["away"])
+    return p_home_fair if side == "home" else p_away_fair
 
 
-def _pinnacle_fair_spread(event: dict[str, Any], side: str, line: float, sd: float) -> tuple[float, float]:
+def _pinnacle_fair_spread(
+    event: dict[str, Any], side: str, line: float, sd: float
+) -> tuple[float | None, float | None]:
+    """No-vig Pinnacle spread fair cover prob for ``side`` at ``line``; (None, None) if unavailable."""
     books = event.get("bookmakers") or {}
     pin = books.get("pinnacle")
     if not pin:
-        return 0.5, 0.0
+        return None, None
     outs = (pin.get("markets") or {}).get("spreads") or []
     home_line = None
     prices: dict[str, float] = {}
     for o in outs:
+        if o.get("side") not in ("home", "away") or o.get("price") is None:
+            continue
         prices[str(o.get("side"))] = float(o.get("price"))
-        if o.get("side") == "home":
+        if o.get("side") == "home" and o.get("point") is not None:
             home_line = float(o.get("point"))
     if home_line is None or "home" not in prices or "away" not in prices:
-        return 0.5, 0.0
-    from sharp_scout.utils.odds import american_to_implied_prob
-
-    ph = american_to_implied_prob(prices["home"])
-    pa = american_to_implied_prob(prices["away"])
-    p_home_fair, _ = fair_probs_from_two_way(ph, pa)
-    ref_line = home_line if side == "home" else -home_line
+        return None, None
+    # fair_probs_from_two_way takes American prices and converts them itself.
+    p_home_fair, _ = fair_probs_from_two_way(prices["home"], prices["away"])
     p_side, _ = shift_prob_to_line(
         p_home_fair if side == "home" else 1.0 - p_home_fair,
         market="spreads",
@@ -178,6 +190,8 @@ def evaluate_game(
                 continue
             p_mod, p_push = p_cover_side(margins, side, line)
             p_fair, _ = _pinnacle_fair_spread(event, side, line, RULES.margin_sd)
+            if p_fair is None:
+                continue
             p_true = anchor_probability(p_mod, p_fair, k, RULES.anchor_tilt_cap)
             p_cond = win_prob_to_conditional(p_true, p_push)
             ev = candidate_ev(p_cond, price, p_push)
@@ -201,6 +215,7 @@ def evaluate_game(
                     "model_margin": proj.margin_model,
                     "hook_score": hook_tiebreak_score(side, line),
                     "beat_open": _beat_open(side, line, (open_lines or {}).get(open_key)),
+                    "selection": game[f"{side}_team"],
                     "home_team": game["home_team"],
                     "away_team": game["away_team"],
                     "tip": game.get("commence_time"),
@@ -240,6 +255,7 @@ def evaluate_game(
                     "model_margin": proj.margin_model,
                     "hook_score": 0,
                     "beat_open": False,
+                    "selection": game[f"{side}_team"],
                     "home_team": game["home_team"],
                     "away_team": game["away_team"],
                     "tip": game.get("commence_time"),

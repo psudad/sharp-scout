@@ -294,7 +294,7 @@ def spread_gap_plain_english(
     gap = model_margin - market_margin
     return (
         f"Model has {home} by {model_margin:.1f}; market says {home} by {market_margin:.1f}; "
-        f"gap {abs(gap):.1f} pts. A play needs a gap of {min_edge:g}+ pts."
+        f"gap {abs(gap):.1f} pts."
     )
 
 
@@ -308,7 +308,7 @@ def total_gap_plain_english(
     side = "Over" if gap > 0 else "Under"
     return (
         f"Model total {float(total):.1f}; market {float(consensus_total):g}; "
-        f"gap {abs(gap):.1f} pts ({side}). A play needs a gap of {min_edge:g}+ pts."
+        f"gap {abs(gap):.1f} pts ({side})."
     )
 
 
@@ -896,7 +896,6 @@ def _render_nba_play_card(
           <summary>Odds &amp; detail</summary>
           <div class="play-meta">
             <div class="meta-item"><span class="meta-label">EV </span><span class="meta-val pos">{edge_s}</span></div>
-            <div class="meta-item"><span class="meta-label">Fair </span><span class="meta-val">{fair_s}</span></div>
             <div class="meta-item"><span class="meta-label">Book </span><span class="meta-val">{_esc(book)} {_esc(price)}</span></div>
             <div class="meta-item"><span class="meta-label">Tip </span><span class="meta-val">{_esc(kick)}</span></div>
           </div>
@@ -949,9 +948,7 @@ def _render_score_modeling_card(item: dict[str, Any], *, reference: date | None 
     ref = reference or _slate_reference_date()
     badge = _play_tier_badge_label(item.get("kickoff"), reference=ref)
     gap = float(item.get("signed_gap") or 0)
-    gap_s = f"{gap:+.1f} pt vs consensus (injury-adj)"
-    raw_gap = item.get("raw_signed_gap")
-    raw_gap_s = f"{float(raw_gap):+.1f} pt unadj" if raw_gap is not None else ""
+    gap_s = f"{gap:+.1f} pt vs consensus"
     secondary = item.get("secondary") or []
     extra = ""
     if secondary:
@@ -981,18 +978,18 @@ def _render_score_modeling_card(item: dict[str, Any], *, reference: date | None 
     gap_html = ""
     if gap_explain:
         gap_html = f'<div class="nba-score-gap-explain">{_esc(gap_explain)}</div>'
+    # Public card: projection, market, gap only — no raw vs injury-adjusted
+    # breakdown, per-player adjustments, or qualifying-rule text (method stays private).
+    del proj_html, gap_html, abs_html, flip
+    model_line = str(item.get("injury_model_line") or item.get("model_line") or "")
+    model_line = model_line.replace("Injury-adj ", "").replace("Raw ", "")
     detail_inner = f"""
           <div class="play-meta">
-            <div class="meta-item"><span class="meta-label">Injury </span><span class="meta-val">{_esc(item.get("injury_model_line") or item.get("model_line") or "")}</span></div>
-            <div class="meta-item"><span class="meta-label">Raw </span><span class="meta-val">{_esc(item.get("raw_model_line") or "")}</span></div>
+            <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">{_esc(model_line)}</span></div>
             <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">{_esc(item.get("consensus_line") or "")}</span></div>
-            <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">{_esc(gap_s)}{(" · " + _esc(raw_gap_s)) if raw_gap_s else ""}</span></div>
+            <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">{_esc(gap_s)}</span></div>
           </div>
-          {proj_html}
-          {gap_html}
-          {abs_html}
           {stale}
-          {flip}
           {extra}"""
     return f"""
       <div class="play-card sharp-play nba-pick-card nba-score-card">
@@ -1141,13 +1138,9 @@ def _pace_projection_row_html(r: dict[str, Any]) -> str:
         "<tr>"
         f'<td data-label="Tip">{_esc(tip)}</td>'
         f'<td data-label="Game">{_esc(game)}</td>'
-        f'<td data-label="Raw score">{_esc(raw_score)}</td>'
-        f'<td data-label="Injury-adj score">{_esc(inj_score)}</td>'
-        f'<td data-label="Margin (raw / inj)">{margin:+.1f} / {inj_m:+.1f}</td>'
-        f'<td data-label="Total (raw / inj)">{total:.1f} / {inj_t:.1f}</td>'
+        f'<td data-label="Projected score">{_esc(inj_score)}</td>'
         f'<td data-label="Market">{_esc(market_s)}</td>'
         f'<td data-label="Gap spr / tot">{_esc(gap_s)}</td>'
-        f'<td data-label="Injuries">{_injury_list_summary(r)}</td>'
         "</tr>"
     )
 
@@ -1162,9 +1155,8 @@ def _render_pace_projections_table(
     ref = reference or _slate_reference_date()
     groups = group_items_by_kickoff_et_date(rows, kickoff_key="kickoff", reference=ref)
     table_head = (
-        "<thead><tr><th>Tip</th><th>Game</th><th>Raw score</th><th>Injury-adj score</th>"
-        "<th>Margin (raw / inj)</th><th>Total (raw / inj)</th><th>Market spr/tot</th>"
-        "<th>Gap spr / tot</th><th>Injuries</th></tr></thead>"
+        "<thead><tr><th>Tip</th><th>Game</th><th>Projected score</th><th>Market spr/tot</th>"
+        "<th>Gap spr / tot</th></tr></thead>"
     )
     chunks: list[str] = []
     for _day, label, group in groups:
@@ -1216,15 +1208,14 @@ def _render_current_season_totals_tracking(
     ref = reference or _slate_reference_date()
     groups = group_items_by_kickoff_et_date(score_rows, kickoff_key="kickoff", reference=ref)
     table_head = (
-        "<thead><tr><th>Tip</th><th>Game</th><th>Live total (raw / inj)</th>"
-        "<th>Shadow total (raw / inj)</th><th>2026-27 sample</th>"
+        "<thead><tr><th>Tip</th><th>Game</th><th>Live total</th>"
+        "<th>Shadow total</th>"
         "<th>Shadow gap (not a play)</th></tr></thead>"
     )
     chunks: list[str] = [
         '<div class="nba-shadow-totals-note">',
         "<p><strong>Current-season totals (tracking only, not plays)</strong> — "
-        "Experimental totals from 2026-27 games only (no prior-season blend). "
-        "Official Pace card still uses legacy totals above.</p>",
+        "the official Pace card above is unchanged.</p>",
         f"<p>{_esc(record_line)}</p>",
     ]
     for _day, label, group in groups:
@@ -1266,9 +1257,8 @@ def _render_current_season_totals_tracking(
                 "<tr>"
                 f'<td data-label="Tip">{_esc(tip)}</td>'
                 f'<td data-label="Game">{_esc(game)}</td>'
-                f'<td data-label="Live total">{live_t:.1f} / {live_inj:.1f}</td>'
-                f'<td data-label="Shadow total">{sh_raw_s} / {sh_inj_s}</td>'
-                f'<td data-label="Sample">{_esc(sample_s)}</td>'
+                f'<td data-label="Live total">{live_inj:.1f}</td>'
+                f'<td data-label="Shadow total">{sh_inj_s}</td>'
                 f'<td data-label="Shadow gap">{_esc(gap_s)}</td>'
                 "</tr>"
             )
@@ -1367,16 +1357,14 @@ def _render_pace_graded_history(rows: list[dict[str, Any]]) -> str:
             f'<td data-label="Pick"><b>{_esc(r.get("pick") or "")}</b></td>'
             f'<td data-label="Line">{_esc(r.get("line", "—"))}</td>'
             f'<td data-label="Gap">{float(r.get("gap") or 0):.1f} pt</td>'
-            f'<td data-label="Raw result" class="{rr.lower()}">{_esc(rr)}</td>'
-            f'<td data-label="Raw units" class="{"pos" if (ur or 0) >= 0 else "neg"}">{ur_s}</td>'
-            f'<td data-label="Inj-adj result" class="{ri.lower()}">{_esc(ri)}</td>'
-            f'<td data-label="Inj-adj units" class="{"pos" if (ui or 0) >= 0 else "neg"}">{ui_s}</td>'
+            f'<td data-label="Result" class="{rr.lower()}">{_esc(rr)}</td>'
+            f'<td data-label="Units" class="{"pos" if (ur or 0) >= 0 else "neg"}">{ur_s}</td>'
             "</tr>"
         )
     return (
         '<div class="table-wrap"><table class="export-table plays-table nba-table">'
         "<thead><tr><th>Tip</th><th>Game</th><th>Pick</th><th>Line</th><th>Gap</th>"
-        "<th>Raw result</th><th>Raw units</th><th>Inj-adj result</th><th>Inj-adj units</th></tr></thead>"
+        "<th>Result</th><th>Units</th></tr></thead>"
         f"<tbody>{''.join(body)}</tbody></table></div>"
     )
 
@@ -1734,15 +1722,14 @@ def _render_candidate_rows(signals: list[dict[str, Any]], *, kind: str) -> str:
             f'<td data-label="Book / price">{_esc(_price(p.get("price")))} '
             f'<span class="nba-book">{_esc(_book_label(p.get("book")))}</span></td>'
             f'<td data-label="EV">{_pct(p.get("edge"))}</td>'
-            f'<td data-label="Fair %">{_pct(fair)}</td>'
             f'<td data-label="Units">{units_s}</td>'
-            f'<td data-label="Model / sharp">{tags}</td>'
+            f'<td data-label="Signals">{tags}</td>'
             "</tr>"
         )
     head = (
         "<thead><tr><th>#</th><th>Tip</th><th>Game</th><th>Player</th><th>Market</th>"
-        "<th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Fair %</th><th>Units</th>"
-        "<th>Model / sharp</th>"
+        "<th>Pick</th><th>Line</th><th>Book / price</th><th>EV</th><th>Units</th>"
+        "<th>Signals</th>"
         "</tr></thead>"
     )
     return (

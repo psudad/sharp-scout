@@ -46,7 +46,7 @@ from sharp_scout.nba.slate_et import kickoff_date_et  # noqa: E402
 from sharp_scout.utils.kickoff import parse_kickoff_utc  # noqa: E402
 from sharp_scout.utils.slate import ET  # noqa: E402
 
-REPORT_MD = ROOT / "docs" / "nba_pace_original_backtest.md"
+REPORT_MD = ROOT / "research" / "notes" / "nba_pace_original_backtest.md"
 CSV_OUT = ROOT / "data" / "paper" / "nba_pace_original_backtest.csv"
 ESPN_LINES_PATH = DATA_DIR / "paper" / "nba_espn_pregame_lines.json"
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write docs/nba_totals_current_season.md — old vs new totals on Oct 2026 slates."""
+"""Write research/notes/nba_totals_current_season.md — old vs new totals on Oct 2026 slates."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from sharp_scout.nba.score_model.replay_engine import engine_at_start_of_et_date
 from sharp_scout.utils.kickoff import parse_kickoff_utc
 from sharp_scout.nba.slate_et import kickoff_date_et
 
-OUT = ROOT / "docs" / "nba_totals_current_season.md"
+OUT = ROOT / "research" / "notes" / "nba_totals_current_season.md"
 DAYS = [date(2026, 10, 25), date(2026, 10, 26), date(2026, 10, 27), date(2026, 10, 28)]
 MIN_GAP = 3.0
 

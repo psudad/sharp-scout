@@ -127,7 +127,6 @@ def build_nfl_event_catalog() -> dict[str, dict[str, Any]]:
     catalog: dict[str, dict[str, Any]] = {}
     paths = [
         Path("data/ledger.json"),
-        Path("docs/ledger.json"),
         Path("data/nfl_game_totals.json"),
     ]
     for path in paths:
@@ -147,7 +146,7 @@ def build_nfl_event_catalog() -> dict[str, dict[str, Any]]:
                 "home": normalize_team(row.get("home_team") or row.get("home") or "", "nfl"),
                 "kickoff": row.get("kickoff") or row.get("commence_time"),
             }
-    sig_path = Path("docs/latest_signals.json")
+    sig_path = Path("data/site_state/latest_signals.json")
     if sig_path.exists():
         for g in json.loads(sig_path.read_text()).get("games", []):
             eid = g.get("event_id")

@@ -93,7 +93,10 @@ def test_nba_public_page_isolated(tmp_path, monkeypatch):
     assert NO_LIVE_SCAN_MESSAGE in nba_html
     assert "CHA" not in nba_body
     assert "LaMelo" not in nba_body
-    pub_signals = json.loads((docs / "nba_latest_signals.json").read_text())
+    assert not (docs / "nba_latest_signals.json").exists()  # signals are not published
+    from sharp_scout.site.nba_page import public_nba_signals
+
+    pub_signals = public_nba_signals(json.loads(nba_paths.NBA_LATEST_SIGNALS_PATH.read_text()))
     assert pub_signals.get("signals") == []
     assert pub_signals.get("demo") is False
     pub_ledger = json.loads((docs / "nba_ledger.json").read_text())
@@ -160,7 +163,10 @@ def test_nba_public_page_shows_live_scan_only(tmp_path, monkeypatch):
     html = (docs / "nba.html").read_text()
     assert NO_LIVE_SCAN_MESSAGE not in html
     assert "BOS" in html
-    exported = json.loads((docs / "nba_latest_signals.json").read_text())
+    assert not (docs / "nba_latest_signals.json").exists()  # signals are not published
+    from sharp_scout.site.nba_page import public_nba_signals
+
+    exported = public_nba_signals(json.loads(nba_paths.NBA_LATEST_SIGNALS_PATH.read_text()))
     assert len(exported["signals"]) == 1
     assert exported.get("possible_signals") == []
 
@@ -236,9 +242,13 @@ def test_nba_page_picks_and_possible_sections(tmp_path, monkeypatch):
     assert "Diagnostics" in html
     assert "Near-miss tables" in html
     assert "After more testing, we'd pick:" in html
-    assert "EV below 2.0% floor" in html
+    assert "EV below 2.0% floor" not in html  # thresholds stay private
+    assert "Did not qualify" in html
     assert "display only" in html
-    exported = json.loads((docs / "nba_latest_signals.json").read_text())
+    assert not (docs / "nba_latest_signals.json").exists()  # signals are not published
+    from sharp_scout.site.nba_page import public_nba_signals
+
+    exported = public_nba_signals(json.loads(nba_paths.NBA_LATEST_SIGNALS_PATH.read_text()))
     assert len(exported["possible_signals"]) == 1
     assert exported["possible_signals"][0]["units"] == 0
 

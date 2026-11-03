@@ -85,6 +85,8 @@ def test_publish_ncaaf_board_docs_leaves_existing_docs_byte_identical(tmp_path, 
     caplog.set_level(logging.ERROR)
     docs = tmp_path / "docs"
     docs.mkdir()
+    state = tmp_path / "site_state"  # private board state (not published)
+    state.mkdir(exist_ok=True)
     existing = {
         "generated_at": "2026-10-01T12:00:00+00:00",
         "week": 6,
@@ -95,32 +97,34 @@ def test_publish_ncaaf_board_docs_leaves_existing_docs_byte_identical(tmp_path, 
         "publishable": True,
     }
     blob = json.dumps(existing, indent=2) + "\n"
-    (docs / "latest_ncaaf_signals.json").write_bytes(blob.encode())
+    (state / "latest_ncaaf_signals.json").write_bytes(blob.encode())
 
     bad = _payload(n_teams=20, skip_pbp=True)
     stamp_publishable(bad, decide_ncaaf_publish(bad, skip_pbp=True))
 
     publish_ncaaf_board_docs(bad, docs_dir=docs)
-    assert (docs / "latest_ncaaf_signals.json").read_bytes() == blob.encode()
+    assert (state / "latest_ncaaf_signals.json").read_bytes() == blob.encode()
     assert any("NCAAF publish BLOCKED" in r.message for r in caplog.records)
 
 
 def test_publish_ncaaf_board_docs_writes_when_publishable(tmp_path):
     docs = tmp_path / "docs"
     docs.mkdir()
+    state = tmp_path / "site_state"  # private board state (not published)
+    state.mkdir(exist_ok=True)
     existing = {
         "generated_at": "2026-10-01T12:00:00+00:00",
         "week": 6,
         "plays": [],
         "ratings": [],
     }
-    (docs / "latest_ncaaf_signals.json").write_text(json.dumps(existing))
+    (state / "latest_ncaaf_signals.json").write_text(json.dumps(existing))
 
     good = _payload(n_teams=MIN_RATED_TEAMS_NCAAF, skip_pbp=False, demo=False)
     good["week"] = 10
     stamp_publishable(good, decide_ncaaf_publish(good, skip_pbp=False))
     publish_ncaaf_board_docs(good, docs_dir=docs)
-    written = json.loads((docs / "latest_ncaaf_signals.json").read_text())
+    written = json.loads((state / "latest_ncaaf_signals.json").read_text())
     assert written["week"] == 10
     assert len(written["ratings"]) == MIN_RATED_TEAMS_NCAAF
 
@@ -129,20 +133,22 @@ def test_demo_mode_does_not_publish(tmp_path, caplog):
     caplog.set_level(logging.ERROR)
     docs = tmp_path / "docs"
     docs.mkdir()
+    state = tmp_path / "site_state"  # private board state (not published)
+    state.mkdir(exist_ok=True)
     prior = json.dumps({"generated_at": "2026-01-01T00:00:00+00:00", "week": 1}) + "\n"
-    (docs / "latest_ncaaf_signals.json").write_bytes(prior.encode())
+    (state / "latest_ncaaf_signals.json").write_bytes(prior.encode())
 
     demo_payload = _payload(n_teams=MIN_RATED_TEAMS_NCAAF, demo=True, skip_pbp=True)
     stamp_publishable(demo_payload, decide_ncaaf_publish(demo_payload, skip_pbp=True))
     publish_ncaaf_board_docs(demo_payload, docs_dir=docs)
-    assert (docs / "latest_ncaaf_signals.json").read_bytes() == prior.encode()
+    assert (state / "latest_ncaaf_signals.json").read_bytes() == prior.encode()
 
 
 def test_pick_ncaaf_ignores_unpublishable_newer_artifact(tmp_path, monkeypatch):
     monkeypatch.setattr(site_build, "ARTIFACTS_DIR", tmp_path / "artifacts")
     monkeypatch.setattr(site_build, "DOCS_DIR", tmp_path / "docs")
     art = tmp_path / "artifacts"
-    doc = tmp_path / "docs"
+    doc = tmp_path / "site_state"
     art.mkdir(parents=True)
     doc.mkdir(parents=True)
     stale_docs = {
@@ -288,6 +294,8 @@ def test_pipeline_skip_pbp_blocks_docs_publish(tmp_path, monkeypatch):
     (tmp_path / "data").mkdir(parents=True)
     docs = tmp_path / "docs"
     docs.mkdir()
+    state = tmp_path / "site_state"  # private board state (not published)
+    state.mkdir(exist_ok=True)
     good_blob = json.dumps(
         {
             "generated_at": "2026-09-01T00:00:00+00:00",
@@ -299,7 +307,7 @@ def test_pipeline_skip_pbp_blocks_docs_publish(tmp_path, monkeypatch):
         },
         indent=2,
     ) + "\n"
-    (docs / "latest_ncaaf_signals.json").write_bytes(good_blob.encode())
+    (state / "latest_ncaaf_signals.json").write_bytes(good_blob.encode())
     (tmp_path / "data" / "ncaaf_ledger.json").write_text('{"plays": []}')
 
     from sharp_scout.ncaaf.pipeline import run_ncaaf_pipeline
@@ -314,6 +322,6 @@ def test_pipeline_skip_pbp_blocks_docs_publish(tmp_path, monkeypatch):
             week_only=False,
         )
 
-    assert (docs / "latest_ncaaf_signals.json").read_bytes() == good_blob.encode()
+    assert (state / "latest_ncaaf_signals.json").read_bytes() == good_blob.encode()
     art = json.loads((tmp_path / "artifacts" / "latest_ncaaf_signals.json").read_text())
     assert art.get("publishable") is False

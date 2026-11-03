@@ -105,7 +105,7 @@ jobs:
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           chmod +x scripts/ci_git_push_retry.sh scripts/ci_git_add_paths.sh
-          export ADD_PATHS="data/ncaaf_ledger.json data/ncaaf_line_plan.json data/line_history.json data/open_lines.json data/ncaaf_rebuild_state.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
+          export ADD_PATHS="data/ncaaf_ledger.json data/ncaaf_line_plan.json data/line_history.json data/open_lines.json data/ncaaf_rebuild_state.json data/shadow/ reports/ncaaf_totals_high_ev.md data/site_state/ docs/"
           ./scripts/ci_git_push_retry.sh "chore: NCAAF stale-guard board refresh" bash -c "python scripts/run_ncaaf.py --build-site && scripts/stamp_ncaaf_rebuild_state.sh"
 
       - name: Build unlisted NCAAM page (not committed, not linked)

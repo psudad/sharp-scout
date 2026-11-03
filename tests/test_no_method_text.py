@@ -112,3 +112,98 @@ def test_research_notes_not_published():
     assert not list(docs.rglob("*.md")), "research notes must live outside docs/ (Pages root)"
     for name in ("football_pace_backtest_nfl.csv", "football_pace_backtest_ncaaf.csv"):
         assert not (docs / "data" / name).exists()
+
+
+BOARD_REASONING_BANNED = (
+    "sharp veto",
+    "Fails product gate",
+    "LOCKED lanes",
+    "true probability vs",
+    "implied at",
+    "Model margin:",
+    "price the favorite as",
+    "lean and sim probability come first",
+    "Pinnacle / Circa / Betfair",
+    "Pinnacle no-vig",
+    "EV below",
+    "beyond the threshold",
+    "<th>Why</th>",
+    "<th>Why held</th>",
+    "<th>Rationale</th>",
+    "rationale-toggle\" onclick",
+)
+
+UNPUBLISHED_DATA_FILES = (
+    "latest_signals.json",
+    "latest_ncaaf_signals.json",
+    "ncaaf_plays.json",
+    "ncaaf_stages.json",
+    "ncaaf_ratings.json",
+    "nfl_ratings.json",
+    "latest_props.json",
+    "nba_latest_signals.json",
+    "nba_paper_report.json",
+    "nba_score_model.json",
+    "nba_injury_lag.json",
+    "nba_pace_of_play_official.json",
+    "nba_pace_of_play_official.csv",
+)
+
+MODEL_FIELDS = ("p_true", "p_fair", "p_model", "model_mean", "model_spread", "model_total", "rationale", "qa_notes", "sharp_price")
+
+
+def test_model_data_files_not_in_docs():
+    from pathlib import Path
+
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    for name in UNPUBLISHED_DATA_FILES:
+        assert not (docs / name).exists(), name
+
+
+def test_built_site_hides_reasoning_and_model_data(tmp_path, monkeypatch):
+    import json
+    from pathlib import Path
+
+    from sharp_scout.site import build as sb
+
+    monkeypatch.setattr(sb, "ARTIFACTS_DIR", tmp_path / "artifacts")
+    docs = tmp_path / "docs"
+    plays = [
+        {
+            "id": "x1",
+            "sport": "nfl",
+            "event_id": "e1",
+            "kickoff": "2026-11-08T18:00:00+00:00",
+            "away_team": "BAL",
+            "home_team": "MIA",
+            "market": "spreads",
+            "side": "BAL",
+            "line": -3,
+            "price": -110,
+            "book": "draftkings",
+            "units": 1.5,
+            "tier": "play",
+            "status": "pending",
+            "edge": 0.05,
+            "p_true": 0.55,
+            "p_fair": 0.52,
+            "model_spread": -4.5,
+            "rationale": "We project BAL -3 at 55% true probability vs 52% implied at draftkings · sharp veto: x (<50%)",
+        }
+    ]
+    sig = {"generated_at": "2026-11-03T20:00:00+00:00", "n_games": 1, "games": [], "plays": plays, "ratings": [{"team": "BAL", "rating": 1.0}]}
+    sig_path = tmp_path / "sig.json"
+    sig_path.write_text(json.dumps(sig))
+    sb.build_site(docs_dir=docs, signals_path=sig_path)  # real ledgers + this fake slate
+    blob = "".join(p.read_text() for p in docs.glob("*.html"))
+    assert "board.html" in {p.name for p in docs.glob("*.html")}
+    for s in BOARD_REASONING_BANNED:
+        assert s not in blob, s
+    for name in UNPUBLISHED_DATA_FILES:
+        assert not (docs / name).exists(), name
+    for name in ("ledger.json", "ncaaf_ledger.json", "props_ledger.json"):
+        data = json.loads((docs / name).read_text())
+        for p in data.get("plays") or []:
+            for f in MODEL_FIELDS:
+                assert f not in p, (name, f)
+        assert "stage_cards" not in data

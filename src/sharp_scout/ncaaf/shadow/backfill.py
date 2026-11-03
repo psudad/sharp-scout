@@ -12,7 +12,7 @@ from sharp_scout.ncaaf.shadow.capture import record_from_pipeline
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SNAPSHOT_PATH = "docs/latest_ncaaf_signals.json"
+DEFAULT_SNAPSHOT_PATH = "data/site_state/latest_ncaaf_signals.json"
 
 
 def _git_commits_for(path: str) -> list[str]:

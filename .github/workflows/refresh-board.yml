@@ -114,12 +114,12 @@ jobs:
             data/ncaaf_ledger.json data/ncaaf_rebuild_state.json data/ledger.json data/nfl_game_totals.json data/props_ledger.json \
             data/line_history.json data/line_history_archive.json \
             data/paper/nfl_totals_momentum_follow.json data/open_lines.json data/calibration.json \
-            data/shadow/ reports/ncaaf_totals_high_ev.md docs/
+            data/shadow/ reports/ncaaf_totals_high_ev.md data/site_state/ docs/
           if git diff --staged --quiet; then
             echo "No board changes to commit"
           else
             chmod +x scripts/ci_git_push_retry.sh scripts/ncaaf_ci_run_and_post.sh scripts/ncaaf_ci_post_run.sh
-            export ADD_PATHS="data/ncaaf_ledger.json data/ncaaf_rebuild_state.json data/ledger.json data/nfl_game_totals.json data/props_ledger.json data/line_history.json data/line_history_archive.json data/paper/nfl_totals_momentum_follow.json data/open_lines.json data/calibration.json data/shadow/ reports/ncaaf_totals_high_ev.md docs/"
+            export ADD_PATHS="data/ncaaf_ledger.json data/ncaaf_rebuild_state.json data/ledger.json data/nfl_game_totals.json data/props_ledger.json data/line_history.json data/line_history_archive.json data/paper/nfl_totals_momentum_follow.json data/open_lines.json data/calibration.json data/shadow/ reports/ncaaf_totals_high_ev.md data/site_state/ docs/"
             RERUN=""
             if [ "$REFRESH_NFL" = "true" ]; then
               NFL_ARGS="--build-site"

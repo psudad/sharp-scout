@@ -103,7 +103,7 @@ def main() -> None:
 
     _git("config", "user.name", "sharp-scout-bot")
     _git("config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
-    _git("add", "data/ledger.json", "data/ncaaf_ledger.json", "data/props_ledger.json", "docs")
+    _git("add", "data/ledger.json", "data/ncaaf_ledger.json", "data/props_ledger.json", "data/site_state", "docs")
     if _git("diff", "--staged", "--quiet") == 0:
         print("Nothing changed — no commit needed.")
         return

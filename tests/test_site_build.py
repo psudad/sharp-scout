@@ -56,7 +56,7 @@ def test_pick_signals_prefers_fresher_on_equal_game_count(tmp_path, monkeypatch)
     monkeypatch.setattr(site_build, "ARTIFACTS_DIR", tmp_path / "artifacts")
     monkeypatch.setattr(site_build, "DOCS_DIR", tmp_path / "docs")
     art = tmp_path / "artifacts"
-    doc = tmp_path / "docs"
+    doc = tmp_path / "site_state"
     art.mkdir(parents=True)
     doc.mkdir(parents=True)
     stale = {
@@ -81,7 +81,7 @@ def test_pick_ncaaf_prefers_newer_artifact_over_stale_full_week_docs(tmp_path, m
     monkeypatch.setattr(site_build, "ARTIFACTS_DIR", tmp_path / "artifacts")
     monkeypatch.setattr(site_build, "DOCS_DIR", tmp_path / "docs")
     art = tmp_path / "artifacts"
-    doc = tmp_path / "docs"
+    doc = tmp_path / "site_state"
     art.mkdir(parents=True)
     doc.mkdir(parents=True)
     stale_docs = {
@@ -115,8 +115,9 @@ def test_publish_ncaaf_board_docs_writes_signals_and_plays(tmp_path, monkeypatch
         "ratings": [],
     }
     publish_ncaaf_board_docs(payload, docs_dir=tmp_path / "docs")
-    sig = json.loads((tmp_path / "docs" / "latest_ncaaf_signals.json").read_text())
-    plays = json.loads((tmp_path / "docs" / "ncaaf_plays.json").read_text())
+    sig = json.loads((tmp_path / "site_state" / "latest_ncaaf_signals.json").read_text())
+    plays = json.loads((tmp_path / "site_state" / "ncaaf_plays.json").read_text())
+    assert not (tmp_path / "docs" / "latest_ncaaf_signals.json").exists()
     assert sig["week"] == 10
     assert len(plays) == 1
 
@@ -125,7 +126,7 @@ def test_pick_signals_prefers_fullest_board_over_partial_artifact(tmp_path, monk
     monkeypatch.setattr(site_build, "ARTIFACTS_DIR", tmp_path / "artifacts")
     monkeypatch.setattr(site_build, "DOCS_DIR", tmp_path / "docs")
     art = tmp_path / "artifacts"
-    doc = tmp_path / "docs"
+    doc = tmp_path / "site_state"
     art.mkdir(parents=True)
     doc.mkdir(parents=True)
     full_docs = {

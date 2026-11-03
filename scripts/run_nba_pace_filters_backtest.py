@@ -32,7 +32,7 @@ from sharp_scout.nba.score_model.paper import _grade_ou, load_paper_store  # noq
 from sharp_scout.nba.score_model.totals_shadow import compute_shadow_totals_sidecar  # noqa: E402
 from sharp_scout.utils.kickoff import parse_kickoff_utc  # noqa: E402
 
-REPORT_MD = ROOT / "docs" / "nba_pace_filters_backtest.md"
+REPORT_MD = ROOT / "research" / "notes" / "nba_pace_filters_backtest.md"
 CSV_OUT = DATA_DIR / "paper" / "nba_pace_filters_backtest.csv"
 UNIT_DOLLARS = 10.0
 

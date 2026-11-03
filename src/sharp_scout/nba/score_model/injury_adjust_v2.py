@@ -1,6 +1,6 @@
 """Injury / rest adjustments to stage-3 score projections (ESPN only, no Odds API).
 
-Method (see docs/nba_injury_adjust.md):
+Method (see research/notes/nba_injury_adjust.md):
   1. ESPN injury status × weight (Out=1.0, Doubtful=0.75, Questionable=0.5, Day-to-day=0.45, Probable=0.25).
   2. Player value from season rates (ESPN by-athlete stats → nba_player_rates.json): BPM-like proxy split
      into offense / defense / pace using minutes and usage.

@@ -65,6 +65,86 @@ def _fmt_et(iso: str | None) -> str:
 
 _NOT_A_PLAY = ("no_play", "missed")
 
+NCAAM_BOOK_LABELS = {
+    "draftkings": "DraftKings",
+    "fanduel": "FanDuel",
+    "betmgm": "BetMGM",
+    "williamhill_us": "Caesars",
+    "caesars": "Caesars",
+    "betrivers": "BetRivers",
+    "espnbet": "ESPN BET",
+    "betonlineag": "BetOnline",
+    "bovada": "Bovada",
+    "pinnacle": "Pinnacle",
+    "fanatics": "Fanatics",
+    "hardrockbet": "Hard Rock Bet",
+    "ballybet": "Bally Bet",
+    "betus": "BetUS",
+    "lowvig": "LowVig",
+    "mybookieag": "MyBookie",
+}
+_RESULT_LABELS = {"win": "Win", "loss": "Loss", "push": "Push", "void": "Void", "pending": "Pending"}
+
+
+def ncaam_price(x: Any) -> str:
+    """American odds with an explicit + for underdogs (e.g. +170, -110)."""
+    try:
+        n = int(round(float(x)))
+    except (TypeError, ValueError):
+        return ""
+    return f"+{n}" if n > 0 else str(n)
+
+
+def ncaam_book_label(book: Any) -> str:
+    if not book:
+        return "—"
+    key = str(book).lower()
+    return NCAAM_BOOK_LABELS.get(key, key.replace("_", " ").title())
+
+
+def _play_team(p: dict[str, Any]) -> str:
+    side = str(p.get("side") or "").lower()
+    team = p.get("selection") or p.get(f"{side}_team")
+    return str(team or side.title())
+
+
+def ncaam_play_label(p: dict[str, Any]) -> str:
+    """Readable bet: team + line + price, e.g. "Elon ML +170" or "Iona +1 (-110)"."""
+    team = _play_team(p)
+    price = ncaam_price(p.get("price"))
+    if str(p.get("market") or "spreads") == "h2h":
+        return f"{team} ML {price}".strip()
+    line = p.get("line")
+    try:
+        fv = float(line)
+        line_s = "PK" if fv == 0 else f"{fv:+g}"
+    except (TypeError, ValueError):
+        line_s = ""
+    out = f"{team} {line_s}".strip()
+    return f"{out} ({price})" if price else out
+
+
+def ncaam_bet_type(p: dict[str, Any]) -> str:
+    return "Moneyline" if str(p.get("market") or "") == "h2h" else "Spread"
+
+
+def _stake(p: dict[str, Any]) -> str:
+    u = p.get("units")
+    try:
+        return f"{float(u if u is not None else 1):g}u"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _result_label(p: dict[str, Any]) -> str:
+    st = str(p.get("status") or "pending").lower()
+    label = _RESULT_LABELS.get(st, st.title())
+    pnl = p.get("pnl_units")
+    if pnl is None:
+        return label
+    v = float(pnl)
+    return f"{label} ({v:+.2f}u)" if v else f"{label} (0.00u)"
+
 
 def ncaam_record(ledger: dict[str, Any], *, path: Path | None = None) -> dict[str, Any]:
     """Season record for the NCAAM board.
@@ -133,29 +213,25 @@ def _render_locks(signals: dict[str, Any]) -> str:
     for p in locks:
         away = _esc(p.get("away_team") or "")
         home = _esc(p.get("home_team") or "")
-        side = str(p.get("side") or "")
-        line = p.get("line")
-        play = side
-        if line is not None:
-            play += f" {line:+.1f}" if side == "away" else f" {line:.1f}"
-        price = p.get("price")
         ev = p.get("ev")
         note = p.get("note")
         note_cell = f'<br><small class="phase-note">{_esc(note)}</small>' if note else ""
+        ev_s = f"{float(ev)*100:.1f}%" if ev is not None else "—"
         rows.append(
-            f"<tr><td>{away} @ {home}</td>"
-            f"<td>{_esc(p.get('market'))}</td>"
-            f"<td><b>{_esc(play)}</b> @ {_esc(p.get('book'))} ({price}){note_cell}</td>"
-            f"<td>{float(ev)*100:.1f}%</td>"
-            f"<td>{_pct(p.get('p_model'))} / {_pct(p.get('p_fair'))} / {_pct(p.get('p_true'))}</td>"
-            f"<td>{float(p['units'] if p.get('units') is not None else 1):.1f}u</td>"
-            f"<td>{_fmt_et(p.get('locked_at'))}</td>"
-            f"<td>{_fmt_et(p.get('tip'))}</td></tr>"
+            f'<tr><td data-label="Game">{away} @ {home}</td>'
+            f'<td data-label="Play"><b>{_esc(ncaam_play_label(p))}</b>{note_cell}</td>'
+            f'<td data-label="Type">{_esc(ncaam_bet_type(p))}</td>'
+            f'<td data-label="Book">{_esc(ncaam_book_label(p.get("book")))}</td>'
+            f'<td data-label="Stake">{_esc(_stake(p))}</td>'
+            f'<td data-label="EV">{ev_s}</td>'
+            f'<td data-label="Model / Fair / Anchor">{_pct(p.get("p_model"))} / {_pct(p.get("p_fair"))} / {_pct(p.get("p_true"))}</td>'
+            f'<td data-label="Locked (ET)">{_fmt_et(p.get("locked_at"))}</td>'
+            f'<td data-label="Tip (ET)">{_fmt_et(p.get("tip"))}</td></tr>'
         )
     return (
         '<div class="table-wrap"><table class="export-table plays-table">'
-        "<thead><tr><th>Game</th><th>Mkt</th><th>Play</th><th>EV</th>"
-        "<th>Model / Fair / Anchor</th><th>Stake</th>"
+        "<thead><tr><th>Game</th><th>Play</th><th>Type</th><th>Book</th><th>Stake</th><th>EV</th>"
+        "<th>Model / Fair / Anchor</th>"
         "<th>Locked (ET)</th><th>Tip (ET)</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
@@ -167,18 +243,19 @@ def _ledger_rows(ledger: dict[str, Any]) -> str:
         return '<p class="ncaam-empty">No graded NCAAM plays yet.</p>'
     rows = []
     for p in reversed(plays[-50:]):
-        res = p.get("status") or "pending"
-        pnl = p.get("pnl_units")
-        pnl_s = "" if pnl is None else f" ({pnl:+.2f}u)"
+        st = str(p.get("status") or "pending").lower()
         rows.append(
-            f"<tr><td>{_fmt_et(p.get('tip'))}</td>"
-            f"<td>{_esc(p.get('away_team', ''))} @ {_esc(p.get('home_team', ''))}</td>"
-            f"<td>{_esc(p.get('market', ''))} {_esc(p.get('side', ''))}</td>"
-            f"<td>{_esc(res)}{_esc(pnl_s)}</td></tr>"
+            f'<tr><td data-label="Tip (ET)">{_fmt_et(p.get("tip"))}</td>'
+            f'<td data-label="Game">{_esc(p.get("away_team", ""))} @ {_esc(p.get("home_team", ""))}</td>'
+            f'<td data-label="Play"><b>{_esc(ncaam_play_label(p))}</b></td>'
+            f'<td data-label="Book">{_esc(ncaam_book_label(p.get("book")))}</td>'
+            f'<td data-label="Stake">{_esc(_stake(p))}</td>'
+            f'<td data-label="Result" class="{_esc(st)}">{_esc(_result_label(p))}</td></tr>'
         )
     return (
         '<div class="table-wrap"><table class="export-table">'
-        "<thead><tr><th>Tip (ET)</th><th>Game</th><th>Play</th><th>Result</th></tr></thead>"
+        "<thead><tr><th>Tip (ET)</th><th>Game</th><th>Play</th><th>Book</th><th>Stake</th>"
+        "<th>Result</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
 

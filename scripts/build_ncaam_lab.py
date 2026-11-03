@@ -71,11 +71,37 @@ def price(x: Any) -> str:
     return f"+{f}" if f > 0 else str(f)
 
 
+BOOK_LABEL = {
+    "draftkings": "DraftKings",
+    "fanduel": "FanDuel",
+    "betmgm": "BetMGM",
+    "williamhill_us": "Caesars",
+    "caesars": "Caesars",
+    "betrivers": "BetRivers",
+    "espnbet": "ESPN BET",
+    "betonlineag": "BetOnline",
+    "bovada": "Bovada",
+    "pinnacle": "Pinnacle",
+    "fanatics": "Fanatics",
+}
+
+
+def book_label(b: Any) -> str:
+    if not b:
+        return ""
+    k = str(b).lower()
+    return BOOK_LABEL.get(k, k.replace("_", " ").title())
+
+
 def pick_text(p: dict[str, Any]) -> str:
+    """Readable bet: "Elon ML +170", "Purdue +5.5 (-115)"."""
     team = p.get("selection") or p.get(f"{p.get('side')}_team") or str(p.get("side") or "").title()
+    pr = price(p.get("price"))
     if (p.get("market") or "spreads") == "h2h":
-        return f"{team} ML"
-    return f"{team} {num(p.get('line'), sign=True)}".strip()
+        return f"{team} ML {pr}".strip()
+    line = num(p.get("line"), sign=True)
+    out = f"{team} {'PK' if line == '0' else line}".strip()
+    return f"{out} ({pr})" if pr else out
 
 
 def bet_type(p: dict[str, Any]) -> str:
@@ -89,7 +115,9 @@ def _esc(s: Any) -> str:
 def _play_cell(p: dict[str, Any], *, locked: bool, extra: str = "") -> str:
     tier = TIER_LABEL.get(str(p.get("tier") or ""), "")
     est = " (est.)" if p.get("price_estimated") else ""
-    parts = [f"{_esc(bet_type(p))} {_esc(price(p.get('price')))}{est}"]
+    parts = [f"{_esc(bet_type(p))}{est}"]
+    if book_label(p.get("book")):
+        parts.append(_esc(book_label(p.get("book"))))
     if tier:
         parts.append(_esc(tier))
     if p.get("units") is not None:
@@ -238,8 +266,8 @@ def build(out: Path, *, now: datetime | None = None) -> Path:
                 "<tr>"
                 f"<td>{tip.astimezone(ET).strftime('%b %-d') if tip else ''}</td>"
                 f"<td>{_esc(p.get('away_team'))} at {_esc(p.get('home_team'))}</td>"
-                f"<td>{_esc(pick_text(p))}</td><td>{_esc(bet_type(p))}</td>"
-                f"<td>{_esc(price(p.get('price')))}</td>"
+                f"<td><b>{_esc(pick_text(p))}</b></td><td>{_esc(bet_type(p))}</td>"
+                f"<td>{_esc(book_label(p.get('book')))}</td>"
                 f"<td>{_esc(TIER_LABEL.get(str(p.get('tier') or ''), ''))}</td>"
                 f"<td>{num(p.get('units'))}u</td>"
                 f"<td>{_esc(str(p.get('status') or '').title())}</td>"
@@ -250,7 +278,7 @@ def build(out: Path, *, now: datetime | None = None) -> Path:
             trs.append('<tr><td colspan="9" class="muted">No graded or pending picks yet.</td></tr>')
         ledger_html.append(
             f"<h2>{_esc(name)} ledger</h2><div class='wrap'><table><tr><th>Date</th><th>Game</th><th>Pick</th>"
-            "<th>Type</th><th>Price</th><th>Tier</th><th>Stake</th><th>Result</th><th>Units</th></tr>"
+            "<th>Type</th><th>Book</th><th>Tier</th><th>Stake</th><th>Result</th><th>Units</th></tr>"
             + "".join(trs)
             + "</table></div>"
         )

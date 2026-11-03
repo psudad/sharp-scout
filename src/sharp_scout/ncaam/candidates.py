@@ -20,7 +20,7 @@ from sharp_scout.ncaam.rules import (
     price_qualifies,
 )
 from sharp_scout.phase3.market import anchor_probability, fair_probs_from_two_way, shift_prob_to_line
-from sharp_scout.utils.odds import win_prob_to_conditional
+from sharp_scout.utils.odds import american_to_implied_prob, win_prob_to_conditional
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,19 @@ def _outcomes_by_side(event: dict[str, Any], market: str) -> dict[str, list[dict
     return out
 
 
+# Moneyline anchor sanity guard (same rule as NBA): placeholder / suspended prices such as
+# -10000/-10000 must never become a fair probability.
+ML_PRICE_LIMIT = 2000.0
+ML_OVERROUND_MIN = 1.00
+ML_OVERROUND_MAX = 1.10
+
+
+def _ml_price_ok(price: float) -> bool:
+    if price != price or abs(price) < 100:  # NaN or not a real American price
+        return False
+    return -ML_PRICE_LIMIT < price < ML_PRICE_LIMIT
+
+
 def _pinnacle_h2h_fair(event: dict[str, Any], side: str) -> float | None:
     """No-vig Pinnacle moneyline fair win prob for ``side``.
 
@@ -98,6 +111,13 @@ def _pinnacle_h2h_fair(event: dict[str, Any], side: str) -> float | None:
             return None  # two outcomes claim the same side: cannot trust the mapping
         prices[s] = float(o.get("price"))
     if set(prices) != {"home", "away"}:
+        return None
+    if not (_ml_price_ok(prices["home"]) and _ml_price_ok(prices["away"])):
+        logger.info("ncaam ml anchor rejected: extreme price %s", prices)
+        return None
+    total = american_to_implied_prob(prices["home"]) + american_to_implied_prob(prices["away"])
+    if not (ML_OVERROUND_MIN <= total <= ML_OVERROUND_MAX):
+        logger.info("ncaam ml anchor rejected: implied total %.3f %s", total, prices)
         return None
     # fair_probs_from_two_way takes American prices and converts them itself.
     p_home_fair, p_away_fair = fair_probs_from_two_way(prices["home"], prices["away"])

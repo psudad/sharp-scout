@@ -356,3 +356,34 @@ def test_repo_sharp3_gonzaga_purdue_row_is_void():
                if p["id"] == gid)
     assert (row["status"], row["units"], row["pnl_units"]) == ("void", 0.0, 0.0)
     assert row["void_reason"] == o["reason"]
+
+
+# --- Nov 3 2026: extreme-price / implied-total guard (same rule as NBA) ---
+
+
+@pytest.mark.parametrize(
+    "home,away",
+    [
+        (-10000, -10000),  # Betfair-style placeholder
+        (-2000, 1200),  # at the extreme-price limit
+        (2000, -5000),
+        (-110, 300),  # implied total < 1.00 (stale side)
+        (-200, -200),  # implied total > 1.10
+        (50, -110),  # not a valid American price
+    ],
+)
+def test_pinnacle_ml_guard_rejects_bad_prices(home, away):
+    ev = _pin_event(home, away)
+    assert cand._pinnacle_h2h_fair(ev, "home") is None
+    assert cand._pinnacle_h2h_fair(ev, "away") is None
+
+
+def test_pinnacle_ml_guard_keeps_normal_prices():
+    for home, away in [(187, -223), (-1900, 1100), (-105, -115)]:
+        p = cand._pinnacle_h2h_fair(_pin_event(home, away), "home")
+        assert p is not None and 0.0 < p < 1.0
+
+
+def test_placeholder_pinnacle_ml_produces_no_ml_candidate():
+    ev = _pin_event(-10000, -10000)
+    assert cand._pinnacle_h2h_fair(ev, "home") is None

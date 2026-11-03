@@ -27,7 +27,7 @@ from sharp_scout.stage_picks import STAGE_MARKETS, build_slate_stage_picks  # no
 
 def _load_signals() -> dict:
     for path in (
-        ROOT / "docs" / "latest_ncaaf_signals.json",
+        ROOT / "data" / "site_state" / "latest_ncaaf_signals.json",
         ARTIFACTS_DIR / NCAAF.artifact_name,
     ):
         if path.exists():
@@ -135,11 +135,11 @@ def main() -> None:
     ledger_path = DATA_DIR / NCAAF.ledger_name
     append_stage_cards(stage_cards, path=ledger_path)
 
-    # Refresh artifact + docs copy for site builder.
+    # Refresh artifact + committed site-state copy for site builder.
     payload = {**signals, "stage_picks": stage_cards, "generated_at": datetime.now(timezone.utc).isoformat()}
     out = ARTIFACTS_DIR / NCAAF.artifact_name
     out.write_text(json.dumps(payload, indent=2, default=str))
-    (ROOT / "docs" / "latest_ncaaf_signals.json").write_text(json.dumps(payload, indent=2, default=str))
+    (ROOT / "data" / "site_state" / "latest_ncaaf_signals.json").write_text(json.dumps(payload, indent=2, default=str))
 
     site = build_site()
     print(f"Refreshed {len(stage_cards)} stage cards from {len(games)} games")

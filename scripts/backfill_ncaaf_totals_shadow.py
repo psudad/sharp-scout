@@ -20,7 +20,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Backfill NCAAF totals high-EV shadow ledger")
     p.add_argument(
         "--signals-path",
-        default="docs/latest_ncaaf_signals.json",
+        default="data/site_state/latest_ncaaf_signals.json",
         help="Git-tracked NCAAF signals snapshot path",
     )
     args = p.parse_args()

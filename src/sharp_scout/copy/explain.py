@@ -75,7 +75,7 @@ STAGE_LABELS: dict[str, str] = {
 
 STAGE_INTROS: dict[str, str] = {
     "model": "Our model favors",
-    "sharp": "Pinnacle / sharp books price the favorite as",
+    "sharp": "Sharp books price the favorite as",
     "public": "Most bet tickets (count) are on",
     "money": "Most handle (dollars) is on",
     "sharp_edge": "Sharp money signal (handle minus tickets) points to",
@@ -88,9 +88,8 @@ STAGE_COLUMN_TIPS: dict[str, str] = {
     "Mkt": "Spread, moneyline (ML), or total — one row per market per game.",
     "Model": "Our independent model lean before splits.",
     "Sharp Book": (
-        "PRICE, not money flow: the side Pinnacle / Circa / Betfair make the favorite on "
-        "their no-vig line. This is where the sharpest books price the game — it does NOT "
-        "show where money is being bet."
+        "PRICE, not money flow: the side the sharpest books make the favorite. "
+        "It does NOT show where money is being bet."
     ),
     "Public": (
         "Action Network ticket % — share of the NUMBER of bets. This is the crowd/public "
@@ -114,7 +113,7 @@ STAGE_COLUMN_TIPS: dict[str, str] = {
 # Summary stat cards on the board → hover tooltip on the eye icon next to the label.
 BOARD_STAT_TIPS: dict[str, str] = {
     "sharp_vs_public": (
-        "Games on the current slate where sharp books (Pinnacle no-vig) favor a different side "
+        "Games on the current slate where sharp books favor a different side "
         "than the public ticket majority on spread. Counts disagreement spots — not our bet record."
     ),
     "rlm_games": (
@@ -124,7 +123,7 @@ BOARD_STAT_TIPS: dict[str, str] = {
     "clv_avg_pts": "Average closing-line value in points vs the line we bet. Positive means we beat the close.",
     "clv_beat_pct": "Share of graded plays that beat the closing line (price or spread/total).",
     "clv_beat_record": "Win-loss count vs the closing line across graded plays — not the same as bet W-L.",
-    "clv_n_plays": "Number of graded plays with a captured closing line (last Pinnacle-preferred sample at/before kickoff from line history).",
+    "clv_n_plays": "Number of graded plays with a captured closing line.",
     "stage_awaiting_final": (
         "Picks on the current display-week slate that do not have a final score yet — "
         "one count per stage per game/market row. Season-to-date W–L above includes all "
@@ -152,7 +151,7 @@ STAGE_RECORD_TIPS: dict[str, str] = {
         "splits or tickets. Record = win rate if you bet the model's side on every graded row."
     ),
     "sharp": (
-        "Sharp = Pinnacle / Betfair no-vig favorite on that market. Record = how often "
+        "Sharp = the sharp-book favorite on that market. Record = how often "
         "following sharp books would have won across all graded game/market rows."
     ),
     "public": (

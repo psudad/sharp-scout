@@ -6,6 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "data"
 ARTIFACTS_DIR = ROOT / "artifacts"
+# Committed board state (signals, ratings, stage picks) the site builder needs between
+# CI runs. Lives outside docs/ so GitHub Pages never serves model internals.
+SITE_STATE_DIR = DATA_DIR / "site_state"
 
 
 class Settings(BaseSettings):

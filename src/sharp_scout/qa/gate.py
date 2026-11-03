@@ -664,7 +664,7 @@ def apply_qa_gate(
         if sig_path.exists():
             signals = json.loads(sig_path.read_text())
         else:
-            docs_path = DATA_DIR.parent / "docs" / sport_cfg.artifact_name
+            docs_path = DATA_DIR / "site_state" / sport_cfg.artifact_name
             if docs_path.exists():
                 signals = json.loads(docs_path.read_text())
             else:

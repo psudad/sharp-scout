@@ -1665,8 +1665,8 @@ def _render_possible_rows(rows: list[dict[str, Any]], *, kind: str) -> str:
         game = f"{p.get('away_team', '')} @ {p.get('home_team', '')}"
         player = str(p.get("player_name") or "—") if kind == "prop" else "—"
         lean = _possible_lean_line(p)
-        reason = str(p.get("reject_reason") or "Did not qualify")
-        meta = f"EV {_pct(p.get('edge'))} · {reason} · 0u (display only)"
+        # Rejection reasons name internal thresholds — keep them off the public page.
+        meta = f"EV {_pct(p.get('edge'))} · Did not qualify · 0u (display only)"
         body.append(
             "<tr>"
             f'<td data-label="#">{i}</td>'
@@ -2194,22 +2194,26 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     pub_ledger = public_nba_ledger(ledger)
     pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
 
-    (out / "nba_latest_signals.json").write_text(
-        json.dumps(pub_signals, indent=2, default=str) + "\n"
-    )
-    (out / "nba_ledger.json").write_text(json.dumps(pub_ledger, indent=2, default=str) + "\n")
-    (out / "nba_paper_report.json").write_text(
-        json.dumps(pub_report, indent=2, default=str) + "\n"
-    )
-    for src_name in (
+    # Only the display/result ledger is published. Signals, the paper report and the
+    # score-model / injury / Pace files stay in data/ (docs/ is the GitHub Pages root).
+    from sharp_scout.site.build import PUBLIC_PLAY_FIELDS
+
+    pub_ledger_out = {
+        k: v for k, v in (pub_ledger or {}).items() if k not in ("plays", "calibration_bins")
+    }
+    pub_ledger_out["plays"] = [
+        {k: p[k] for k in PUBLIC_PLAY_FIELDS if k in p} for p in ((pub_ledger or {}).get("plays") or [])
+    ]
+    (out / "nba_ledger.json").write_text(json.dumps(pub_ledger_out, indent=2, default=str) + "\n")
+    for stale_name in (
+        "nba_latest_signals.json",
+        "nba_paper_report.json",
         "nba_score_model.json",
         "nba_injury_lag.json",
         "nba_pace_of_play_official.json",
         "nba_pace_of_play_official.csv",
     ):
-        src = nba_paths.PAPER_DIR / src_name
-        if src.exists():
-            (out / src_name).write_text(src.read_text())
+        (out / stale_name).unlink(missing_ok=True)
 
     from sharp_scout.site.build import _render_analytics_head
 

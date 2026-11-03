@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail CI when docs/ NCAAF signals are older than the pipeline artifact."""
+"""Fail CI when the committed NCAAF board state (data/site_state/) is older than the pipeline artifact."""
 
 from __future__ import annotations
 
@@ -10,16 +10,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from sharp_scout.config import ARTIFACTS_DIR  # noqa: E402
+from sharp_scout.config import ARTIFACTS_DIR, SITE_STATE_DIR  # noqa: E402
 from sharp_scout.ncaaf.publish_gate import is_ncaaf_payload_publishable  # noqa: E402
-from sharp_scout.site.build import DOCS_DIR  # noqa: E402
 from sharp_scout.sports import NCAAF  # noqa: E402
 from sharp_scout.utils.slate import parse_commence  # noqa: E402
+
+STATE_DIR = SITE_STATE_DIR
 
 
 def main() -> None:
     art_path = ARTIFACTS_DIR / NCAAF.artifact_name
-    doc_path = DOCS_DIR / "latest_ncaaf_signals.json"
+    doc_path = STATE_DIR / "latest_ncaaf_signals.json"
     if not art_path.exists():
         print(f"No artifact at {art_path} — skip sync check")
         return
@@ -41,7 +42,7 @@ def main() -> None:
 
     if doc_ts < art_ts:
         raise SystemExit(
-            f"docs/latest_ncaaf_signals.json is stale: docs={doc_ts.isoformat()} "
+            f"data/site_state/latest_ncaaf_signals.json is stale: docs={doc_ts.isoformat()} "
             f"artifact={art_ts.isoformat()} (week doc={doc.get('week')} art={art.get('week')})"
         )
     if doc.get("week") != art.get("week") and doc_ts <= art_ts:

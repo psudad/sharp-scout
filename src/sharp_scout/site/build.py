@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR, ROOT, get_settings
+from sharp_scout.config import ARTIFACTS_DIR, DATA_DIR, ROOT, SITE_STATE_DIR, get_settings
 from sharp_scout.copy.explain import (
     BOARD_STAT_TIPS,
     collapse_best_signals,
@@ -75,6 +75,84 @@ _EARLY_SEASON_WEEKS = 3
 from sharp_scout.utils.teams import matchup_search_blob, ncaaf_display_code
 
 DOCS_DIR = ROOT / "docs"
+_DEFAULT_DOCS_DIR = DOCS_DIR
+
+# Model internals the builder keeps between runs but never publishes (docs/ is the
+# GitHub Pages root). They live in SITE_STATE_DIR instead.
+PRIVATE_STATE_FILES = (
+    "latest_signals.json",
+    "latest_ncaaf_signals.json",
+    "ncaaf_plays.json",
+    "ncaaf_stages.json",
+    "ncaaf_ratings.json",
+    "nfl_ratings.json",
+    "latest_props.json",
+)
+# Files older builds published to docs/ that must not be served any more.
+UNPUBLISHED_DOCS_FILES = PRIVATE_STATE_FILES + (
+    "nba_latest_signals.json",
+    "nba_paper_report.json",
+    "nba_score_model.json",
+    "nba_injury_lag.json",
+    "nba_pace_of_play_official.json",
+    "nba_pace_of_play_official.csv",
+)
+
+# Fields kept on published ledger copies (display + results only; no model internals).
+PUBLIC_PLAY_FIELDS = (
+    "id",
+    "sport",
+    "season",
+    "week",
+    "event_id",
+    "kickoff",
+    "away_team",
+    "home_team",
+    "market",
+    "side",
+    "line",
+    "price",
+    "book",
+    "units",
+    "tier",
+    "play_type",
+    "player_name",
+    "status",
+    "pnl_units",
+    "away_score",
+    "home_score",
+    "prop_result",
+    "created_at",
+    "settled_at",
+    "void_reason",
+)
+
+
+def site_state_dir(docs_dir: Path | None = None) -> Path:
+    """Private state dir paired with ``docs_dir`` (tests use a sibling of their tmp docs)."""
+    d = Path(docs_dir or DOCS_DIR)
+    try:
+        default = d.resolve() == _DEFAULT_DOCS_DIR.resolve()
+    except OSError:
+        default = False
+    return SITE_STATE_DIR if default else d.parent / "site_state"
+
+
+def public_ledger(ledger: dict[str, Any] | None) -> dict[str, Any]:
+    """Published ledger copy: plays with display/result fields only."""
+    ledger = ledger or {}
+    out: dict[str, Any] = {
+        k: ledger[k] for k in ("updated_at", "sport", "starting_units", "unit_dollars") if k in ledger
+    }
+    out["plays"] = [
+        {k: p[k] for k in PUBLIC_PLAY_FIELDS if k in p} for p in (ledger.get("plays") or [])
+    ]
+    return out
+
+
+def _remove_unpublished_docs(out: Path) -> None:
+    for name in UNPUBLISHED_DOCS_FILES:
+        (out / name).unlink(missing_ok=True)
 
 
 def _esc(s: Any) -> str:
@@ -451,7 +529,7 @@ def _pick_signals(
     best: dict[str, Any] = {}
     best_rank: tuple[int, float] = (-1, 0.0)
     for name in path_names:
-        for base in (ARTIFACTS_DIR, DOCS_DIR):
+        for base in (ARTIFACTS_DIR, site_state_dir()):
             path = base / name
             if not path.exists():
                 continue
@@ -486,7 +564,7 @@ def _pick_ncaaf_signals() -> dict[str, Any]:
     # full-week board vs current college week). Ranking by n_games alone kept week-9
     # docs on the site after a successful week-10 pipeline run.
     art_path = ARTIFACTS_DIR / NCAAF.artifact_name
-    doc_path = DOCS_DIR / "latest_ncaaf_signals.json"
+    doc_path = site_state_dir() / "latest_ncaaf_signals.json"
     if art_path.exists() and doc_path.exists():
         try:
             art = json.loads(art_path.read_text())
@@ -521,7 +599,7 @@ def publish_ncaaf_board_docs(
         skip_pbp = bool(payload.get("skip_pbp"))
         log_publish_blocked(decide_ncaaf_publish(payload, skip_pbp=skip_pbp))
         return
-    out = docs_dir or DOCS_DIR
+    out = site_state_dir(docs_dir)
     out.mkdir(parents=True, exist_ok=True)
     sig = _strip_demo_signals(payload)
     if not sig:
@@ -638,13 +716,18 @@ def build_site(
 ) -> Path:
     out = docs_dir or DOCS_DIR
     out.mkdir(parents=True, exist_ok=True)
+    state = site_state_dir(docs_dir)
+    state.mkdir(parents=True, exist_ok=True)
+    _remove_unpublished_docs(out)
 
     migrate_props_from_main_ledger()
     ledger = load_ledger()
     record = compute_record(ledger)
     props_ledger = load_ledger(PROPS_LEDGER_PATH)
     props_record = compute_record(props_ledger, path=PROPS_LEDGER_PATH)
-    (out / "props_ledger.json").write_text(json.dumps(props_ledger, indent=2, default=str) + "\n")
+    (out / "props_ledger.json").write_text(
+        json.dumps(public_ledger(props_ledger), indent=2, default=str) + "\n"
+    )
     (out / "props_record.json").write_text(json.dumps(props_record, indent=2, default=str) + "\n")
     if signals_path is not None:
         signals: dict[str, Any] = (
@@ -654,12 +737,12 @@ def build_site(
         signals = _pick_nfl_signals()
     signals = _strip_demo_signals(signals)
 
-    # Copy data for client-side refresh / debugging
-    (out / "ledger.json").write_text(json.dumps(ledger, indent=2) + "\n")
+    # Published ledger copy is display/result fields only (model internals stay in data/).
+    (out / "ledger.json").write_text(json.dumps(public_ledger(ledger), indent=2, default=str) + "\n")
     (out / "record.json").write_text(json.dumps(record, indent=2) + "\n")
     if signals:
         existing_n = 0
-        out_signals = out / "latest_signals.json"
+        out_signals = state / "latest_signals.json"
         if out_signals.exists():
             try:
                 existing = json.loads(out_signals.read_text())
@@ -672,26 +755,28 @@ def build_site(
         fresher = bool(new_ts and existing_ts and new_ts >= existing_ts)
         if new_n >= existing_n or fresher:
             out_signals.write_text(json.dumps(signals, indent=2, default=str) + "\n")
-        (out / "nfl_ratings.json").write_text(
+        (state / "nfl_ratings.json").write_text(
             json.dumps(signals.get("ratings") or [], indent=2, default=str) + "\n"
         )
 
     ncaaf_signals: dict[str, Any] = _strip_demo_signals(_pick_ncaaf_signals())
     ncaaf_ledger = load_ledger(path=DATA_DIR / NCAAF.ledger_name)
     ncaaf_record = compute_record(ncaaf_ledger)
-    (out / "ncaaf_ledger.json").write_text(json.dumps(ncaaf_ledger, indent=2) + "\n")
+    (out / "ncaaf_ledger.json").write_text(
+        json.dumps(public_ledger(ncaaf_ledger), indent=2, default=str) + "\n"
+    )
     (out / "ncaaf_record.json").write_text(json.dumps(ncaaf_record, indent=2) + "\n")
     if ncaaf_signals:
-        (out / "latest_ncaaf_signals.json").write_text(
+        (state / "latest_ncaaf_signals.json").write_text(
             json.dumps(ncaaf_signals, indent=2, default=str) + "\n"
         )
-        (out / "ncaaf_plays.json").write_text(
+        (state / "ncaaf_plays.json").write_text(
             json.dumps(ncaaf_signals.get("plays") or [], indent=2, default=str) + "\n"
         )
-        (out / "ncaaf_stages.json").write_text(
+        (state / "ncaaf_stages.json").write_text(
             json.dumps(ncaaf_signals.get("stage_picks") or [], indent=2, default=str) + "\n"
         )
-        (out / "ncaaf_ratings.json").write_text(
+        (state / "ncaaf_ratings.json").write_text(
             json.dumps(ncaaf_signals.get("ratings") or [], indent=2, default=str) + "\n"
         )
 
@@ -1138,7 +1223,7 @@ def build_site(
                 k: v for k, v in props_payload.items() if k not in ("props", "events", "plays")
             }
             published["plays"] = props_board_rows(props_payload)
-            (out / "latest_props.json").write_text(json.dumps(published, indent=2, default=str))
+            (state / "latest_props.json").write_text(json.dumps(published, indent=2, default=str))
 
     # The archived "How it works" guide is no longer published (method stays private).
     (out / "archive" / "how-it-works.html").unlink(missing_ok=True)
@@ -1204,8 +1289,8 @@ PROPS_LIVE_GRACE_HOURS = 4.0
 
 
 def _pick_props() -> dict[str, Any]:
-    """Fresh props run from artifacts/, else the last copy published to docs/."""
-    for path in (ARTIFACTS_DIR / "latest_props.json", DOCS_DIR / "latest_props.json"):
+    """Fresh props run from artifacts/, else the last committed copy in data/site_state/."""
+    for path in (ARTIFACTS_DIR / "latest_props.json", site_state_dir() / "latest_props.json"):
         if path.exists():
             try:
                 return json.loads(path.read_text())
@@ -1731,8 +1816,7 @@ def _render_quarantine_section(plays: list[dict], *, sport: str = "nfl") -> str:
             f"<tr class='{held_cls}'>"
             f"<td>{kick}</td><td>{game}</td><td>{pick}</td>"
             f"<td>{units}u</td>"
-            f"<td>{result_html}</td><td>{pnl_cell}</td>"
-            f"<td class='rationale-cell'>{_esc(str(reason))}</td></tr>"
+            f"<td>{result_html}</td><td>{pnl_cell}</td></tr>"
         )
     body = "\n".join(rows)
     return (
@@ -1748,7 +1832,7 @@ def _render_quarantine_section(plays: list[dict], *, sport: str = "nfl") -> str:
         f"</div>"
         '<div class="table-wrap"><table class="export-table plays-table qa-watchlist-table">'
         "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th>"
-        "<th>Result</th><th>PnL</th><th>Why held</th></tr></thead>"
+        "<th>Result</th><th>PnL</th></tr></thead>"
         f"<tbody>{body}</tbody></table></div>"
     )
 
@@ -1840,14 +1924,13 @@ def _render_play_table(
                 else ""
             )
             + f"<td class='play-timing-cell' data-label='{_esc(status_hdr)}'>{status_html}</td>"
-            + f"<td class='rationale-cell' data-label='Why'>{_esc(rationale)}</td>"
             + "</tr>"
         )
 
     rows: list[str] = [_play_row(p) for p in open_plays]
     if final_plays:
         if open_plays:
-            colspan = "10" if mark_locked else "9"
+            colspan = "9" if mark_locked else "8"
             rows.append(
                 f"<tr class='settled-divider'><td colspan='{colspan}'>"
                 "Finished this week — grayed below; full ledger on the History tab</td></tr>"
@@ -1861,7 +1944,7 @@ def _render_play_table(
         "<thead><tr><th>Kickoff</th><th>Game</th><th>Play</th><th>Units</th>"
         f"<th>EV</th><th>Win %</th><th>Book</th>"
         + ("<th>Posted</th>" if mark_locked else "")
-        + f"<th>{status_hdr}</th><th>Why</th></tr></thead>"
+        + f"<th>{status_hdr}</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table></div>"
     )
@@ -1932,10 +2015,6 @@ def _render_play_cards(pending: list[dict], live_fallback: list[dict]) -> str:
         <div class="conf-bar">
           <div class="conf-track"><div class="conf-fill" style="width:{conf}%;background:{color};"></div></div>
         </div>
-        <div class="rationale-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-          <span class="arrow">▶</span><span>Rationale</span>
-        </div>
-        <div class="rationale-body">{_esc(rationale).replace(chr(10), '<br>')}</div>
       </div>"""
         )
     return "\n".join(cards)
@@ -2107,7 +2186,7 @@ def _render_splits_table(board: dict[str, Any]) -> str:
 
 def _render_edge_rows(signals: list[dict]) -> str:
     if not signals:
-        return "<tr><td colspan='7'>No EV candidates (phase 3).</td></tr>"
+        return "<tr><td colspan='6'>No EV candidates (phase 3).</td></tr>"
     collapsed = collapse_best_signals(signals)
     rows = []
     for s in collapsed[:12]:
@@ -2125,8 +2204,7 @@ def _render_edge_rows(signals: list[dict]) -> str:
             f"<td>{_esc(s.get('book'))}</td>"
             f"<td class='{cls}'>{edge_s}</td>"
             f"<td>{_win_pct_cell(s.get('p_true'), s.get('edge'))}</td>"
-            f"<td>{flag}</td>"
-            f"<td class='rationale-cell'>{_esc(rationale)}</td></tr>"
+            f"<td>{flag}</td></tr>"
         )
     return "\n".join(rows)
 
@@ -2153,11 +2231,10 @@ def _render_stage_mini(card: dict | None, home: str, away: str) -> str:
             cell = f"{_esc(team)}{conf_s}"
             why = describe_stage_pick(key, p, home, away)
         rows.append(
-            f"<tr><td><b>{_esc(label)}</b></td><td>{cell}</td>"
-            f"<td class='stage-why'>{_esc(why)}</td></tr>"
+            f"<tr><td><b>{_esc(label)}</b></td><td>{cell}</td></tr>"
         )
     return (
-        "<div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th><th>Why</th></tr></thead>"
+        "<div class='table-wrap'><table><thead><tr><th>Lens</th><th>Pick</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
 
@@ -2267,7 +2344,7 @@ def _render_games_pipeline(
         <div class="phase-block">
           <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Win %</th><th>Pass</th><th>Rationale</th></tr></thead>
+            <thead><tr><th>Mkt</th><th>Pick</th><th>Book</th><th>EV</th><th>Win %</th><th>Pass</th></tr></thead>
             <tbody>{_render_edge_rows(game_sigs)}</tbody>
           </table></div>
         </div>
@@ -3045,7 +3122,7 @@ def _render_disagreement_rows(disagreements: dict[str, Any] | None) -> str:
     disagreements = disagreements or {}
     by_cat = disagreements.get("by_category") or {}
     if not by_cat:
-        return "<tr><td colspan='3'>No logged disagreements yet. They appear when the model differs from the market beyond the threshold.</td></tr>"
+        return "<tr><td colspan='3'>No logged disagreements yet. They appear when the model and market disagree.</td></tr>"
     rows = []
     for cat, b in by_cat.items():
         wp = f"{b['win_pct'] * 100:.0f}%" if b.get("win_pct") is not None else "—"
@@ -3201,8 +3278,7 @@ def _render_hybrid_leans_section(
             f"<td>{_esc(_stage_market_label(row.get('market')))}</td>"
             f"<td class='pos'>{_pick_cell(hybrid, sport=sport)}</td>"
             f"<td>{_esc(kind)}</td>"
-            f"<td>{result_html}</td>"
-            f"<td class='rationale-cell'>{_esc(hybrid.get('reason') or '')}{_esc(score)}</td>"
+            f"<td>{result_html}{_esc(score)}</td>"
             "</tr>"
         )
 
@@ -3223,7 +3299,7 @@ def _render_hybrid_leans_section(
         + "</div>"
         f'<div class="table-wrap"><table class="export-table"{id_attr}>'
         "<thead><tr><th>Kickoff</th><th>Game</th><th>Mkt</th><th>Quant Pick</th>"
-        "<th>Type</th><th>Result</th><th>Why</th></tr></thead>"
+        "<th>Type</th><th>Result</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
 
@@ -4202,7 +4278,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET). Three rows per game (spread, ML, total). <b>Quant Pick</b>: <span class="lock-badge-inline">LOCKED</span> = on the card above; <span class="lean-only-badge-inline">LEAN ONLY</span> = not a posted bet.</p>
   {nfl_stage_weeks_html}
   <div class="section-label">{nfl_week_heading} — Simulation totals (every game)</div>
-  <p class="phase-note" style="padding:4px 0 10px"><b>Simulation total</b> is frozen at kickoff; lean and sim probability come first, then price/EV on the pipeline tab below.</p>
+  <p class="phase-note" style="padding:4px 0 10px"><b>Simulation total</b> is frozen at kickoff.</p>
   {nfl_totals_board_html}
   <div class="section-label">{nfl_week_heading} — Public &amp; Sharp Money &amp; Line Movement</div>
   <p class="phase-note" style="padding:4px 0 10px">Every NFL game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>
@@ -4272,7 +4348,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>
-Source: ledger.json · record.json · ncaaf_ledger.json · ncaaf_record.json · latest signals</p>
+Source: ledger.json · record.json · ncaaf_ledger.json · ncaaf_record.json</p>
 <script>
 function showTab(name, el) {{
   var panel = document.getElementById('tab-' + name);

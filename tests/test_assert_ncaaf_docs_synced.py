@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 def test_assert_fails_when_docs_older_than_artifact(tmp_path, monkeypatch):
     art = tmp_path / "artifacts"
-    doc = tmp_path / "docs"
+    doc = tmp_path / "site_state"
     art.mkdir(parents=True)
     doc.mkdir(parents=True)
     monkeypatch.setenv("PYTHONPATH", str(ROOT / "src"))
@@ -26,19 +26,19 @@ def test_assert_fails_when_docs_older_than_artifact(tmp_path, monkeypatch):
     import sharp_scout.site.build as site_build
 
     monkeypatch.setattr(site_build, "ARTIFACTS_DIR", art)
-    monkeypatch.setattr(site_build, "DOCS_DIR", doc)
+    monkeypatch.setattr(site_build, "DOCS_DIR", tmp_path / "docs")
 
     from scripts import assert_ncaaf_docs_synced as mod
 
     monkeypatch.setattr(mod, "ARTIFACTS_DIR", art)
-    monkeypatch.setattr(mod, "DOCS_DIR", doc)
+    monkeypatch.setattr(mod, "STATE_DIR", doc)
     with __import__("pytest").raises(SystemExit):
         mod.main()
 
 
 def test_assert_skips_when_artifact_unpublishable(tmp_path, monkeypatch):
     art = tmp_path / "artifacts"
-    doc = tmp_path / "docs"
+    doc = tmp_path / "site_state"
     art.mkdir(parents=True)
     doc.mkdir(parents=True)
     stale = {"generated_at": "2026-10-27T19:56:00+00:00", "week": 9}
@@ -54,13 +54,13 @@ def test_assert_skips_when_artifact_unpublishable(tmp_path, monkeypatch):
     from scripts import assert_ncaaf_docs_synced as mod
 
     monkeypatch.setattr(mod, "ARTIFACTS_DIR", art)
-    monkeypatch.setattr(mod, "DOCS_DIR", doc)
+    monkeypatch.setattr(mod, "STATE_DIR", doc)
     mod.main()
 
 
 def test_assert_passes_when_docs_match_artifact(tmp_path, monkeypatch):
     art = tmp_path / "artifacts"
-    doc = tmp_path / "docs"
+    doc = tmp_path / "site_state"
     art.mkdir(parents=True)
     doc.mkdir(parents=True)
     ts = datetime(2026, 10, 31, 14, 4, tzinfo=timezone.utc).isoformat()
@@ -72,5 +72,5 @@ def test_assert_passes_when_docs_match_artifact(tmp_path, monkeypatch):
     from scripts import assert_ncaaf_docs_synced as mod
 
     monkeypatch.setattr(mod, "ARTIFACTS_DIR", art)
-    monkeypatch.setattr(mod, "DOCS_DIR", doc)
+    monkeypatch.setattr(mod, "STATE_DIR", doc)
     mod.main()

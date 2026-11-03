@@ -331,6 +331,44 @@ def fetch_espn_nba_upcoming(*, days_ahead: int = 2) -> list[dict[str, Any]]:
     return out
 
 
+def fetch_espn_nba_first_tip_utc(et_day: Any) -> datetime | None:
+    """Earliest regular-season tip-off (UTC) on ESPN's scoreboard for an ET calendar day.
+
+    Includes games already in progress or final, so a mid-slate check still sees that
+    the first tip has passed. Returns None when ESPN is unreachable or has no games.
+    """
+    day = et_day.strftime("%Y%m%d")
+    qs = urlencode({"dates": day, "limit": 200})
+    events = None
+    for base in (ESPN_SCOREBOARD, ESPN_SCOREBOARD_FALLBACK):
+        try:
+            payload = _get_json(f"{base}?{qs}")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("ESPN first-tip scoreboard failed for %s: %s", day, exc)
+            continue
+        events = payload.get("events") if isinstance(payload, dict) else None
+        if events:
+            break
+    if not events:
+        return None
+    tips: list[datetime] = []
+    for event in events:
+        if not _is_regular_season_event(event):
+            continue
+        comp = (event.get("competitions") or [{}])[0]
+        raw = comp.get("date") or event.get("date")
+        if not raw:
+            continue
+        try:
+            dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        tips.append(dt.astimezone(timezone.utc))
+    return min(tips) if tips else None
+
+
 def _parse_made_from_shooting(raw: str) -> float | None:
     """Parse '4-9' style shooting lines to made count."""
     if not raw:

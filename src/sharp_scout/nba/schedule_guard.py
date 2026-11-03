@@ -7,26 +7,27 @@ from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
 
-# Primary scans (weekdays 3:00 PM ET; weekends 11:00 AM ET)
-WEEKDAY_PRIMARY = time(15, 0)
-WEEKEND_PRIMARY = time(11, 0)
-# Backup scans (weekdays 5:00 PM ET; weekends 1:00 PM ET)
-WEEKDAY_BACKUP = time(17, 0)
-WEEKEND_BACKUP = time(13, 0)
+# Primary scans (weekdays 1:07 PM ET; weekends 9:07 AM ET)
+WEEKDAY_PRIMARY = time(13, 7)
+WEEKEND_PRIMARY = time(9, 7)
+# Backup scans (weekdays 4:07 PM ET; weekends 11:07 AM ET)
+WEEKDAY_BACKUP = time(16, 7)
+WEEKEND_BACKUP = time(11, 7)
 
 # Backward-compatible aliases (primary slots)
 WEEKDAY_TARGET = WEEKDAY_PRIMARY
 WEEKEND_TARGET = WEEKEND_PRIMARY
 
-CRON_WEEKDAY_PRIMARY_EDT = "0 19 * * 1-5"  # 3:00 PM ET (EDT, UTC-4)
-CRON_WEEKDAY_PRIMARY_EST = "0 20 * * 1-5"  # 3:00 PM ET (EST, UTC-5)
-CRON_WEEKDAY_BACKUP_EDT = "0 21 * * 1-5"  # 5:00 PM ET (EDT)
-CRON_WEEKDAY_BACKUP_EST = "0 22 * * 1-5"  # 5:00 PM ET (EST)
+# Off the top of the hour (:07) — GitHub delays/drops :00 schedules the most.
+CRON_WEEKDAY_PRIMARY_EDT = "7 17 * * 1-5"  # 1:07 PM ET (EDT, UTC-4)
+CRON_WEEKDAY_PRIMARY_EST = "7 18 * * 1-5"  # 1:07 PM ET (EST, UTC-5)
+CRON_WEEKDAY_BACKUP_EDT = "7 20 * * 1-5"  # 4:07 PM ET (EDT)
+CRON_WEEKDAY_BACKUP_EST = "7 21 * * 1-5"  # 4:07 PM ET (EST)
 
-CRON_WEEKEND_PRIMARY_EDT = "0 15 * * 0,6"  # 11:00 AM ET (EDT)
-CRON_WEEKEND_PRIMARY_EST = "0 16 * * 0,6"  # 11:00 AM ET (EST)
-CRON_WEEKEND_BACKUP_EDT = "0 17 * * 0,6"  # 1:00 PM ET (EDT)
-CRON_WEEKEND_BACKUP_EST = "0 18 * * 0,6"  # 1:00 PM ET (EST)
+CRON_WEEKEND_PRIMARY_EDT = "7 13 * * 0,6"  # 9:07 AM ET (EDT)
+CRON_WEEKEND_PRIMARY_EST = "7 14 * * 0,6"  # 9:07 AM ET (EST)
+CRON_WEEKEND_BACKUP_EDT = "7 15 * * 0,6"  # 11:07 AM ET (EDT)
+CRON_WEEKEND_BACKUP_EST = "7 16 * * 0,6"  # 11:07 AM ET (EST)
 
 # Legacy names (tests / docs that referenced old 4:30 PM weekday crons)
 CRON_WEEKDAY_EDT = CRON_WEEKDAY_PRIMARY_EDT
@@ -52,10 +53,15 @@ BACKUP_CRONS = frozenset(
 )
 ALL_CRONS = PRIMARY_CRONS | BACKUP_CRONS
 
+# Fallback lateness limit when the first tip-off of the day is unknown (ESPN unreachable).
 DEFAULT_MAX_LATE_HOURS = 4
+# When the first tip is known, a late GitHub start is allowed until this long before it
+# (scans must land pre-tip). Lookback cap keeps a cron from matching a previous day's slot.
+TIP_OFF_BUFFER = timedelta(minutes=10)
+TIP_GATE_MAX_LOOKBACK_HOURS = 12
 
 NBA_SCAN_SCHEDULE_LABEL = (
-    "weekdays 3:00 PM ET (5:00 PM backup) & weekends 11:00 AM ET (1:00 PM backup)"
+    "weekdays 1:07 PM ET (4:07 PM backup) & weekends 9:07 AM ET (11:07 AM backup)"
 )
 
 
@@ -158,11 +164,18 @@ def expected_cron_for_intended_slot(intended: datetime, *, slot_time: time | Non
     return CRON_WEEKDAY_PRIMARY_EDT if is_edt else CRON_WEEKDAY_PRIMARY_EST
 
 
+def _lookback(max_late_hours: float, first_tip_utc: datetime | None) -> timedelta:
+    if first_tip_utc is not None:
+        return timedelta(hours=max(max_late_hours, TIP_GATE_MAX_LOOKBACK_HOURS))
+    return timedelta(hours=max_late_hours)
+
+
 def intended_et_date_from_cron(
     trigger_cron: str,
     now: datetime,
     *,
     max_late_hours: float = DEFAULT_MAX_LATE_HOURS,
+    first_tip_utc: datetime | None = None,
 ) -> date | None:
     """ET calendar date for the slot this cron represents, when allowed."""
     trigger_cron = trigger_cron.strip()
@@ -171,7 +184,7 @@ def intended_et_date_from_cron(
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
     nominal = latest_nominal_fire_utc(
-        trigger_cron, now, max_late=timedelta(hours=max_late_hours)
+        trigger_cron, now, max_late=_lookback(max_late_hours, first_tip_utc)
     )
     if nominal is None:
         return None
@@ -204,18 +217,33 @@ def scheduled_cron_run_allowed(
     now: datetime,
     *,
     max_late_hours: float = DEFAULT_MAX_LATE_HOURS,
+    first_tip_utc: datetime | None = None,
 ) -> bool:
-    """True when ``trigger_cron`` is the correct seasonal line for the intended ET slot."""
+    """True when ``trigger_cron`` is the correct seasonal line for the intended ET slot.
+
+    Lateness: when ``first_tip_utc`` (first NBA tip-off of the ET day) is known, a delayed
+    GitHub start is allowed until ``TIP_OFF_BUFFER`` before that tip, on the same ET day.
+    When it is unknown, the fixed ``max_late_hours`` limit applies.
+    """
     trigger_cron = trigger_cron.strip()
     if trigger_cron not in ALL_CRONS:
         return False
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
+    if first_tip_utc is not None and first_tip_utc.tzinfo is None:
+        first_tip_utc = first_tip_utc.replace(tzinfo=timezone.utc)
 
-    max_late = timedelta(hours=max_late_hours)
-    nominal = latest_nominal_fire_utc(trigger_cron, now, max_late=max_late)
+    nominal = latest_nominal_fire_utc(
+        trigger_cron, now, max_late=_lookback(max_late_hours, first_tip_utc)
+    )
     if nominal is None:
         return False
+
+    if first_tip_utc is not None:
+        if nominal.astimezone(ET).date() != now.astimezone(ET).date():
+            return False
+        if now >= first_tip_utc - TIP_OFF_BUFFER:
+            return False
 
     is_weekend, target = _slot_time_for_cron(trigger_cron)
     slot_local = nominal.astimezone(ET)
@@ -231,8 +259,17 @@ def scheduled_cron_run_allowed(
     return trigger_cron == expected_cron_for_intended_slot(intended, slot_time=target)
 
 
-def next_nba_scan_et(now: datetime | None = None) -> datetime:
-    """Next primary GitHub scheduled NBA shadow run (honors weekday vs weekend ET and DST)."""
+def next_nba_scan_et(
+    now: datetime | None = None,
+    *,
+    primary_done_today: bool | None = None,
+) -> datetime:
+    """Next GitHub scheduled NBA shadow run (honors weekday vs weekend ET and DST).
+
+    Includes today's backup slot when today's primary scan has not been recorded
+    (backup runs skip once the primary succeeded). ``primary_done_today=None`` reads
+    the paper store.
+    """
     if now is None:
         now = datetime.now(ET)
     elif now.tzinfo is None:
@@ -247,5 +284,14 @@ def next_nba_scan_et(now: datetime | None = None) -> datetime:
         candidate = datetime.combine(day, target_t, tzinfo=ET)
         if candidate > now:
             return candidate
+        if day_offset == 0:
+            backup_t = WEEKDAY_BACKUP if noon.weekday() <= 4 else WEEKEND_BACKUP
+            backup = datetime.combine(day, backup_t, tzinfo=ET)
+            if backup > now:
+                done = primary_done_today
+                if done is None:
+                    done = primary_scan_satisfied_for_et_date(day)
+                if not done:
+                    return backup
     fallback_day = now.date() + timedelta(days=1)
     return datetime.combine(fallback_day, WEEKDAY_PRIMARY, tzinfo=ET)

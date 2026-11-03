@@ -22,7 +22,9 @@ while (( attempt <= MAX_ATTEMPTS )); do
     exit 0
   fi
   git commit -m "$COMMIT_MSG"
-  if git pull --rebase origin main; then
+  # --autostash: pipeline steps can leave tracked files modified that are not part of
+  # this commit (e.g. NBA injury refresh); plain --rebase refused with "unstaged changes".
+  if git pull --rebase --autostash origin main; then
     if git push origin HEAD:main; then
       echo "Push succeeded on attempt ${attempt}"
       exit 0

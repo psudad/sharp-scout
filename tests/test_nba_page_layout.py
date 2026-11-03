@@ -61,7 +61,7 @@ def test_projected_scores_and_gap_copy():
     assert "after injuries" in line
     explain = spread_gap_plain_english(home="BOS", margin=20.6, consensus_spread_home=-11.5)
     assert "gap 9.1 pts" in explain
-    assert "3+ pts" in explain
+    assert "3+ pts" not in explain  # rule text kept private
 
 
 def test_official_pace_display_plays_are_totals_only():

@@ -19,7 +19,7 @@ from sharp_scout.football_pace.config import NCAAF_PACE_CONFIG, NFL_PACE_CONFIG
 from sharp_scout.utils.odds import setup_logging
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCS = ROOT / "docs"
+DOCS = ROOT / "research" / "notes"  # not published (GitHub Pages serves docs/)
 CSV_DIR = DOCS / "data"
 TUNING_PATH = DATA_DIR / "shadow" / "football_pace" / "tuning.json"
 
@@ -61,7 +61,7 @@ def main() -> int:
         "- **NCAAF:** cfbfastR PBP (`spread`, `over_under`, scores); FBS + FCS where lines exist.",
         "",
         "**Injury adjustments:** NFL backtest uses nflverse weekly reports; NCAAF has no free "
-        "historical injury feed. See `docs/football_pace_injury_adjust.md`.",
+        "historical injury feed. See `research/notes/football_pace_injury_adjust.md`.",
         "",
         "## Tuning methodology",
         "",

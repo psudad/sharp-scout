@@ -51,3 +51,64 @@ def test_explain_copy_has_no_method_text():
     blob = repr(vars(explain))
     assert "Monte Carlo" not in blob
     assert "EPA" not in blob
+
+
+NBA_BANNED = (
+    "A play needs a gap",
+    "pt unadj",
+    "after injuries",
+    "Injury-adj score",
+    "Raw score",
+    "Raw result",
+    "Inj-adj units",
+    "Fair %",
+    "Model / sharp",
+    "prior-season blend",
+    "Live total (raw / inj)",
+)
+
+
+def test_explain_copy_has_no_thresholds():
+    from sharp_scout.copy import explain
+
+    blob = repr(vars(explain))
+    for s in ("≥12%", "≥10%", "at a ≥"):
+        assert s not in blob, s
+
+
+def test_nba_gap_text_has_no_rule():
+    from sharp_scout.site import nba_page
+
+    s = nba_page.spread_gap_plain_english(home="BOS", margin=4.0, consensus_spread_home=-1.0)
+    t = nba_page.total_gap_plain_english(total=230.0, consensus_total=225.0)
+    for txt in (s, t):
+        assert "A play needs" not in txt
+        assert "3+ pts" not in txt
+
+
+def test_nba_page_source_has_no_method_labels():
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[1] / "src" / "sharp_scout" / "site" / "nba_page.py").read_text()
+    for s in NBA_BANNED:
+        if s == "after injuries":  # helper still exists for tests; no longer rendered
+            continue
+        assert s not in src, s
+    assert "{proj_html}" not in src and "{abs_html}" not in src and "{flip}" not in src
+
+
+def test_board_copy_has_no_method_text():
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[1] / "src" / "sharp_scout" / "site" / "build.py").read_text()
+    for s in ("calibrated win probability", "no-vig probability", "EV≥5%", "EV≥10%", "premium tiers also need"):
+        assert s not in src, s
+
+
+def test_research_notes_not_published():
+    from pathlib import Path
+
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    assert not list(docs.rglob("*.md")), "research notes must live outside docs/ (Pages root)"
+    for name in ("football_pace_backtest_nfl.csv", "football_pace_backtest_ncaaf.csv"):
+        assert not (docs / "data" / name).exists()

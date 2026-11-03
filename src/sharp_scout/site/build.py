@@ -338,11 +338,11 @@ def _render_plays_heading(summary: dict[str, Any]) -> str:
 
 # Legend for the Win % confidence tiers (shown above every plays table).
 _CONF_LEGEND = (
-    '<div class="conf-legend">Confidence &amp; value grade (Win % drives it; premium tiers also need good EV): '
-    '<span class="conf conf-silver"><span class="conf-tier">Silver</span><span class="conf-pct">&lt;55%</span></span>'
-    '<span class="conf conf-gold"><span class="conf-tier">Gold</span><span class="conf-pct">55–60%</span></span>'
-    '<span class="conf conf-diamond"><span class="conf-tier">Diamond \U0001F48E</span><span class="conf-pct">60%+ &amp; EV≥5%</span></span>'
-    '<span class="conf conf-ddiamond"><span class="conf-tier">Double Diamond \U0001F48E\U0001F48E</span><span class="conf-pct">70%+ &amp; EV≥10%</span></span>'
+    '<div class="conf-legend">Confidence grade: '
+    '<span class="conf conf-silver"><span class="conf-tier">Silver</span></span>'
+    '<span class="conf conf-gold"><span class="conf-tier">Gold</span></span>'
+    '<span class="conf conf-diamond"><span class="conf-tier">Diamond \U0001F48E</span></span>'
+    '<span class="conf conf-ddiamond"><span class="conf-tier">Double Diamond \U0001F48E\U0001F48E</span></span>'
     "</div>"
 )
 
@@ -1465,9 +1465,7 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
   {ledger_sections}
   <h2 class="props-h2">Latest model edges</h2>
   <p class="phase-note">Props are tracked on their own record and do not count toward the NFL sides record.
-  Edge = expected return per $1 at the listed price, using the model's
-  calibrated win probability. Market % is the book's no-vig probability. One row per player
-  and prop, at the line and book with the highest edge.
+  One row per player and prop.
   Games drop off about four hours after kickoff.</p>
   {table}
 </div>

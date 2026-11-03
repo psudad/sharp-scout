@@ -101,10 +101,8 @@ STAGE_COLUMN_TIPS: dict[str, str] = {
         "actually flowing."
     ),
     "Sharp Money": (
-        "Where the sharp money is. Handle % minus ticket % on a side: a big positive gap "
-        "means the dollars are far heavier than the bet count, i.e. fewer but much larger "
-        "wagers. Flagged SHARP MONEY at a ≥12% gap, lowercase 'sharp money' at ≥10%, and "
-        "greyed out below that (dollars and tickets are basically in line — no signal)."
+        "Where the sharp money is: the dollars are much heavier than the bet count on a side "
+        "(fewer but larger wagers). Greyed out when there is no signal."
     ),
     "RLM": "Reverse line movement — the line moved against the public toward this side.",
     "Quant Pick": (
@@ -145,7 +143,7 @@ BOARD_STAT_TIPS: dict[str, str] = {
 STAGE_RECORD_TIPS: dict[str, str] = {
     "hybrid": (
         "Quant pick = our full system pick (spread, ML, or total) for that game. Uses validated "
-        "edge when filters pass; otherwise the best model + market lean. The quant pick record "
+        "edge; otherwise the best lean. The quant pick record "
         "grades every quant pick on the slate (3 rows per game: spread, ML, total) — "
         "not the same as Sharp Plays in the ledger."
     ),
@@ -166,8 +164,8 @@ STAGE_RECORD_TIPS: dict[str, str] = {
         "Record = win rate if you bet the money side on every graded row."
     ),
     "sharp_edge": (
-        "Sharp edge (Diff) = the side with the largest money-minus-tickets gap (≥12% flags "
-        "sharp interest). Record = win rate betting that diff side every time."
+        "Sharp edge (Diff) = the side with the largest money-minus-tickets gap. "
+        "Record = win rate betting that diff side every time."
     ),
     "rlm": (
         "RLM = reverse line movement — the side the line moved toward vs the public. "

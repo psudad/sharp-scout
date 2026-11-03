@@ -65,7 +65,10 @@ def test_props_pages_not_built_when_disabled(site: Path):
 def test_ncaam_page_shell(site: Path):
     html = (site / "ncaam.html").read_text()
     assert "College Basketball" in html
-    assert "barttorvik.com" in html
+    assert "barttorvik.com" not in html
+    assert "How it works" not in html
+    assert "Model version" not in html
+    assert "Informational model picks only" in html
     assert "Today's locked picks" in html or "Today&apos;s locked picks" in html
 
 
@@ -73,8 +76,7 @@ def test_guide_archived_not_on_board(site: Path):
     board = (site / "board.html").read_text()
     assert 'id="tab-guide"' not in board
     assert "How to use" not in board
-    archive = (site / "archive" / "how-it-works.html").read_text()
-    assert "How to use this site" in archive
+    assert not (site / "archive" / "how-it-works.html").exists()
 
 
 def test_board_tabs_are_anchors_with_hash_targets(site: Path):

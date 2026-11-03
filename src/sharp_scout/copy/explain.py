@@ -74,7 +74,7 @@ STAGE_LABELS: dict[str, str] = {
 }
 
 STAGE_INTROS: dict[str, str] = {
-    "model": "Our EPA ratings + Monte Carlo simulation favor",
+    "model": "Our model favors",
     "sharp": "Pinnacle / sharp books price the favorite as",
     "public": "Most bet tickets (count) are on",
     "money": "Most handle (dollars) is on",
@@ -86,7 +86,7 @@ STAGE_INTROS: dict[str, str] = {
 # Short header labels on the pregame stage table → hover tooltip on the eye icon.
 STAGE_COLUMN_TIPS: dict[str, str] = {
     "Mkt": "Spread, moneyline (ML), or total — one row per market per game.",
-    "Model": "EPA ratings + Monte Carlo simulation — our independent lean before splits.",
+    "Model": "Our independent model lean before splits.",
     "Sharp Book": (
         "PRICE, not money flow: the side Pinnacle / Circa / Betfair make the favorite on "
         "their no-vig line. This is where the sharpest books price the game — it does NOT "
@@ -150,7 +150,7 @@ STAGE_RECORD_TIPS: dict[str, str] = {
         "not the same as Sharp Plays in the ledger."
     ),
     "model": (
-        "Model = EPA power ratings + Monte Carlo simulation — our math-only lean before "
+        "Model = our math-only lean before "
         "splits or tickets. Record = win rate if you bet the model's side on every graded row."
     ),
     "sharp": (

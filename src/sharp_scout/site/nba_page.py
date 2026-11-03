@@ -45,7 +45,7 @@ SCORE_MODELING_MIN_EDGE_PT = 3.0
 PACE_LEAN_MIN_EDGE_PT = 1.5
 PACE_WATCH_LIST_LABEL = "Watch List"
 PACE_WATCH_LIST_NOTE = (
-    "Below the official ≥3 pt Pace bar — tracking only, not part of the official record."
+    "Tracking only, not part of the official record."
 )
 
 
@@ -1086,7 +1086,7 @@ def _render_score_modeling_empty(*, live_scan: bool) -> str:
         return ""
     return (
         '<div class="nba-picks-empty nba-picks-empty-soft" role="status">'
-        f"<p>No Pace of Play plays right now (need ≥{SCORE_MODELING_MIN_EDGE_PT:g} pt gap vs consensus).</p>"
+        "<p>No Pace of Play plays right now.</p>"
         "</div>"
     )
 
@@ -1192,7 +1192,7 @@ def _render_current_season_totals_tracking(
 
     summary = summarize_totals_shadow()
     record_line = (
-        f"Shadow record (2026-27 totals method, tracking only): "
+        f"Shadow record (tracking only): "
         f"{summary.get('record', '—')} · {summary.get('win_pct', '—')} · "
         f"{float(summary.get('units') or 0):+.2f}u · n={summary.get('n_plays', 0)}"
     )
@@ -1209,7 +1209,6 @@ def _render_current_season_totals_tracking(
         return (
             '<div class="nba-shadow-totals-note">'
             "<p><strong>Current-season totals (tracking only, not plays)</strong> — "
-            "2026-27 game-log totals run in shadow alongside live projections. "
             "Nothing here is an official Pace play.</p>"
             f"<p>{_esc(record_line)}</p>"
             '<p class="empty">No open slate rows for sample-size diagnostics.</p></div>'
@@ -1352,7 +1351,7 @@ def _render_sharp_props_history(ledger: dict[str, Any] | None) -> str:
 
 def _render_pace_graded_history(rows: list[dict[str, Any]]) -> str:
     if not rows:
-        return '<p class="empty">No graded Pace of Play paper plays yet (≥3 pt vs close at tip).</p>'
+        return '<p class="empty">No graded Pace of Play paper plays yet.</p>'
     body = []
     for r in rows:
         ur = r.get("units_raw")
@@ -1814,8 +1813,7 @@ def _render_pace_v1_v2_shadow_table(rows: list[dict[str, Any]]) -> str:
     return (
         '<div class="nba-pace-shadow" aria-labelledby="pace-shadow-heading">'
         '<h3 class="nba-h3" id="pace-shadow-heading">Pace v1 vs v2 shadow (paper only)</h3>'
-        '<p class="nba-section-note">v1 drives the official card (3 pt bar). v2 is experimental; '
-        "promotion requires ~100 shadow plays beating v1 on CLV (<a href=\"nba_pace_v2_shadow.md\">rule</a>).</p>"
+        '<p class="nba-section-note">v1 drives the official card. v2 is experimental (shadow only).</p>'
         '<table class="nba-table"><thead><tr><th>Game</th><th>v1 pick</th><th>v1 gap</th>'
         "<th>v1 rec</th><th>v2 shadow</th><th>v2 gap</th></tr></thead><tbody>"
         + "".join(trs)
@@ -1941,8 +1939,7 @@ def render_nba_page_html(
         else:
             pace_leans_html = (
                 f'<p class="empty nba-leans-empty">No Pace of Play {PACE_WATCH_LIST_LABEL.lower()} '
-                f"entries today (need {PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g} pt "
-                "gap vs consensus).</p>"
+                "entries today.</p>"
             )
 
     pace_shadow_html = _render_pace_v1_v2_shadow_table(score_rows) if live_scan else ""
@@ -1967,8 +1964,8 @@ def render_nba_page_html(
     raw_p = pace_summary.get("raw") or {}
     inj_p = pace_summary.get("injury") or {}
     pace_auto_secondary = (
-        f"Secondary — repo auto-track at ≥3 pt vs close: raw {raw_p.get('record', '—')} "
-        f"({raw_p.get('units', 0):+.2f}u), injury-adj {inj_p.get('record', '—')} "
+        f"Secondary auto-track: {raw_p.get('record', '—')} "
+        f"({raw_p.get('units', 0):+.2f}u), alt {inj_p.get('record', '—')} "
         f"({inj_p.get('units', 0):+.2f}u); {len(pace_graded)} pick-rows in store vs "
         f"{official_summary.get('n_plays', 0)} official card plays."
     )
@@ -2404,7 +2401,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 <div class="nba-content">
   <section class="nba-model-panel pace-panel" aria-labelledby="pace-heading">
     <h2 class="nba-h2" id="pace-heading">Pace of Play model</h2>
-    <p class="nba-section-note">Possession-pace projections vs consensus (injury-adjusted when available). Official card plays are <strong>totals only</strong> (≥{pace_play_threshold} pt gap).</p>
+    <p class="nba-section-note">Official card plays are <strong>totals only</strong>.</p>
     {pace_lines_note}
     {pace_compact_record}
     <div class="nba-plays-block">
@@ -2421,7 +2418,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
       <summary>{pace_watch_list_label}, projections &amp; history</summary>
       <p class="nba-section-note">{pace_auto_secondary}</p>
       <div class="nba-leans-block">
-        <div class="section-label">{pace_watch_list_label} ({pace_lean_range} pt gap)</div>
+        <div class="section-label">{pace_watch_list_label}</div>
         <p class="nba-section-note">{pace_watch_list_note}</p>
         {pace_leans_html}
       </div>
@@ -2435,7 +2432,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 
   <section class="nba-model-panel sharp-panel" aria-labelledby="sharp-scout-heading">
     <h2 class="nba-h2" id="sharp-scout-heading">Sharp Scout model</h2>
-    <p class="nba-section-note">Price-edge paper plays on spreads and totals (EV floor, Kelly sizing). Paper only — never live bets.</p>
+    <p class="nba-section-note">Paper plays on spreads and totals. Paper only — never live bets.</p>
     {sharp_compact_record}
     <p class="nba-section-note">{sharp_record_note}</p>
     <div class="nba-plays-block">

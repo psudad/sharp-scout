@@ -322,8 +322,7 @@ def _render_plays_heading(summary: dict[str, Any]) -> str:
     return (
         '<div class="plays-heading">'
         '<div class="plays-heading-main">LOCKED PLAYS — BET THESE</div>'
-        '<div class="plays-heading-sub">Narrow lanes only: NCAAF totals, then NFL spreads — '
-        "each Phase-4 confirmed with Pinnacle no-vig ≥50% on our side (CFB totals 4–12% EV; NFL spreads 3–12%). "
+        '<div class="plays-heading-sub">NCAAF totals and NFL spreads only. '
         "NCAAF spreads are research-shadow only (watchlist), not LOCKED. "
         f"<span class='plays-heading-count'>{status_html}</span></div>"
         '<p class="locked-plays-explainer">'
@@ -1141,9 +1140,8 @@ def build_site(
             published["plays"] = props_board_rows(props_payload)
             (out / "latest_props.json").write_text(json.dumps(published, indent=2, default=str))
 
-    archive_dir = out / "archive"
-    archive_dir.mkdir(parents=True, exist_ok=True)
-    (archive_dir / "how-it-works.html").write_text(_render_guide_standalone_page())
+    # The archived "How it works" guide is no longer published (method stays private).
+    (out / "archive" / "how-it-works.html").unlink(missing_ok=True)
 
     assets_dir = out / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
@@ -1618,115 +1616,6 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
 """
 
 
-def _render_guide_html() -> str:
-    """Plain-language site guide — process overview, not model IP."""
-    return """
-<div class="guide-block">
-  <h2>How to use this site</h2>
-  <p>Sharp Scout Quant is a research board for NFL and college football. It compares our model view of each game to the market, then surfaces where the number looks soft — and where ticket/money splits agree or disagree.</p>
-  <div class="guide-callout"><p><b>Signals only.</b> Nothing here places a bet for you. Use it as a checklist before you decide.</p></div>
-</div>
-
-<div class="guide-block">
-  <h2>What the system is doing</h2>
-  <p>At a high level, each run:</p>
-  <ul>
-    <li><b>Rates teams</b> from recent play-by-play (efficiency / EPA-style power), so matchups have a model spread and total.</li>
-    <li><b>Simulates games</b> (Monte Carlo) to turn those ratings into cover and win probabilities at the posted lines.</li>
-    <li><b>Compares to the market</b> — sharp books and the wider board — to see where the price offers value vs our fair number.</li>
-    <li><b>Checks betting splits</b> (tickets vs money, line movement) as a second opinion: is the public piled on one side while dollars lean the other?</li>
-    <li><b>Filters</b> candidates so only plays that clear our bar show up as validated <b>Sharp Plays</b> (Phase 4: EV plus RLM / handle gap / steam).</li>
-    <li><b>LOCKED card</b> — a narrower slice of those Sharp Plays only: <b>NCAAF totals</b>, then <b>NFL spreads</b>. Each must be Phase-4 confirmed and carry a <b>Pinnacle</b> no-vig line favoring our side (≥50%), with EV in the product band (CFB totals <b>4–12%</b>; NFL spreads <b>3–12%</b>). <b>NCAAF spreads</b> stay on the research board as shadow-tracked watchlist rows, not LOCKED. Rows without a Pinnacle reference stay on the research board tagged <b>no_pinnacle</b> and are not posted. Moneyline is never locked. When both money-ticket gap and RLM fired, the play is ranked ahead and tagged <b>high_confidence</b> (ranking only — never certifies by itself).</li>
-  </ul>
-  <p>We do not publish every internal threshold. Treat the board as the output of that process, not a black-box tip sheet.</p>
-</div>
-
-<div class="guide-block">
-  <h2>How to read the tabs</h2>
-  <h3>NFL and CFB (the two main boards)</h3>
-  <p>The site is now just two boards — <b>NFL</b> and <b>CFB</b> — and they are laid out identically, top to bottom:</p>
-  <ul>
-    <li><b>LOCKED PLAYS — BET THESE</b> — the full weekly card (posted to the ledger). If we recommended it, it&apos;s here — including results after games finish.</li>
-    <li><b>Pregame Stage Winners</b> — every game, three markets (spread, moneyline, total). <b>These are leans, not picks.</b> Each column is a different system (see below). The green <b>Quant Pick</b> is the system side for that market.</li>
-    <li><b>Public &amp; Sharp Money &amp; Line Movement</b> — every game on the board with ticket vs money splits and the line we first recorded. <b>Open → now</b> shows which way the number ran off our earliest sharp price.</li>
-    <li><b>Stage Records</b> — season-long scorecards for each lens, so you can compare how the different systems have performed.</li>
-    <li><b>Ledger</b> — full history of posted plays, results, CLV, and units.</li>
-    <li><b>Quant Pick Leans</b> — all Quant Pick rows for the week. Yellow rows are posted Sharp Plays; the rest are leans / research, not auto-ledger bets.</li>
-    <li><b>Prior weeks (archive)</b> (collapsible) — completed weeks roll here after they finish (NFL Wed–Tue ET; CFB Mon–Sun ET). Download CSV from any table for your own spreadsheet.</li>
-  </ul>
-  <h3>What each lens column means</h3>
-  <p>The lens columns answer different questions. Two of them are about <b>price</b>, two are about <b>who is betting</b> — don't mix them up:</p>
-  <ul>
-    <li><b>Model</b> — our own number, before we look at any betting data. Side we project to cover the market line.</li>
-    <li><b>Sharp Book</b> — <b>a price, not money flow.</b> The side Pinnacle / Circa / Betfair make the favorite on their no-vig line. It tells you how the sharpest books have the game rated; it says nothing about how much is being wagered.</li>
-    <li><b>Public</b> — ticket %, i.e. the share of the <b>number of bets</b>. This is bettor headcount.</li>
-    <li><b>Handle</b> — money %, i.e. the share of the <b>dollars wagered</b>. This is where money is actually flowing.</li>
-    <li><b>Sharp Money</b> — <b>this is the column to watch if you want to follow the money rather than the price.</b> It is Handle % minus Public % on a side. A big positive gap means the dollars are much heavier than the bet count: fewer, larger wagers, which is the classic sharp-money tell. We flag it <b>SHARP MONEY</b> (green) at a 12%+ gap, <b>sharp money</b> (amber) at 10%+, and grey it out below 10% because at that point the dollars and the ticket count are basically in line and there is no real signal.</li>
-    <li><b>RLM</b> — reverse line movement: the number moved <i>against</i> the public side, another sign the respected money is on the other team.</li>
-  </ul>
-  <p>Everything lives inside those two boards now — there are no separate Games, Stages, or Historical tabs to hunt through. Per-game detail, lens scorecards, and prior-week archives are all folded into the NFL and CFB boards in the order above.</p>
-</div>
-
-<div class="guide-block">
-  <h2>How the board updates through the week</h2>
-  <ul>
-    <li><b>Opening / early week</b> — first lines and early sims. Expect more movement and fewer locked Sharp Plays.</li>
-    <li><b>Midweek</b> — ratings and odds refresh on the scheduled pipeline. Splits get richer as handle builds. Stage columns can flip as the number moves.</li>
-    <li><b>Late week / gameday</b> — sharper closes, better money/ticket reads, more stable Quant Picks. CLV is measured vs the closing line after the fact.</li>
-    <li><b>After games</b> — settle grades the ledger and stage records. Historical tabs pick up completed weeks.</li>
-  </ul>
-  <p>The navy bar under the header shows when picks, prices, and lines were last refreshed (Eastern Time). It updates whenever the pipeline rebuilds the board. Hard-refresh the page if something looks stale.</p>
-</div>
-
-<div class="guide-block">
-  <h2>When to place a bet</h2>
-  <ul>
-    <li>Prefer sides that appear as <b>Sharp Plays</b> (or yellow Quant Pick rows), not every stage column agreement.</li>
-    <li>If Model, Sharp, Money, and Quant Pick align — and Public is on the other side — that is usually a stronger process story than a lone model lean.</li>
-    <li>Re-check closer to kickoff: a play that looked good Tuesday can disappear (or flip) after steam or a number move.</li>
-    <li>Shop the price. The board names a market side; your edge depends on getting a number at least as good as what we evaluated.</li>
-    <li>Skip or downsize when the line has already moved through your number, or when you only see a lean with no validated Sharp Play.</li>
-  </ul>
-  <div class="guide-callout"><p>Best habit: note the play early, confirm on the last refresh before kickoff, then bet only if the number and story still hold.</p></div>
-</div>
-
-<div class="guide-block">
-  <h2>Quick glossary</h2>
-  <ul>
-    <li><b>Sharp Play</b> — cleared filters and posted to the ledger.</li>
-    <li><b>Quant Pick / Hybrid</b> — system side for that game/market after combining lenses.</li>
-    <li><b>CLV (Closing Line Value)</b> — did we beat the closing number? Positive CLV is a process win even before the game grades.</li>
-    <li><b>RLM</b> — reverse line movement: the line moves against the ticket majority (often a sharp-money tell).</li>
-    <li><b>Units</b> — stake size on the ledger; profit is tracked in units, not dollars.</li>
-  </ul>
-</div>
-"""
-
-
-def _render_guide_standalone_page() -> str:
-    """Archived site guide (removed from public nav; kept for reference)."""
-    body = _render_guide_html()
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>How it works (archive) · Sharp Scout Quant</title>
-<link rel="icon" type="image/svg+xml" href="../assets/ssq-logo.svg">
-<style>
-  body {{ font-family: system-ui, sans-serif; max-width: 820px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.55; }}
-  .guide-block {{ margin-bottom: 28px; }}
-  .guide-callout {{ background: #f5f7fa; border-left: 4px solid #1e3a5f; padding: 12px 16px; }}
-  a {{ color: #1e3a5f; }}
-</style>
-</head>
-<body>
-<p><a href="../index.html">← Back to boards</a></p>
-{body}
-</body>
-</html>
-"""
-
 
 # Confidence tiers are a HYBRID grade of overall confidence + value. Win %
 # (model cover/win probability, anchored to the ~52.4% break-even at -110) drives
@@ -1852,9 +1741,8 @@ def _render_quarantine_section(plays: list[dict], *, sport: str = "nfl") -> str:
         '<div class="section-label" style="margin-top:18px">QA Watchlist (Aired)</div>'
         '<p class="phase-note" style="padding:4px 0 10px">'
         "Signal-filtered plays that did <b>not</b> make the LOCKED card. "
-        "We grade them at the <b>same unit size</b> shown so we can tune gates vs results. "
-        "<span class='watchlist-badge-inline'>WATCHLIST</span> = soft hold (totals single-book, "
-        "near-miss EV, prob-gap only); other rows are hard quarantine.</p>"
+        "We grade them at the <b>same unit size</b> shown. "
+        "<span class='watchlist-badge-inline'>WATCHLIST</span> = soft hold; other rows are hard quarantine.</p>"
         f'<div class="summary-grid" style="margin:8px 0 12px">'
         f"{_stat_card(rec, 'Watchlist record (this week)', 'Shadow-graded at posted units; not LOCKED plays.')}"
         f"{_stat_card(wp, 'Watchlist win %', 'Win rate on graded watchlist rows this week.')}"
@@ -2376,7 +2264,7 @@ def _render_games_pipeline(
           <div class="phase-label">Simulation total</div>
           <p class="phase-note">Spread (home): <b>{spread_s}</b> ·
             <b>Simulation total</b> <b>{total_s}</b> · P(home win) <b>{p_hw_s}</b></p>
-          <p class="phase-note" style="font-size:11px">Simulation total blends drive-based sim with Pinnacle (see NFL Totals board). Negative spread = home favored.</p>
+          <p class="phase-note" style="font-size:11px">Negative spread = home favored.</p>
         </div>
         <div class="phase-block">
           <div class="phase-label">Phase 3 · Market EV (best book per side)</div>
@@ -4278,7 +4166,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div class="header-text">
       <h1>Sharp Scout Quant</h1>
-      <p>NFL + NCAAF quant model · ratings → Monte Carlo → sharp EV → split filter</p>
+      <p>NFL + NCAAF quant picks</p>
       <span class="pill">NFL {nfl_record} · {nfl_pnl}u · CFB {ncaaf_record} · {ncaaf_pnl}u</span>
     </div>
   </div>
@@ -4316,7 +4204,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
   <p class="phase-note" style="padding:4px 0 10px">Current NFL week only (Wed–Tue ET). Three rows per game (spread, ML, total). <b>Quant Pick</b>: <span class="lock-badge-inline">LOCKED</span> = on the card above; <span class="lean-only-badge-inline">LEAN ONLY</span> = not a posted bet.</p>
   {nfl_stage_weeks_html}
   <div class="section-label">{nfl_week_heading} — Simulation totals (every game)</div>
-  <p class="phase-note" style="padding:4px 0 10px">Drive-based simulation blended toward Pinnacle. <b>Simulation total</b> is frozen at kickoff; lean and sim probability come first, then price/EV on the pipeline tab below.</p>
+  <p class="phase-note" style="padding:4px 0 10px"><b>Simulation total</b> is frozen at kickoff; lean and sim probability come first, then price/EV on the pipeline tab below.</p>
   {nfl_totals_board_html}
   <div class="section-label">{nfl_week_heading} — Public &amp; Sharp Money &amp; Line Movement</div>
   <p class="phase-note" style="padding:4px 0 10px">Every NFL game on the board this week, with ticket vs money splits and the line we first recorded. <b>Open → now</b> is the move off our earliest sharp price, so you can see which way the number ran before you bet.</p>

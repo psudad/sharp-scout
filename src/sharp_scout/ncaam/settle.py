@@ -19,6 +19,53 @@ logger = logging.getLogger(__name__)
 ET = ZoneInfo("America/New_York")
 LEDGER_PATH = DATA_DIR / "ncaam_ledger.json"
 NCAAM_LINE_HISTORY_PATH = DATA_DIR / "ncaam" / "line_history.json"
+# Owner-approved corrections to locked rows (voids, team-label fixes). Re-applied on every pass so
+# they survive a runner that was started on older code and pushes its own copy of the ledger.
+MANUAL_OVERRIDES_PATH = DATA_DIR / "ncaam" / "manual_overrides.json"
+
+
+def apply_manual_overrides(
+    ledger: dict[str, Any], *, ledger_name: str, path: Path | None = None
+) -> bool:
+    """Apply manual_overrides.json entries for this ledger file. Returns True if anything changed.
+
+    ``void``: status void, 0u stake, 0u P&L (never counted in W-L or units).
+    ``set``: overwrite the listed fields (e.g. the team label on a neutral-site flip).
+    """
+    import json
+
+    p = path or MANUAL_OVERRIDES_PATH
+    try:
+        overrides = json.loads(p.read_text()).get("overrides") or []
+    except (OSError, ValueError):
+        return False
+    by_id = {str(o.get("id")): o for o in overrides if o.get("ledger") == ledger_name and o.get("id")}
+    if not by_id:
+        return False
+    changed = False
+    for play in ledger.get("plays") or []:
+        o = by_id.get(str(play.get("id")))
+        if not o:
+            continue
+        if o.get("action") == "void":
+            want = {
+                "status": "void",
+                "units": 0.0,
+                "pnl_units": 0.0,
+                "void_reason": o.get("reason"),
+            }
+        elif o.get("action") == "set":
+            want = {**(o.get("fields") or {}), "correction_note": o.get("reason")}
+        else:
+            continue
+        diff = {k: v for k, v in want.items() if play.get(k) != v}
+        if diff:
+            play.update(diff)
+            changed = True
+        if o.get("approved_at") and play.get("overridden_at") != o.get("approved_at"):
+            play["overridden_at"] = o.get("approved_at")
+            changed = True
+    return changed
 
 
 def _grade_spread(side: str, line: float, home_score: int, away_score: int) -> str:
@@ -46,11 +93,11 @@ def settle_ncaam_ledger(
 ) -> dict[str, Any]:
     path = path or LEDGER_PATH
     ledger = load_ledger(path)
+    changed = apply_manual_overrides(ledger, ledger_name=path.name)
     if scores is None:
         today = date.today()
         scores = fetch_final_scores(start=today - timedelta(days=2), end=today)
     by_id = {str(s.get("espn_id") or s.get("event_id")): s for s in scores}
-    changed = False
     for play in ledger.get("plays") or []:
         if play.get("status") == "void":
             continue
@@ -65,6 +112,12 @@ def settle_ncaam_ledger(
         if not score:
             continue
         hs, aw = int(score["home_score"]), int(score["away_score"])
+        # Grade by team name, not ESPN position: on neutral sites ESPN can list the teams the
+        # other way round from the ledger row (which uses the Odds API frame).
+        ph, pa = play.get("home_team"), play.get("away_team")
+        sh, sa = score.get("home_team"), score.get("away_team")
+        if ph and pa and (ph, pa) == (sa, sh) and ph != pa:
+            hs, aw = aw, hs
         mkt = play.get("market") or "spreads"
         if mkt == "h2h":
             result = _grade_h2h(str(play.get("side")), hs, aw)
@@ -73,7 +126,7 @@ def settle_ncaam_ledger(
                 continue
             result = _grade_spread(str(play.get("side")), float(play["line"]), hs, aw)
         play["status"] = result
-        play["home_score"] = hs
+        play["home_score"] = hs  # in the ledger row's home/away frame
         play["away_score"] = aw
         raw_units = play.get("units")
         units = 1.0 if raw_units is None else float(raw_units)

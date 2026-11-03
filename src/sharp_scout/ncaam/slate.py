@@ -35,6 +35,41 @@ def _match_odds_event(espn_row: dict[str, Any], odds_events: list[dict[str, Any]
     return None
 
 
+def swap_home_away(row: dict[str, Any]) -> dict[str, Any]:
+    """Copy of a slate row with every home_* / away_* field exchanged."""
+    out = dict(row)
+    for k, v in row.items():
+        if k.startswith("home_"):
+            out["away_" + k[5:]] = v
+        elif k.startswith("away_"):
+            out["home_" + k[5:]] = v
+    return out
+
+
+def orient_to_odds_event(row: dict[str, Any], ev: dict[str, Any]) -> dict[str, Any] | None:
+    """Put an ESPN slate row in the Odds API event's home/away frame, matched by team name.
+
+    Every ``side`` downstream (New System candidates, Sharp 3 / 3.5 offers, ledger rows, CLV keys
+    in line_history) refers to the Odds API outcome sides, so the slate row must use the same
+    frame. On neutral-site games ESPN and the Odds API can list the teams the other way round
+    (ESPN even flips between passes), so the row is swapped to match. Returns None when the teams
+    cannot be matched by name, or when a non-neutral game disagrees on who is home.
+    """
+    ht, at = row.get("home_team"), row.get("away_team")
+    eh, ea = ev.get("home_team"), ev.get("away_team")
+    if (eh, ea) == (ht, at):
+        return {**row, "espn_swapped": False}
+    if (eh, ea) == (at, ht):
+        if not row.get("neutral_site"):
+            logger.warning(
+                "NCAAM %s: ESPN and Odds API disagree on home team at a non-neutral site; no odds attached",
+                row.get("espn_id"),
+            )
+            return None
+        return {**swap_home_away(row), "espn_swapped": True}
+    return None
+
+
 def build_slate(
     *,
     et_day: date,
@@ -54,7 +89,9 @@ def build_slate(
         merged = {**row, "home_team": ht, "away_team": at}
         if odds_events is not None:
             hit = _match_odds_event(row, odds_events)
-            if hit:
+            oriented = orient_to_odds_event(merged, hit) if hit else None
+            if hit and oriented is not None:
+                merged = oriented
                 merged["odds_event_id"] = hit.get("event_id")
                 merged["commence_time"] = hit.get("commence_time") or merged.get("commence_time")
         out.append(merged)

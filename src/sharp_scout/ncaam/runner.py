@@ -221,6 +221,15 @@ def run_pass(
             continue
         oid = game.get("odds_event_id")
         ev = odds_by_id.get(str(oid)) if oid else None
+        if (
+            ev
+            and not demo
+            and ev.get("home_team")
+            and ev.get("away_team")
+            and (ev.get("home_team"), ev.get("away_team")) != (game.get("home_team"), game.get("away_team"))
+        ):
+            # Sides must refer to the same teams as the slate row (matched by name in build_slate).
+            ev = None
         if not ev and demo:
             ev = odds_events[0] if odds_events else None
         if not ev:

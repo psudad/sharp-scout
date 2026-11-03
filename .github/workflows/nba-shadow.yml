@@ -9,6 +9,10 @@ name: NBA Shadow (private)
 # Off-the-hour minutes (:07) because GitHub drops / delays top-of-hour schedules the most.
 # Late GitHub starts are allowed until shortly before the first tip-off of the ET day.
 # Backup runs skip when today's primary scan already succeeded (cheap fallback).
+# Catch-up: every 30 min (:22/:52) a cheap check runs a scan only when today's slot has
+# passed, no scan landed today, first tip is still ahead, and fewer than 3 scans were
+# attempted today. GitHub dropped all four :07 slots on Nov 3, 2026.
+# Staleness alarm lives in nba-staleness-guard.yml.
 
 on:
   schedule:
@@ -24,6 +28,8 @@ on:
     # Weekend 11:07 AM ET backup — 15:07 UTC (EDT) and 16:07 UTC (EST)
     - cron: "7 15 * * 0,6"
     - cron: "7 16 * * 0,6"
+    # Catch-up every 30 min (gate skips unless no scan has landed today; ~9 credits per real scan)
+    - cron: "22,52 12-23 * * *"
   workflow_dispatch:
     inputs:
       demo:
@@ -39,6 +45,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: nba-shadow
@@ -67,6 +74,7 @@ jobs:
         if: github.event_name == 'schedule'
         env:
           GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: python scripts/check_nba_shadow_schedule.py
 
       - id: ran_flag

@@ -63,9 +63,15 @@ def append_nba_signals(signals: list[dict[str, Any]], *, path: Path | None = Non
     settings = get_settings()
     horizon = settings.nba_prop_horizon_hours
     ledger = load_nba_ledger(path)
+    from sharp_scout.nba.overrides import apply_nba_ledger_overrides, load_nba_overrides, voided_override_for
+
+    overrides = load_nba_overrides()
+    apply_nba_ledger_overrides(ledger, overrides)
     existing = {_play_key(p) for p in ledger["plays"]}
     added = 0
     for s in signals:
+        if overrides and voided_override_for(s, overrides) is not None:
+            continue  # voided bet: never log it again (any book)
         if not is_demo_nba_row(s) and not kickoff_still_future(s):
             continue
         if not is_demo_nba_row(s) and not kickoff_in_horizon(s.get("kickoff"), horizon):

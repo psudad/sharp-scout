@@ -1,0 +1,31 @@
+name: NBA Staleness Guard
+
+# Fails (red run + GitHub failure email) when today is an NBA game day and no live NBA
+# scan has landed by the backup slot + 45 min (or 30 min before first tip, if earlier).
+# No Odds API calls: reads data/shadow and ESPN's public scoreboard only.
+
+on:
+  schedule:
+    - cron: "40 15-23 * * *"
+    - cron: "40 0-3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Check NBA scan freshness
+        run: python scripts/check_nba_staleness.py

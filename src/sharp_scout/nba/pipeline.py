@@ -331,6 +331,14 @@ def run_nba_shadow(
             )
             signals, possible_signals = filter_demo_from_signal_lists(signals, possible_signals)
 
+    try:
+        from sharp_scout.nba.overrides import drop_voided_signals
+
+        signals = drop_voided_signals(signals)
+        possible_signals = drop_voided_signals(possible_signals)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NBA void overrides skipped on signals: %s", exc)
+
     payload = {
         "ok": True,
         "demo": use_demo,

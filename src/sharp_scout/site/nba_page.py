@@ -2184,6 +2184,23 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
             ledger = led
     except Exception:  # noqa: BLE001
         pass
+    try:
+        from sharp_scout.nba.ledger import save_nba_ledger as _save_led
+        from sharp_scout.nba.overrides import apply_nba_ledger_overrides, drop_voided_signals, load_nba_overrides
+
+        _ovs = load_nba_overrides()
+        if _ovs:
+            if ledger and apply_nba_ledger_overrides(ledger, _ovs):
+                _save_led(ledger)
+            if signals_payload:
+                signals_payload = dict(signals_payload)
+                for _k in ("signals", "possible_signals"):
+                    if isinstance(signals_payload.get(_k), list):
+                        signals_payload[_k] = drop_voided_signals(signals_payload[_k], _ovs)
+                signals_payload["n_signals"] = len(signals_payload.get("signals") or [])
+                signals_payload["n_possible"] = len(signals_payload.get("possible_signals") or [])
+    except Exception:  # noqa: BLE001
+        pass
     live_scan = has_live_nba_scan(signals_payload)
 
     pub_signals = public_nba_signals(signals_payload)

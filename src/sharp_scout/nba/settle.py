@@ -133,6 +133,12 @@ def settle_nba_ledger(
 
     now = datetime.now(timezone.utc)
     try:
+        from sharp_scout.nba.overrides import apply_nba_ledger_overrides
+
+        apply_nba_ledger_overrides(ledger)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("NBA settle: void overrides failed: %s", exc)
+    try:
         void_plays_outside_horizon(ledger, now=now)
     except Exception as exc:  # noqa: BLE001
         logger.warning("NBA settle: horizon void pass failed: %s", exc)

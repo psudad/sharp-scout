@@ -295,3 +295,115 @@ def next_nba_scan_et(
                     return backup
     fallback_day = now.date() + timedelta(days=1)
     return datetime.combine(fallback_day, WEEKDAY_PRIMARY, tzinfo=ET)
+
+
+# --- Catch-up and staleness backup ------------------------------------------------------
+# GitHub sometimes drops scheduled runs outright (all four :07 slots on Nov 3, 2026).
+# A catch-up cron fires every 30 minutes; it only scans when today's ET slot has passed,
+# no fresh scan exists for today, the first tip is still ahead, and the daily attempt cap
+# has not been hit. Otherwise it exits before touching the Odds API.
+CRON_CATCHUP = "22,52 12-23 * * *"
+CATCHUP_GRACE = timedelta(minutes=20)  # let the primary slot finish before catching up
+MAX_CATCHUP_SCANS_PER_DAY = 3
+# Staleness guard: a game day with no scan by the backup slot + grace fails loudly.
+STALE_GRACE_AFTER_BACKUP = timedelta(minutes=45)
+STALE_MIN_BEFORE_TIP = timedelta(minutes=30)
+STALE_CHECK_UNTIL_AFTER_TIP = timedelta(hours=4)
+
+
+def is_catchup_cron(cron: str) -> bool:
+    return cron.strip() == CRON_CATCHUP
+
+
+def primary_slot_et(et_day: date) -> datetime:
+    t = WEEKDAY_PRIMARY if et_day.weekday() <= 4 else WEEKEND_PRIMARY
+    return datetime.combine(et_day, t, tzinfo=ET)
+
+
+def backup_slot_et(et_day: date) -> datetime:
+    t = WEEKDAY_BACKUP if et_day.weekday() <= 4 else WEEKEND_BACKUP
+    return datetime.combine(et_day, t, tzinfo=ET)
+
+
+def latest_live_scan_utc() -> datetime | None:
+    """``generated_at`` of the last live (non-demo) NBA scan, from data/shadow."""
+    import json
+
+    from sharp_scout.nba import paths as nba_paths
+    from sharp_scout.utils.kickoff import parse_kickoff_utc
+
+    p = nba_paths.NBA_LATEST_SIGNALS_PATH
+    try:
+        data = json.loads(p.read_text())
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get("demo"):
+        return None
+    return parse_kickoff_utc(data.get("generated_at"))
+
+
+def scan_fresh_for_et_date(et_day: date, *, last_scan_utc: datetime | None = None) -> bool:
+    """True when a live scan already ran on this ET day (the expected once-a-day interval)."""
+    last = last_scan_utc if last_scan_utc is not None else latest_live_scan_utc()
+    if last is not None and last.astimezone(ET).date() == et_day:
+        return True
+    return primary_scan_satisfied_for_et_date(et_day)
+
+
+def catchup_run_allowed(
+    now: datetime,
+    *,
+    first_tip_utc: datetime | None,
+    scan_fresh: bool,
+    attempts_today: int = 0,
+) -> tuple[bool, str]:
+    """Decide whether a catch-up cron should run a real scan. Returns (allowed, reason)."""
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    et_now = now.astimezone(ET)
+    if first_tip_utc is None:
+        return False, "no NBA games today (or ESPN unreachable)"
+    if first_tip_utc.tzinfo is None:
+        first_tip_utc = first_tip_utc.replace(tzinfo=timezone.utc)
+    if first_tip_utc.astimezone(ET).date() != et_now.date():
+        return False, "first tip is not on today's ET date"
+    if scan_fresh:
+        return False, "fresh scan already recorded today"
+    if et_now < primary_slot_et(et_now.date()) + CATCHUP_GRACE:
+        return False, "before today's primary slot + grace"
+    if now >= first_tip_utc - TIP_OFF_BUFFER:
+        return False, "too close to (or after) first tip"
+    if attempts_today >= MAX_CATCHUP_SCANS_PER_DAY:
+        return False, f"catch-up cap reached ({attempts_today}/{MAX_CATCHUP_SCANS_PER_DAY})"
+    return True, "no scan yet today; catching up"
+
+
+def nba_scan_stale(
+    now: datetime,
+    *,
+    first_tip_utc: datetime | None,
+    scan_fresh: bool,
+) -> tuple[bool, str]:
+    """True when today is a game day and no scan landed by the expected deadline."""
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    et_now = now.astimezone(ET)
+    if first_tip_utc is None:
+        return False, "no NBA games today (or ESPN unreachable)"
+    if first_tip_utc.tzinfo is None:
+        first_tip_utc = first_tip_utc.replace(tzinfo=timezone.utc)
+    if first_tip_utc.astimezone(ET).date() != et_now.date():
+        return False, "first tip is not on today's ET date"
+    if scan_fresh:
+        return False, "fresh scan recorded today"
+    day = et_now.date()
+    deadline = min(
+        backup_slot_et(day) + STALE_GRACE_AFTER_BACKUP,
+        first_tip_utc.astimezone(ET) - STALE_MIN_BEFORE_TIP,
+    )
+    deadline = max(deadline, primary_slot_et(day) + STALE_GRACE_AFTER_BACKUP)
+    if et_now < deadline:
+        return False, f"before staleness deadline {deadline.isoformat()}"
+    if now > first_tip_utc + STALE_CHECK_UNTIL_AFTER_TIP:
+        return False, "slate well under way; next check tomorrow"
+    return True, f"no NBA scan today and past deadline {deadline.isoformat()}"

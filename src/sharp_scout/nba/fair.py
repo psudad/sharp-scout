@@ -2,11 +2,26 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sharp_scout.config import get_settings
 from sharp_scout.phase3.market import fair_probs_from_two_way, shift_prob_to_line
 from sharp_scout.sports import NBA
+from sharp_scout.utils.odds import american_to_implied_prob
+
+logger = logging.getLogger(__name__)
+
+# --- Moneyline (h2h) anchor guard -------------------------------------------------
+# Sharp books tried in order for a moneyline anchor. Exchanges (Betfair) are never used:
+# a day ahead their empty markets come back as placeholder prices (-10000 / 1.01 decimal).
+ML_ANCHOR_BOOKS: tuple[str, ...] = ("pinnacle", "circa", "circa_sports")
+ML_EXCLUDED_BOOK_PREFIXES: tuple[str, ...] = ("betfair",)
+# Either price at -2000 or shorter, or +2000 or longer, is treated as a placeholder.
+ML_PRICE_LIMIT = 2000.0
+# Sum of the two implied probabilities (overround) must look like a real two-way market.
+ML_OVERROUND_MIN = 1.00
+ML_OVERROUND_MAX = 1.10
 
 
 def _pair_outcomes(outcomes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -18,11 +33,162 @@ def _pair_outcomes(outcomes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return by_side
 
 
+def _ml_book_excluded(book_key: str) -> bool:
+    k = str(book_key or "").lower()
+    return any(k.startswith(prefix) for prefix in ML_EXCLUDED_BOOK_PREFIXES)
+
+
+def _h2h_side(outcome: dict[str, Any], event: dict[str, Any]) -> str | None:
+    """Map a moneyline outcome to ``home`` / ``away`` by its side, else by team name."""
+    side = str(outcome.get("side") or "").strip().lower()
+    if side in ("home", "away"):
+        return side
+    name = outcome.get("name") or outcome.get("side")
+    if not name:
+        return None
+    from sharp_scout.nba.teams import normalize_nba_team
+
+    team = normalize_nba_team(str(name))
+    home = event.get("home_team")
+    away = event.get("away_team")
+    home_n = normalize_nba_team(str(home)) if home else None
+    away_n = normalize_nba_team(str(away)) if away else None
+    if team and home_n and team == home_n and team != away_n:
+        return "home"
+    if team and away_n and team == away_n and team != home_n:
+        return "away"
+    return None
+
+
+def _ml_price_ok(price: Any) -> float | None:
+    try:
+        p = float(price)
+    except (TypeError, ValueError):
+        return None
+    if p != p or abs(p) < 100.0:  # NaN or not a valid American price
+        return None
+    if p <= -ML_PRICE_LIMIT or p >= ML_PRICE_LIMIT:
+        return None
+    return p
+
+
+def validated_h2h_prices(
+    outcomes: list[dict[str, Any]] | None,
+    event: dict[str, Any],
+) -> tuple[dict[str, float] | None, str | None]:
+    """Return ({"home": price, "away": price}, None) or (None, reject_reason)."""
+    outcomes = outcomes or []
+    prices: dict[str, float] = {}
+    for o in outcomes:
+        side = _h2h_side(o, event)
+        if side is None:
+            return None, f"unmatched outcome {o.get('name') or o.get('side')!r}"
+        if side in prices:
+            return None, f"two outcomes for {side}"
+        p = _ml_price_ok(o.get("price"))
+        if p is None:
+            return None, f"placeholder or invalid price {o.get('price')!r} ({side})"
+        prices[side] = p
+    if set(prices) != {"home", "away"}:
+        return None, "missing home or away price"
+    overround = american_to_implied_prob(prices["home"]) + american_to_implied_prob(prices["away"])
+    if not (ML_OVERROUND_MIN <= overround <= ML_OVERROUND_MAX):
+        return None, f"implied total {overround:.3f} outside {ML_OVERROUND_MIN:.2f}-{ML_OVERROUND_MAX:.2f}"
+    return prices, None
+
+
+def _h2h_fair_from_prices(prices: dict[str, float]) -> tuple[float, float]:
+    return fair_probs_from_two_way(prices["home"], prices["away"])
+
+
+def h2h_sharp_anchor(event: dict[str, Any]) -> dict[str, Any] | None:
+    """First sharp book (Pinnacle, Circa) with a sane, side-matched moneyline. Never Betfair."""
+    books = event.get("bookmakers") or {}
+    order = [k for k in ML_ANCHOR_BOOKS if k in books]
+    order += [
+        k
+        for k, bm in books.items()
+        if k not in order and bm.get("is_sharp") and not _ml_book_excluded(k)
+    ]
+    for key in order:
+        if _ml_book_excluded(key):
+            continue
+        outcomes = ((books.get(key) or {}).get("markets") or {}).get("h2h")
+        if not outcomes:
+            continue
+        prices, why = validated_h2h_prices(outcomes, event)
+        if prices is None:
+            logger.info(
+                "NBA ML anchor rejected %s for %s@%s: %s",
+                key,
+                event.get("away_team"),
+                event.get("home_team"),
+                why,
+            )
+            continue
+        ph, pa = _h2h_fair_from_prices(prices)
+        return {
+            "book": key,
+            "source": key,
+            "outcomes": [
+                {"side": "home", "price": prices["home"], "point": None, "p_fair": ph},
+                {"side": "away", "price": prices["away"], "point": None, "p_fair": pa},
+            ],
+        }
+    return None
+
+
+def h2h_consensus_fair(event: dict[str, Any], *, min_books: int = 2) -> dict[str, Any] | None:
+    """Median no-vig home win prob across books with a sane moneyline (no exchanges)."""
+    homes: list[float] = []
+    used: list[str] = []
+    for key, bm in (event.get("bookmakers") or {}).items():
+        if _ml_book_excluded(key):
+            continue
+        outcomes = (bm.get("markets") or {}).get("h2h")
+        if not outcomes:
+            continue
+        prices, _why = validated_h2h_prices(outcomes, event)
+        if prices is None:
+            continue
+        ph, _pa = _h2h_fair_from_prices(prices)
+        homes.append(ph)
+        used.append(key)
+    if len(homes) < max(2, int(min_books or 2)):
+        return None
+    s = sorted(homes)
+    mid = len(s) // 2
+    ph = s[mid] if len(s) % 2 else (s[mid - 1] + s[mid]) / 2
+    return {
+        "book": "consensus",
+        "source": "consensus",
+        "books": sorted(used),
+        "outcomes": [
+            {"side": "home", "point": None, "p_fair": ph},
+            {"side": "away", "point": None, "p_fair": 1.0 - ph},
+        ],
+    }
+
+
+def h2h_fair_reference(event: dict[str, Any], *, min_books: int | None = None) -> dict[str, Any] | None:
+    """Guarded moneyline fair: sharp anchor, else median of >=2 sane books, else None (skip)."""
+    anchor = h2h_sharp_anchor(event)
+    if anchor:
+        return anchor
+    return h2h_consensus_fair(event, min_books=2 if min_books is None else max(2, min_books))
+
+
 def sharp_two_way_fair(
     event: dict[str, Any],
     market: str,
 ) -> dict[str, Any] | None:
-    """Pinnacle-first no-vig two-way fair (same preference order as sides pipeline)."""
+    """Pinnacle-first no-vig two-way fair (same preference order as sides pipeline).
+
+    Moneylines (h2h) go through the guarded anchor (:func:`h2h_sharp_anchor`); spreads and
+    totals are unchanged.
+    """
+    if market == "h2h":
+        return h2h_sharp_anchor(event)
     books = event.get("bookmakers") or {}
     preference = ["pinnacle", "circa", "circa_sports", "betfair_ex_eu"]
     chosen = None
@@ -61,6 +227,8 @@ def consensus_two_way_fair(
     min_books: int | None = None,
 ) -> dict[str, Any] | None:
     """Median no-vig probability per side across all books quoting the market."""
+    if market == "h2h":
+        return h2h_consensus_fair(event, min_books=2 if min_books is None else max(2, min_books))
     settings = get_settings()
     need = settings.nba_prop_consensus_min_books if min_books is None else min_books
     books = event.get("bookmakers") or {}
@@ -110,6 +278,8 @@ def fair_reference(
     *,
     min_books: int | None = None,
 ) -> dict[str, Any] | None:
+    if market == "h2h":
+        return h2h_fair_reference(event, min_books=min_books)
     sharp = sharp_two_way_fair(event, market)
     if sharp:
         return sharp

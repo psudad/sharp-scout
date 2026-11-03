@@ -1,0 +1,29 @@
+name: NCAAM Staleness Guard
+
+# Fails (red run + GitHub failure email) when no NCAAM runner is live during today's
+# game window. No Odds API calls: committed slate/heartbeat + GitHub run list only.
+
+on:
+  schedule:
+    - cron: "50 14-23 * * *"
+    - cron: "50 0-4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check NCAAM runner freshness
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/check_ncaam_staleness.py

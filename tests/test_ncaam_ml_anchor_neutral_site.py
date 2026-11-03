@@ -270,7 +270,7 @@ def test_record_ignores_no_play_rows_and_voids():
     assert rec["clv"]["n_plays_with_clv"] == 0
 
 
-def test_manual_overrides_void_and_relabel_survive_regrading(tmp_path):
+def test_manual_overrides_void_survives_regrading(tmp_path):
     from sharp_scout.ncaam.settle import apply_manual_overrides
 
     ov = tmp_path / "manual_overrides.json"
@@ -280,20 +280,79 @@ def test_manual_overrides_void_and_relabel_survive_regrading(tmp_path):
                 "overrides": [
                     {"ledger": "ncaam_ledger.json", "id": "a", "action": "void", "reason": "false edge",
                      "approved_at": "2026-11-03T00:44:00+00:00"},
-                    {"ledger": "sharp3_ledger.json", "id": "b", "action": "set",
-                     "fields": {"selection": "Purdue"}, "reason": "flip"},
+                    {"ledger": "sharp3_ledger.json", "id": "b", "action": "void", "reason": "flip",
+                     "approved_at": "2026-11-03T01:01:00+00:00"},
                 ]
             }
         )
     )
     # Row already graded by an older runner: the void still wins and zeroes the P&L.
     led = {"plays": [{"id": "a", "status": "loss", "side": "home", "units": 1.0, "pnl_units": -1.0},
-                     {"id": "b", "status": "pending", "selection": "Gonzaga"}]}
+                     {"id": "b", "status": "pending", "side": "away", "units": 2.0}]}
     assert apply_manual_overrides(led, ledger_name="ncaam_ledger.json", path=ov)
     a = led["plays"][0]
     assert (a["status"], a["units"], a["pnl_units"]) == ("void", 0.0, 0.0)
-    assert led["plays"][1]["selection"] == "Gonzaga"  # other ledger's override not applied here
+    assert led["plays"][1]["status"] == "pending"  # other ledger's override not applied here
     assert not apply_manual_overrides(led, ledger_name="ncaam_ledger.json", path=ov)  # idempotent
     assert apply_manual_overrides(led, ledger_name="sharp3_ledger.json", path=ov)
-    assert led["plays"][1]["selection"] == "Purdue"
+    assert led["plays"][1]["status"] == "void"
     assert ncaam_record(led)["record"] == "0-0"
+
+
+def test_sharp3_gonzaga_purdue_void_excluded_and_never_regraded(tmp_path, monkeypatch):
+    """Sharp 3 Purdue vs Gonzaga (ESPN 401921704) is void at 0u; settle must never grade it."""
+    from sharp_scout.ncaam import settle as settle_mod
+
+    reason = ("Neutral-site home/away flip: signal pointed at Gonzaga but Purdue's price was "
+              "locked; voided per Jason Nov 2.")
+    ov = tmp_path / "manual_overrides.json"
+    ov.write_text(json.dumps({"overrides": [
+        {"ledger": "sharp3_ledger.json", "id": "g", "action": "void", "reason": reason,
+         "approved_at": "2026-11-03T01:01:00+00:00"}]}))
+    monkeypatch.setattr(settle_mod, "MANUAL_OVERRIDES_PATH", ov)
+    monkeypatch.setattr(settle_mod, "finalize_closing_lines", lambda *a, **k: 0)
+    ledger_path = tmp_path / "sharp3_ledger.json"
+    # As the old runner would push it: still pending at 2u, labeled with the flipped frame.
+    ledger_path.write_text(json.dumps({"plays": [
+        {"id": "g", "espn_id": "401921704", "market": "spreads", "side": "away", "line": 5.5,
+         "price": -115.0, "units": 2.0, "status": "pending", "selection": "Gonzaga",
+         "home_team": "Purdue", "away_team": "Gonzaga"},
+        {"id": "w", "espn_id": "9", "market": "spreads", "side": "home", "line": -1.5,
+         "price": -110.0, "units": 1.0, "status": "pending", "home_team": "A", "away_team": "B"},
+    ]}))
+    scores = [
+        {"espn_id": "401921704", "home_team": "Gonzaga", "away_team": "Purdue",
+         "home_score": 70, "away_score": 80},
+        {"espn_id": "9", "home_team": "A", "away_team": "B", "home_score": 80, "away_score": 70},
+    ]
+    for _ in range(2):  # second pass: still void, never regraded
+        led = settle_mod.settle_ncaam_ledger(path=ledger_path, scores=scores)
+        g = next(p for p in led["plays"] if p["id"] == "g")
+        assert (g["status"], g["units"], g["pnl_units"]) == ("void", 0.0, 0.0)
+        assert g["void_reason"] == reason
+        assert "settled_at" not in g and "home_score" not in g
+    # A stale copy that an old runner had already graded is forced back to void as well.
+    stale = json.loads(ledger_path.read_text())
+    stale["plays"][0].update(status="win", units=2.0, pnl_units=1.739, settled_at="x")
+    ledger_path.write_text(json.dumps(stale))
+    led = settle_mod.settle_ncaam_ledger(path=ledger_path, scores=scores)
+    g = led["plays"][0]
+    assert (g["status"], g["units"], g["pnl_units"]) == ("void", 0.0, 0.0)
+    rec = ncaam_record(led)
+    assert rec["record"] == "1-0"  # only the other play
+    assert rec["void"] == 1 and rec["pending"] == 0
+    assert rec["pnl_units"] == pytest.approx(0.91, abs=0.005)  # +0.909u at -110
+
+
+def test_repo_sharp3_gonzaga_purdue_row_is_void():
+    from sharp_scout.config import DATA_DIR
+
+    gid = "1809664a-4a7c-4f6a-9c0e-50ea1acbb60c"
+    ov = json.loads((DATA_DIR / "ncaam" / "manual_overrides.json").read_text())["overrides"]
+    o = next(o for o in ov if o["id"] == gid)
+    assert (o["ledger"], o["action"]) == ("sharp3_ledger.json", "void")
+    assert not any(o.get("action") == "set" for o in ov)
+    row = next(p for p in json.loads((DATA_DIR / "ncaam" / "sharp3_ledger.json").read_text())["plays"]
+               if p["id"] == gid)
+    assert (row["status"], row["units"], row["pnl_units"]) == ("void", 0.0, 0.0)
+    assert row["void_reason"] == o["reason"]

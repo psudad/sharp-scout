@@ -184,6 +184,14 @@ def run_systems(
             sp = by_espn.get(eid)
             oid = g.get("odds_event_id")
             event = odds_by_id.get(str(oid)) if oid else None
+            if (
+                event
+                and event.get("home_team")
+                and event.get("away_team")
+                and (event.get("home_team"), event.get("away_team")) != (g.get("home_team"), g.get("away_team"))
+            ):
+                # Never price one team with the other team's quote (neutral-site home/away flips).
+                event = None
             mm = mid_major_by_side(g, sp)
             entry = state["games"].setdefault(eid, {})
             entry.update(

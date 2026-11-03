@@ -63,6 +63,25 @@ def _fmt_et(iso: str | None) -> str:
         return _esc(iso)
 
 
+_NOT_A_PLAY = ("no_play", "missed")
+
+
+def ncaam_record(ledger: dict[str, Any], *, path: Path | None = None) -> dict[str, Any]:
+    """Season record for the NCAAM board.
+
+    Only real picks count: no-edge / missed markers (no side) are left out, so they are not
+    reported as "pending". Voids are counted as void with 0u and never enter W-L, units or CLV.
+    """
+    from sharp_scout.ledger.clv import summarize_clv
+
+    plays = ledger.get("plays") or []
+    picks = [p for p in plays if p.get("side") and p.get("status") not in _NOT_A_PLAY]
+    rec = compute_record({**ledger, "plays": picks}, path=path or NCAAM_LEDGER_PATH)
+    rec["clv"] = summarize_clv({**ledger, "plays": [p for p in picks if p.get("status") != "void"]})
+    rec["n_no_play"] = len(plays) - len(picks)
+    return rec
+
+
 def _render_record(rec: dict[str, Any], ledger: dict[str, Any]) -> str:
     record = str(rec.get("record") or "0-0")
     pnl = float(rec.get("pnl_units") or 0)
@@ -71,6 +90,8 @@ def _render_record(rec: dict[str, Any], ledger: dict[str, Any]) -> str:
     clv_beat = 0
     clv_total = 0
     for p in ledger.get("plays") or []:
+        if p.get("status") == "void":
+            continue
         if p.get("clv_points") is not None:
             clv_total += 1
             if float(p.get("clv_points") or 0) > 0:
@@ -187,7 +208,7 @@ def render_ncaam_page_html(
     site_css: str,
     updated: str,
 ) -> str:
-    rec = compute_record(ledger, path=NCAAM_LEDGER_PATH)
+    rec = ncaam_record(ledger, path=NCAAM_LEDGER_PATH)
     return NCAAM_PAGE_TEMPLATE.format(
         site_tabs=render_site_tabs(active="ncaam"),
         site_css=site_css,
@@ -228,7 +249,7 @@ def build_ncaam_page(
     )
     (out / "ncaam.html").write_text(html)
     (out / "ncaam_ledger.json").write_text(json.dumps(ledger, indent=2, default=str) + "\n")
-    rec = compute_record(ledger, path=ledger_path)
+    rec = ncaam_record(ledger, path=ledger_path)
     (out / "ncaam_record.json").write_text(json.dumps(rec, indent=2, default=str) + "\n")
     return out / "ncaam.html"
 

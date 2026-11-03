@@ -824,8 +824,8 @@
 <div class="ncaam-wrap">
   <div class="ncaam-hero">
     <h1>College Basketball</h1>
-    <p>Automated NCAAM picks. Locks are timestamped before tip; results settle from ESPN finals.</p>
-    <p class="phase-note">Updated 2026-11-03T21:30:15.368931+00:00</p>
+    <p>Automated NCAAM spread picks (blended Jan–Feb rules). Locks are timestamped before tip; results settle from ESPN finals.</p>
+    <p class="phase-note">Updated 2026-11-03T22:31:19.156019+00:00</p>
     <div class="ncaam-record"><div class="pr-card"><div class="pr-val">5-2</div><div class="pr-lbl">Season record</div></div><div class="pr-card"><div class="pr-val pos">+4.82u</div><div class="pr-lbl">Units P&amp;L</div></div><div class="pr-card"><div class="pr-val">—</div><div class="pr-lbl">ROI</div></div><div class="pr-card"><div class="pr-val">100%</div><div class="pr-lbl">CLV beat close</div></div></div>
   </div>
   <h2 class="ncaam-h2">Today&apos;s locked picks</h2>
@@ -833,7 +833,18 @@
   <h2 class="ncaam-h2">Ledger &amp; results</h2>
   <div class="table-wrap"><table class="export-table"><thead><tr><th>Tip (ET)</th><th>Game</th><th>Play</th><th>Result</th></tr></thead><tbody><tr><td>Nov 2 07:00 PM ET</td><td>Vermont @ Iona</td><td>spreads home</td><td>win (+0.91u)</td></tr><tr><td>Nov 2 07:00 PM ET</td><td>Massachusetts @ Troy</td><td>h2h away</td><td>win (+1.35u)</td></tr><tr><td>Nov 2 06:00 PM ET</td><td>Pepperdine @ Cornell</td><td>h2h home</td><td>win (+1.43u)</td></tr><tr><td>Nov 2 06:00 PM ET</td><td>Bowling Green @ Georgia St.</td><td>h2h away</td><td>win (+1.43u)</td></tr><tr><td>Nov 2 07:00 PM ET</td><td>St. Thomas @ Presbyterian</td><td>h2h home</td><td>loss (-1.00u)</td></tr><tr><td>Nov 2 07:00 PM ET</td><td>Elon @ Columbia</td><td>h2h away</td><td>win (+1.70u)</td></tr><tr><td>Nov 2 07:00 PM ET</td><td>Charlotte @ Indiana St.</td><td>h2h home</td><td>loss (-1.00u)</td></tr><tr><td>Nov 2 06:00 AM ET</td><td>Merrimack @ Appalachian St.</td><td>h2h home</td><td>void (+0.00u)</td></tr></tbody></table></div>
   
-  <p class="phase-note" style="text-align:center">Informational model picks only — <b>no automated betting</b>.</p>
+  <h2 class="ncaam-h2">How it works</h2>
+  <div class="ncaam-empty" style="text-align:left">
+    <p>Informational model picks only — <b>no automated betting</b>. Spreads first; moneylines only with their own edge between −150 and +200. Totals are tracked in shadow only, not published.</p>
+    <ul>
+      <li>Torvik efficiency × tempo projection, Monte Carlo σ=10.5, market anchor k=0.10 before Dec 1 ET then 0.15.</li>
+      <li>Qualify at ≥3% push-aware EV vs anchored Pinnacle no-vig, price ≥−150, |model−market| ≤8.</li>
+      <li>One play per game, max 8/day, 1.0u (1.5u if EV≥6% and beat open), max 8u/day.</li>
+      <li>Locks timestamped between T-90 and T-25 (late through T-5); missed after T-5.</li>
+    </ul>
+    <p><b>Ratings:</b> <a href="https://barttorvik.com" rel="noopener">barttorvik.com</a> (adjoe/adjde/adjt CSV, cached daily).</p>
+    <p class="phase-note">Model version: ncaam-blended-janfeb-v1</p>
+  </div>
 
 </div>
 

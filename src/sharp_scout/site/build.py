@@ -125,6 +125,11 @@ PUBLIC_PLAY_FIELDS = (
     "created_at",
     "settled_at",
     "void_reason",
+    # NCAAM board (public JSON + ledger export)
+    "tip",
+    "locked_at",
+    "espn_id",
+    "selection",
 )
 
 

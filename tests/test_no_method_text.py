@@ -13,6 +13,15 @@ BANNED = (
     "Model version",
     "anchor k=",
     "blended Jan",
+    "T-90",
+    "T-25",
+    "Model / Fair / Anchor",
+    "Picks lock once",
+)
+
+NCAAM_PAGE_BANNED = BANNED + (
+    "Model / Fair",
+    "Anchor",
 )
 
 
@@ -28,6 +37,68 @@ def test_ncaam_page_has_no_method_text():
         assert s not in html, s
     assert "Informational model picks only" in html
     assert "no automated betting" in html
+
+
+def test_ncaam_page_source_has_no_method_labels():
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[1] / "src" / "sharp_scout" / "site" / "ncaam_page.py").read_text()
+    for s in NCAAM_PAGE_BANNED:
+        assert s not in src, s
+
+
+def test_ncaam_public_ledger_strips_model_fields(tmp_path):
+    import json
+    from pathlib import Path
+
+    from sharp_scout.site.ncaam_page import build_ncaam_page
+
+    ledger_path = tmp_path / "ncaam_ledger.json"
+    ledger_path.write_text(
+        json.dumps(
+            {
+                "updated_at": "2026-11-03T20:00:00+00:00",
+                "starting_units": 100,
+                "stage_cards": [{"x": 1}],
+                "disagreements": [{"y": 2}],
+                "plays": [
+                    {
+                        "id": "p1",
+                        "away_team": "A",
+                        "home_team": "B",
+                        "market": "spreads",
+                        "side": "away",
+                        "line": 3.5,
+                        "price": -110,
+                        "book": "draftkings",
+                        "units": 1,
+                        "status": "pending",
+                        "tip": "2026-11-03T23:00:00+00:00",
+                        "locked_at": "2026-11-03T22:00:00+00:00",
+                        "p_model": 0.55,
+                        "p_fair": 0.52,
+                        "p_true": 0.54,
+                        "ev": 0.05,
+                        "model_margin": 2.0,
+                        "inputs_sha256": "abc",
+                    }
+                ],
+            }
+        )
+    )
+    docs = tmp_path / "docs"
+    build_ncaam_page(docs_dir=docs, ledger_path=ledger_path, signals_path=tmp_path / "sig.json")
+    data = json.loads((docs / "ncaam_ledger.json").read_text())
+    assert "stage_cards" not in data
+    assert "disagreements" not in data
+    p = data["plays"][0]
+    for f in MODEL_FIELDS:
+        assert f not in p, f
+    for f in ("p_model", "p_true", "p_fair", "p_push", "model_margin", "ev", "inputs_sha256"):
+        assert f not in p, f
+    html = (docs / "ncaam.html").read_text()
+    for s in BANNED:
+        assert s not in html, s
 
 
 def test_ncaam_lab_has_no_method_text(tmp_path, monkeypatch):

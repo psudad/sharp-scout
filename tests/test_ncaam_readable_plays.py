@@ -55,7 +55,7 @@ def test_ledger_renders_readable_plays() -> None:
 def test_locks_render_readable_plays() -> None:
     html = _render_locks({"locks": [SPREAD_HOME]})
     assert "<b>Iona +1 (-110)</b>" in html
-    assert "Caesars" in html and "1u" in html and "Spread" in html
+    assert "Caesars" in html and "1u" in html
     assert "spreads" not in html and "williamhill_us" not in html
 
 

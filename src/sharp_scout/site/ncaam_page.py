@@ -10,13 +10,13 @@ from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT, get_settings
 from sharp_scout.ledger.tracker import compute_record, load_ledger
-from sharp_scout.ncaam.rules import RULES
 from sharp_scout.site.bottom_bar import (
     BOTTOM_BAR_SCRIPT,
     bottom_bar_css,
     render_bottom_bar,
     render_slip_overlay,
 )
+from sharp_scout.site.build import _remove_unpublished_docs, public_ledger
 from sharp_scout.site.site_nav import NAV_TEST_BADGE_CSS, render_site_tabs
 
 DOCS_DIR = ROOT / "docs"
@@ -43,14 +43,6 @@ def _load_signals(path: Path | None = None) -> dict[str, Any]:
         except json.JSONDecodeError:
             pass
     return {}
-
-
-def _pct(x: Any) -> str:
-    try:
-        v = float(x)
-    except (TypeError, ValueError):
-        return "—"
-    return f"{min(v, RULES.p_true_display_cap) * 100:.1f}%"
 
 
 def _fmt_et(iso: str | None) -> str:
@@ -206,32 +198,23 @@ def _render_locks(signals: dict[str, Any]) -> str:
         return (
             '<div class="ncaam-empty">'
             "<p><b>No locked plays yet today.</b></p>"
-            "<p>Picks lock once per game between T-90 and T-25 minutes before tip "
-            "(late window through T-5).</p></div>"
+            "<p>Locked plays appear here once they are posted for today&apos;s slate.</p></div>"
         )
     rows = []
     for p in locks:
         away = _esc(p.get("away_team") or "")
         home = _esc(p.get("home_team") or "")
-        ev = p.get("ev")
-        note = p.get("note")
-        note_cell = f'<br><small class="phase-note">{_esc(note)}</small>' if note else ""
-        ev_s = f"{float(ev)*100:.1f}%" if ev is not None else "—"
         rows.append(
             f'<tr><td data-label="Game">{away} @ {home}</td>'
-            f'<td data-label="Play"><b>{_esc(ncaam_play_label(p))}</b>{note_cell}</td>'
-            f'<td data-label="Type">{_esc(ncaam_bet_type(p))}</td>'
+            f'<td data-label="Play"><b>{_esc(ncaam_play_label(p))}</b></td>'
             f'<td data-label="Book">{_esc(ncaam_book_label(p.get("book")))}</td>'
             f'<td data-label="Stake">{_esc(_stake(p))}</td>'
-            f'<td data-label="EV">{ev_s}</td>'
-            f'<td data-label="Model / Fair / Anchor">{_pct(p.get("p_model"))} / {_pct(p.get("p_fair"))} / {_pct(p.get("p_true"))}</td>'
             f'<td data-label="Locked (ET)">{_fmt_et(p.get("locked_at"))}</td>'
             f'<td data-label="Tip (ET)">{_fmt_et(p.get("tip"))}</td></tr>'
         )
     return (
         '<div class="table-wrap"><table class="export-table plays-table">'
-        "<thead><tr><th>Game</th><th>Play</th><th>Type</th><th>Book</th><th>Stake</th><th>EV</th>"
-        "<th>Model / Fair / Anchor</th>"
+        "<thead><tr><th>Game</th><th>Play</th><th>Book</th><th>Stake</th>"
         "<th>Locked (ET)</th><th>Tip (ET)</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
@@ -315,7 +298,10 @@ def build_ncaam_page(
         updated=updated,
     )
     (out / "ncaam.html").write_text(html)
-    (out / "ncaam_ledger.json").write_text(json.dumps(ledger, indent=2, default=str) + "\n")
+    _remove_unpublished_docs(out)
+    (out / "ncaam_ledger.json").write_text(
+        json.dumps(public_ledger(ledger), indent=2, default=str) + "\n"
+    )
     rec = ncaam_record(ledger, path=ledger_path)
     (out / "ncaam_record.json").write_text(json.dumps(rec, indent=2, default=str) + "\n")
     return out / "ncaam.html"

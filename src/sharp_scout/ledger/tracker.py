@@ -160,8 +160,10 @@ def append_signals(
             "line": s.get("line"),
             "book": s.get("book"),
             "price": s.get("price"),
-            "units": units_for_tier(s.get("tier") or "lean"),
+            "units": float(s["units"]) if s.get("units") else units_for_tier(s.get("tier") or "lean"),
             "tier": s.get("tier") or "lean",
+            "pro_confirmed": s.get("pro_confirmed") or None,
+            "pro_signals": s.get("pro_signals") or None,
             "edge": s.get("edge"),
             "p_true": s.get("p_true"),
             "p_mkt": s.get("p_mkt"),
@@ -219,6 +221,8 @@ def append_signals(
                         "price",
                         "rationale",
                         "sport",
+                        "pro_confirmed",
+                        "pro_signals",
                     ):
                         if row.get(field) is not None:
                             p[field] = row[field]

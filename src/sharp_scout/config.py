@@ -182,6 +182,38 @@ class Settings(BaseSettings):
     product_research_shadow_lanes: str = "ncaaf:spreads"
     # Per narrow-lane EV floors as sport:market:min (comma-separated). Unlisted lanes use product_ev_min.
     product_narrow_lane_ev_mins: str = "nfl:spreads:0.03"
+    # Nov 2026 high-confidence rules (bettable books, public-side veto, NFL price-only).
+    # PRODUCT_HC_RULES_ENABLED=false restores the prior gate in one switch.
+    product_hc_rules_enabled: bool = True
+    # Books we can actually bet. LOCKED plays must be priced at one of these (empty = any book).
+    product_bettable_books: str = "fanduel"
+    # Never LOCK the side holding this share of tickets or more. Action PRO closing data
+    # 2024-26: NCAAF spread public sides (>=65% tickets, no sharp money) went 322-371
+    # (46.5%, -11% ROI) and lost every season; our own model on the public side went
+    # 313-402 across NFL + NCAAF stage cards in 2026. None disables the veto. Totals are
+    # excluded: NCAAF total public sides closed at -3.9% ROI, no worse than every side (-4.6%).
+    product_public_side_veto_tickets: float | None = 0.65
+    product_public_side_veto_markets: str = "spreads"
+    # NFL LOCKED plays are price-only: nothing in three seasons of PRO signals beat the NFL
+    # close, so require EV against the Pinnacle no-vig fair itself (model tilt excluded).
+    product_nfl_min_ev_vs_fair: float | None = 0.02
+    # Non-PRO NCAAF totals (Phase-4 money gap / RLM lane) post at this unit size: the
+    # money-gap + RLM pattern was 55% over 2024-26 but lost in 2024.
+    product_ncaaf_totals_lane_units: float = 0.75
+
+    # Action PRO tier — Action Network PRO Report signals (needs a PRO ACTION_NETWORK_TOKEN).
+    # NCAAF totals with Sharp Action + Action power-rating edge >= 3 pts on the same side
+    # went 97-70 (58.1%, +11% ROI at the closing price) and won in each of 2024, 2025, 2026.
+    # The same combination lost on spreads (43.7%), so the tier is totals-only.
+    pro_tier_enabled: bool = True
+    pro_tier_lanes: str = "ncaaf:totals"
+    pro_tier_min_model_edge: float = 3.0
+    # Price check at the bettable book vs the Pinnacle no-vig fair shifted to its line.
+    # The backtest was graded at the closing price (~-110), so allow standard vig, not worse.
+    pro_tier_min_price_vs_fair: float = -0.03
+    # Historical hit-rate lift over fair used for p_true / EV display (58% vs ~50% fair).
+    pro_tier_prob_lift: float = 0.04
+    pro_tier_units: float = 1.5
 
     # QA promote — post these on the LOCKED card (same rule NFL + NCAAF).
     qa_promote_single_book_totals: bool = True

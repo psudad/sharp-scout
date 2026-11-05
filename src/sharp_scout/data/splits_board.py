@@ -70,6 +70,20 @@ def build_market_board(
     away_team: str,
 ) -> dict[str, Any]:
     """One market row group (spread / total / moneyline) with AN-style diffs."""
+    board = _build_market_board(block, market=market, home_team=home_team, away_team=away_team)
+    pro = block.get("pro_signals") or {}
+    for side, row in board["sides"].items():
+        row["pro_signals"] = list(pro.get(side) or [])
+    return board
+
+
+def _build_market_board(
+    block: dict[str, Any],
+    *,
+    market: MarketKey,
+    home_team: str,
+    away_team: str,
+) -> dict[str, Any]:
     if market == "spread":
         sides = {
             "home": _side_row(

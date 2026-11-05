@@ -300,11 +300,24 @@ def _filter_qa_held_plays(plays: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [p for p in plays if (p.get("status") or "") in _QA_HELD_STATUSES]
 
 
+def _dedupe_held_plays(plays: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One row per game/market/side (latest wins): pipeline reruns re-log the same bet
+    at new books/lines, which inflated the NCAAF held record ~4x (611 rows, 153 bets)."""
+    latest: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for p in plays:
+        key = (str(p.get("event_id") or ""), str(p.get("market") or ""), str(p.get("side") or ""))
+        prev = latest.get(key)
+        if prev is None or str(p.get("created_at") or "") >= str(prev.get("created_at") or ""):
+            latest[key] = p
+    return list(latest.values())
+
+
 def _qa_held_week_summary(plays: list[dict[str, Any]]) -> dict[str, Any]:
     """Win/loss for QA-held plays using shadow grades (full recommended units)."""
     wins = losses = pushes = 0
     pnl = 0.0
     open_n = 0
+    plays = _dedupe_held_plays(plays)
     for p in plays:
         st = p.get("shadow_status")
         if st in ("win", "loss", "push"):
@@ -1772,6 +1785,7 @@ def _render_quarantine_section(plays: list[dict], *, sport: str = "nfl") -> str:
     """QA Watchlist — aired for tracking; not on the LOCKED card."""
     if not plays:
         return ""
+    plays = _dedupe_held_plays(plays)
     summary = _qa_held_week_summary(plays)
     rec = summary.get("record") or "0-0"
     wp = (
@@ -1911,6 +1925,8 @@ def _render_play_table(
             tr_cls = ""
         search_attrs = _search_attrs(away, home, sport=sport, event_id=p.get("event_id"))
         pick_label = _esc(_side_label(p))
+        if p.get("pro_confirmed"):
+            pick_label = f'<span class="lock-badge-inline" title="Action PRO tier">PRO</span> {pick_label}'
         if mark_locked:
             pick_label = f'<span class="lock-badge-inline">LOCKED</span> {pick_label}'
         # data-label drives the stacked card layout on phones (see .plays-table rules).

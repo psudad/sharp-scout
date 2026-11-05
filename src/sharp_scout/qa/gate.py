@@ -255,7 +255,8 @@ def _duplicate_p_true_clusters(signals: dict[str, Any]) -> set[float]:
     play_groups: dict[tuple, list[float]] = defaultdict(list)
     for s in signals.get("signals") or []:
         pt = s.get("p_true")
-        if pt is not None:
+        # PRO-tier p_true is market fair + a fixed lift, so equal prices collide by design.
+        if pt is not None and not s.get("pro_confirmed"):
             key = (
                 str(s.get("event_id")),
                 str(s.get("market")),
@@ -429,7 +430,7 @@ def review_play(
             )
 
     pt = play.get("p_true")
-    if pt is not None and round(float(pt), 4) in dup_p_true:
+    if pt is not None and not play.get("pro_confirmed") and round(float(pt), 4) in dup_p_true:
         issues.append(
             QAIssue(
                 "duplicate_p_true",

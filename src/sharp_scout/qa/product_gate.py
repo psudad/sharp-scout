@@ -21,7 +21,15 @@ from datetime import datetime, timezone
 
 from sharp_scout.config import get_settings
 from sharp_scout.qa.gate import _count_books_on_market, _split_board
-from sharp_scout.utils.odds import american_to_implied_prob
+from sharp_scout.qa.pro_tier import (
+    PRO_TIER_FLAG,
+    bettable_books,
+    parse_pro_tier_lanes,
+    price_vs_fair,
+    pro_tier_reasons,
+    side_pro_signals,
+)
+from sharp_scout.utils.odds import american_to_implied_prob, expected_value
 from sharp_scout.utils.slate import parse_commence
 
 SHADOW_MARKET_NOTE = "shadow market"
@@ -431,9 +439,113 @@ def _hours_until_kickoff(play: dict[str, Any], *, now: datetime | None = None) -
 
 
 def has_high_confidence_booster(play: dict[str, Any]) -> bool:
-    """Both money-ticket gap and RLM fired in Phase 4 — ranking only, never certifies alone."""
+    """PRO tier, or money-ticket gap and RLM both fired in Phase 4 — ranking only."""
+    if play.get(PRO_TIER_FLAG):
+        return True
     flags = play.get("flags") or {}
     return bool(flags.get("money_split") and flags.get("rlm"))
+
+
+_BOARD_SIDE_MARKET = {"totals": "total", "spreads": "spread", "h2h": "moneyline"}
+
+
+def _public_side_veto(
+    play: dict[str, Any], signals: dict[str, Any] | None, settings: Any
+) -> list[str]:
+    if not settings.product_hc_rules_enabled:
+        return []
+    limit = settings.product_public_side_veto_tickets
+    markets = {m.strip() for m in (settings.product_public_side_veto_markets or "").split(",") if m.strip()}
+    if limit is None or not signals or str(play.get("market") or "") not in markets:
+        return []
+    sb = _split_board(signals, play)
+    if not sb or not sb.get("available"):
+        return []
+    mkt = (sb.get("markets") or {}).get(_BOARD_SIDE_MARKET.get(str(play.get("market")), "")) or {}
+    row = (mkt.get("sides") or {}).get(str(play.get("side") or "")) or {}
+    tickets = row.get("tickets_pct")
+    if tickets is None or float(tickets) < limit:
+        return []
+    return [
+        f"public side: {float(tickets):.0%} of tickets on our side (veto at ≥{limit:.0%})"
+    ]
+
+
+def _bettable_book_reasons(play: dict[str, Any], settings: Any) -> list[str]:
+    if not settings.product_hc_rules_enabled:
+        return []
+    books = bettable_books(settings)
+    book = str(play.get("book") or "").lower()
+    if not books or book in books:
+        return []
+    return [f"book {book or '?'} is not bettable (allowed: {', '.join(sorted(books))})"]
+
+
+def _current_signal(play: dict[str, Any], signals: dict[str, Any] | None) -> dict[str, Any]:
+    """Latest-run signal row for this play (same book/line), else the play itself."""
+    if signals:
+        eid, mkt, side = (str(play.get(k) or "") for k in ("event_id", "market", "side"))
+        book, line = play.get("book"), play.get("line")
+        for s in signals.get("signals") or []:
+            if (
+                str(s.get("event_id") or "") == eid
+                and str(s.get("market") or "") == mkt
+                and str(s.get("side") or "") == side
+                and s.get("book") == book
+                and s.get("line") == line
+            ):
+                return s
+    return play
+
+
+def _nfl_price_reasons(
+    play: dict[str, Any], signals: dict[str, Any] | None, settings: Any
+) -> list[str]:
+    floor = settings.product_nfl_min_ev_vs_fair
+    if floor is None or not settings.product_hc_rules_enabled:
+        return []
+    cur = _current_signal(play, signals)
+    pf, price = cur.get("p_fair"), cur.get("price")
+    if pf is None or price is None:
+        return ["NFL: no Pinnacle no-vig fair to price against"]
+    ev_fair = expected_value(float(pf), float(price))
+    if ev_fair < floor:
+        return [
+            f"NFL price-only: EV vs Pinnacle no-vig {ev_fair:+.1%} < {floor:+.0%} "
+            f"at {cur.get('book')} {float(price):+.0f}"
+        ]
+    return []
+
+
+def _evaluate_pro_tier_play(
+    play: dict[str, Any],
+    *,
+    sport: str,
+    settings: Any,
+    signals: dict[str, Any] | None,
+) -> ProductGateResult:
+    """PRO tier: signals still on the board, bettable price near fair, not the public side."""
+    reasons: list[str] = []
+    market = str(play.get("market") or "")
+    if (str(sport).lower(), market) not in parse_pro_tier_lanes(settings):
+        reasons.append(f"PRO tier not enabled for {sport}:{market}")
+    if market in shadow_markets(settings):
+        reasons.append(f"{SHADOW_MARKET_NOTE}: {market} is tracked on the watchlist, not posted")
+    reasons.extend(_bettable_book_reasons(play, settings))
+    if signals is not None:
+        ours, _theirs = side_pro_signals(_split_board(signals, play), market, str(play.get("side") or ""))
+        reasons.extend(pro_tier_reasons(ours, settings=settings))
+    value = price_vs_fair(_current_signal(play, signals))
+    if value is None:
+        reasons.append("no Pinnacle no-vig fair at our line")
+    elif value < settings.pro_tier_min_price_vs_fair:
+        reasons.append(
+            f"price {float(play.get('price') or 0):+.0f} is {-value:.1%} worse than no-vig fair "
+            f"(PRO tier limit {-settings.pro_tier_min_price_vs_fair:.0%})"
+        )
+    if reasons:
+        return ProductGateResult(False, tuple(reasons))
+    return ProductGateResult(True, ())
 
 
 def apply_high_confidence_flag(play: dict[str, Any]) -> None:
@@ -532,6 +644,11 @@ def _evaluate_narrow_lane_play(
             f"Pinnacle no-vig {pin_fair:.1%} on our side < {settings.product_p_fair_min:.0%}"
         )
 
+    reasons.extend(_bettable_book_reasons(play, settings))
+    reasons.extend(_public_side_veto(play, signals, settings))
+    if sport == "nfl":
+        reasons.extend(_nfl_price_reasons(play, signals, settings))
+
     if reasons:
         return ProductGateResult(False, tuple(reasons))
     return ProductGateResult(True, ())
@@ -548,6 +665,9 @@ def evaluate_product_play(
     settings = get_settings()
     if not settings.product_gate_enabled:
         return ProductGateResult(True, ())
+
+    if play.get(PRO_TIER_FLAG):
+        return _evaluate_pro_tier_play(play, sport=sport, settings=settings, signals=signals)
 
     if settings.product_narrow_lanes_enabled:
         market = str(play.get("market") or "")
@@ -626,6 +746,11 @@ def evaluate_product_play(
     if market in shadow_markets(settings):
         reasons.append(f"{SHADOW_MARKET_NOTE}: {market} is tracked on the watchlist, not posted")
 
+    reasons.extend(_bettable_book_reasons(play, settings))
+    reasons.extend(_public_side_veto(play, signals, settings))
+    if sport == "nfl":
+        reasons.extend(_nfl_price_reasons(play, signals, settings))
+
     if reasons:
         return ProductGateResult(False, tuple(reasons))
     return ProductGateResult(True, ())
@@ -657,15 +782,20 @@ def select_certified_plays(
     if settings.product_narrow_lanes_enabled and lanes:
         passed = [p for p in passed if in_narrow_lane(p, sport, lanes)]
 
-        def _sort_key(x: dict[str, Any]) -> tuple[int, int, float]:
+        def _sort_key(x: dict[str, Any]) -> tuple[int, int, int, float]:
+            pro = 0 if x.get(PRO_TIER_FLAG) else 1
             rank = narrow_lane_rank(x, sport, lanes)
             boost = 0 if x.get("high_confidence") else 1
-            return (rank if rank is not None else 999, boost, -float(x.get("edge") or 0))
+            return (pro, rank if rank is not None else 999, boost, -float(x.get("edge") or 0))
 
         passed.sort(key=_sort_key)
     else:
         passed.sort(
-            key=lambda x: (is_whitelisted(x, sport, settings), float(x.get("edge") or 0)),
+            key=lambda x: (
+                bool(x.get(PRO_TIER_FLAG)),
+                is_whitelisted(x, sport, settings),
+                float(x.get("edge") or 0),
+            ),
             reverse=True,
         )
 
@@ -675,7 +805,16 @@ def select_certified_plays(
         else settings.product_max_plays_nfl
     )
 
-    return _best_per_event_market(passed, cap=cap)
+    selected = _best_per_event_market(passed, cap=cap)
+    for s in selected:
+        if (
+            settings.product_hc_rules_enabled
+            and sport == "ncaaf"
+            and s.get("market") == "totals"
+            and not s.get(PRO_TIER_FLAG)
+        ):
+            s["units"] = settings.product_ncaaf_totals_lane_units
+    return selected
 
 
 def select_shadow_plays(

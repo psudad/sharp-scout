@@ -23,8 +23,12 @@ from sharp_scout.utils.odds import normalize_team
 
 logger = logging.getLogger(__name__)
 
-# Public-betting endpoint carries ticket/money bet_info per book.
-SCOREBOARD_TMPL = "https://api.actionnetwork.com/web/v2/scoreboard/publicbetting/{league}"
+# PRO-report scoreboard: same per-book ticket/money bet_info as /publicbetting, plus a
+# per-game ``pro_report`` (Sharp Action, Big Money, PRO Systems, model edge, experts).
+# Anonymous requests only get pro_report on AN's free games; a PRO token unlocks all.
+SCOREBOARD_TMPL = "https://api.actionnetwork.com/web/v2/scoreboard/proreport/{league}"
+
+_PRO_MARKETS = {"spread": ("home", "away"), "total": ("over", "under"), "moneyline": ("home", "away")}
 
 # Books that commonly include public betting bet_info (DK, FanDuel, Caesars, etc.)
 DEFAULT_BOOK_IDS = "15,30,255,3547,280,3,11,14,4727,4795,68,122"
@@ -192,8 +196,11 @@ class ActionNetworkClient:
         games = self.fetch_scoreboard()
         with_money = 0
         with_tickets = 0
+        with_pro = 0
         samples: list[dict[str, Any]] = []
         for g in games:
+            if any((g.get("markets") or {}).get(m, {}).get("pro_signals") for m in _PRO_MARKETS):
+                with_pro += 1
             spread = (g.get("markets") or {}).get("spread") or {}
             if spread.get("home_money_pct") is not None or spread.get("away_money_pct") is not None:
                 with_money += 1
@@ -217,6 +224,9 @@ class ActionNetworkClient:
             "games_with_ticket_pct": with_tickets,
             "games_with_money_pct": with_money,
             "pro_splits_ready": with_money > 0 and with_tickets > 0,
+            "games_with_pro_report": with_pro,
+            # Anonymous access only sees AN's free games; PRO auth covers the whole slate.
+            "pro_report_unlocked": bool(games) and with_pro == len(games),
             "samples": samples,
             "hint": (
                 "Money + ticket % found — Phase 4 filter can run."
@@ -272,6 +282,9 @@ class ActionNetworkClient:
         away = normalize_team(self._team_name(away_t), self.norm_sport)
 
         markets = self._extract_markets(g, home_id=home_id, away_id=away_id)
+        for mkey, signals in parse_pro_report(g.get("pro_report")).items():
+            if mkey in markets and isinstance(markets[mkey], dict):
+                markets[mkey]["pro_signals"] = signals
         return {
             "game_id": str(g.get("id") or g.get("game_id") or ""),
             "start_time": g.get("start_time") or g.get("start"),
@@ -419,6 +432,37 @@ class ActionNetworkClient:
             if o.get("value") is not None:
                 block["current_line"] = float(o["value"])
         return block
+
+
+def parse_pro_report(pro_report: Any) -> dict[str, dict[str, list[dict[str, Any]]]]:
+    """``pro_report`` → {market: {side: [signal, ...]}} with flat, typed signal rows."""
+    out: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    if not isinstance(pro_report, dict):
+        return out
+    for mkey, sides in _PRO_MARKETS.items():
+        block = pro_report.get(mkey)
+        if not isinstance(block, dict):
+            continue
+        per_side: dict[str, list[dict[str, Any]]] = {}
+        for side in sides:
+            rows = []
+            for s in block.get(side) or []:
+                if not isinstance(s, dict) or not s.get("signal_type"):
+                    continue
+                meta = s.get("meta") if isinstance(s.get("meta"), dict) else {}
+                rows.append(
+                    {
+                        "type": str(s["signal_type"]),
+                        "strength": s.get("strength"),
+                        "explanation": s.get("explanation"),
+                        "steam_moves": meta.get("steam_moves"),
+                        "reverse_line_moves": meta.get("reverse_line_moves"),
+                        "edge": meta.get("edge"),
+                    }
+                )
+            per_side[side] = rows
+        out[mkey] = per_side
+    return out
 
 
 def _bet_info_pcts(bet_info: Any) -> tuple[float | None, float | None]:

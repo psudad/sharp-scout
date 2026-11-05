@@ -237,6 +237,15 @@ def run_ncaaf_pipeline(
     from sharp_scout.data.splits_board import build_slate_split_boards
 
     split_boards = build_slate_split_boards(events, splits, sport="ncaaf")
+    from sharp_scout.qa.pro_tier import build_pro_tier_candidates
+
+    pro_candidates = build_pro_tier_candidates(
+        events, split_boards, sport="ncaaf", game_results=game_results
+    )
+    if pro_candidates:
+        logger.info("Action PRO tier: %d NCAAF candidate sides", len(pro_candidates))
+        all_signals.extend(pro_candidates)
+        validated.extend(pro_candidates)
     for g in game_results:
         eid = str(g.get("event_id"))
         cards_for = [c for c in stage_cards if c["event_id"] == eid]

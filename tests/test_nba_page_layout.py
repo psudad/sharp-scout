@@ -10,7 +10,10 @@ from sharp_scout.site.nba_page import (
     OFFICIAL_PACE_MARKET_KINDS,
     PACE_LEAN_MIN_EDGE_PT,
     PACE_SPREAD_SHADOW_KINDS,
+    PACE_SPREAD_SHADOW_SECTION_LABEL,
+    PLAY_BADGE_LABEL,
     SCORE_MODELING_MIN_EDGE_PT,
+    TRACKING_ONLY_BADGE_LABEL,
     _injury_list_summary,
     format_projected_scores_line,
     render_nba_page_html,
@@ -94,6 +97,36 @@ def test_official_pace_display_plays_are_totals_only():
     assert "NYK" in spread_shadow[0]["title"] or "BOS" in spread_shadow[0]["title"]
 
 
+def test_spread_shadow_cards_use_tracking_badge_not_play():
+    today_kick = datetime.combine(datetime.now(ET).date(), time(19, 0), tzinfo=ET).isoformat()
+    score_rows = [
+        {
+            "away": "BOS",
+            "home": "NYK",
+            "kickoff": today_kick,
+            "margin": 10.0,
+            "total": 230.0,
+            "injury_margin": 10.0,
+            "injury_total": 230.0,
+            "home_absences": [],
+            "away_absences": [],
+            "lines": {"consensus_spread_home": -3.0, "consensus_total": 220.0},
+        }
+    ]
+    html = render_nba_page_html(
+        signals_payload={"ok": True, "demo": False, "generated_at": "2026-10-26T12:00:00+00:00", "signals": [], "possible_signals": []},
+        ledger={"plays": []},
+        report={},
+        analytics_head="",
+        score_model_rows=score_rows,
+        score_model_summary={"n_graded": 0},
+    )
+    shadow_start = html.index(PACE_SPREAD_SHADOW_SECTION_LABEL)
+    spread_shadow_block = html[shadow_start : html.index("Near-miss tracking")]
+    assert TRACKING_ONLY_BADGE_LABEL in spread_shadow_block
+    assert f'badge-play">{PLAY_BADGE_LABEL}' not in spread_shadow_block
+
+
 def test_render_nba_page_official_upcoming_excludes_spread_candidates():
     today_kick = datetime.combine(datetime.now(ET).date(), time(19, 0), tzinfo=ET).isoformat()
     score_rows = [
@@ -119,9 +152,9 @@ def test_render_nba_page_official_upcoming_excludes_spread_candidates():
         score_model_summary={"n_graded": 0},
     )
     official_start = html.index("Upcoming plays (official card — totals only)")
-    shadow_start = html.index("Spread tracking (shadow)")
+    shadow_start = html.index(PACE_SPREAD_SHADOW_SECTION_LABEL)
     official_block = html[official_start:shadow_start]
-    spread_shadow_block = html[shadow_start : html.index("Watch List, projections")]
+    spread_shadow_block = html[shadow_start : html.index("Near-miss tracking")]
     assert "Over 220" in official_block
     assert "NYK -3" not in official_block and "NYK +3" not in official_block
     assert "BOS +3" not in official_block
@@ -226,10 +259,11 @@ def test_render_nba_page_price_edge_and_score_modeling_sections():
     assert "nba-props.html" not in html
     assert "nav-test-badge" in html
     assert "WAS @ CHA: Over 227.5" in html
-    assert "Tonight's play" in html or "nba-day-heading" in html
+    assert f'tier-badge badge-play">{PLAY_BADGE_LABEL}' in html
+    assert "Tonight&apos;s play" not in html
     assert "DAL @ MIA: Under 240.75" in html
     assert "Projections &amp; detail" in html
-    assert "Watch List, projections &amp; history" in html
+    assert "Near-miss tracking (not bets), projections &amp; history" in html
     assert "Player props (separate)" not in html
     assert "nba-rec-chip" in html
     assert "Export tables" not in html.split("Diagnostics")[0]

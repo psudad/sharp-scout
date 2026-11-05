@@ -846,6 +846,24 @@
   .nba-section-details > summary::-webkit-details-marker { display: none; }
   .nba-leans-block { padding: 4px 0 0; }
   .nba-leans-empty { font-size: 13px; margin: 0 0 8px; }
+  .nba-tracking-block {
+    border: 1px dashed #cbd5e1; background: #f8fafc; padding: 12px 12px 4px; margin: 0 0 16px;
+  }
+  .nba-tracking-block .section-label { color: #64748b; }
+  .sharp-tracking {
+    border-left-color: #94a3b8; background: #f8fafc; border-color: #e2e8f0;
+  }
+  .sharp-tracking .play-title {
+    color: #475569; font-weight: 600; font-size: clamp(17px, 4.2vw, 22px);
+  }
+  .sharp-tracking .nba-card-tip { color: #64748b; }
+  .badge-tracking {
+    background: #e2e8f0; color: #475569; border-color: #cbd5e1;
+    font-size: 9px; letter-spacing: .04em; line-height: 1.35; max-width: 11rem;
+    white-space: normal; text-transform: none;
+  }
+  .nba-tracking-units { font-size: 10px; color: #64748b; }
+  .badge-play { font-weight: 700; letter-spacing: .12em; }
   .nba-picks-empty {
     border: 2px solid var(--color-border); background: var(--color-bg);
     padding: 16px 14px; margin: 0 0 12px; line-height: 1.55; font-size: 15px;
@@ -939,20 +957,21 @@
     <div class="nba-rec-chip"><span class="nba-rec-chip-label">Official card · 2026-10-25 – 2026-11-04 ET</span><strong class="nba-rec-chip-record">21-18</strong><span class="nba-rec-chip-meta">53.8% win · +1.09u</span></div>
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays (official card — totals only)</div>
+      <p class="nba-section-note">Qualifying totals show a <strong>Play</strong> badge — the only rows meant as paper plays.</p>
       <p class="nba-picks-empty nba-picks-empty-soft" role="status">Waiting for today&apos;s lines from the odds scan (next scan Thu Nov 5, 1:07 PM ET).</p>
     </div>
-    <div class="nba-pace-spread-shadow" aria-labelledby="pace-spread-shadow-heading">
-      <div class="section-label" id="pace-spread-shadow-heading">Spread tracking (shadow)</div>
-      <p class="nba-section-note">Spread Pace projections are tracked here only — not on the official card or season record.</p>
+    <div class="nba-pace-spread-shadow nba-tracking-block" aria-labelledby="pace-spread-shadow-heading">
+      <div class="section-label" id="pace-spread-shadow-heading">Pace spread — tracking only, not bets</div>
+      <p class="nba-section-note">Spread Pace projections are tracking only, not a bet — not on the official card or season record.</p>
       
     </div>
     <div class="nba-pace-shadow" aria-labelledby="pace-shadow-heading"><h3 class="nba-h3" id="pace-shadow-heading">Pace v1 vs v2 shadow (paper only)</h3><p class="nba-section-note">v1 drives the official card. v2 is experimental (shadow only).</p><table class="nba-table"><thead><tr><th>Game</th><th>v1 pick</th><th>v1 gap</th><th>v1 rec</th><th>v2 shadow</th><th>v2 gap</th></tr></thead><tbody><tr><td>ORL @ PHX</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr><tr><td>MIA @ GSW</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table></div>
     <details class="nba-section-details">
-      <summary>Watch List, projections &amp; history</summary>
+      <summary>Near-miss tracking (not bets), projections &amp; history</summary>
       <p class="nba-section-note">Secondary auto-track: 30-36-1 (-8.73u), alt 33-38 (-8.00u); 56 pick-rows in store vs 39 official card plays.</p>
-      <div class="nba-leans-block">
-        <div class="section-label">Watch List</div>
-        <p class="nba-section-note">Tracking only, not part of the official record.</p>
+      <div class="nba-leans-block nba-tracking-block">
+        <div class="section-label">Near-miss tracking (not bets)</div>
+        <p class="nba-section-note">These spots did not qualify for the official card. Tracking only, not a bet — not part of the season record.</p>
         <p class="nba-picks-empty nba-picks-empty-soft" role="status">Waiting for today&apos;s lines from the odds scan (next scan Thu Nov 5, 1:07 PM ET).</p>
       </div>
       <div class="section-label">Today&apos;s slate projections</div>
@@ -974,12 +993,14 @@
     <p class="nba-section-note">Spreads and totals only. Oct 24–26 ET includes pre-window shadow testing; configured paper window starts 2026-11-02.</p>
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays</div>
+      <p class="nba-section-note">Qualifying picks show a <strong>Play</strong> badge with stake units.</p>
       <div class="nba-picks-empty" role="status"><p><strong>No NBA price-edge picks yet today.</strong></p><p class="nba-picks-empty-sub">Last updated Wed Nov 4, 6:35 PM ET. Next scan Thu Nov 5, 1:07 PM ET (weekdays 1:07 PM ET (4:07 PM backup) &amp; weekends 9:07 AM ET (11:07 AM backup)).</p></div>
     </div>
     <details class="nba-section-details">
       <summary>Leans &amp; graded history</summary>
-      <div class="nba-leans-block">
-        <div class="section-label">Leans (near-miss EV, 0u)</div>
+      <div class="nba-leans-block nba-tracking-block">
+        <div class="section-label">Near-miss Sharp Scout (tracking only, not bets)</div>
+        <p class="nba-section-note">Tracking only, not a bet — 0u paper tracking, not posted plays.</p>
         <p class="empty nba-leans-empty">No Sharp Scout leans today — near-miss EV spots will show here.</p>
       </div>
       <div class="section-label">Results tracking (game lines)</div>

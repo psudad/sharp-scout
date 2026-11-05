@@ -43,10 +43,15 @@ NBA_BOOK_LABELS = {
 # Matches score-model paper grading bucket ge_3 in summarize_score_paper (display only).
 SCORE_MODELING_MIN_EDGE_PT = 3.0
 PACE_LEAN_MIN_EDGE_PT = 1.5
-PACE_WATCH_LIST_LABEL = "Watch List"
+PLAY_BADGE_LABEL = "Play"
+TRACKING_ONLY_BADGE_LABEL = "Tracking only, not a bet"
+PACE_WATCH_LIST_LABEL = "Near-miss tracking (not bets)"
 PACE_WATCH_LIST_NOTE = (
-    "Tracking only, not part of the official record."
+    "These spots did not qualify for the official card. "
+    f"{TRACKING_ONLY_BADGE_LABEL} — not part of the season record."
 )
+PACE_SPREAD_SHADOW_SECTION_LABEL = "Pace spread — tracking only, not bets"
+SHARP_LEANS_SECTION_LABEL = "Near-miss Sharp Scout (tracking only, not bets)"
 
 
 def _esc(s: Any) -> str:
@@ -600,14 +605,9 @@ def _slate_reference_date(now: datetime | None = None) -> date:
     return (now or datetime.now(ET)).astimezone(ET).date()
 
 
-def _play_tier_badge_label(kickoff: Any, *, reference: date | None = None) -> str:
-    day = kickoff_date_et(kickoff)
-    ref = reference or _slate_reference_date()
-    if day == ref:
-        return "Tonight's play"
-    if day == ref + timedelta(days=1):
-        return "Tomorrow's play"
-    return "Slate play"
+def _play_badge_label() -> str:
+    """Badge text for qualifying paper plays (not tracking / shadow rows)."""
+    return PLAY_BADGE_LABEL
 
 
 def _render_et_date_grouped_cards(
@@ -873,12 +873,15 @@ def _render_nba_play_card(
         sub_parts.insert(1, "Prop")
     subtitle = " · ".join(sub_parts)
     if not badge:
-        badge = _play_tier_badge_label(play.get("kickoff"), reference=reference)
+        badge = _play_badge_label()
     tags = _model_sharp_tags(play)
     stake_block = (
         f'<div class="units-badge">{units_s}<span class="nba-stake-dollars">{stake_s}</span></div>'
         if show_stake
-        else '<div class="units-badge nba-lean-units">Lean · 0u</div>'
+        else (
+            '<div class="units-badge nba-lean-units nba-tracking-units">'
+            "0u · not a bet</div>"
+        )
     )
     return f"""
       <div class="play-card {card_cls} nba-pick-card">
@@ -913,7 +916,7 @@ def _render_price_edge_cards(
     def render_one(p: dict[str, Any]) -> str:
         return _render_nba_play_card(
             p,
-            badge=_play_tier_badge_label(p.get("kickoff"), reference=ref),
+            badge=_play_badge_label(),
             badge_cls="badge-play",
             card_cls="sharp-play",
             reference=ref,
@@ -932,9 +935,9 @@ def _render_sharp_lean_cards(
     def render_one(p: dict[str, Any]) -> str:
         return _render_nba_play_card(
             p,
-            badge="Lean",
-            badge_cls="badge-lean",
-            card_cls="sharp-lean",
+            badge=TRACKING_ONLY_BADGE_LABEL,
+            badge_cls="badge-tracking",
+            card_cls="sharp-tracking",
             show_stake=False,
             reference=ref,
         )
@@ -942,11 +945,25 @@ def _render_sharp_lean_cards(
     return _render_et_date_grouped_cards(possible, render_one=render_one, reference=ref)
 
 
-def _render_score_modeling_card(item: dict[str, Any], *, reference: date | None = None) -> str:
+def _score_card_presentation(*, tracking_only: bool) -> tuple[str, str, str]:
+    if tracking_only:
+        return (
+            TRACKING_ONLY_BADGE_LABEL,
+            "badge-tracking",
+            "sharp-tracking nba-tracking-card",
+        )
+    return (PLAY_BADGE_LABEL, "badge-play", "sharp-play")
+
+
+def _render_score_modeling_card(
+    item: dict[str, Any],
+    *,
+    reference: date | None = None,
+    tracking_only: bool = False,
+) -> str:
     kick = format_kickoff_et(item.get("kickoff"))
     day_time = format_kickoff_day_time_et(item.get("kickoff"))
-    ref = reference or _slate_reference_date()
-    badge = _play_tier_badge_label(item.get("kickoff"), reference=ref)
+    badge, badge_cls, card_cls = _score_card_presentation(tracking_only=tracking_only)
     gap = float(item.get("signed_gap") or 0)
     gap_s = f"{gap:+.1f} pt vs consensus"
     secondary = item.get("secondary") or []
@@ -992,10 +1009,10 @@ def _render_score_modeling_card(item: dict[str, Any], *, reference: date | None 
           {stale}
           {extra}"""
     return f"""
-      <div class="play-card sharp-play nba-pick-card nba-score-card">
+      <div class="play-card {card_cls} nba-pick-card nba-score-card">
         <div class="card-top">
           <div class="card-left">
-            <span class="tier-badge badge-play">{_esc(badge)}</span>
+            <span class="tier-badge {badge_cls}">{_esc(badge)}</span>
             <div class="nba-card-tip">{_esc(day_time)}</div>
             <div class="play-title">{_esc(str(item.get("title") or ""))}</div>
             <div class="play-subtitle">{_esc(item.get("game") or "")}</div>
@@ -1013,24 +1030,20 @@ def _render_score_modeling_cards(
     plays: list[dict[str, Any]],
     *,
     reference: date | None = None,
+    tracking_only: bool = False,
 ) -> str:
     ref = reference or _slate_reference_date()
     return _render_et_date_grouped_cards(
         plays,
-        render_one=lambda p: _render_score_modeling_card(p, reference=ref),
+        render_one=lambda p: _render_score_modeling_card(
+            p, reference=ref, tracking_only=tracking_only
+        ),
         reference=ref,
     )
 
 
 def _render_score_lean_card(item: dict[str, Any], *, reference: date | None = None) -> str:
-    html = _render_score_modeling_card(item, reference=reference)
-    return (
-        html.replace("badge-play", "badge-lean", 1)
-        .replace("sharp-play", "sharp-lean", 1)
-        .replace("Tonight's play", PACE_WATCH_LIST_LABEL, 1)
-        .replace("Tomorrow's play", PACE_WATCH_LIST_LABEL, 1)
-        .replace("Slate play", PACE_WATCH_LIST_LABEL, 1)
-    )
+    return _render_score_modeling_card(item, reference=reference, tracking_only=True)
 
 
 def _render_score_lean_cards(
@@ -1905,7 +1918,9 @@ def render_nba_page_html(
         else ""
     )
     pace_spread_shadow_html = (
-        _render_score_modeling_cards(pace_spread_shadow, reference=slate_ref)
+        _render_score_modeling_cards(
+            pace_spread_shadow, reference=slate_ref, tracking_only=True
+        )
         if live_scan and pace_spread_shadow
         else ""
     )
@@ -2041,6 +2056,11 @@ def render_nba_page_html(
         pace_lean_range=f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g}",
         pace_watch_list_label=PACE_WATCH_LIST_LABEL,
         pace_watch_list_note=PACE_WATCH_LIST_NOTE,
+        pace_spread_shadow_section_label=PACE_SPREAD_SHADOW_SECTION_LABEL,
+        sharp_leans_section_label=SHARP_LEANS_SECTION_LABEL,
+        play_badge_label=PLAY_BADGE_LABEL,
+        tracking_only_badge=TRACKING_ONLY_BADGE_LABEL,
+        tracking_only_badge_lower=TRACKING_ONLY_BADGE_LABEL.lower(),
         pace_lines_note=pace_lines_note,
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
@@ -2148,6 +2168,9 @@ def render_nba_props_page_html(
         prop_history_html=prop_history_html,
         prop_picks_table=prop_picks_table,
         prop_possible_table=prop_possible_table,
+        sharp_leans_section_label=SHARP_LEANS_SECTION_LABEL,
+        play_badge_label=PLAY_BADGE_LABEL,
+        tracking_only_badge=TRACKING_ONLY_BADGE_LABEL,
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
     )
@@ -2319,6 +2342,24 @@ _NBA_SHARED_PAGE_CSS = """
   .nba-section-details > summary::-webkit-details-marker {{ display: none; }}
   .nba-leans-block {{ padding: 4px 0 0; }}
   .nba-leans-empty {{ font-size: 13px; margin: 0 0 8px; }}
+  .nba-tracking-block {{
+    border: 1px dashed #cbd5e1; background: #f8fafc; padding: 12px 12px 4px; margin: 0 0 16px;
+  }}
+  .nba-tracking-block .section-label {{ color: #64748b; }}
+  .sharp-tracking {{
+    border-left-color: #94a3b8; background: #f8fafc; border-color: #e2e8f0;
+  }}
+  .sharp-tracking .play-title {{
+    color: #475569; font-weight: 600; font-size: clamp(17px, 4.2vw, 22px);
+  }}
+  .sharp-tracking .nba-card-tip {{ color: #64748b; }}
+  .badge-tracking {{
+    background: #e2e8f0; color: #475569; border-color: #cbd5e1;
+    font-size: 9px; letter-spacing: .04em; line-height: 1.35; max-width: 11rem;
+    white-space: normal; text-transform: none;
+  }}
+  .nba-tracking-units {{ font-size: 10px; color: #64748b; }}
+  .badge-play {{ font-weight: 700; letter-spacing: .12em; }}
   .nba-picks-empty {{
     border: 2px solid var(--color-border); background: var(--color-bg);
     padding: 16px 14px; margin: 0 0 12px; line-height: 1.55; font-size: 15px;
@@ -2414,18 +2455,19 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     {pace_compact_record}
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays (official card — totals only)</div>
+      <p class="nba-section-note">Qualifying totals show a <strong>{play_badge_label}</strong> badge — the only rows meant as paper plays.</p>
       {pace_plays_html}
     </div>
-    <div class="nba-pace-spread-shadow" aria-labelledby="pace-spread-shadow-heading">
-      <div class="section-label" id="pace-spread-shadow-heading">Spread tracking (shadow)</div>
-      <p class="nba-section-note">Spread Pace projections are tracked here only — not on the official card or season record.</p>
+    <div class="nba-pace-spread-shadow nba-tracking-block" aria-labelledby="pace-spread-shadow-heading">
+      <div class="section-label" id="pace-spread-shadow-heading">{pace_spread_shadow_section_label}</div>
+      <p class="nba-section-note">Spread Pace projections are {tracking_only_badge_lower} — not on the official card or season record.</p>
       {pace_spread_shadow_html}
     </div>
     {pace_shadow_html}
     <details class="nba-section-details">
       <summary>{pace_watch_list_label}, projections &amp; history</summary>
       <p class="nba-section-note">{pace_auto_secondary}</p>
-      <div class="nba-leans-block">
+      <div class="nba-leans-block nba-tracking-block">
         <div class="section-label">{pace_watch_list_label}</div>
         <p class="nba-section-note">{pace_watch_list_note}</p>
         {pace_leans_html}
@@ -2445,12 +2487,14 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     <p class="nba-section-note">{sharp_record_note}</p>
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays</div>
+      <p class="nba-section-note">Qualifying picks show a <strong>{play_badge_label}</strong> badge with stake units.</p>
       {sharp_plays_html}
     </div>
     <details class="nba-section-details">
       <summary>Leans &amp; graded history</summary>
-      <div class="nba-leans-block">
-        <div class="section-label">Leans (near-miss EV, 0u)</div>
+      <div class="nba-leans-block nba-tracking-block">
+        <div class="section-label">{sharp_leans_section_label}</div>
+        <p class="nba-section-note">{tracking_only_badge} — 0u paper tracking, not posted plays.</p>
         {sharp_leans_html}
       </div>
       <div class="section-label">Results tracking (game lines)</div>
@@ -2519,12 +2563,14 @@ NBA_PROPS_PAGE_TEMPLATE = """<!DOCTYPE html>
     {props_compact_record}
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays</div>
+      <p class="nba-section-note">Qualifying props show a <strong>{play_badge_label}</strong> badge with stake units.</p>
       {prop_plays_html}
     </div>
     <details class="nba-section-details">
       <summary>Leans &amp; prop history</summary>
-      <div class="nba-leans-block">
-        <div class="section-label">Leans (near-miss EV, 0u)</div>
+      <div class="nba-leans-block nba-tracking-block">
+        <div class="section-label">{sharp_leans_section_label}</div>
+        <p class="nba-section-note">{tracking_only_badge} — 0u paper tracking, not posted plays.</p>
         {prop_leans_html}
       </div>
       <div class="section-label">Graded prop plays</div>

@@ -2418,7 +2418,9 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
-<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2527,7 +2529,9 @@ NBA_PROPS_PAGE_TEMPLATE = """<!DOCTYPE html>
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
-<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

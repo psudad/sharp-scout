@@ -61,10 +61,17 @@ def test_landing_uses_card_layout_not_plays_table(site: Path):
 
 
 def test_all_pages_have_ssq_favicon(site: Path):
-    for page in ("index.html", "board.html", "comments.html"):
+    pages = ("index.html", "board.html", "comments.html", "nba.html", "ncaam.html")
+    for page in pages:
         html = (site / page).read_text()
         assert '<link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">' in html, page
+        assert '<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">' in html, page
+        assert '<link rel="icon" href="favicon.ico" sizes="48x48">' in html, page
+        assert '<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">' in html, page
     assert (site / "assets" / "ssq-logo.svg").exists()
+    assert (site / "assets" / "favicon-32.png").exists()
+    assert (site / "assets" / "apple-touch-icon.png").exists()
+    assert (site / "favicon.ico").exists()
 
 
 def test_win_pct_cell_tiers():

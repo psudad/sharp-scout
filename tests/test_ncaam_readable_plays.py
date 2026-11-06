@@ -57,6 +57,31 @@ def test_locks_render_readable_plays() -> None:
     assert "<b>Iona +1 (-110)</b>" in html
     assert "Caesars" in html and "1u" in html
     assert "spreads" not in html and "williamhill_us" not in html
+    assert 'class="tier-badge badge-play">Play</span>' in html
+    assert "play-card" in html
+    assert "LOCKED" in html
+
+
+def test_tracking_only_is_collapsed() -> None:
+    from sharp_scout.site.ncaam_page import _render_tracking
+
+    html = _render_tracking(
+        {
+            "plays": [
+                {
+                    "status": "no_play",
+                    "away_team": "Army",
+                    "home_team": "Duke",
+                    "reason": "no edge",
+                }
+            ]
+        }
+    )
+    assert "<details" in html and "ncaam-tracking" in html
+    assert "Tracking only, not a bet" in html
+    assert "Army @ Duke" in html
+    assert "no edge" in html
+    assert "Do not play them" in html
 
 
 def test_lab_pick_text_readable() -> None:

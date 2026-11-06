@@ -1,4 +1,4 @@
-"""Blended Jan–Feb NCAAM qualification, line choice, sizing, and daily caps."""
+"""Blended Jan–Feb NCAAM qualification, line choice, and sizing (no daily play/unit cap)."""
 
 from __future__ import annotations
 
@@ -25,11 +25,13 @@ class BlendedRules:
     ml_price_max: float = 200.0
     model_market_gap_max: float = 8.0
     pinnacle_max_age_min: float = 60.0
-    daily_cap_plays: int = 8
+    # Jason-approved Nov 5 2026: no daily play/unit cap — every qualifying pick posts.
+    # None means unlimited (legacy callers may still pass already_plays/already_units).
+    daily_cap_plays: int | None = None
     stake_standard: float = 1.0
     stake_boost: float = 1.5
     max_units_per_play: float = 1.5
-    max_units_per_day: float = 8.0
+    max_units_per_day: float | None = None
     anchor_k_after_dec1: float = 0.15
     anchor_k_early: float = 0.10
     anchor_dec1_et: date = date(2026, 12, 1)
@@ -79,12 +81,14 @@ def hook_tiebreak_score(side: str, line: float) -> int:
     return 0
 
 
-def stake_units(*, ev: float, beat_open: bool, units_already_today: float) -> float:
+def stake_units(*, ev: float, beat_open: bool, units_already_today: float = 0.0) -> float:
     u = RULES.stake_standard
     if ev >= RULES.ev_boost_stake and beat_open:
         u = RULES.stake_boost
     u = min(u, RULES.max_units_per_play)
-    if units_already_today + u > RULES.max_units_per_day:
+    # Daily unit ceiling removed (Nov 5 2026). units_already_today kept for call-site compat.
+    _ = units_already_today
+    if RULES.max_units_per_day is not None and units_already_today + u > RULES.max_units_per_day:
         u = max(0.0, RULES.max_units_per_day - units_already_today)
     return round(u, 2)
 
@@ -96,8 +100,14 @@ def apply_daily_cap(
     already_plays: int = 0,
     already_units: float = 0.0,
 ) -> list[dict]:
-    """Keep top EV plays up to daily cap and 8u (counting plays already locked today)."""
-    if already_plays >= RULES.daily_cap_plays or already_units >= RULES.max_units_per_day:
+    """Rank qualifying candidates by EV (one per game). No daily play/unit cap.
+
+    already_plays / already_units are retained for call-site compat; they only
+    matter if RULES.daily_cap_plays / max_units_per_day are re-enabled.
+    """
+    if RULES.daily_cap_plays is not None and already_plays >= RULES.daily_cap_plays:
+        return []
+    if RULES.max_units_per_day is not None and already_units >= RULES.max_units_per_day:
         return []
     day_rows = [c for c in candidates if c.get("et_day") == et_day.isoformat()]
     day_rows.sort(key=lambda c: (-float(c.get("ev") or 0), -hook_tiebreak_score(
@@ -120,7 +130,7 @@ def apply_daily_cap(
         row = {**c, "units": u}
         out.append(row)
         units += u
-        if len(out) + already_plays >= RULES.daily_cap_plays:
+        if RULES.daily_cap_plays is not None and len(out) + already_plays >= RULES.daily_cap_plays:
             break
     return out
 

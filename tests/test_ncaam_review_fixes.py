@@ -28,16 +28,17 @@ def test_spread_preferred_over_ml_for_same_game():
     assert pick_best_per_game(only_ml)["2"]["market"] == "h2h"
 
 
-def test_daily_cap_counts_plays_locked_in_earlier_passes():
+def test_daily_cap_removed_posts_all_qualifying():
     day = date(2026, 11, 2)
     cands = [
         {"event_id": str(i), "espn_id": str(i), "ev": 0.05, "et_day": day.isoformat(), "side": "home", "line": -3.0}
         for i in range(5)
     ]
-    assert apply_daily_cap(cands, et_day=day, already_plays=8, already_units=8.0) == []
+    # Cap removed: earlier locks do not block new qualifying picks.
+    assert len(apply_daily_cap(cands, et_day=day, already_plays=8, already_units=8.0)) == 5
     picked = apply_daily_cap(cands, et_day=day, already_plays=6, already_units=6.0)
-    assert len(picked) == 2
-    assert sum(p["units"] for p in picked) <= 2.0
+    assert len(picked) == 5
+    assert all(p["units"] == 1.0 for p in picked)
 
 
 def test_budget_floor_uses_last_recorded_remaining(tmp_path, monkeypatch):

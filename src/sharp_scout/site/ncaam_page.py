@@ -16,7 +16,7 @@ from sharp_scout.site.bottom_bar import (
     render_bottom_bar,
     render_slip_overlay,
 )
-from sharp_scout.site.build import _remove_unpublished_docs, public_ledger
+from sharp_scout.site.build import _remove_unpublished_docs, public_ledger, publish_site_icons
 from sharp_scout.site.site_nav import NAV_TEST_BADGE_CSS, render_site_tabs
 
 DOCS_DIR = ROOT / "docs"
@@ -172,51 +172,183 @@ def _render_record(rec: dict[str, Any], ledger: dict[str, Any]) -> str:
     roi = rec.get("roi_pct")
     roi_s = f"{float(roi):+.1f}%" if roi is not None else "—"
     return (
-        f'<div class="ncaam-record">'
-        f'<div class="pr-card"><div class="pr-val">{_esc(record)}</div>'
-        f'<div class="pr-lbl">Season record</div></div>'
-        f'<div class="pr-card"><div class="pr-val {cls}">{pnl_s}u</div>'
-        f'<div class="pr-lbl">Units P&amp;L</div></div>'
-        f'<div class="pr-card"><div class="pr-val">{_esc(roi_s)}</div>'
-        f'<div class="pr-lbl">ROI</div></div>'
-        f'<div class="pr-card"><div class="pr-val">{_esc(clv_pct)}</div>'
-        f'<div class="pr-lbl">CLV beat close</div></div>'
+        f'<div class="summary-grid ncaam-record">'
+        f'<div class="stat-card"><div class="stat-val">{_esc(record)}</div>'
+        f'<div class="stat-label">Season record</div></div>'
+        f'<div class="stat-card"><div class="stat-val {cls}">{pnl_s}u</div>'
+        f'<div class="stat-label">Units P&amp;L</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{_esc(roi_s)}</div>'
+        f'<div class="stat-label">ROI</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{_esc(clv_pct)}</div>'
+        f'<div class="stat-label">CLV beat close</div></div>'
         f"</div>"
     )
 
 
+PLAY_BADGE_LABEL = "Play"
+TRACKING_ONLY_LABEL = "Tracking only, not a bet"
+
+
+def _tip_et_date(p: dict[str, Any]):
+    iso = p.get("tip") or p.get("kickoff") or p.get("commence_time")
+    if not iso:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+        return dt.astimezone(ET).date()
+    except ValueError:
+        return None
+
+
+def _is_official_play(p: dict[str, Any]) -> bool:
+    return bool(p.get("side")) and str(p.get("status") or "").lower() not in _NOT_A_PLAY
+
+
+def _is_tracking_play(p: dict[str, Any]) -> bool:
+    st = str(p.get("status") or "").lower()
+    if st in _NOT_A_PLAY or st in {"lean", "shadow", "near_miss"}:
+        return True
+    return False
+
+
+def _dedupe_key(p: dict[str, Any]) -> tuple:
+    return (
+        str(p.get("id") or p.get("event_id") or p.get("espn_id") or ""),
+        str(p.get("away_team") or ""),
+        str(p.get("home_team") or ""),
+        str(p.get("market") or ""),
+        str(p.get("side") or p.get("selection") or ""),
+        str(p.get("line") or ""),
+        str(p.get("tip") or ""),
+    )
+
+
+def _merge_plays(*groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[tuple] = set()
+    out: list[dict[str, Any]] = []
+    for group in groups:
+        for p in group:
+            key = _dedupe_key(p)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(p)
+    out.sort(key=lambda item: str(item.get("tip") or ""))
+    return out
+
+
+def _official_board_plays(ledger: dict[str, Any], *, now: datetime | None = None) -> list[dict[str, Any]]:
+    """Today's official ET-day card, plus any still-pending official picks."""
+    today = (now or datetime.now(ET)).astimezone(ET).date()
+    official = [p for p in (ledger.get("plays") or []) if _is_official_play(p)]
+    todays = [p for p in official if _tip_et_date(p) == today]
+    pending = [p for p in official if str(p.get("status") or "pending").lower() == "pending"]
+    return _merge_plays(todays, pending)
+
+
+def _status_chip(p: dict[str, Any]) -> str:
+    st = str(p.get("status") or "pending").lower()
+    if st in ("", "pending"):
+        return '<span class="card-result pending">LOCKED</span>'
+    cls = st if st in ("win", "loss", "push", "void") else "pending"
+    return f'<span class="card-result {_esc(cls)}">{_esc(_result_label(p))}</span>'
+
+
+def _render_play_card(
+    p: dict[str, Any],
+    *,
+    badge: str = PLAY_BADGE_LABEL,
+    badge_cls: str = "badge-play",
+    card_cls: str = "sharp-play",
+) -> str:
+    away = p.get("away_team") or ""
+    home = p.get("home_team") or ""
+    sub = f"{_fmt_et(p.get('tip'))} · {away} @ {home} · {ncaam_book_label(p.get('book'))}"
+    return f"""
+      <div class="play-card {card_cls}">
+        <div class="card-top">
+          <div class="card-left">
+            <span class="tier-badge {badge_cls}">{_esc(badge)}</span>
+            <div class="play-title"><b>{_esc(ncaam_play_label(p))}</b></div>
+            <div class="play-subtitle">{_esc(sub)}</div>
+          </div>
+          <div class="units-badge">{_esc(_stake(p))}</div>
+        </div>
+        {_status_chip(p)}
+      </div>"""
+
+
 def _render_locks(signals: dict[str, Any]) -> str:
-    locks = signals.get("locks") or []
+    locks = [p for p in (signals.get("locks") or []) if _is_official_play(p)]
     if not locks:
-        pending = [
-            p
-            for p in (load_ledger(NCAAM_LEDGER_PATH).get("plays") or [])
-            if p.get("status") == "pending" and p.get("side")
-        ]
-        locks = pending
+        locks = _official_board_plays(load_ledger(NCAAM_LEDGER_PATH))
     if not locks:
         return (
             '<div class="ncaam-empty">'
             "<p><b>No locked plays yet today.</b></p>"
-            "<p>Locked plays appear here once they are posted for today&apos;s slate.</p></div>"
+            "<p>Official plays appear here once they are posted for today&apos;s slate.</p></div>"
         )
+    cards = "".join(_render_play_card(p) for p in locks)
+    return f'<div class="ncaam-plays">{cards}</div>'
+
+
+def _tracking_items(ledger: dict[str, Any], signals: dict[str, Any]) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for p in ledger.get("plays") or []:
+        if _is_tracking_play(p):
+            items.append(p)
+    for key in ("leans", "near_misses", "shadow", "no_play"):
+        extra = signals.get(key)
+        if isinstance(extra, list):
+            items.extend(x for x in extra if isinstance(x, dict))
+    return _merge_plays(items)
+
+
+def _render_tracking(ledger: dict[str, Any], signals: dict[str, Any] | None = None) -> str:
+    items = _tracking_items(ledger, signals or {})
+    if not items:
+        return ""
+    labeled: list[dict[str, Any]] = []
+    anonymous = 0
+    for p in items:
+        if p.get("away_team") or p.get("home_team") or p.get("side") or p.get("selection"):
+            labeled.append(p)
+        else:
+            anonymous += 1
+    if not labeled and not anonymous:
+        return ""
     rows = []
-    for p in locks:
+    for p in labeled:
+        label = ncaam_play_label(p) if (p.get("side") or p.get("selection")) else "—"
         away = _esc(p.get("away_team") or "")
         home = _esc(p.get("home_team") or "")
+        note = p.get("reason") or p.get("status") or "tracking"
         rows.append(
             f'<tr><td data-label="Game">{away} @ {home}</td>'
-            f'<td data-label="Play"><b>{_esc(ncaam_play_label(p))}</b></td>'
-            f'<td data-label="Book">{_esc(ncaam_book_label(p.get("book")))}</td>'
-            f'<td data-label="Stake">{_esc(_stake(p))}</td>'
-            f'<td data-label="Locked (ET)">{_fmt_et(p.get("locked_at"))}</td>'
-            f'<td data-label="Tip (ET)">{_fmt_et(p.get("tip"))}</td></tr>'
+            f'<td data-label="Note">{_esc(label)}</td>'
+            f'<td data-label="Status">{_esc(note)}</td></tr>'
+        )
+    table = ""
+    if rows:
+        table = (
+            '<div class="table-wrap"><table class="export-table">'
+            "<thead><tr><th>Game</th><th>Note</th><th>Status</th></tr></thead>"
+            f"<tbody>{''.join(rows)}</tbody></table></div>"
+        )
+    extra = ""
+    if anonymous:
+        noun = "game" if anonymous == 1 else "games"
+        prefix = f"{anonymous} other {noun}" if labeled else f"{anonymous} {noun}"
+        extra = (
+            f'<p class="ncaam-tracking-note">{prefix} were reviewed '
+            "and did not produce an official pick.</p>"
         )
     return (
-        '<div class="table-wrap"><table class="export-table plays-table">'
-        "<thead><tr><th>Game</th><th>Play</th><th>Book</th><th>Stake</th>"
-        "<th>Locked (ET)</th><th>Tip (ET)</th></tr></thead>"
-        f"<tbody>{''.join(rows)}</tbody></table></div>"
+        '<details class="ncaam-tracking">'
+        f"<summary>{_esc(TRACKING_ONLY_LABEL)}</summary>"
+        '<p class="ncaam-tracking-note">These are not official picks. Do not play them.</p>'
+        f"{table}{extra}"
+        "</details>"
     )
 
 
@@ -269,6 +401,7 @@ def render_ncaam_page_html(
         record_block=_render_record(rec, ledger),
         plays_html=_render_locks(signals),
         ledger_html=_ledger_rows(ledger),
+        tracking_html=_render_tracking(ledger, signals),
         how_it_works=_how_it_works(),
         bottom_bar=render_bottom_bar(active="board"),
         slip_overlay=render_slip_overlay(),
@@ -298,6 +431,7 @@ def build_ncaam_page(
         updated=updated,
     )
     (out / "ncaam.html").write_text(html)
+    publish_site_icons(out)
     _remove_unpublished_docs(out)
     (out / "ncaam_ledger.json").write_text(
         json.dumps(public_ledger(ledger), indent=2, default=str) + "\n"
@@ -315,6 +449,9 @@ NCAAM_PAGE_TEMPLATE = """<!DOCTYPE html>
 <title>College Basketball · Sharp Scout Quant</title>
 <meta name="description" content="Sharp Scout Quant NCAAM board — automated spread picks and season record">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -336,6 +473,26 @@ NCAAM_PAGE_TEMPLATE = """<!DOCTYPE html>
   .ncaam-h2 {{ font-family: var(--font-serif); font-size: 24px; font-weight: 500; margin: 28px 0 10px; }}
   .ncaam-empty {{ background: var(--color-bg-soft); border: 1px dashed var(--color-border); border-radius: 12px; padding: 20px; color: var(--color-text-muted); text-align: center; }}
   .ncaam-empty code {{ font-family: var(--font-mono); font-size: 12px; }}
+  .ncaam-record {{ margin: 18px 0 8px; }}
+  .ncaam-plays {{ margin: 0 0 8px; }}
+  .badge-play {{ font-weight: 700; letter-spacing: .12em; }}
+  .ncaam-tracking {{
+    margin: 28px 0 8px;
+    border: 1px dashed var(--color-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: var(--color-bg-soft);
+    color: var(--color-text-muted);
+  }}
+  .ncaam-tracking > summary {{
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    list-style: none;
+  }}
+  .ncaam-tracking > summary::-webkit-details-marker {{ display: none; }}
+  .ncaam-tracking-note {{ font-size: 13px; margin: 8px 0 12px; }}
+  .ncaam-tracking table {{ opacity: 0.72; }}
 </style>
 </head>
 <body class="ss-bottom-bar">
@@ -347,10 +504,14 @@ NCAAM_PAGE_TEMPLATE = """<!DOCTYPE html>
     <p class="phase-note">Updated {updated}</p>
     {record_block}
   </div>
-  <h2 class="ncaam-h2">Today&apos;s locked picks</h2>
+  <div class="plays-heading">
+    <div class="plays-heading-main">TODAY&apos;S PLAYS — BET THESE</div>
+    <div class="plays-heading-sub">Official locked picks. If we posted a play, it appears here and stays here after the game with the result.</div>
+  </div>
   {plays_html}
   <h2 class="ncaam-h2">Ledger &amp; results</h2>
   {ledger_html}
+  {tracking_html}
   {how_it_works}
 </div>
 {slip_overlay}

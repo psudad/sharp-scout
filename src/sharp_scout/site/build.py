@@ -727,6 +727,30 @@ def _ssq_logo_svg(*, embedded: bool = True) -> str:
 </svg>"""
 
 
+
+def publish_site_icons(out: Path) -> None:
+    """Copy raster favicons into the Pages output so tab icons survive a rebuild.
+
+    The SVG monogram is too detailed to read at 16px, so browsers were showing a
+    blank navy tile (or falling back to a missing /favicon.ico). These files live
+    in docs/ and are copied here so `build_site(docs_dir=tmp)` still serves them.
+    """
+    src_root = ROOT / "docs"
+    mapping = (
+        (src_root / "assets" / "favicon-32.png", out / "assets" / "favicon-32.png"),
+        (src_root / "assets" / "apple-touch-icon.png", out / "assets" / "apple-touch-icon.png"),
+        (src_root / "favicon.ico", out / "favicon.ico"),
+    )
+    (out / "assets").mkdir(parents=True, exist_ok=True)
+    for src_path, dest in mapping:
+        if not src_path.exists():
+            continue
+        if src_path.resolve() == dest.resolve():
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_path, dest)
+
+
 def build_site(
     *,
     docs_dir: Path | None = None,
@@ -1249,6 +1273,7 @@ def build_site(
     assets_dir = out / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
     (assets_dir / "ssq-logo.svg").write_text(_ssq_logo_svg(embedded=False) + "\n")
+    publish_site_icons(out)
 
     # CNAME placeholder not needed; add .nojekyll for GH Pages
     (out / ".nojekyll").write_text("")
@@ -1529,7 +1554,9 @@ PROPS_TEMPLATE = """<!DOCTYPE html>
 <title>NFL Props · Sharp Scout Quant</title>
 <meta name="description" content="Sharp Scout Quant NFL player props ranked by model edge">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
-<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1591,7 +1618,9 @@ COMMENTS_TEMPLATE = """<!DOCTYPE html>
 <title>Comments · Sharp Scout Quant</title>
 <meta name="description" content="Send a comment to Sharp Scout Quant">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
-<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4243,7 +4272,9 @@ SITE_TEMPLATE = """<!DOCTYPE html>
 <title>Sharp Scout Quant</title>
 <meta name="description" content="Sharp Scout Quant — NFL and CFB quant model plays and record">
 <link rel="icon" type="image/svg+xml" href="assets/ssq-logo.svg">
-<link rel="apple-touch-icon" href="assets/ssq-logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 {analytics_head}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

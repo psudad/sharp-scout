@@ -69,7 +69,9 @@ def test_ncaam_page_shell(site: Path):
     assert "How it works" not in html
     assert "Model version" not in html
     assert "Informational model picks only" in html
-    assert "Today's locked picks" in html or "Today&apos;s locked picks" in html
+    assert "TODAY" in html and "BET THESE" in html
+    assert "badge-play" in html or "No locked plays yet today" in html
+    assert "play-card" in html or "ncaam-empty" in html
 
 
 def test_guide_archived_not_on_board(site: Path):

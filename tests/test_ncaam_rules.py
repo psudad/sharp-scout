@@ -27,17 +27,21 @@ def test_anchor_k_from_dec1():
 def test_stake_caps():
     assert stake_units(ev=0.04, beat_open=False, units_already_today=0) == 1.0
     assert stake_units(ev=0.07, beat_open=True, units_already_today=0) == 1.5
-    assert stake_units(ev=0.07, beat_open=True, units_already_today=7.5) == 0.5
+    # Daily unit ceiling removed: high units_already_today no longer shrinks stake.
+    assert stake_units(ev=0.07, beat_open=True, units_already_today=7.5) == 1.5
 
 
-def test_daily_play_and_unit_cap():
+def test_no_daily_play_or_unit_cap():
     cands = [
         {"event_id": str(i), "espn_id": str(i), "ev": 0.1 - i * 0.001, "et_day": "2026-11-02", "side": "home", "line": -3.0}
         for i in range(12)
     ]
     picked = apply_daily_cap(cands, et_day=datetime(2026, 11, 2).date())
-    assert len(picked) <= 8
-    assert sum(p["units"] for p in picked) <= 8.0
+    assert len(picked) == 12
+    assert all(p["units"] > 0 for p in picked)
+    # Even when 8 plays / 8u are already locked, more qualifying picks still post.
+    more = apply_daily_cap(cands, et_day=datetime(2026, 11, 2).date(), already_plays=8, already_units=8.0)
+    assert len(more) == 12
 
 
 def test_ev_matches_utils():

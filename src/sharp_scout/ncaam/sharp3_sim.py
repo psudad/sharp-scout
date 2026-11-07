@@ -5,12 +5,11 @@ Uses the same efficiency × tempo projection and margin noise as the New System
 units, or locking. When ratings or a bet line are missing, returns unavailable —
 never a synthetic win-loss string.
 
-**Ratings as-of (Sharp 3 display only):**
-Barttorvik ``team_results`` CSV has **no** snapshot/as-of column. Local
-``ratings_YYYYMMDD.csv`` names are **cache acquisition labels** only (see
-``ensure_daily_ratings``). HTTP ``Last-Modified`` is stored as audit metadata
-but is **not** ``ratings_as_of``. MC display requires ``ratings_as_of_verified``
-from upstream ``ratings_source_as_of`` in fetch metadata (unset today).
+**Acquisition freshness (Sharp 3 display only — FOR USER REVIEW):**
+Uses verified successful upstream retrieval (`retrieval_success` + digest match
+from ``fetch_torvik_csv`` only). **Not** filename, mtime, or copied cache.
+Publisher **ratings snapshot date remains unknown**. Policy: retrieval ET date
+today or yesterday.
 - Unknown / unmapped team → ``unavailable`` (``missing_team_ratings``).
 - Juice / ``price_estimated`` buy-point quotes are **never** simulation inputs.
 """
@@ -33,13 +32,13 @@ SIM_MODEL_ID = "torvik-efficiency-mc-v1"
 _LEGACY_SIM_REC = re.compile(r"^\d+-\d+$")
 ET = ZoneInfo("America/New_York")
 
-# Lab-only display policy: requires verified upstream as-of (none available from Torvik today).
-DISPLAY_POLICY_ID = "sharp3-display-ratings-asof-v2"
-DISPLAY_MAX_RATING_AGE_DAYS = 1  # applies only when ratings_as_of_verified is true
+# Lab-only acquisition freshness (FOR USER REVIEW — not a New System requirement).
+DISPLAY_POLICY_ID = "sharp3-display-acquisition-freshness-v1"
+DISPLAY_MAX_ACQUISITION_AGE_DAYS = 1  # today or yesterday ET
 DISPLAY_POLICY_REVIEW = (
-    "Torvik CSV provides no model snapshot date. cache_date_et is acquisition label only. "
-    "Production MC display stays unavailable until ratings_source_as_of is populated from "
-    "a verified upstream field (not HTTP Last-Modified or filename)."
+    "Sharp 3 MC display requires retrieval_verified (successful fetch meta + SHA-256 "
+    "match). Freshness window: retrieved_at ET within today or yesterday. Publisher "
+    "ratings snapshot date remains unknown. Failed fetch does not renew freshness."
 )
 
 
@@ -50,22 +49,25 @@ def validate_ratings_for_sharp3_display(
 ) -> tuple[bool, str]:
     if not provenance:
         return False, "ratings_provenance_missing"
-    if not provenance.get("ratings_as_of_verified"):
-        return False, "ratings_as_of_missing"
-    as_of_s = provenance.get("ratings_as_of")
-    if not as_of_s:
-        return False, "ratings_as_of_missing"
+    if not provenance.get("retrieval_verified"):
+        return False, str(provenance.get("retrieval_unavailable_reason") or "retrieval_not_verified")
+    retrieved_s = provenance.get("retrieved_at_utc")
+    if not retrieved_s:
+        return False, "retrieval_metadata_incomplete"
     try:
-        as_of = date.fromisoformat(str(as_of_s))
+        retrieved = datetime.fromisoformat(str(retrieved_s).replace("Z", "+00:00"))
     except ValueError:
-        return False, "ratings_as_of_invalid"
+        return False, "retrieval_timestamp_invalid"
+    if retrieved.tzinfo is None:
+        retrieved = retrieved.replace(tzinfo=timezone.utc)
     now = now or datetime.now(timezone.utc)
     today_et = now.astimezone(ET).date()
-    if as_of > today_et:
-        return False, "ratings_as_of_in_future"
-    age_days = (today_et - as_of).days
-    if age_days > DISPLAY_MAX_RATING_AGE_DAYS:
-        return False, "ratings_stale_for_display"
+    ret_et = retrieved.astimezone(ET).date()
+    if ret_et > today_et:
+        return False, "retrieval_in_future"
+    age_days = (today_et - ret_et).days
+    if age_days > DISPLAY_MAX_ACQUISITION_AGE_DAYS:
+        return False, "retrieval_stale_for_display"
     return True, ""
 
 
@@ -181,7 +183,7 @@ def run_margin_monte_carlo_core(
         "ratings_provenance": ratings_provenance,
         "ratings_display_policy": DISPLAY_POLICY_ID,
         "ratings_display_policy_note": DISPLAY_POLICY_REVIEW,
-        "ratings_display_max_age_days": DISPLAY_MAX_RATING_AGE_DAYS,
+        "ratings_display_max_acquisition_age_days": DISPLAY_MAX_ACQUISITION_AGE_DAYS,
     }
 
 
@@ -239,7 +241,9 @@ def is_valid_sim_projection(projection: Any) -> bool:
     if not rep.get("seed_inputs") or rep.get("seed") is None:
         return False
     rprov = projection.get("ratings_provenance") or {}
-    if not rprov.get("ratings_as_of_verified") or not rprov.get("ratings_as_of") or not rprov.get("source"):
+    if not rprov.get("retrieval_verified") or not rprov.get("retrieved_at_utc") or not rprov.get("content_sha256"):
+        return False
+    if not rprov.get("source"):
         return False
     if projection.get("ratings_display_policy") != DISPLAY_POLICY_ID:
         return False

@@ -272,9 +272,9 @@ def _fixture_sim_example_html() -> str:
     )
     return (
         "<h2>Fixture example (not live pregame)</h2>"
-        "<p class='sub'>Production path from "
-        "<code>tests/fixtures/ncaam/torvik_sample.csv</code>: Torvik CSV has no snapshot "
-        "as-of field, so gated MC display is unavailable (honest default).</p>"
+        "<p class='sub'>Production path from <code>tests/fixtures/ncaam/torvik_sample.csv</code>: "
+        "no verified upstream retrieval record (fixture). Gated MC requires acquisition meta + "
+        "digest match. Publisher ratings snapshot date: unknown.</p>"
         f"<p class='muted'><b>Gated (production rule):</b> {_esc(gated_line)}</p>"
         "<p class='sub'><b>Math demo only</b> (same Torvik rows, no verified source as-of — "
         "not a forecast): "

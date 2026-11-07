@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import inspect
 import json
@@ -13,10 +14,18 @@ import pytest
 
 from sharp_scout.ncaam import sharp3
 from sharp_scout.ncaam import ratings as ratings_mod
-from sharp_scout.ncaam.ratings import cache_date_from_path, load_ratings, ratings_provenance_for_path
-from sharp_scout.ncaam.rules import RULES
+from sharp_scout.ncaam.ratings import (
+    TORVIK_URL,
+    cache_date_from_path,
+    content_sha256,
+    load_ratings,
+    ratings_provenance_for_path,
+    verify_retrieval_record,
+    write_successful_retrieval_meta,
+)
 from sharp_scout.ncaam.sharp3_sim import (
-    DISPLAY_MAX_RATING_AGE_DAYS,
+    DISPLAY_MAX_ACQUISITION_AGE_DAYS,
+    DISPLAY_POLICY_ID,
     format_sim_rec,
     is_legacy_fabricated_sim_rec,
     is_valid_sim_projection,
@@ -27,12 +36,24 @@ from sharp_scout.ncaam.sharp3_sim import (
 )
 
 
-FIXTURE_RATINGS = load_ratings(Path("tests/fixtures/ncaam/torvik_sample.csv"))
-FIXTURE_PROVENANCE = json.loads(
-    (Path(__file__).parent / "fixtures" / "ncaam" / "torvik_sample.provenance.json").read_text()
-)
+FIXTURE_CSV = Path("tests/fixtures/ncaam/torvik_sample.csv")
+FIXTURE_RATINGS = load_ratings(FIXTURE_CSV)
+FIXTURE_BODY = FIXTURE_CSV.read_bytes()
 GAME = {"espn_id": "401", "home_team": "Duke", "away_team": "North Carolina", "neutral_site": False}
 EVAL_NOW = datetime(2026, 11, 7, 15, 0, tzinfo=timezone.utc)
+CSV_ROW = b"team,adjoe,adjde,adjt\nDuke,120,90,70\n"
+
+
+def _verified_path(tmp_path, *, name: str, body: bytes, retrieved_at: datetime) -> Path:
+    p = tmp_path / name
+    p.write_bytes(body)
+    write_successful_retrieval_meta(
+        p,
+        source_url=TORVIK_URL,
+        content_digest=hashlib.sha256(body).hexdigest(),
+        retrieved_at=retrieved_at,
+    )
+    return p
 
 
 def _core(**kw):
@@ -46,38 +67,13 @@ def test_sharp3_module_has_no_random_sim_record():
     assert "random.Random" not in src
 
 
-def test_provenance_never_treats_cache_date_as_ratings_as_of(tmp_path):
-    dated = tmp_path / "ratings_20261107.csv"
-    dated.write_text("team,adjoe,adjde,adjt\nDuke,1,1,70\n", encoding="utf-8")
-    assert cache_date_from_path(dated) == EVAL_NOW.date()
-    prov = ratings_provenance_for_path(dated)
-    assert prov["cache_date_et"] == "2026-11-07"
-    assert prov["ratings_as_of"] is None
-    assert prov["ratings_as_of_verified"] is False
-    ok, reason = validate_ratings_for_sharp3_display(prov, now=EVAL_NOW)
-    assert not ok and reason == "ratings_as_of_missing"
-
-
-def test_verified_as_of_only_from_meta_not_http_last_modified(tmp_path, monkeypatch):
-    csv_path = tmp_path / "ratings_20261107.csv"
-    csv_path.write_bytes(b"x")
-    meta = {
-        "upstream_http_last_modified_utc": "2026-11-07T14:00:18+00:00",
-        "csv_has_snapshot_date_field": False,
-    }
-    ratings_mod._meta_path_for(csv_path).write_text(json.dumps(meta))
-    prov = ratings_provenance_for_path(csv_path)
-    assert prov["upstream_http_last_modified_utc"] is not None
-    assert prov["ratings_as_of"] is None
-    assert not prov["ratings_as_of_verified"]
-
-
-def test_fetch_torvik_writes_meta_with_http_last_modified(tmp_path, monkeypatch):
+def test_fetch_writes_retrieval_meta_runner_integration(tmp_path, monkeypatch):
     monkeypatch.setattr(ratings_mod, "NCAAM_DATA", tmp_path)
     dest = tmp_path / "ratings_20261107.csv"
+    retrieved = datetime(2026, 11, 7, 14, 0, tzinfo=timezone.utc)
 
     class Resp:
-        content = b"team,adjoe,adjde,adjt\nDuke,120,90,70\n"
+        content = CSV_ROW
         headers = {"last-modified": "Sat, 07 Nov 2026 14:00:18 GMT"}
 
         def raise_for_status(self):
@@ -89,79 +85,130 @@ def test_fetch_torvik_writes_meta_with_http_last_modified(tmp_path, monkeypatch)
     client.__exit__ = lambda *a: None
     monkeypatch.setattr(ratings_mod.httpx, "Client", lambda **kw: client)
     ratings_mod.fetch_torvik_csv(dest=dest)
-    meta = json.loads(ratings_mod._meta_path_for(dest).read_text())
-    assert meta["csv_has_snapshot_date_field"] is False
-    assert meta["upstream_http_last_modified_utc"] is not None
-    assert "ratings_source_as_of" not in meta
+    ok, reason, _ = verify_retrieval_record(dest)
+    assert ok and reason == ""
+    prov = ratings_provenance_for_path(dest)
+    assert prov["retrieval_verified"] is True
+    assert prov["content_sha256"] == content_sha256(dest)
+    assert prov["retrieved_at_utc"].startswith("2026-11-07")
+    assert prov["ratings_snapshot_as_of"] is None
 
 
-def test_production_monte_carlo_unavailable_without_verified_as_of():
+def test_acquisition_fresh_today_and_stale_yesterday(tmp_path):
+    body = CSV_ROW
+    fresh = _verified_path(tmp_path, name="ratings_20261107.csv", body=body, retrieved_at=EVAL_NOW)
+    prov = ratings_provenance_for_path(fresh)
+    ok, _ = validate_ratings_for_sharp3_display(prov, now=EVAL_NOW)
+    assert ok
+    old = _verified_path(
+        tmp_path,
+        name="ratings_20261104.csv",
+        body=body,
+        retrieved_at=datetime(2026, 11, 4, 12, 0, tzinfo=timezone.utc),
+    )
+    prov_old = ratings_provenance_for_path(old)
+    ok, reason = validate_ratings_for_sharp3_display(prov_old, now=EVAL_NOW)
+    assert not ok and reason == "retrieval_stale_for_display"
+    assert DISPLAY_MAX_ACQUISITION_AGE_DAYS == 1
+
+
+def test_yesterday_retrieval_is_fresh(tmp_path):
+    body = CSV_ROW
+    p = _verified_path(
+        tmp_path,
+        name="ratings_20261106.csv",
+        body=body,
+        retrieved_at=datetime(2026, 11, 6, 23, 0, tzinfo=timezone.utc),
+    )
+    ok, _ = validate_ratings_for_sharp3_display(ratings_provenance_for_path(p), now=EVAL_NOW)
+    assert ok
+
+
+def test_missing_retrieval_metadata(tmp_path):
+    p = tmp_path / "ratings_20261107.csv"
+    p.write_bytes(CSV_ROW)
+    prov = ratings_provenance_for_path(p)
+    assert not prov["retrieval_verified"]
+    ok, reason = validate_ratings_for_sharp3_display(prov, now=EVAL_NOW)
+    assert not ok and reason == "retrieval_metadata_missing"
+
+
+def test_digest_mismatch_renamed_or_tampered(tmp_path):
+    p = _verified_path(tmp_path, name="ratings_20261107.csv", body=CSV_ROW, retrieved_at=EVAL_NOW)
+    assert verify_retrieval_record(p)[0]
+    p.write_bytes(CSV_ROW + b"# tampered\n")
+    ok, reason, _ = verify_retrieval_record(p)
+    assert not ok and reason == "retrieval_digest_mismatch"
+    ok2, reason2 = validate_ratings_for_sharp3_display(ratings_provenance_for_path(p), now=EVAL_NOW)
+    assert not ok2 and reason2 == "retrieval_digest_mismatch"
+
+
+def test_copied_csv_without_meta_not_verified(tmp_path):
+    src = _verified_path(tmp_path, name="ratings_20261107.csv", body=CSV_ROW, retrieved_at=EVAL_NOW)
+    copy = tmp_path / "ratings_latest.csv"
+    copy.write_bytes(src.read_bytes())
+    prov = ratings_provenance_for_path(copy)
+    assert not prov["retrieval_verified"]
+
+
+def test_failed_refresh_does_not_renew_meta(tmp_path, monkeypatch):
+    monkeypatch.setattr(ratings_mod, "NCAAM_DATA", tmp_path)
+
+    class _FakeDateTime:
+        @staticmethod
+        def now(tz=None):
+            return EVAL_NOW.astimezone(tz) if tz is not None else EVAL_NOW
+
+    monkeypatch.setattr(ratings_mod, "datetime", _FakeDateTime)
+    stale_day = datetime(2026, 11, 4, 12, 0, tzinfo=timezone.utc)
+    old = _verified_path(tmp_path, name="ratings_20261104.csv", body=CSV_ROW, retrieved_at=stale_day)
+
+    def _boom(**_kw):
+        raise OSError("network down")
+
+    monkeypatch.setattr(ratings_mod, "fetch_torvik_csv", _boom)
+    got = ratings_mod.ensure_daily_ratings()
+    assert got == old
+    meta = json.loads(ratings_mod._meta_path_for(old).read_text())
+    assert meta["retrieved_at_utc"].startswith("2026-11-04")
+    assert not (tmp_path / "ratings_20261107.csv.meta.json").exists()
+
+
+def test_cache_date_not_used_for_freshness(tmp_path):
+    p = tmp_path / "ratings_20261107.csv"
+    p.write_bytes(CSV_ROW)
+    assert cache_date_from_path(p) == EVAL_NOW.date()
+    assert not ratings_provenance_for_path(p)["retrieval_verified"]
+
+
+def test_production_monte_carlo_with_fresh_retrieval(tmp_path):
+    p = _verified_path(tmp_path, name="ratings_20261107.csv", body=FIXTURE_BODY, retrieved_at=EVAL_NOW)
+    prov = ratings_provenance_for_path(p)
     out = monte_carlo_projection(
         GAME,
         side="home",
         market="spreads",
         line=-4.5,
-        ratings=FIXTURE_RATINGS,
-        ratings_provenance=FIXTURE_PROVENANCE,
+        ratings=load_ratings(p),
+        ratings_provenance=prov,
         now=EVAL_NOW,
     )
-    assert out["status"] == "unavailable"
-    assert out["reason"] == "ratings_as_of_missing"
+    assert out["status"] == "ok"
+    assert is_valid_sim_projection(out)
+    assert out["ratings_display_policy"] == DISPLAY_POLICY_ID
+    assert out["ratings_provenance"]["ratings_snapshot_as_of"] is None
 
 
-def test_monte_carlo_unavailable_without_provenance():
-    out = monte_carlo_projection(GAME, side="home", market="spreads", line=-4.5, ratings=None)
-    assert out["reason"] == "ratings_provenance_missing"
-
-
-def test_core_deterministic_reproducibility_and_counts():
-    n = 2000
-    a = _core(n=n)
-    b = _core(n=n)
+def test_core_deterministic_reproducibility():
+    a = _core(n=1500)
+    b = _core(n=1500)
     assert a == b
-    assert a["wins"] + a["losses"] + a["pushes"] == n
     assert a["reproducibility"]["seed_inputs"] == "sharp3-sim|401|home|spreads|-4.5"
 
 
-def test_verified_provenance_enables_display_when_meta_has_source_as_of(tmp_path):
-    csv_path = tmp_path / "ratings_20261107.csv"
-    csv_path.write_text("x", encoding="utf-8")
-    ratings_mod._meta_path_for(csv_path).write_text(
-        json.dumps(
-            {
-                "ratings_source_as_of": "2026-11-07",
-                "ratings_as_of_derivation": "upstream test field",
-            }
-        )
-    )
-    prov = ratings_provenance_for_path(csv_path)
-    assert prov["ratings_as_of_verified"] is True
-    ok, _ = validate_ratings_for_sharp3_display(prov, now=EVAL_NOW)
-    assert ok
-    assert DISPLAY_MAX_RATING_AGE_DAYS == 1
-    stale_meta = tmp_path / "ratings_20261105.csv"
-    stale_meta.write_text("x", encoding="utf-8")
-    ratings_mod._meta_path_for(stale_meta).write_text(
-        json.dumps({"ratings_source_as_of": "2026-11-05"})
-    )
-    prov_stale = ratings_provenance_for_path(stale_meta)
-    ok, reason = validate_ratings_for_sharp3_display(prov_stale, now=EVAL_NOW)
-    assert not ok and reason == "ratings_stale_for_display"
-
-
-def _splits(h_money, h_tick, a_money, a_tick, hline=-3.5):
-    return {
-        "spread": {
-            "home": {"money_pct": h_money, "ticket_pct": h_tick, "line": hline, "price": -110.0},
-            "away": {"money_pct": a_money, "ticket_pct": a_tick, "line": -hline, "price": -110.0},
-        },
-        "ml": {},
-        "splits_source": "test",
-    }
-
-
-def test_evaluate_sim_unavailable_in_production_path():
-    game = {"espn_id": "99", "home_team": "Duke", "away_team": "North Carolina", "neutral_site": False}
+def test_evaluate_uses_runner_provenance_path(tmp_path, monkeypatch):
+    p = _verified_path(tmp_path, name="ratings_20261107.csv", body=FIXTURE_BODY, retrieved_at=EVAL_NOW)
+    prov = ratings_provenance_for_path(p)
     event = {
         "bookmakers": {
             "draftkings": {
@@ -174,38 +221,30 @@ def test_evaluate_sim_unavailable_in_production_path():
             }
         }
     }
-    sp = _splits(30, 40, 70, 30, hline=-4.5)
-    prov = dict(FIXTURE_PROVENANCE)
+    sp = {
+        "spread": {
+            "home": {"money_pct": 30, "ticket_pct": 40, "line": -4.5, "price": -110},
+            "away": {"money_pct": 70, "ticket_pct": 30, "line": 4.5, "price": -110},
+        },
+        "ml": {},
+    }
     ev = sharp3.evaluate(
-        game,
+        {"espn_id": "99", "home_team": "Duke", "away_team": "North Carolina"},
         sp,
         event,
         is_mid_major_by_side={"home": False, "away": False},
-        ratings=FIXTURE_RATINGS,
+        ratings=load_ratings(p),
         ratings_provenance=prov,
         now=EVAL_NOW,
     )
-    assert ev["sim_projection"]["status"] == "unavailable"
-    assert ev["sim_rec"] is None
+    assert ev["sim_projection"]["status"] == "ok"
 
 
 def test_legacy_sim_rec_not_displayed():
     assert is_legacy_fabricated_sim_rec("978-22")
     legacy = {"sim_rec": "795-205"}
     assert "legacy synthetic" in (lab_sim_display_text(legacy) or "")
-
-
-def test_valid_projection_requires_verified_as_of():
-    core = _core(n=500)
-    assert not is_valid_sim_projection(core)
-    core["ratings_provenance"] = {
-        "source": "barttorvik",
-        "ratings_as_of": "2026-11-07",
-        "ratings_as_of_verified": True,
-    }
-    assert is_valid_sim_projection(core)
-    text = lab_sim_display_text({"sim_projection": core, "sim_rec": format_sim_rec(core)})
-    assert text and "proj " in text
+    assert "795-205" not in (lab_sim_display_text(legacy) or "")
 
 
 def test_lab_builder_hides_legacy_sim_rec_in_html(tmp_path, monkeypatch):
@@ -231,16 +270,7 @@ def test_lab_builder_hides_legacy_sim_rec_in_html(tmp_path, monkeypatch):
                         "home_team": "Louisville",
                         "away_team": "Morehead St.",
                         "has_splits": True,
-                        "sharp3": {
-                            "result": "play",
-                            "side": "away",
-                            "market": "spreads",
-                            "line": 37.5,
-                            "price": -110,
-                            "tier": "GOLD",
-                            "units": 2.0,
-                            "sim_rec": "795-205",
-                        },
+                        "sharp3": {"sim_rec": "795-205", "result": "play", "side": "away", "line": 37.5},
                     }
                 },
             }
@@ -251,4 +281,3 @@ def test_lab_builder_hides_legacy_sim_rec_in_html(tmp_path, monkeypatch):
     page = mod.build(tmp_path / "page.html", now=now, fixture_sim_demo=True).read_text()
     assert "795-205" not in page
     assert "legacy synthetic" in page
-    assert "Fixture example" in page

@@ -20,6 +20,15 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+from sharp_scout.ncaam.sharp3_sim import (  # noqa: E402
+    format_sim_rec,
+    lab_sim_display_text,
+    monte_carlo_projection,
+    run_margin_monte_carlo_core,
+)
+from sharp_scout.ncaam.ratings import load_ratings  # noqa: E402
+
 DATA = ROOT / "data"
 ET = ZoneInfo("America/New_York")
 SLUG_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
@@ -122,12 +131,17 @@ def _play_cell(p: dict[str, Any], *, locked: bool, extra: str = "") -> str:
         parts.append(_esc(tier))
     if p.get("units") is not None:
         parts.append(f"{num(p.get('units'))}u")
+    sim_line = ""
+    if p.get("sim_rec") is not None or p.get("sim_projection") is not None:
+        sim_txt = lab_sim_display_text(p)
+        if sim_txt:
+            sim_line = f"<br><small class='muted'>{_esc(sim_txt)}</small>"
     status = "Locked" if locked else "Preview"
     if locked and p.get("pick_status"):
         status += f" {p['pick_status']}"
     head = f"<b>{_esc(pick_text(p))}</b>" if locked else _esc(pick_text(p))
     cls = "lock" if locked else "muted"
-    return f'<div class="{cls}">{head}<br><small>{" | ".join(parts)} | {status}{extra}</small></div>'
+    return f'<div class="{cls}">{head}<br><small>{" | ".join(parts)} | {status}{extra}</small>{sim_line}</div>'
 
 
 def sharp_cell(rec: dict[str, Any] | None, game: dict[str, Any], *, splits_live: bool) -> str:
@@ -214,10 +228,63 @@ th{color:#9aa0a6;font-weight:600;position:sticky;top:0;background:#0f1115}
 .card{background:#171a21;border:1px solid #262a33;border-radius:8px;padding:12px 16px;min-width:200px}
 .card .n{font-size:20px;font-weight:700}.pos{color:#7ee2a8}.neg{color:#ff8a8a}
 .wrap{overflow-x:auto}
+pre.example{background:#171a21;border:1px solid #262a33;border-radius:6px;padding:12px;font-size:12px;overflow:auto}
 """
 
 
-def build(out: Path, *, now: datetime | None = None) -> Path:
+def _fixture_sim_example_html() -> str:
+    """Labeled Torvik fixture MC — not a live pregame forecast."""
+    fixture = ROOT / "tests" / "fixtures" / "ncaam" / "torvik_sample.csv"
+    prov_path = ROOT / "tests" / "fixtures" / "ncaam" / "torvik_sample.provenance.json"
+    if not fixture.is_file():
+        return (
+            "<h2>Fixture example (offline only)</h2>"
+            "<p class='sub'>Torvik sample fixture missing; no example projection rendered.</p>"
+        )
+    ratings = load_ratings(fixture)
+    provenance = json.loads(prov_path.read_text()) if prov_path.is_file() else None
+    game = {
+        "espn_id": "fixture-demo-001",
+        "home_team": "Duke",
+        "away_team": "North Carolina",
+        "neutral_site": False,
+    }
+    gated = monte_carlo_projection(
+        game,
+        side="home",
+        market="spreads",
+        line=-4.5,
+        ratings=ratings,
+        ratings_provenance=provenance,
+        n=2000,
+    )
+    gated_line = lab_sim_display_text(
+        {"sim_projection": gated, "sim_rec": format_sim_rec(gated)}
+    ) or "MC projection: unavailable"
+    math_demo = run_margin_monte_carlo_core(
+        game,
+        side="home",
+        market="spreads",
+        line=-4.5,
+        ratings=ratings,
+        ratings_provenance=provenance,
+        n=2000,
+    )
+    return (
+        "<h2>Fixture example (not live pregame)</h2>"
+        "<p class='sub'>Production path from <code>tests/fixtures/ncaam/torvik_sample.csv</code>: "
+        "no verified upstream retrieval record (fixture). Gated MC requires acquisition meta + "
+        "digest match. Publisher ratings snapshot date: unknown.</p>"
+        f"<p class='muted'><b>Gated (production rule):</b> {_esc(gated_line)}</p>"
+        "<p class='sub'><b>Math demo only</b> (same Torvik rows, no verified source as-of — "
+        "not a forecast): "
+        f"{_esc(format_sim_rec(math_demo) or '')} · margin_model={math_demo.get('margin_model')}"
+        "</p>"
+        f"<pre class='example'>{_esc(json.dumps(gated, indent=2))}</pre>"
+    )
+
+
+def build(out: Path, *, now: datetime | None = None, fixture_sim_demo: bool = False) -> Path:
     now = now or datetime.now(timezone.utc)
     today = now.astimezone(ET).date().isoformat()
     day, state = _state_for(today)
@@ -308,7 +375,10 @@ def build(out: Path, *, now: datetime | None = None) -> Path:
 <h2>Records</h2>
 <div class="cards">{''.join(cards)}</div>
 {''.join(ledger_html)}
-<p class="sub">Bold = locked pick; gray = preview or no play.</p>
+{_fixture_sim_example_html() if fixture_sim_demo else ""}
+<p class="sub">Bold = locked pick; gray = preview or no play. "
+"Sharp 3 MC lines require validated <code>sim_projection</code> metadata; legacy "
+"<code>sim_rec</code> pseudo-data is never shown.</p>
 </body></html>
 """
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -319,10 +389,15 @@ def build(out: Path, *, now: datetime | None = None) -> Path:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=None, help="Explicit output file (local preview)")
+    ap.add_argument(
+        "--fixture-sim-demo",
+        action="store_true",
+        help="Append labeled Torvik fixture MC example (not live pregame)",
+    )
     ap.add_argument("--slug-env", default="NCAAM_LAB_SLUG")
     args = ap.parse_args()
     if args.out:
-        build(Path(args.out))
+        build(Path(args.out), fixture_sim_demo=args.fixture_sim_demo)
         print("Built unlisted page (local preview)")
         return 0
     slug = (os.environ.get(args.slug_env) or "").strip()

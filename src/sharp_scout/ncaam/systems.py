@@ -13,6 +13,8 @@ import logging
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
+
+from sharp_scout.ncaam.ratings import ratings_provenance_for_path
 from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR
@@ -33,7 +35,8 @@ ENGINES = {
 }
 _STATE_FIELDS = (
     "result", "reason", "side", "market", "line", "price", "book", "line_source", "tier", "units",
-    "conf", "edge", "gap", "money_pct", "ticket_pct", "flags", "price_estimated", "sim_rec",
+    "conf", "edge", "gap", "money_pct", "ticket_pct", "flags", "price_estimated",
+    "sim_rec", "sim_projection",
     "novig", "margin_model", "signals", "orig_line", "orig_price", "splits_source",
 )
 
@@ -116,6 +119,7 @@ def _row(engine: str, game: dict[str, Any], ev: dict[str, Any], *, now: datetime
         "flags": ev.get("flags") or [],
         "price_estimated": bool(ev.get("price_estimated")),
         "sim_rec": ev.get("sim_rec"),
+        "sim_projection": ev.get("sim_projection"),
         "pick_status": status,
         "home_team": game.get("home_team"),
         "away_team": game.get("away_team"),
@@ -133,6 +137,7 @@ def run_systems(
     slate: list[dict[str, Any]],
     odds_by_id: dict[str, dict[str, Any]],
     ratings: dict[str, dict[str, float]],
+    ratings_path: Path | None = None,
     splits_result: dict[str, Any] | None,
     data_dir: Path | None = None,
     situational_factory: Callable[[date], Any] | None = None,
@@ -147,6 +152,11 @@ def run_systems(
         if tip:
             by_day.setdefault(tip.astimezone(ET).date(), []).append(g)
     locked: list[dict[str, Any]] = []
+    ratings_provenance = (
+        ratings_provenance_for_path(ratings_path)
+        if ratings_path is not None and ratings_path.is_file()
+        else None
+    )
     for day, games in sorted(by_day.items()):
         sp_path = state_path(day, data_dir)
         state = _load_json(sp_path, {})
@@ -209,7 +219,15 @@ def run_systems(
                 prior_first[e][eid] = prior.get("first_tier")
                 try:
                     if e == sharp3.ENGINE:
-                        ev = sharp3.evaluate(g, sp, event, is_mid_major_by_side=mm)
+                        ev = sharp3.evaluate(
+                            g,
+                            sp,
+                            event,
+                            is_mid_major_by_side=mm,
+                            ratings=ratings,
+                            ratings_provenance=ratings_provenance,
+                            now=now,
+                        )
                     else:
                         in_win = windows[eid] in (LockWindow.PRIMARY, LockWindow.LATE)
                         ev = sharp35.evaluate(

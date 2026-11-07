@@ -5,10 +5,12 @@ Uses the same efficiency × tempo projection and margin noise as the New System
 units, or locking. When ratings or a bet line are missing, returns unavailable —
 never a synthetic win-loss string.
 
-**Ratings (caller-supplied, typically daily Barttorvik CSV in the runner):**
+**Ratings freshness (Sharp 3 display only — FOR REVIEW):**
+There is **no** repo-wide Barttorvik freshness rule for the New System
+(``ensure_daily_ratings()`` may fall back to older dated caches). Sharp 3 MC
+display enforces ``DISPLAY_MAX_RATING_AGE_DAYS`` against ``ratings_as_of`` parsed
+**only** from ``ratings_YYYYMMDD.csv`` filenames — never from file mtime.
 - Unknown / unmapped team → ``unavailable`` (``missing_team_ratings``).
-- This module does **not** fetch ratings and does **not** detect stale cache age;
-  stale efficiency rows are a data-ops risk, not corrected here.
 - Juice / ``price_estimated`` buy-point quotes are **never** simulation inputs.
 """
 
@@ -16,7 +18,9 @@ from __future__ import annotations
 
 import hashlib
 import re
+from datetime import date, datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 
@@ -26,6 +30,52 @@ from sharp_scout.ncaam.rules import RULES
 
 SIM_MODEL_ID = "torvik-efficiency-mc-v1"
 _LEGACY_SIM_REC = re.compile(r"^\d+-\d+$")
+ET = ZoneInfo("America/New_York")
+
+# New lab-only policy (not pre-existing). Stricter than runner stale fallback.
+DISPLAY_POLICY_ID = "sharp3-display-ratings-freshness-v1"
+DISPLAY_MAX_RATING_AGE_DAYS = 1
+DISPLAY_POLICY_REVIEW = (
+    "No prior Torvik max-age in repo (New System uses pinnacle_max_age_min for lines only). "
+    "Sharp 3 display allows ratings_as_of within 1 ET calendar day of evaluation time."
+)
+
+
+def validate_ratings_for_sharp3_display(
+    provenance: dict[str, Any] | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[bool, str]:
+    if not provenance:
+        return False, "ratings_provenance_missing"
+    as_of_s = provenance.get("ratings_as_of")
+    if not as_of_s:
+        return False, "ratings_as_of_missing"
+    try:
+        as_of = date.fromisoformat(str(as_of_s))
+    except ValueError:
+        return False, "ratings_as_of_invalid"
+    now = now or datetime.now(timezone.utc)
+    today_et = now.astimezone(ET).date()
+    if as_of > today_et:
+        return False, "ratings_as_of_in_future"
+    age_days = (today_et - as_of).days
+    if age_days > DISPLAY_MAX_RATING_AGE_DAYS:
+        return False, "ratings_stale_for_display"
+    return True, ""
+
+
+def _unavailable(
+    reason: str,
+    *,
+    provenance: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    out: dict[str, Any] = {"status": "unavailable", "reason": reason}
+    if provenance is not None:
+        out["ratings_provenance"] = provenance
+    out["ratings_display_policy"] = DISPLAY_POLICY_ID
+    out["ratings_display_policy_note"] = DISPLAY_POLICY_REVIEW
+    return out
 
 
 def seed_inputs(espn_id: str, *, side: str, market: str, line: float | None) -> str:
@@ -67,6 +117,8 @@ def monte_carlo_projection(
     market: str,
     line: float | None,
     ratings: dict[str, dict[str, float]] | None,
+    ratings_provenance: dict[str, Any] | None = None,
+    now: datetime | None = None,
     n: int | None = None,
 ) -> dict[str, Any]:
     """Run ``n`` margin draws; return structured projection or unavailable."""
@@ -74,17 +126,20 @@ def monte_carlo_projection(
     eid = str(game.get("espn_id") or "")
     home = str(game.get("home_team") or "")
     away = str(game.get("away_team") or "")
+    fresh, fresh_reason = validate_ratings_for_sharp3_display(ratings_provenance, now=now)
+    if not fresh:
+        return _unavailable(fresh_reason, provenance=ratings_provenance)
     if not ratings:
-        return {"status": "unavailable", "reason": "ratings_not_loaded"}
+        return _unavailable("ratings_not_loaded", provenance=ratings_provenance)
     if not home or not away:
-        return {"status": "unavailable", "reason": "missing_teams"}
+        return _unavailable("missing_teams", provenance=ratings_provenance)
     hr = ratings_for_team(home, ratings)
     ar = ratings_for_team(away, ratings)
     if not hr or not ar:
-        return {"status": "unavailable", "reason": "missing_team_ratings"}
+        return _unavailable("missing_team_ratings", provenance=ratings_provenance)
     mkt = market or "spreads"
     if mkt == "spreads" and line is None:
-        return {"status": "unavailable", "reason": "missing_spread_line"}
+        return _unavailable("missing_spread_line", provenance=ratings_provenance)
     neutral = bool(game.get("neutral_site"))
     proj = project_game(
         home_team=home,
@@ -129,10 +184,10 @@ def monte_carlo_projection(
             "seed_inputs": seed_blob,
             "rng": "numpy.random.Generator",
         },
-        "ratings_policy": (
-            "Caller-supplied Torvik efficiency map; missing teams → unavailable. "
-            "Cache staleness is not validated in this module."
-        ),
+        "ratings_provenance": ratings_provenance,
+        "ratings_display_policy": DISPLAY_POLICY_ID,
+        "ratings_display_policy_note": DISPLAY_POLICY_REVIEW,
+        "ratings_display_max_age_days": DISPLAY_MAX_RATING_AGE_DAYS,
     }
 
 
@@ -152,6 +207,11 @@ def is_valid_sim_projection(projection: Any) -> bool:
         return False
     rep = projection.get("reproducibility") or {}
     if not rep.get("seed_inputs") or rep.get("seed") is None:
+        return False
+    rprov = projection.get("ratings_provenance") or {}
+    if not rprov.get("ratings_as_of") or not rprov.get("source"):
+        return False
+    if projection.get("ratings_display_policy") != DISPLAY_POLICY_ID:
         return False
     return True
 

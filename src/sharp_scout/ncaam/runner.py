@@ -143,8 +143,8 @@ def run_pass(
 ) -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     ledger_path = ledger_path or LEDGER_PATH
-    ensure_daily_ratings(demo=demo)
-    ratings = load_ratings()
+    ratings_path = ensure_daily_ratings(demo=demo)
+    ratings = load_ratings(ratings_path)
     if not demo:
         settle_ncaam_ledger(path=ledger_path)
 
@@ -281,7 +281,14 @@ def run_pass(
 
     sharp_locked = 0
     if not demo:
-        sharp_locked = run_sharp_systems(now=now, et_days=et_days, slate=all_slate, odds_by_id=odds_by_id, ratings=ratings)
+        sharp_locked = run_sharp_systems(
+            now=now,
+            et_days=et_days,
+            slate=all_slate,
+            odds_by_id=odds_by_id,
+            ratings=ratings,
+            ratings_path=ratings_path,
+        )
 
     signals = {
         "generated_at": now.isoformat(),
@@ -318,6 +325,7 @@ def run_sharp_systems(
     slate: list[dict[str, Any]],
     odds_by_id: dict[str, dict[str, Any]],
     ratings: dict[str, dict[str, float]],
+    ratings_path: Path | None = None,
 ) -> int:
     """Sharp 3 and Sharp 3.5 (unlisted page only). Never raises; never spends Odds API credits."""
     try:
@@ -351,6 +359,7 @@ def run_sharp_systems(
             slate=slate,
             odds_by_id=odds_by_id,
             ratings=ratings,
+            ratings_path=ratings_path,
             splits_result=splits,
             situational_factory=lambda d: Situational(d),
         )

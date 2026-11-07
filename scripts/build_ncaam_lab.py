@@ -234,12 +234,15 @@ pre.example{background:#171a21;border:1px solid #262a33;border-radius:6px;paddin
 def _fixture_sim_example_html() -> str:
     """Labeled Torvik fixture MC — not a live pregame forecast."""
     fixture = ROOT / "tests" / "fixtures" / "ncaam" / "torvik_sample.csv"
+    prov_path = ROOT / "tests" / "fixtures" / "ncaam" / "torvik_sample.provenance.json"
     if not fixture.is_file():
         return (
             "<h2>Fixture example (offline only)</h2>"
             "<p class='sub'>Torvik sample fixture missing; no example projection rendered.</p>"
         )
     ratings = load_ratings(fixture)
+    provenance = json.loads(prov_path.read_text()) if prov_path.is_file() else None
+    fixture_now = datetime(2026, 11, 1, 18, 0, tzinfo=timezone.utc)
     game = {
         "espn_id": "fixture-demo-001",
         "home_team": "Duke",
@@ -247,7 +250,14 @@ def _fixture_sim_example_html() -> str:
         "neutral_site": False,
     }
     proj = monte_carlo_projection(
-        game, side="home", market="spreads", line=-4.5, ratings=ratings, n=2000
+        game,
+        side="home",
+        market="spreads",
+        line=-4.5,
+        ratings=ratings,
+        ratings_provenance=provenance,
+        now=fixture_now,
+        n=2000,
     )
     row = {
         "sim_projection": proj,
@@ -262,7 +272,10 @@ def _fixture_sim_example_html() -> str:
         "<h2>Fixture example (not live pregame)</h2>"
         "<p class='sub'>Computed at page build time from "
         "<code>tests/fixtures/ncaam/torvik_sample.csv</code> only. "
-        "This is a documentation sample — not a forecast for today's slate.</p>"
+        "This is a documentation sample — not a forecast for today's slate. "
+        f"Evaluation frozen at {fixture_now.astimezone(ET).isoformat()} to match fixture "
+        f"ratings_as_of={provenance.get('ratings_as_of') if provenance else '?'}.<br>"
+        "Do not treat as pregame output.</p>"
         f"<p class='muted'>{_esc(display)}</p>"
         f"<pre class='example'>{_esc(blob)}</pre>"
     )

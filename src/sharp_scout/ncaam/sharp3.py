@@ -8,6 +8,7 @@ trap-hook flags send a play to the Trap list.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from sharp_scout.ncaam.sharp3_sim import format_sim_rec, monte_carlo_projection
@@ -160,6 +161,8 @@ def evaluate(
     *,
     is_mid_major_by_side: dict[str, bool],
     ratings: dict[str, dict[str, float]] | None = None,
+    ratings_provenance: dict[str, Any] | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     """Evaluate one game. ``event`` (Odds API) may be None: AN consensus line is used then."""
     base = {
@@ -223,6 +226,8 @@ def evaluate(
         market=str(res.get("market") or "spreads"),
         line=res.get("line"),
         ratings=ratings,
+        ratings_provenance=ratings_provenance,
+        now=now,
     )
     out["sim_projection"] = sim
     out["sim_rec"] = format_sim_rec(sim)

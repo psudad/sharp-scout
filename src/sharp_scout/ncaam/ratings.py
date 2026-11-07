@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import re
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ TORVIK_URL = "https://barttorvik.com/2027_team_results.csv"
 UA = "SharpScout/1.0 (github.com/psudad/sharp-scout; NCAAM ratings cache)"
 NCAAM_DATA = DATA_DIR / "ncaam"
 ET = ZoneInfo("America/New_York")
+_RATINGS_DATED = re.compile(r"^ratings_(\d{4})(\d{2})(\d{2})\.csv$")
 
 
 def ratings_path_for(day: date | None = None) -> Path:
@@ -72,6 +74,34 @@ def load_ratings(path: Path | None = None) -> dict[str, dict[str, float]]:
         row["lg_adjt"] = lg_adjt
         row["lg_eff"] = lg_eff
     return out
+
+
+def ratings_as_of_from_path(path: Path) -> date | None:
+    """Snapshot date from ``ratings_YYYYMMDD.csv`` filename only (never mtime)."""
+    m = _RATINGS_DATED.match(path.name)
+    if not m:
+        return None
+    try:
+        return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+
+
+def ratings_provenance_for_path(path: Path) -> dict[str, Any]:
+    """Provenance for Sharp 3 / audit: Barttorvik source, as-of from filename, fetch mtime separate."""
+    fetched_at: str | None = None
+    if path.is_file():
+        fetched_at = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+    as_of = ratings_as_of_from_path(path)
+    return {
+        "source": "barttorvik",
+        "source_url": TORVIK_URL,
+        "cache_path": str(path),
+        "ratings_as_of": as_of.isoformat() if as_of else None,
+        "ratings_as_of_derivation": "filename ratings_YYYYMMDD.csv" if as_of else "unknown",
+        "fetched_at_utc": fetched_at,
+        "fetched_at_note": "Cache file mtime when downloaded/copied; not Barttorvik snapshot date",
+    }
 
 
 def ratings_for_team(name: str, ratings: dict[str, dict[str, float]]) -> dict[str, float] | None:

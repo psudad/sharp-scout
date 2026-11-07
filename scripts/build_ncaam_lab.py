@@ -25,6 +25,7 @@ from sharp_scout.ncaam.sharp3_sim import (  # noqa: E402
     format_sim_rec,
     lab_sim_display_text,
     monte_carlo_projection,
+    run_margin_monte_carlo_core,
 )
 from sharp_scout.ncaam.ratings import load_ratings  # noqa: E402
 
@@ -242,42 +243,44 @@ def _fixture_sim_example_html() -> str:
         )
     ratings = load_ratings(fixture)
     provenance = json.loads(prov_path.read_text()) if prov_path.is_file() else None
-    fixture_now = datetime(2026, 11, 1, 18, 0, tzinfo=timezone.utc)
     game = {
         "espn_id": "fixture-demo-001",
         "home_team": "Duke",
         "away_team": "North Carolina",
         "neutral_site": False,
     }
-    proj = monte_carlo_projection(
+    gated = monte_carlo_projection(
         game,
         side="home",
         market="spreads",
         line=-4.5,
         ratings=ratings,
         ratings_provenance=provenance,
-        now=fixture_now,
         n=2000,
     )
-    row = {
-        "sim_projection": proj,
-        "sim_rec": format_sim_rec(proj),
-        "side": "home",
-        "market": "spreads",
-        "line": -4.5,
-    }
-    display = lab_sim_display_text(row) or "MC projection: unavailable"
-    blob = json.dumps(proj, indent=2)
+    gated_line = lab_sim_display_text(
+        {"sim_projection": gated, "sim_rec": format_sim_rec(gated)}
+    ) or "MC projection: unavailable"
+    math_demo = run_margin_monte_carlo_core(
+        game,
+        side="home",
+        market="spreads",
+        line=-4.5,
+        ratings=ratings,
+        ratings_provenance=provenance,
+        n=2000,
+    )
     return (
         "<h2>Fixture example (not live pregame)</h2>"
-        "<p class='sub'>Computed at page build time from "
-        "<code>tests/fixtures/ncaam/torvik_sample.csv</code> only. "
-        "This is a documentation sample — not a forecast for today's slate. "
-        f"Evaluation frozen at {fixture_now.astimezone(ET).isoformat()} to match fixture "
-        f"ratings_as_of={provenance.get('ratings_as_of') if provenance else '?'}.<br>"
-        "Do not treat as pregame output.</p>"
-        f"<p class='muted'>{_esc(display)}</p>"
-        f"<pre class='example'>{_esc(blob)}</pre>"
+        "<p class='sub'>Production path from "
+        "<code>tests/fixtures/ncaam/torvik_sample.csv</code>: Torvik CSV has no snapshot "
+        "as-of field, so gated MC display is unavailable (honest default).</p>"
+        f"<p class='muted'><b>Gated (production rule):</b> {_esc(gated_line)}</p>"
+        "<p class='sub'><b>Math demo only</b> (same Torvik rows, no verified source as-of — "
+        "not a forecast): "
+        f"{_esc(format_sim_rec(math_demo) or '')} · margin_model={math_demo.get('margin_model')}"
+        "</p>"
+        f"<pre class='example'>{_esc(json.dumps(gated, indent=2))}</pre>"
     )
 
 

@@ -5,11 +5,12 @@ Uses the same efficiency × tempo projection and margin noise as the New System
 units, or locking. When ratings or a bet line are missing, returns unavailable —
 never a synthetic win-loss string.
 
-**Ratings freshness (Sharp 3 display only — FOR REVIEW):**
-There is **no** repo-wide Barttorvik freshness rule for the New System
-(``ensure_daily_ratings()`` may fall back to older dated caches). Sharp 3 MC
-display enforces ``DISPLAY_MAX_RATING_AGE_DAYS`` against ``ratings_as_of`` parsed
-**only** from ``ratings_YYYYMMDD.csv`` filenames — never from file mtime.
+**Ratings as-of (Sharp 3 display only):**
+Barttorvik ``team_results`` CSV has **no** snapshot/as-of column. Local
+``ratings_YYYYMMDD.csv`` names are **cache acquisition labels** only (see
+``ensure_daily_ratings``). HTTP ``Last-Modified`` is stored as audit metadata
+but is **not** ``ratings_as_of``. MC display requires ``ratings_as_of_verified``
+from upstream ``ratings_source_as_of`` in fetch metadata (unset today).
 - Unknown / unmapped team → ``unavailable`` (``missing_team_ratings``).
 - Juice / ``price_estimated`` buy-point quotes are **never** simulation inputs.
 """
@@ -32,12 +33,13 @@ SIM_MODEL_ID = "torvik-efficiency-mc-v1"
 _LEGACY_SIM_REC = re.compile(r"^\d+-\d+$")
 ET = ZoneInfo("America/New_York")
 
-# New lab-only policy (not pre-existing). Stricter than runner stale fallback.
-DISPLAY_POLICY_ID = "sharp3-display-ratings-freshness-v1"
-DISPLAY_MAX_RATING_AGE_DAYS = 1
+# Lab-only display policy: requires verified upstream as-of (none available from Torvik today).
+DISPLAY_POLICY_ID = "sharp3-display-ratings-asof-v2"
+DISPLAY_MAX_RATING_AGE_DAYS = 1  # applies only when ratings_as_of_verified is true
 DISPLAY_POLICY_REVIEW = (
-    "No prior Torvik max-age in repo (New System uses pinnacle_max_age_min for lines only). "
-    "Sharp 3 display allows ratings_as_of within 1 ET calendar day of evaluation time."
+    "Torvik CSV provides no model snapshot date. cache_date_et is acquisition label only. "
+    "Production MC display stays unavailable until ratings_source_as_of is populated from "
+    "a verified upstream field (not HTTP Last-Modified or filename)."
 )
 
 
@@ -48,6 +50,8 @@ def validate_ratings_for_sharp3_display(
 ) -> tuple[bool, str]:
     if not provenance:
         return False, "ratings_provenance_missing"
+    if not provenance.get("ratings_as_of_verified"):
+        return False, "ratings_as_of_missing"
     as_of_s = provenance.get("ratings_as_of")
     if not as_of_s:
         return False, "ratings_as_of_missing"
@@ -110,36 +114,26 @@ def _count_ml_outcomes(margins: np.ndarray, *, side: str) -> tuple[int, int, int
     return wins, losses, pushes
 
 
-def monte_carlo_projection(
+def run_margin_monte_carlo_core(
     game: dict[str, Any],
     *,
     side: str,
     market: str,
     line: float | None,
-    ratings: dict[str, dict[str, float]] | None,
+    ratings: dict[str, dict[str, float]],
     ratings_provenance: dict[str, Any] | None = None,
-    now: datetime | None = None,
     n: int | None = None,
 ) -> dict[str, Any]:
-    """Run ``n`` margin draws; return structured projection or unavailable."""
+    """Run margin MC only (unit tests / labeled math demos). No provenance gate."""
     n = int(n or RULES.mc_sims)
     eid = str(game.get("espn_id") or "")
     home = str(game.get("home_team") or "")
     away = str(game.get("away_team") or "")
-    fresh, fresh_reason = validate_ratings_for_sharp3_display(ratings_provenance, now=now)
-    if not fresh:
-        return _unavailable(fresh_reason, provenance=ratings_provenance)
-    if not ratings:
-        return _unavailable("ratings_not_loaded", provenance=ratings_provenance)
-    if not home or not away:
-        return _unavailable("missing_teams", provenance=ratings_provenance)
     hr = ratings_for_team(home, ratings)
     ar = ratings_for_team(away, ratings)
     if not hr or not ar:
-        return _unavailable("missing_team_ratings", provenance=ratings_provenance)
+        raise ValueError("missing_team_ratings")
     mkt = market or "spreads"
-    if mkt == "spreads" and line is None:
-        return _unavailable("missing_spread_line", provenance=ratings_provenance)
     neutral = bool(game.get("neutral_site"))
     proj = project_game(
         home_team=home,
@@ -191,6 +185,42 @@ def monte_carlo_projection(
     }
 
 
+def monte_carlo_projection(
+    game: dict[str, Any],
+    *,
+    side: str,
+    market: str,
+    line: float | None,
+    ratings: dict[str, dict[str, float]] | None,
+    ratings_provenance: dict[str, Any] | None = None,
+    now: datetime | None = None,
+    n: int | None = None,
+) -> dict[str, Any]:
+    """Run ``n`` margin draws; return structured projection or unavailable."""
+    fresh, fresh_reason = validate_ratings_for_sharp3_display(ratings_provenance, now=now)
+    if not fresh:
+        return _unavailable(fresh_reason, provenance=ratings_provenance)
+    if not ratings:
+        return _unavailable("ratings_not_loaded", provenance=ratings_provenance)
+    if not game.get("home_team") or not game.get("away_team"):
+        return _unavailable("missing_teams", provenance=ratings_provenance)
+    mkt = market or "spreads"
+    if mkt == "spreads" and line is None:
+        return _unavailable("missing_spread_line", provenance=ratings_provenance)
+    try:
+        return run_margin_monte_carlo_core(
+            game,
+            side=side,
+            market=mkt,
+            line=line,
+            ratings=ratings,
+            ratings_provenance=ratings_provenance,
+            n=n,
+        )
+    except ValueError:
+        return _unavailable("missing_team_ratings", provenance=ratings_provenance)
+
+
 def is_valid_sim_projection(projection: Any) -> bool:
     """True only for a complete real MC payload (guards lab renderer)."""
     if not isinstance(projection, dict) or projection.get("status") != "ok":
@@ -209,7 +239,7 @@ def is_valid_sim_projection(projection: Any) -> bool:
     if not rep.get("seed_inputs") or rep.get("seed") is None:
         return False
     rprov = projection.get("ratings_provenance") or {}
-    if not rprov.get("ratings_as_of") or not rprov.get("source"):
+    if not rprov.get("ratings_as_of_verified") or not rprov.get("ratings_as_of") or not rprov.get("source"):
         return False
     if projection.get("ratings_display_policy") != DISPLAY_POLICY_ID:
         return False

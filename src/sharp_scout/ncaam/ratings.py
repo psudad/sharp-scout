@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import csv
+import json
 import logging
 import re
 from datetime import date, datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,16 +31,39 @@ def ratings_path_for(day: date | None = None) -> Path:
     return NCAAM_DATA / f"ratings_{day.strftime('%Y%m%d')}.csv"
 
 
+def _meta_path_for(csv_path: Path) -> Path:
+    return csv_path.with_suffix(csv_path.suffix + ".meta.json")
+
+
 def fetch_torvik_csv(*, dest: Path | None = None) -> Path:
     dest = dest or ratings_path_for()
     dest.parent.mkdir(parents=True, exist_ok=True)
+    upstream_last_modified: str | None = None
     with httpx.Client(timeout=60.0, headers={"User-Agent": UA}) as client:
         resp = client.get(TORVIK_URL)
         resp.raise_for_status()
         dest.write_bytes(resp.content)
+        raw_lm = resp.headers.get("last-modified")
+        if raw_lm:
+            try:
+                upstream_last_modified = parsedate_to_datetime(raw_lm).astimezone(timezone.utc).isoformat()
+            except (TypeError, ValueError, OverflowError):
+                upstream_last_modified = None
     _validate_csv(dest)
     latest = NCAAM_DATA / "ratings_latest.csv"
     latest.write_bytes(dest.read_bytes())
+    meta = {
+        "source_url": TORVIK_URL,
+        "fetched_at_utc": datetime.now(timezone.utc).isoformat(),
+        "upstream_http_last_modified_utc": upstream_last_modified,
+        "upstream_http_last_modified_note": (
+            "HTTP Last-Modified from Barttorvik CSV response; file revision time only — "
+            "not a verified efficiency snapshot/as-of date and not used as ratings_as_of"
+        ),
+        "csv_has_snapshot_date_field": False,
+    }
+    _meta_path_for(dest).write_text(json.dumps(meta, indent=2) + "\n")
+    _meta_path_for(latest).write_bytes(_meta_path_for(dest).read_bytes())
     return dest
 
 
@@ -76,8 +101,8 @@ def load_ratings(path: Path | None = None) -> dict[str, dict[str, float]]:
     return out
 
 
-def ratings_as_of_from_path(path: Path) -> date | None:
-    """Snapshot date from ``ratings_YYYYMMDD.csv`` filename only (never mtime)."""
+def cache_date_from_path(path: Path) -> date | None:
+    """Local cache acquisition label from ``ratings_YYYYMMDD.csv`` (not model snapshot date)."""
     m = _RATINGS_DATED.match(path.name)
     if not m:
         return None
@@ -87,20 +112,56 @@ def ratings_as_of_from_path(path: Path) -> date | None:
         return None
 
 
+def _load_fetch_meta(path: Path) -> dict[str, Any]:
+    mp = _meta_path_for(path)
+    if mp.is_file():
+        try:
+            return json.loads(mp.read_text())
+        except (OSError, ValueError):
+            pass
+    # ratings_latest.meta may sit beside ratings_latest.csv
+    if path.name == "ratings_latest.csv":
+        dated = sorted(NCAAM_DATA.glob("ratings_20*.csv.meta.json"), reverse=True)
+        if dated:
+            try:
+                return json.loads(dated[0].read_text())
+            except (OSError, ValueError):
+                pass
+    return {}
+
+
 def ratings_provenance_for_path(path: Path) -> dict[str, Any]:
-    """Provenance for Sharp 3 / audit: Barttorvik source, as-of from filename, fetch mtime separate."""
+    """Audit trail for Sharp 3 display. ``ratings_as_of`` is only set from verified upstream fields."""
     fetched_at: str | None = None
     if path.is_file():
         fetched_at = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
-    as_of = ratings_as_of_from_path(path)
+    cache_dt = cache_date_from_path(path)
+    meta = _load_fetch_meta(path)
+    # Torvik team_results CSV columns (adjoe, adjde, adjt, …) carry no snapshot/as-of date.
+    ratings_as_of = meta.get("ratings_source_as_of")
+    verified = bool(ratings_as_of)
+    derivation = meta.get("ratings_as_of_derivation") if verified else (
+        "unavailable: Barttorvik CSV has no snapshot-date field; "
+        "cache filename is acquisition label only"
+    )
     return {
         "source": "barttorvik",
         "source_url": TORVIK_URL,
         "cache_path": str(path),
-        "ratings_as_of": as_of.isoformat() if as_of else None,
-        "ratings_as_of_derivation": "filename ratings_YYYYMMDD.csv" if as_of else "unknown",
-        "fetched_at_utc": fetched_at,
-        "fetched_at_note": "Cache file mtime when downloaded/copied; not Barttorvik snapshot date",
+        "cache_date_et": cache_dt.isoformat() if cache_dt else None,
+        "cache_date_derivation": (
+            "filename ratings_YYYYMMDD.csv (local write target when fetch succeeds)"
+            if cache_dt
+            else "unknown"
+        ),
+        "cache_date_note": "Not equivalent to efficiency model snapshot date",
+        "ratings_as_of": ratings_as_of,
+        "ratings_as_of_verified": verified,
+        "ratings_as_of_derivation": derivation,
+        "fetched_at_utc": meta.get("fetched_at_utc") or fetched_at,
+        "fetched_at_note": "When this cache file was written locally",
+        "upstream_http_last_modified_utc": meta.get("upstream_http_last_modified_utc"),
+        "upstream_http_last_modified_note": meta.get("upstream_http_last_modified_note"),
     }
 
 
@@ -118,6 +179,15 @@ def _fallback_ratings_path() -> Path | None:
 
 
 def ensure_daily_ratings(*, demo: bool = False, fixture: Path | None = None) -> Path:
+    """Return path to Torvik cache used for picks.
+
+    - If ``ratings_{today_et}.csv`` exists, return it **without re-fetching** (content may be
+      from an earlier run today).
+    - On fetch success, writes HTTP body to today's dated path (acquisition label = today ET).
+    - On fetch failure, falls back to ``ratings_latest.csv`` or the newest dated cache — **same
+      bytes may be older than the filename suggests** when fallback ≠ today.
+    CSV payload has **no** embedded snapshot/as-of date.
+    """
     if demo and fixture and fixture.exists():
         dest = NCAAM_DATA / "ratings_latest.csv"
         dest.parent.mkdir(parents=True, exist_ok=True)

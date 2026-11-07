@@ -12,7 +12,13 @@ import pytest
 from sharp_scout.ncaam import sharp3
 from sharp_scout.ncaam.ratings import load_ratings
 from sharp_scout.ncaam.rules import RULES
-from sharp_scout.ncaam.sharp3_sim import format_sim_rec, monte_carlo_projection
+from sharp_scout.ncaam.sharp3_sim import (
+    format_sim_rec,
+    is_legacy_fabricated_sim_rec,
+    is_valid_sim_projection,
+    lab_sim_display_text,
+    monte_carlo_projection,
+)
 
 
 FIXTURE_RATINGS = load_ratings(Path("tests/fixtures/ncaam/torvik_sample.csv"))
@@ -42,6 +48,16 @@ def test_monte_carlo_unavailable_missing_team_ratings():
     assert out["reason"] == "missing_team_ratings"
 
 
+def test_projection_includes_reproducibility_seed():
+    game = {"espn_id": "401", "home_team": "Duke", "away_team": "North Carolina"}
+    out = monte_carlo_projection(
+        game, side="home", market="spreads", line=-4.5, ratings=FIXTURE_RATINGS, n=100
+    )
+    rep = out["reproducibility"]
+    assert "sharp3-sim|401|home|spreads|-4.5" == rep["seed_inputs"]
+    assert isinstance(rep["seed"], int)
+
+
 def test_monte_carlo_deterministic_and_counts_sum_to_n():
     game = {"espn_id": "401", "home_team": "Duke", "away_team": "North Carolina", "neutral_site": False}
     n = 2000
@@ -56,6 +72,7 @@ def test_monte_carlo_deterministic_and_counts_sum_to_n():
     assert a["n"] == n
     assert a["wins"] + a["losses"] + a["pushes"] == n
     assert a["model"] == "torvik-efficiency-mc-v1"
+    assert is_valid_sim_projection(a)
     assert a["margin_sd"] == RULES.margin_sd
     rec = format_sim_rec(a)
     assert rec is not None and rec.startswith("proj ")
@@ -105,6 +122,92 @@ def test_evaluate_attaches_real_sim_not_conf_bernoulli():
     assert no_ratings["sim_projection"]["status"] == "unavailable"
     # Old fabricated pattern tied conf to ~1000 Bernoulli draws (e.g. 978-22 at extreme conf).
     assert with_ratings["sim_rec"] != f"{int(round(with_ratings['conf'] * RULES.mc_sims))}-{RULES.mc_sims - int(round(with_ratings['conf'] * RULES.mc_sims))}"
+
+
+def test_legacy_sim_rec_not_displayed():
+    assert is_legacy_fabricated_sim_rec("978-22")
+    assert not is_legacy_fabricated_sim_rec("proj 10-20/1000 MC")
+    legacy = {"sim_rec": "795-205", "side": "home", "market": "spreads", "line": 37.5}
+    assert "legacy synthetic" in (lab_sim_display_text(legacy) or "")
+    assert "795-205" not in (lab_sim_display_text(legacy) or "")
+
+
+def test_valid_sim_projection_displayed():
+    game = {"espn_id": "401", "home_team": "Duke", "away_team": "North Carolina"}
+    proj = monte_carlo_projection(
+        game, side="home", market="spreads", line=-4.5, ratings=FIXTURE_RATINGS, n=500
+    )
+    row = {"sim_projection": proj, "sim_rec": format_sim_rec(proj)}
+    text = lab_sim_display_text(row)
+    assert text and text.startswith("MC projection (not graded record): proj ")
+    assert is_valid_sim_projection(proj)
+
+
+def test_mixed_legacy_and_valid_records():
+    valid = monte_carlo_projection(
+        {"espn_id": "1", "home_team": "Duke", "away_team": "North Carolina"},
+        side="home",
+        market="spreads",
+        line=-3.0,
+        ratings=FIXTURE_RATINGS,
+        n=200,
+    )
+    rows = [
+        {"sim_rec": "978-22"},
+        {"sim_projection": valid, "sim_rec": format_sim_rec(valid)},
+        {"sim_projection": {"status": "unavailable", "reason": "ratings_not_loaded"}},
+    ]
+    texts = [lab_sim_display_text(r) for r in rows]
+    assert "legacy synthetic" in texts[0]
+    assert texts[1] and "torvik-efficiency-mc-v1" in texts[1]
+    assert "ratings_not_loaded" in texts[2]
+
+
+def test_lab_builder_hides_legacy_sim_rec_in_html(tmp_path, monkeypatch):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "build_ncaam_lab", Path(__file__).resolve().parents[1] / "scripts" / "build_ncaam_lab.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    data = tmp_path / "data"
+    (data / "ncaam").mkdir(parents=True)
+    now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+    day = now.astimezone(__import__("zoneinfo").ZoneInfo("America/New_York")).date()
+    (data / "ncaam" / f"systems_{day.strftime('%Y%m%d')}.json").write_text(
+        __import__("json").dumps(
+            {
+                "updated_at": now.isoformat(),
+                "splits": {"n_with_money": 1, "n_games": 1},
+                "games": {
+                    "g1": {
+                        "tip": (now + __import__("datetime").timedelta(hours=2)).isoformat(),
+                        "home_team": "Louisville",
+                        "away_team": "Morehead St.",
+                        "has_splits": True,
+                        "sharp3": {
+                            "result": "play",
+                            "side": "away",
+                            "market": "spreads",
+                            "line": 37.5,
+                            "price": -110,
+                            "tier": "GOLD",
+                            "units": 2.0,
+                            "sim_rec": "795-205",
+                        },
+                    }
+                },
+            }
+        )
+    )
+    (data / "ncaam_ledger.json").write_text('{"plays":[]}')
+    monkeypatch.setattr(mod, "DATA", data)
+    page = mod.build(tmp_path / "page.html", now=now, fixture_sim_demo=True).read_text()
+    assert "795-205" not in page
+    assert "legacy synthetic" in page
+    assert "Fixture example (not live pregame)" in page
+    assert "torvik-efficiency-mc-v1" in page
 
 
 def test_sim_projection_not_tied_to_splits_confidence():

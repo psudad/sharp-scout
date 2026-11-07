@@ -45,7 +45,8 @@ def _headers(token: str | None, cookie: str | None) -> dict[str, str]:
 
 
 def _raw_games(day: date, *, token: str | None, cookie: str | None) -> tuple[list[dict[str, Any]], int]:
-    params = {"bookIds": BOOK_IDS, "periods": "event", "date": day.strftime("%Y%m%d")}
+    # Without division=D1 AN returns only its couple of featured games (2 of ~50).
+    params = {"bookIds": BOOK_IDS, "periods": "event", "date": day.strftime("%Y%m%d"), "division": "D1"}
     try:
         with httpx.Client(timeout=30.0, headers=_headers(token, cookie), follow_redirects=True) as c:
             resp = c.get(SCOREBOARD, params=params)

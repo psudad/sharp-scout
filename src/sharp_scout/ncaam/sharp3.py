@@ -8,10 +8,9 @@ trap-hook flags send a play to the Trap list.
 
 from __future__ import annotations
 
-import hashlib
-import random
 from typing import Any
 
+from sharp_scout.ncaam.sharp3_sim import format_sim_rec, monte_carlo_projection
 from sharp_scout.ncaam.splits import has_splits
 
 ENGINE = "sharp3"
@@ -136,13 +135,6 @@ def logic_gates(
     }
 
 
-def sim_record(espn_id: str, conf: float, n: int = 1000) -> str:
-    seed = int(hashlib.sha256(str(espn_id).encode()).hexdigest()[:12], 16)
-    rng = random.Random(seed)
-    w = sum(1 for _ in range(n) if rng.random() < conf)
-    return f"{w}-{n - w}"
-
-
 def _book_offer(event: dict[str, Any] | None, market: str, side: str) -> dict[str, Any] | None:
     books = (event or {}).get("bookmakers") or {}
     for b in SOURCE_BOOKS:
@@ -167,6 +159,7 @@ def evaluate(
     event: dict[str, Any] | None,
     *,
     is_mid_major_by_side: dict[str, bool],
+    ratings: dict[str, dict[str, float]] | None = None,
 ) -> dict[str, Any]:
     """Evaluate one game. ``event`` (Odds API) may be None: AN consensus line is used then."""
     base = {
@@ -222,9 +215,17 @@ def evaluate(
         "orig_line": line,
         "orig_price": price,
         "splits_source": (splits or {}).get("splits_source"),
-        "sim_rec": sim_record(base["espn_id"], res["conf"]),
         "result": "trap" if res["tier"] == "TRAP" else "play",
     }
+    sim = monte_carlo_projection(
+        game,
+        side=side,
+        market=str(res.get("market") or "spreads"),
+        line=res.get("line"),
+        ratings=ratings,
+    )
+    out["sim_projection"] = sim
+    out["sim_rec"] = format_sim_rec(sim)
     if out["result"] == "trap":
         out["reason"] = ", ".join(f for f in res["flags"] if f in TRAP_FLAGS)
     return out

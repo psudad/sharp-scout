@@ -122,12 +122,19 @@ def _play_cell(p: dict[str, Any], *, locked: bool, extra: str = "") -> str:
         parts.append(_esc(tier))
     if p.get("units") is not None:
         parts.append(f"{num(p.get('units'))}u")
+    sim_line = ""
+    if p.get("sim_rec") or p.get("sim_projection"):
+        if p.get("sim_rec"):
+            sim_line = f"<br><small class='muted'>Sim (not record): {_esc(p['sim_rec'])}</small>"
+        elif (p.get("sim_projection") or {}).get("status") == "unavailable":
+            reason = (p.get("sim_projection") or {}).get("reason") or "unavailable"
+            sim_line = f"<br><small class='muted'>Sim: {_esc(reason)}</small>"
     status = "Locked" if locked else "Preview"
     if locked and p.get("pick_status"):
         status += f" {p['pick_status']}"
     head = f"<b>{_esc(pick_text(p))}</b>" if locked else _esc(pick_text(p))
     cls = "lock" if locked else "muted"
-    return f'<div class="{cls}">{head}<br><small>{" | ".join(parts)} | {status}{extra}</small></div>'
+    return f'<div class="{cls}">{head}<br><small>{" | ".join(parts)} | {status}{extra}</small>{sim_line}</div>'
 
 
 def sharp_cell(rec: dict[str, Any] | None, game: dict[str, Any], *, splits_live: bool) -> str:

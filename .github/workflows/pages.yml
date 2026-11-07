@@ -25,6 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install (lab builder imports sharp_scout / numpy)
+        run: pip install -e .
       - uses: actions/configure-pages@v5
       - name: Build unlisted NCAAM page (not committed, not linked)
         if: always()

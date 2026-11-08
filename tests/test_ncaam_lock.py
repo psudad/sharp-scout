@@ -9,10 +9,20 @@ from sharp_scout.ncaam.lock import LockWindow, append_lock, find_play, lock_wind
 def test_lock_windows_dst_safe():
     tip = datetime(2026, 11, 2, 16, 0, tzinfo=timezone.utc)
     assert lock_window(tip - timedelta(minutes=60), tip) == LockWindow.PRIMARY
+    assert lock_window(tip - timedelta(minutes=30), tip) == LockWindow.PRIMARY
+    assert lock_window(tip - timedelta(minutes=26), tip) == LockWindow.PRIMARY
     assert lock_window(tip - timedelta(minutes=20), tip) == LockWindow.LATE
     assert lock_window(tip - timedelta(minutes=3), tip) == LockWindow.MISSED
     assert lock_window(tip - timedelta(minutes=120), tip) == LockWindow.TOO_EARLY
     assert lock_window(tip + timedelta(minutes=1), tip) == LockWindow.POST_TIP
+
+
+def test_lock_window_late_floor_20_min_boundary():
+    tip = datetime(2026, 11, 8, 23, 0, tzinfo=timezone.utc)
+    assert lock_window(tip - timedelta(minutes=20), tip) == LockWindow.LATE
+    assert lock_window(tip - timedelta(minutes=19, seconds=59), tip) == LockWindow.MISSED
+    assert lock_window(tip - timedelta(minutes=25, seconds=1), tip) == LockWindow.PRIMARY
+    assert lock_window(tip - timedelta(minutes=25), tip) == LockWindow.LATE
 
 
 def test_refuse_lock_at_or_after_tip(tmp_path):

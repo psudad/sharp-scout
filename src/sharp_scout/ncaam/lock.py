@@ -1,4 +1,4 @@
-"""Pick lock windows (T-90..T-25 primary, late T-25..T-5) and immutable ledger rows."""
+"""Pick lock windows (T-90..T-25 primary, late T-25..T-20) and immutable ledger rows."""
 
 from __future__ import annotations
 
@@ -13,6 +13,9 @@ from typing import Any
 from sharp_scout.config import DATA_DIR
 from sharp_scout.ledger.tracker import load_ledger, save_ledger
 from sharp_scout.ncaam.rules import MODEL_VERSION
+
+# Official New System: locks allowed only down to this many minutes before tip (inclusive).
+LATE_LOCK_FLOOR_MIN = 20
 
 LEDGER_PATH = DATA_DIR / "ncaam_ledger.json"
 
@@ -62,7 +65,7 @@ def lock_window(now: datetime, tip: datetime) -> LockWindow:
         return LockWindow.TOO_EARLY
     if lead > 25:
         return LockWindow.PRIMARY
-    if lead > 5:
+    if lead >= LATE_LOCK_FLOOR_MIN:
         return LockWindow.LATE
     return LockWindow.MISSED
 

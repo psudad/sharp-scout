@@ -24,7 +24,15 @@ from sharp_scout.ncaam.credits import (
 )
 from sharp_scout.ncaam.espn import et_dates_for_runner, fetch_scoreboard_et_day
 from sharp_scout.ledger.tracker import load_ledger
-from sharp_scout.ncaam.lock import LEDGER_PATH, append_lock, find_play, lock_window, record_missed, LockWindow
+from sharp_scout.ncaam.lock import (
+    LATE_LOCK_FLOOR_MIN,
+    LEDGER_PATH,
+    LockWindow,
+    append_lock,
+    find_play,
+    lock_window,
+    record_missed,
+)
 from sharp_scout.ncaam.ratings import ensure_daily_ratings, load_ratings
 from sharp_scout.ncaam.rules import apply_daily_cap
 from sharp_scout.ncaam.settle import settle_ncaam_ledger
@@ -47,25 +55,31 @@ NCAAM_COMMIT_PATHS = [
     "docs/ncaam_ledger.json",
     "docs/ncaam_record.json",
 ]
-# Only spend Odds API credits when a game is inside the lock window (T-90..T-5).
+# Only spend Odds API credits when a game is inside the lock window (T-90..T-20).
 SNAPSHOT_LOOKAHEAD_MIN = 95
+HEARTBEAT_COMMIT_PATHS = ["data/ncaam/runner_heartbeat.json"]
 DEMO_ODDS_FIXTURE = ROOT / "tests" / "fixtures" / "ncaam" / "demo_odds.json"
 DEMO_SLATE_FIXTURE = ROOT / "tests" / "fixtures" / "ncaam" / "demo_slate.json"
 
 
-def write_heartbeat(*, runner_id: str, note: str = "") -> None:
+def write_heartbeat(
+    *,
+    runner_id: str,
+    note: str = "",
+    pass_n: int | None = None,
+    last_publish_ok: bool | None = None,
+) -> None:
     HEARTBEAT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    HEARTBEAT_PATH.write_text(
-        json.dumps(
-            {
-                "runner_id": runner_id,
-                "at": datetime.now(timezone.utc).isoformat(),
-                "note": note,
-            },
-            indent=2,
-        )
-        + "\n"
-    )
+    payload: dict[str, Any] = {
+        "runner_id": runner_id,
+        "at": datetime.now(timezone.utc).isoformat(),
+        "note": note,
+    }
+    if pass_n is not None:
+        payload["pass_n"] = pass_n
+    if last_publish_ok is not None:
+        payload["last_publish_ok"] = last_publish_ok
+    HEARTBEAT_PATH.write_text(json.dumps(payload, indent=2) + "\n")
 
 
 def another_runner_live(*, max_age_min: float = 10.0) -> bool:
@@ -111,7 +125,7 @@ def _games_near_lock(rows: list[dict[str, Any]], now: datetime) -> int:
         if not isinstance(tip, datetime):
             continue
         lead = (tip - now).total_seconds() / 60.0
-        if 5 < lead <= SNAPSHOT_LOOKAHEAD_MIN:
+        if LATE_LOCK_FLOOR_MIN < lead <= SNAPSHOT_LOOKAHEAD_MIN:
             n += 1
     return n
 
@@ -140,6 +154,7 @@ def run_pass(
     now: datetime | None = None,
     ledger_path: Path | None = None,
     commit: bool = False,
+    runner_id: str | None = None,
 ) -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     ledger_path = ledger_path or LEDGER_PATH
@@ -307,8 +322,8 @@ def run_pass(
     signals_path.write_text(json.dumps(signals, indent=2, default=str) + "\n")
     build_ncaam_page(docs_dir=docs_dir, signals_path=signals_path, ledger_path=ledger_path)
 
-    if commit and (locked or sharp_locked) and not demo:
-        _git_commit_push()
+    if commit and not demo:
+        publish_pass(new_locks=bool(locked or sharp_locked), runner_id=runner_id)
 
     return {
         "locked": len(locked),
@@ -369,7 +384,71 @@ def run_sharp_systems(
         return 0
 
 
-def _git_commit_push(message: str = "chore(ncaam): lock picks", *, trigger_pages: bool = True) -> bool:
+def _needs_full_publish(*, new_locks: bool) -> bool:
+    """Full artifact push when we locked this pass or a prior push is still outstanding."""
+    if new_locks:
+        return True
+    if not HEARTBEAT_PATH.exists():
+        return False
+    try:
+        data = json.loads(HEARTBEAT_PATH.read_text())
+    except (OSError, json.JSONDecodeError):
+        return False
+    if data.get("last_publish_ok") is False:
+        return True
+    note = str(data.get("note") or "")
+    return note.startswith("stuck:")
+
+
+def publish_pass(*, new_locks: bool, runner_id: str | None = None) -> bool:
+    """Push heartbeat every pass; full board publish when picks lock.
+
+    Locks are already on disk when this runs. A failed push must not discard them — the backup
+    hook in :func:`_git_commit_push` restores NCAAM-owned paths before retry. Subsequent passes
+    with zero new locks still push the full board while ``last_publish_ok`` is false.
+    """
+    full = _needs_full_publish(new_locks=new_locks)
+    msg = "chore(ncaam): lock picks" if full else "chore(ncaam): runner heartbeat"
+    paths = NCAAM_COMMIT_PATHS if full else HEARTBEAT_COMMIT_PATHS
+    ok = _git_commit_push(msg, trigger_pages=full, add_paths=paths)
+    if runner_id:
+        write_heartbeat(
+            runner_id=runner_id,
+            note="pass" if ok else "stuck:publish_failed",
+            last_publish_ok=ok,
+        )
+    if full and not ok:
+        logger.error("NCAAM lock publish failed — picks remain in local ledger until push succeeds")
+    return ok
+
+
+def _dispatch_pages_workflow() -> bool:
+    """Dispatch pages.yml (GITHUB_TOKEN pushes do not run on: push for docs)."""
+    if os.environ.get("GITHUB_ACTIONS") != "true" or not os.environ.get("GH_TOKEN"):
+        return True
+    res = subprocess.run(
+        ["gh", "workflow", "run", "pages.yml", "--ref", "main"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if res.returncode != 0:
+        logger.error(
+            "pages.yml workflow dispatch failed (exit %s): %s",
+            res.returncode,
+            (res.stderr or res.stdout or "").strip()[:500],
+        )
+        return False
+    return True
+
+
+def _git_commit_push(
+    message: str = "chore(ncaam): lock picks",
+    *,
+    trigger_pages: bool = True,
+    add_paths: list[str] | None = None,
+) -> bool:
     """Commit NCAAM-owned files and push with rebase/retry.
 
     Backs up the NCAAM files first. If the retry script hits a rebase conflict and resets to
@@ -392,17 +471,18 @@ def _git_commit_push(message: str = "chore(ncaam): lock picks", *, trigger_pages
             (backup / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, backup / rel)
     env = os.environ.copy()
-    env["ADD_PATHS"] = " ".join(NCAAM_COMMIT_PATHS)
+    env["ADD_PATHS"] = " ".join(add_paths or NCAAM_COMMIT_PATHS)
     env["GIT_CONFIG_COUNT"] = "1"
     env["GIT_CONFIG_KEY_0"] = "rebase.autoStash"
     env["GIT_CONFIG_VALUE_0"] = "true"
     rerun = [sys.executable, str(ROOT / "scripts" / "run_ncaam.py"), "--restore-from", str(backup)]
     res = subprocess.run(["bash", str(script), message, *rerun], cwd=ROOT, env=env, check=False)
-    ok = res.returncode == 0
-    if ok and trigger_pages and os.environ.get("GITHUB_ACTIONS") == "true" and os.environ.get("GH_TOKEN"):
-        # Pushes made with GITHUB_TOKEN do not trigger pages.yml; dispatch it so locks show before tip.
-        subprocess.run(["gh", "workflow", "run", "pages.yml", "--ref", "main"], cwd=ROOT, check=False)
-    return ok
+    if res.returncode != 0:
+        logger.error("NCAAM git push failed (exit %s)", res.returncode)
+        return False
+    if trigger_pages and not _dispatch_pages_workflow():
+        return False
+    return True
 
 
 def restore_from_backup(backup: Path) -> None:
@@ -433,13 +513,16 @@ def run_loop(
         logger.info("Another NCAAM runner is live; exiting")
         return 0
     deadline = datetime.now(timezone.utc) + timedelta(minutes=budget_min)
+    pass_n = 0
     try:
         while datetime.now(timezone.utc) < deadline:
-            write_heartbeat(runner_id=runner_id, note="pass")
+            pass_n += 1
+            write_heartbeat(runner_id=runner_id, note="pass", pass_n=pass_n)
             try:
-                run_pass(demo=demo, commit=not demo, ledger_path=ledger_path)
+                run_pass(demo=demo, commit=not demo, ledger_path=ledger_path, runner_id=runner_id)
             except Exception:  # noqa: BLE001 - one bad pass must not kill the loop
                 logger.exception("NCAAM pass failed; will retry next pass")
+                write_heartbeat(runner_id=runner_id, note="stuck:pass_failed", pass_n=pass_n)
             if demo:
                 break
             left = (deadline - datetime.now(timezone.utc)).total_seconds()

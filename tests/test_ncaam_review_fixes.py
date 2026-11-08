@@ -87,3 +87,43 @@ def test_no_snapshot_when_no_games_near_lock():
     assert runner_mod._games_near_lock(rows, now) == 0
     rows.append({"commence_time": now + timedelta(minutes=60)})
     assert runner_mod._games_near_lock(rows, now) == 1
+    rows.append({"commence_time": now + timedelta(minutes=15)})
+    assert runner_mod._games_near_lock(rows, now) == 1
+
+
+def test_publish_pass_heartbeat_only_without_locks(monkeypatch):
+    calls: list[tuple[str, bool, list[str]]] = []
+
+    def fake_push(message, *, trigger_pages=True, add_paths=None):
+        calls.append((message, trigger_pages, list(add_paths or [])))
+        return True
+
+    monkeypatch.setattr(runner_mod, "_git_commit_push", fake_push)
+    assert runner_mod.publish_pass(new_locks=False, runner_id="r1")
+    assert len(calls) == 1
+    msg, trigger, paths = calls[0]
+    assert msg == "chore(ncaam): runner heartbeat"
+    assert trigger is False
+    assert paths == runner_mod.HEARTBEAT_COMMIT_PATHS
+
+
+def test_publish_pass_full_board_on_locks(monkeypatch):
+    calls: list[tuple[str, bool]] = []
+
+    def fake_push(message, *, trigger_pages=True, add_paths=None):
+        calls.append((message, trigger_pages))
+        return True
+
+    monkeypatch.setattr(runner_mod, "_git_commit_push", fake_push)
+    runner_mod.publish_pass(new_locks=True)
+    assert calls == [("chore(ncaam): lock picks", True)]
+
+
+def test_publish_pass_failure_sets_stuck_note(tmp_path, monkeypatch):
+    hb = tmp_path / "hb.json"
+    monkeypatch.setattr(runner_mod, "HEARTBEAT_PATH", hb)
+    monkeypatch.setattr(runner_mod, "_git_commit_push", lambda *a, **k: False)
+    assert not runner_mod.publish_pass(new_locks=True, runner_id="r1")
+    data = json.loads(hb.read_text())
+    assert data["note"] == "stuck:publish_failed"
+    assert data["last_publish_ok"] is False

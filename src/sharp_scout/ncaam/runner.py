@@ -384,24 +384,63 @@ def run_sharp_systems(
         return 0
 
 
+def _needs_full_publish(*, new_locks: bool) -> bool:
+    """Full artifact push when we locked this pass or a prior push is still outstanding."""
+    if new_locks:
+        return True
+    if not HEARTBEAT_PATH.exists():
+        return False
+    try:
+        data = json.loads(HEARTBEAT_PATH.read_text())
+    except (OSError, json.JSONDecodeError):
+        return False
+    if data.get("last_publish_ok") is False:
+        return True
+    note = str(data.get("note") or "")
+    return note.startswith("stuck:")
+
+
 def publish_pass(*, new_locks: bool, runner_id: str | None = None) -> bool:
     """Push heartbeat every pass; full board publish when picks lock.
 
     Locks are already on disk when this runs. A failed push must not discard them — the backup
-    hook in :func:`_git_commit_push` restores NCAAM-owned paths before retry.
+    hook in :func:`_git_commit_push` restores NCAAM-owned paths before retry. Subsequent passes
+    with zero new locks still push the full board while ``last_publish_ok`` is false.
     """
-    msg = "chore(ncaam): lock picks" if new_locks else "chore(ncaam): runner heartbeat"
-    paths = NCAAM_COMMIT_PATHS if new_locks else HEARTBEAT_COMMIT_PATHS
-    ok = _git_commit_push(msg, trigger_pages=new_locks, add_paths=paths)
+    full = _needs_full_publish(new_locks=new_locks)
+    msg = "chore(ncaam): lock picks" if full else "chore(ncaam): runner heartbeat"
+    paths = NCAAM_COMMIT_PATHS if full else HEARTBEAT_COMMIT_PATHS
+    ok = _git_commit_push(msg, trigger_pages=full, add_paths=paths)
     if runner_id:
         write_heartbeat(
             runner_id=runner_id,
             note="pass" if ok else "stuck:publish_failed",
             last_publish_ok=ok,
         )
-    if new_locks and not ok:
+    if full and not ok:
         logger.error("NCAAM lock publish failed — picks remain in local ledger until push succeeds")
     return ok
+
+
+def _dispatch_pages_workflow() -> bool:
+    """Dispatch pages.yml (GITHUB_TOKEN pushes do not run on: push for docs)."""
+    if os.environ.get("GITHUB_ACTIONS") != "true" or not os.environ.get("GH_TOKEN"):
+        return True
+    res = subprocess.run(
+        ["gh", "workflow", "run", "pages.yml", "--ref", "main"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if res.returncode != 0:
+        logger.error(
+            "pages.yml workflow dispatch failed (exit %s): %s",
+            res.returncode,
+            (res.stderr or res.stdout or "").strip()[:500],
+        )
+        return False
+    return True
 
 
 def _git_commit_push(
@@ -438,11 +477,12 @@ def _git_commit_push(
     env["GIT_CONFIG_VALUE_0"] = "true"
     rerun = [sys.executable, str(ROOT / "scripts" / "run_ncaam.py"), "--restore-from", str(backup)]
     res = subprocess.run(["bash", str(script), message, *rerun], cwd=ROOT, env=env, check=False)
-    ok = res.returncode == 0
-    if ok and trigger_pages and os.environ.get("GITHUB_ACTIONS") == "true" and os.environ.get("GH_TOKEN"):
-        # Pushes made with GITHUB_TOKEN do not trigger pages.yml; dispatch it so locks show before tip.
-        subprocess.run(["gh", "workflow", "run", "pages.yml", "--ref", "main"], cwd=ROOT, check=False)
-    return ok
+    if res.returncode != 0:
+        logger.error("NCAAM git push failed (exit %s)", res.returncode)
+        return False
+    if trigger_pages and not _dispatch_pages_workflow():
+        return False
+    return True
 
 
 def restore_from_backup(backup: Path) -> None:

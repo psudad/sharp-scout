@@ -3,7 +3,13 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from sharp_scout.ledger.tracker import load_ledger, save_ledger
-from sharp_scout.ncaam.lock import LockWindow, append_lock, find_play, lock_window
+from sharp_scout.ncaam.lock import (
+    LockWindow,
+    append_lock,
+    find_play,
+    lock_window,
+    lock_window_lab,
+)
 
 
 def test_lock_windows_dst_safe():
@@ -23,6 +29,20 @@ def test_lock_window_late_floor_20_min_boundary():
     assert lock_window(tip - timedelta(minutes=19, seconds=59), tip) == LockWindow.MISSED
     assert lock_window(tip - timedelta(minutes=25, seconds=1), tip) == LockWindow.PRIMARY
     assert lock_window(tip - timedelta(minutes=25), tip) == LockWindow.LATE
+
+
+def test_official_vs_lab_late_floor_boundaries():
+    tip = datetime(2026, 11, 8, 23, 0, tzinfo=timezone.utc)
+    # T-20 / T-19:59 — official only
+    assert lock_window(tip - timedelta(minutes=20), tip) == LockWindow.LATE
+    assert lock_window(tip - timedelta(minutes=19, seconds=59), tip) == LockWindow.MISSED
+    assert lock_window_lab(tip - timedelta(minutes=20), tip) == LockWindow.LATE
+    assert lock_window_lab(tip - timedelta(minutes=19, seconds=59), tip) == LockWindow.LATE
+    # T-5 / T-4:59 — lab still locks; official missed
+    assert lock_window(tip - timedelta(minutes=5), tip) == LockWindow.MISSED
+    assert lock_window_lab(tip - timedelta(minutes=5), tip) == LockWindow.LATE
+    assert lock_window(tip - timedelta(minutes=4, seconds=59), tip) == LockWindow.MISSED
+    assert lock_window_lab(tip - timedelta(minutes=4, seconds=59), tip) == LockWindow.MISSED
 
 
 def test_refuse_lock_at_or_after_tip(tmp_path):

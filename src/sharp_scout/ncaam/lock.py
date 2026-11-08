@@ -1,4 +1,4 @@
-"""Pick lock windows (T-90..T-25 primary, late T-25..T-20) and immutable ledger rows."""
+"""Pick lock windows — official New System (late T-25..T-20) vs lab Sharp (T-25..T-5)."""
 
 from __future__ import annotations
 
@@ -14,8 +14,10 @@ from sharp_scout.config import DATA_DIR
 from sharp_scout.ledger.tracker import load_ledger, save_ledger
 from sharp_scout.ncaam.rules import MODEL_VERSION
 
-# Official New System: locks allowed only down to this many minutes before tip (inclusive).
+# Official New System: locks allowed down to this many minutes before tip (inclusive).
 LATE_LOCK_FLOOR_MIN = 20
+# Sharp 3 / 3.5 lab (unlisted page): retain legacy T-5 floor.
+LAB_LATE_LOCK_FLOOR_MIN = 5
 
 LEDGER_PATH = DATA_DIR / "ncaam_ledger.json"
 
@@ -53,7 +55,12 @@ class LockWindow(str, Enum):
     POST_TIP = "post_tip"
 
 
-def lock_window(now: datetime, tip: datetime) -> LockWindow:
+def lock_window(
+    now: datetime,
+    tip: datetime,
+    *,
+    late_floor_min: int = LATE_LOCK_FLOOR_MIN,
+) -> LockWindow:
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
     if tip.tzinfo is None:
@@ -65,9 +72,14 @@ def lock_window(now: datetime, tip: datetime) -> LockWindow:
         return LockWindow.TOO_EARLY
     if lead > 25:
         return LockWindow.PRIMARY
-    if lead >= LATE_LOCK_FLOOR_MIN:
+    if lead >= late_floor_min:
         return LockWindow.LATE
     return LockWindow.MISSED
+
+
+def lock_window_lab(now: datetime, tip: datetime) -> LockWindow:
+    """Sharp 3 / 3.5 lab timing (T-5 late floor, unchanged from legacy)."""
+    return lock_window(now, tip, late_floor_min=LAB_LATE_LOCK_FLOOR_MIN)
 
 
 def inputs_sha256(payload: dict[str, Any]) -> str:

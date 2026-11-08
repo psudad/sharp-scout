@@ -21,7 +21,13 @@ from sharp_scout.config import DATA_DIR
 from sharp_scout.ledger.tracker import load_ledger
 from sharp_scout.ncaam import sharp3, sharp35
 from sharp_scout.ncaam.conferences import is_mid_major
-from sharp_scout.ncaam.lock import LockWindow, append_lock, find_play, inputs_sha256, lock_window
+from sharp_scout.ncaam.lock import (
+    LockWindow,
+    append_lock,
+    find_play,
+    inputs_sha256,
+    lock_window_lab,
+)
 from sharp_scout.ncaam.splits import has_splits, match_to_slate
 
 logger = logging.getLogger(__name__)
@@ -125,7 +131,7 @@ def _row(engine: str, game: dict[str, Any], ev: dict[str, Any], *, now: datetime
         "away_team": game.get("away_team"),
         "tip": tip.isoformat(),
         "lead_min": round((tip - now).total_seconds() / 60.0, 1),
-        "late_lock": lock_window(now, tip) == LockWindow.LATE,
+        "late_lock": lock_window_lab(now, tip) == LockWindow.LATE,
         "status": "pending",
         "inputs_sha256": inputs_sha256({k: ev.get(k) for k in _STATE_FIELDS}),
     }
@@ -190,7 +196,7 @@ def run_systems(
         for g in games:
             eid = str(g.get("espn_id") or "")
             tip = _tip(g)
-            windows[eid] = lock_window(now, tip)
+            windows[eid] = lock_window_lab(now, tip)
             sp = by_espn.get(eid)
             oid = g.get("odds_event_id")
             event = odds_by_id.get(str(oid)) if oid else None

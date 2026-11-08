@@ -11,7 +11,7 @@ import pytest
 
 from sharp_scout.ledger.tracker import load_ledger, save_ledger
 from sharp_scout.ncaam import runner as runner_mod
-from sharp_scout.ncaam.lock import LockWindow, lock_window
+from sharp_scout.ncaam.lock import LockWindow, lock_window, lock_window_lab
 from sharp_scout.ncaam.runner import NCAAM_COMMIT_PATHS, restore_from_backup
 
 
@@ -202,11 +202,10 @@ def test_restore_from_backup_keeps_official_and_sharp_ledgers(ncaam_paths, monke
     assert json.loads((ncaam_dir / "sharp35_ledger.json").read_text())["plays"][0]["id"] == "s35"
 
 
-def test_sharp_systems_share_t20_lock_window_with_new_system():
-    """Lab Sharp 3/3.5 use the same lock_window helper — late floor is T-20 for all."""
+def test_lab_uses_lock_window_lab_not_official_floor():
     tip = datetime(2026, 11, 8, 23, 0, tzinfo=timezone.utc)
-    assert lock_window(tip - timedelta(minutes=20), tip) == LockWindow.LATE
-    assert lock_window(tip - timedelta(minutes=19, seconds=59), tip) == LockWindow.MISSED
+    assert lock_window(tip - timedelta(minutes=5), tip) == LockWindow.MISSED
+    assert lock_window_lab(tip - timedelta(minutes=5), tip) == LockWindow.LATE
 
 
 def test_ncaam_workflow_declares_actions_write():

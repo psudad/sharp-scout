@@ -75,6 +75,7 @@
     "units": 4.0
    },
    "sharp35": {
+    "final": true,
     "flags": [],
     "gap": 11.0,
     "market": "spreads",
@@ -93,58 +94,44 @@
   },
   "401909707": {
    "away_team": "Pittsburgh",
-   "has_splits": false,
+   "has_splits": true,
    "home_team": "Penn St.",
    "sharp3": {
-    "reason": "No splits data",
-    "result": "no_splits"
-   },
-   "sharp35": {
-    "market": "spreads",
-    "reason": "No splits data",
-    "result": "no_splits"
-   },
-   "tip": "2026-11-09T01:00:00+00:00"
-  },
-  "401911238": {
-   "away_team": "Richmond",
-   "has_splits": true,
-   "home_team": "Temple",
-   "sharp3": {
     "book": "draftkings",
-    "conf": 0.755,
-    "edge": 22.67,
-    "first_tier": "GOLD",
-    "flags": [],
-    "gap": 7.0,
-    "line": 1.5,
+    "conf": 0.81,
+    "edge": 22.32,
+    "first_tier": "DIAMOND",
+    "flags": [
+     "PIVOT_TO_ML"
+    ],
+    "gap": 3.0,
     "line_source": "odds_api",
-    "market": "spreads",
-    "money_pct": 32.0,
-    "orig_line": 1.5,
-    "orig_price": -112.0,
-    "price": -112.0,
+    "market": "h2h",
+    "money_pct": 92.0,
+    "orig_line": -2.5,
+    "orig_price": -110.0,
+    "price": -142.0,
     "price_estimated": false,
     "reason": "Volume (not played)",
     "result": "play",
-    "side": "home",
+    "side": "away",
     "sim_projection": {
      "hfa": 0.0,
      "inputs": {
-      "espn_id": "401911238",
-      "line": 1.5,
-      "market": "spreads",
+      "espn_id": "401909707",
+      "line": null,
+      "market": "h2h",
       "neutral_site": true,
       "note": "Juice/price not used; spread/ML result vs locked line only.",
-      "side": "home"
+      "side": "away"
      },
      "kind": "projection",
-     "losses": 4955,
-     "margin_model": -1.29,
+     "losses": 3681,
+     "margin_model": -3.48,
      "margin_sd": 10.5,
      "model": "torvik-efficiency-mc-v1",
      "n": 10000,
-     "p_cover_or_ml": 0.5045,
+     "p_cover_or_ml": 0.6319,
      "pushes": 0,
      "ratings_display_max_acquisition_age_days": 1,
      "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
@@ -166,33 +153,124 @@
      },
      "reproducibility": {
       "rng": "numpy.random.Generator",
-      "seed": 181421438942044,
-      "seed_inputs": "sharp3-sim|401911238|home|spreads|1.5"
+      "seed": 85082750125631,
+      "seed_inputs": "sharp3-sim|401909707|away|h2h|None"
      },
      "status": "ok",
-     "wins": 5045
+     "wins": 6319
     },
-    "sim_rec": "proj 5045-4955/10000 MC",
+    "sim_rec": "proj 6319-3681/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 25.0,
+    "ticket_pct": 84.0,
+    "tier": "DIAMOND",
+    "units": 4.0,
+    "volume": true
+   },
+   "sharp35": {
+    "flags": [],
+    "gap": 3.0,
+    "market": "spreads",
+    "money_pct": 57.0,
+    "reason": "Fewer than 2 signals",
+    "result": "not_shortlisted",
+    "side": "away",
+    "signals": {
+     "away": [],
+     "home": []
+    },
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 54.0
+   },
+   "tip": "2026-11-09T01:00:00+00:00"
+  },
+  "401911238": {
+   "away_team": "Richmond",
+   "has_splits": true,
+   "home_team": "Temple",
+   "sharp3": {
+    "book": "draftkings",
+    "conf": 0.785,
+    "edge": 23.95,
+    "first_tier": "GOLD",
+    "flags": [
+     "PIVOT_TO_ML"
+    ],
+    "gap": 1.0,
+    "line_source": "odds_api",
+    "market": "h2h",
+    "money_pct": 72.0,
+    "orig_line": -1.5,
+    "orig_price": -108.0,
+    "price": -120.0,
+    "price_estimated": false,
+    "reason": "Volume (not played)",
+    "result": "play",
+    "side": "away",
+    "sim_projection": {
+     "hfa": 0.0,
+     "inputs": {
+      "espn_id": "401911238",
+      "line": null,
+      "market": "h2h",
+      "neutral_site": true,
+      "note": "Juice/price not used; spread/ML result vs locked line only.",
+      "side": "away"
+     },
+     "kind": "projection",
+     "losses": 4485,
+     "margin_model": -1.29,
+     "margin_sd": 10.5,
+     "model": "torvik-efficiency-mc-v1",
+     "n": 10000,
+     "p_cover_or_ml": 0.5515,
+     "pushes": 0,
+     "ratings_display_max_acquisition_age_days": 1,
+     "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
+     "ratings_display_policy_note": "Sharp 3 MC display requires retrieval_verified (successful fetch meta + SHA-256 match). Freshness window: retrieved_at ET within today or yesterday. Publisher ratings snapshot date remains unknown. Failed fetch does not renew freshness.",
+     "ratings_provenance": {
+      "cache_date_et": "2026-11-08",
+      "cache_date_note": "Filename label only; not used for retrieval freshness",
+      "cache_path": "/home/runner/work/sharp-scout/sharp-scout/data/ncaam/ratings_20261108.csv",
+      "content_sha256": "4abbce3ba4736cd3282dfdde7f0c5c4b0c629d2a236f1393deeacb3c017bc9c2",
+      "ratings_snapshot_as_of": null,
+      "ratings_snapshot_as_of_note": "unknown: Barttorvik team_results CSV has no publisher snapshot/as-of field",
+      "retrieval_unavailable_reason": null,
+      "retrieval_verified": true,
+      "retrieved_at_utc": "2026-11-08T13:32:08.885236+00:00",
+      "source": "barttorvik",
+      "source_url": "https://barttorvik.com/2027_team_results.csv",
+      "upstream_http_last_modified_note": "Optional HTTP Last-Modified from response; file revision time only \u2014 not ratings snapshot date",
+      "upstream_http_last_modified_utc": "2026-11-08T13:15:19+00:00"
+     },
+     "reproducibility": {
+      "rng": "numpy.random.Generator",
+      "seed": 76253489661363,
+      "seed_inputs": "sharp3-sim|401911238|away|h2h|None"
+     },
+     "status": "ok",
+     "wins": 5515
+    },
+    "sim_rec": "proj 5515-4485/10000 MC",
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 69.0,
     "tier": "GOLD",
     "units": 2.0,
     "volume": true
    },
    "sharp35": {
     "flags": [],
-    "gap": 7.0,
+    "gap": 1.0,
     "market": "spreads",
-    "money_pct": 32.0,
+    "money_pct": 75.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
-    "side": "home",
+    "side": "away",
     "signals": {
      "away": [],
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 25.0
+    "ticket_pct": 74.0
    },
    "tip": "2026-11-08T22:00:00+00:00"
   },
@@ -288,6 +366,7 @@
     "units": 4.0
    },
    "sharp35": {
+    "final": true,
     "flags": [
      "WHALE_GAP"
     ],
@@ -303,7 +382,7 @@
       "WHALE_GAP"
      ]
     },
-    "splits_source": "actionnetwork:book15",
+    "splits_source": "actionnetwork:book68",
     "ticket_pct": 73.0
    },
    "tip": "2026-11-08T19:00:00+00:00"
@@ -404,15 +483,15 @@
    "home_team": "Nevada",
    "sharp3": {
     "book": "draftkings",
-    "conf": 0.885,
-    "edge": 36.12,
+    "conf": 0.87,
+    "edge": 34.62,
     "first_tier": "DOUBLE_DIAMOND",
     "flags": [],
-    "gap": 23.0,
+    "gap": 20.0,
     "line": 1.5,
     "line_source": "odds_api",
     "market": "spreads",
-    "money_pct": 84.0,
+    "money_pct": 83.0,
     "orig_line": 1.5,
     "orig_price": -110.0,
     "price": -110.0,
@@ -465,7 +544,7 @@
     },
     "sim_rec": "proj 6382-3618/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 61.0,
+    "ticket_pct": 63.0,
     "tier": "DIAMOND",
     "units": 4.0
    },
@@ -473,9 +552,9 @@
     "flags": [
      "WHALE_GAP"
     ],
-    "gap": 23.0,
+    "gap": 20.0,
     "market": "spreads",
-    "money_pct": 84.0,
+    "money_pct": 83.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "away",
@@ -486,7 +565,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 61.0
+    "ticket_pct": 63.0
    },
    "tip": "2026-11-08T21:30:00+00:00"
   },
@@ -586,13 +665,13 @@
    "home_team": "USC",
    "sharp3": {
     "book": "draftkings",
-    "conf": 0.815,
-    "edge": 24.98,
+    "conf": 0.825,
+    "edge": 25.98,
     "first_tier": "DIAMOND",
     "flags": [
      "BUY_POINT"
     ],
-    "gap": 9.0,
+    "gap": 11.0,
     "line": -6.0,
     "line_source": "odds_api",
     "market": "spreads",
@@ -649,13 +728,13 @@
     },
     "sim_rec": "proj 4405-5595/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 75.0,
+    "ticket_pct": 73.0,
     "tier": "DIAMOND",
     "units": 4.0
    },
    "sharp35": {
     "flags": [],
-    "gap": 9.0,
+    "gap": 11.0,
     "market": "spreads",
     "money_pct": 84.0,
     "reason": "Fewer than 2 signals",
@@ -666,7 +745,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 75.0
+    "ticket_pct": 73.0
    },
    "tip": "2026-11-09T04:00:00+00:00"
   },
@@ -762,6 +841,7 @@
     "units": 4.0
    },
    "sharp35": {
+    "final": true,
     "flags": [],
     "gap": 12.0,
     "market": "spreads",
@@ -773,7 +853,7 @@
      "away": [],
      "home": []
     },
-    "splits_source": "actionnetwork:book15",
+    "splits_source": "actionnetwork:book68",
     "ticket_pct": 77.0
    },
    "tip": "2026-11-08T19:00:00+00:00"
@@ -895,6 +975,7 @@
     "book": "draftkings",
     "conf": 0.8,
     "edge": 23.48,
+    "final": true,
     "first_tier": "GOLD",
     "flags": [
      "BUY_POINT"
@@ -963,6 +1044,7 @@
     "volume": true
    },
    "sharp35": {
+    "final": true,
     "flags": [],
     "gap": 6.0,
     "market": "spreads",
@@ -1054,6 +1136,7 @@
     "units": 10.0
    },
    "sharp35": {
+    "final": true,
     "flags": [
      "WHALE_GAP"
     ],
@@ -1069,7 +1152,7 @@
      ],
      "home": []
     },
-    "splits_source": "actionnetwork:book15",
+    "splits_source": "actionnetwork:book68",
     "ticket_pct": 40.0
    },
    "tip": "2026-11-08T19:00:00+00:00"
@@ -1149,6 +1232,7 @@
     "units": 2.0
    },
    "sharp35": {
+    "final": true,
     "flags": [],
     "gap": 5.0,
     "market": "spreads",
@@ -1848,10 +1932,10 @@
  },
  "splits": {
   "auth_mode": "token",
-  "coverage": "18/29",
+  "coverage": "19/29",
   "n_games": 29,
-  "n_with_money": 18,
+  "n_with_money": 19,
   "status": 200
  },
- "updated_at": "2026-11-08T18:36:54.514735+00:00"
+ "updated_at": "2026-11-08T19:07:05.261648+00:00"
 }

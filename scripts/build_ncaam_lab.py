@@ -357,7 +357,9 @@ def build(out: Path, *, now: datetime | None = None, fixture_sim_demo: bool = Fa
         else "Sharp 3 and Sharp 3.5 are waiting on splits data."
     )
     updated = _dt(state.get("updated_at"))
-    upd = updated.astimezone(ET).strftime("%b %-d, %-I:%M %p ET") if updated else "not yet"
+    from sharp_scout.copy.explain import format_display_datetime_et
+
+    upd = format_display_datetime_et(updated) if updated else "not yet"
     page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">

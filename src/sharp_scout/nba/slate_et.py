@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sharp_scout.copy.explain import kickoff_sort_key
+from sharp_scout.copy.explain import eastern_tz_abbrev, kickoff_sort_key
 from sharp_scout.utils.kickoff import kickoff_in_horizon, parse_kickoff_utc
 from sharp_scout.utils.slate import ET
 
@@ -39,7 +39,7 @@ def format_kickoff_day_time_et(kickoff: Any) -> str:
     if kick is None:
         return "Time TBD"
     local = kick.astimezone(ET)
-    time_part = local.strftime("%-I:%M %p ET")
+    time_part = f"{local.strftime('%-I:%M %p')} {eastern_tz_abbrev(local)}"
     return f"{_format_et_calendar_day(local.date())} · {time_part}"
 
 

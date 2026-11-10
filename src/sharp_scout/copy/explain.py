@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -185,6 +185,31 @@ HYBRID_LEANS_SECTION_NOTE = (
 )
 
 
+def eastern_tz_abbrev(local_dt: datetime) -> str:
+    """EST or EDT from America/New_York (never a fixed-offset label)."""
+    local_dt = local_dt.astimezone(ET)
+    name = local_dt.tzname()
+    if name in ("EST", "EDT"):
+        return name
+    fold = local_dt.dst()
+    if fold is None or fold == timedelta(0):
+        return "EST"
+    return "EDT"
+
+
+def format_display_datetime_et(raw: Any, *, include_weekday: bool = False) -> str:
+    """Human-readable Eastern time for page headers (e.g. Nov 9, 2026 at 6:46 PM EST)."""
+    dt = parse_kickoff(raw)
+    if dt is None:
+        return "—"
+    local = dt.astimezone(ET)
+    tz = eastern_tz_abbrev(local)
+    body = f"{local.strftime('%b %-d, %Y')} at {local.strftime('%-I:%M %p')} {tz}"
+    if include_weekday:
+        return f"{local.strftime('%a')} {body}"
+    return body
+
+
 def parse_kickoff(raw: Any) -> datetime | None:
     if raw is None:
         return None
@@ -203,12 +228,12 @@ def parse_kickoff(raw: Any) -> datetime | None:
 
 
 def format_kickoff_et(raw: Any) -> str:
-    """Full kickoff for cards and tables: Wed Sep 9, 8:15 PM ET."""
+    """Full kickoff for cards and tables: Wed Sep 9, 8:15 PM EST."""
     dt = parse_kickoff(raw)
     if dt is None:
         return "Time TBD"
     local = dt.astimezone(ET)
-    return local.strftime("%a %b %-d, %-I:%M %p ET")
+    return f"{local.strftime('%a %b %-d, %-I:%M %p')} {eastern_tz_abbrev(local)}"
 
 
 def format_kickoff_date_et(raw: Any) -> str:
@@ -223,7 +248,8 @@ def format_kickoff_time_et(raw: Any) -> str:
     dt = parse_kickoff(raw)
     if dt is None:
         return "TBD"
-    return dt.astimezone(ET).strftime("%-I:%M %p ET")
+    local = dt.astimezone(ET)
+    return f"{local.strftime('%-I:%M %p')} {eastern_tz_abbrev(local)}"
 
 
 def format_kickoff_compact(raw: Any) -> str:

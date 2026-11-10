@@ -100,7 +100,7 @@ def main() -> None:
     if cron and is_catchup_cron(cron):
         et_day = now.astimezone(ET).date()
         fresh = scan_fresh_for_et_date(et_day)
-        attempts = 0 if fresh or first_tip is None else _scan_attempts_today(now)
+        attempts = _scan_attempts_today(now) if first_tip is not None else 0
         ok, why = catchup_run_allowed(
             now, first_tip_utc=first_tip, scan_fresh=fresh, attempts_today=attempts
         )

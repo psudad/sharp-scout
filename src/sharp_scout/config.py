@@ -293,6 +293,8 @@ class Settings(BaseSettings):
     nba_v2_roster_priors: bool = True
     nba_v2_slower_observe: bool = True
     # Optional extra line snapshot (disabled — Odds API credits exhausted until reset)
+    nba_pace_true_close_enabled: bool = False
+    nba_pace_true_close_post_minutes: int = 5
     nba_pace_pre_tip_snapshot_enabled: bool = False
     nba_pace_pre_tip_snapshot_minutes: int = 15
     nba_prop_markets: str = (

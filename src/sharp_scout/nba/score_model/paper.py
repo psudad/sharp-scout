@@ -509,7 +509,9 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
         spread_shadow = g.get("pace_spread_shadow_pick") or pace_spread_shadow_pick_from_snapshot(
             last, home=home, away=away
         )
-        g["frozen"] = {
+        from sharp_scout.nba.score_model.true_close import true_close_lines_for_game
+
+        frozen_blob: dict[str, Any] = {
             "frozen_at": now.isoformat(),
             "snapshot": last,
             "first_snapshot": scans[0],
@@ -518,6 +520,10 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
             "pace_spread_shadow_pick": spread_shadow,
             "shadow_v2": last.get("shadow_v2"),
         }
+        tc = true_close_lines_for_game(g)
+        if tc:
+            frozen_blob.update(tc)
+        g["frozen"] = frozen_blob
         frozen += 1
     if frozen:
         save_paper_store(store)
@@ -630,22 +636,57 @@ def grade_score_model_paper(
             move = close_sp - open_sp
             clv_margin = (move > 0 and model_edge_open > 0) or (move < 0 and model_edge_open < 0)
 
+        tc = true_close_lines_for_game(g) or {}
+        close_spread_true = tc.get("close_spread_home_true")
+        close_total_true = tc.get("close_total_true")
+        captured_at = tc.get("close_captured_at")
+        use_true = bool(get_settings().nba_pace_true_close_enabled)
+        clv_spread = cs
+        clv_total = ct
+        if use_true:
+            if close_spread_true is not None:
+                clv_spread = close_spread_true
+            if close_total_true is not None:
+                clv_total = close_total_true
+
         g["graded"] = {
             "graded_at": datetime.now(timezone.utc).isoformat(),
             "actual_margin": act_m,
             "actual_total": act_t,
             "close_spread_home": cs,
             "close_total": ct,
+            "close_spread_home_true": close_spread_true,
+            "close_total_true": close_total_true,
+            "close_captured_at": captured_at,
             "mae_margin_model": abs(act_m - proj_m),
             "mae_total_model": abs(act_t - proj_t),
             "mae_margin_injury": abs(act_m - inj_m),
             "mae_total_injury": abs(act_t - inj_t),
             "mae_margin_close": abs(act_m - (-float(cs))) if cs is not None else None,
             "mae_total_close": abs(act_t - float(ct)) if ct is not None else None,
+            "mae_margin_close_true": abs(act_m - (-float(close_spread_true)))
+            if close_spread_true is not None
+            else None,
+            "mae_total_close_true": abs(act_t - float(close_total_true))
+            if close_total_true is not None
+            else None,
             "mae_margin_blend": abs(act_m - blend_m) if cs is not None else None,
             "mae_total_blend": abs(act_t - blend_t) if ct is not None else None,
             "clv_line_move_toward_model_margin": clv_margin,
         }
+        from sharp_scout.nba.score_model.pace_clv import pace_clv_fields
+
+        pub = frozen.get("pace_published_pick") or g.get("pace_published_pick")
+        if isinstance(pub, dict):
+            first = frozen.get("first_snapshot") or snap
+            g["graded"]["pace_clv"] = pace_clv_fields(
+                pick=pub,
+                pre_tip=first,
+                close_spread_home=float(clv_spread) if clv_spread is not None else None,
+                close_total=float(clv_total) if clv_total is not None else None,
+                proj_margin=inj_m,
+                proj_total=inj_t,
+            )
 
     store["summary"] = summarize_score_paper(store)
     save_paper_store(store)

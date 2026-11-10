@@ -372,6 +372,27 @@ def catchup_run_allowed(
     if et_now < primary_slot_et(et_now.date()) + CATCHUP_GRACE:
         return False, "before today's primary slot + grace"
     if now >= first_tip_utc - TIP_OFF_BUFFER:
+        try:
+            from sharp_scout.config import get_settings
+            from sharp_scout.nba.score_model.paper import load_paper_store
+            from sharp_scout.nba.score_model.true_close import game_missing_true_close_scan
+            from sharp_scout.utils.kickoff import parse_kickoff_utc
+
+            settings = get_settings()
+            pre = int(getattr(settings, "nba_pace_pre_tip_snapshot_minutes", 15))
+            if getattr(settings, "nba_pace_pre_tip_snapshot_enabled", False) and now >= first_tip_utc - timedelta(
+                minutes=pre + 5
+            ):
+                store = load_paper_store()
+                missing = any(
+                    game_missing_true_close_scan(g, now=now)
+                    for g in store.get("games") or []
+                    if parse_kickoff_utc(g.get("kickoff")) and parse_kickoff_utc(g.get("kickoff")) > now
+                )
+                if missing and attempts_today < MAX_CATCHUP_SCANS_PER_DAY:
+                    return True, "pre-tip true-close window (extra scan)"
+        except Exception:  # noqa: BLE001
+            pass
         return False, "too close to (or after) first tip"
     if attempts_today >= MAX_CATCHUP_SCANS_PER_DAY:
         return False, f"catch-up cap reached ({attempts_today}/{MAX_CATCHUP_SCANS_PER_DAY})"

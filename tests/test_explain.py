@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sharp_scout.copy.explain import (
     STAGE_RECORD_TIPS,
     action_network_auth_status,
     collapse_best_signals,
     describe_splits_board,
     describe_stage_pick,
+    eastern_tz_abbrev,
     explain_action_network_gap,
+    format_display_datetime_et,
     format_kickoff_et,
     format_play_rationale,
 )
+from zoneinfo import ZoneInfo
+
+ET = ZoneInfo("America/New_York")
 
 
 def test_stage_record_tips_cover_all_lenses():
@@ -36,7 +43,7 @@ def test_collapse_best_signals_one_per_side():
 
 def test_format_kickoff_et():
     text = format_kickoff_et("2026-08-15T17:00:00+00:00")
-    assert "ET" in text
+    assert text.endswith("EDT")
     assert "Aug" in text
     assert "Sat" in text or "Fri" in text  # depends on ET offset
     assert ":" in text
@@ -47,7 +54,44 @@ def test_format_kickoff_et():
     assert "Sep" in compact
     assert "Wed" in compact
     assert "8:15" in compact
-    assert "ET" in compact
+    assert compact.endswith("EDT")
+
+
+def test_format_display_datetime_et_jason_example():
+    assert format_display_datetime_et("2026-11-09T23:46:28.289216+00:00") == "Nov 9, 2026 at 6:46 PM EST"
+
+
+def test_format_display_datetime_et_seasons_and_rollover():
+    # Winter EST
+    winter = datetime(2026, 1, 15, 18, 0, tzinfo=timezone.utc)
+    assert format_display_datetime_et(winter) == "Jan 15, 2026 at 1:00 PM EST"
+    # Summer EDT
+    summer = datetime(2026, 7, 15, 18, 0, tzinfo=timezone.utc)
+    assert format_display_datetime_et(summer) == "Jul 15, 2026 at 2:00 PM EDT"
+    # UTC next calendar day, still prior ET date
+    assert format_display_datetime_et("2026-11-10T04:30:00Z") == "Nov 9, 2026 at 11:30 PM EST"
+
+
+def test_eastern_tz_abbrev_dst_boundaries():
+    # Nov 9 2026 — EST (after fall back)
+    nov = datetime(2026, 11, 9, 18, 0, tzinfo=timezone.utc).astimezone(ET)
+    assert eastern_tz_abbrev(nov) == "EST"
+    # July — EDT
+    jul = datetime(2026, 7, 9, 18, 0, tzinfo=timezone.utc).astimezone(ET)
+    assert eastern_tz_abbrev(jul) == "EDT"
+
+
+def test_format_display_datetime_et_dst_transitions():
+    # US spring forward 2026-03-08 02:00 → 03:00 (ET)
+    before = format_display_datetime_et("2026-03-08T06:59:00Z")  # 1:59 AM EST
+    after = format_display_datetime_et("2026-03-08T07:00:00Z")  # 3:00 AM EDT
+    assert "1:59 AM EST" in before
+    assert "3:00 AM EDT" in after
+    # US fall back 2026-11-01 02:00 → 01:00 (second pass)
+    pre = format_display_datetime_et("2026-11-01T05:30:00Z")  # 1:30 AM EDT
+    post = format_display_datetime_et("2026-11-01T06:30:00Z")  # 1:30 AM EST
+    assert "1:30 AM EDT" in pre
+    assert "1:30 AM EST" in post
 
 
 def test_format_play_rationale_includes_edge():

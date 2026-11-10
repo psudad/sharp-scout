@@ -72,6 +72,13 @@ def test_fetch_writes_retrieval_meta_runner_integration(tmp_path, monkeypatch):
     dest = tmp_path / "ratings_20261107.csv"
     retrieved = datetime(2026, 11, 7, 14, 0, tzinfo=timezone.utc)
 
+    class _FakeDateTime:
+        @staticmethod
+        def now(tz=None):
+            return retrieved if tz is None else retrieved.astimezone(tz)
+
+    monkeypatch.setattr(ratings_mod, "datetime", _FakeDateTime)
+
     class Resp:
         content = CSV_ROW
         headers = {"last-modified": "Sat, 07 Nov 2026 14:00:18 GMT"}

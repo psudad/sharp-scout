@@ -9,6 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT, get_settings
+from sharp_scout.copy.explain import format_display_datetime_et
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.site.bottom_bar import (
     BOTTOM_BAR_SCRIPT,
@@ -46,13 +47,7 @@ def _load_signals(path: Path | None = None) -> dict[str, Any]:
 
 
 def _fmt_et(iso: str | None) -> str:
-    if not iso:
-        return "—"
-    try:
-        dt = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
-        return dt.astimezone(ET).strftime("%b %-d %I:%M %p ET")
-    except ValueError:
-        return _esc(iso)
+    return format_display_datetime_et(iso)
 
 
 _NOT_A_PLAY = ("no_play", "missed")
@@ -420,7 +415,9 @@ def build_ncaam_page(
     ledger_path = ledger_path or NCAAM_LEDGER_PATH
     ledger = load_ledger(ledger_path)
     signals = _load_signals(signals_path)
-    updated = signals.get("generated_at") or ledger.get("updated_at") or datetime.now(timezone.utc).isoformat()
+    updated = format_display_datetime_et(
+        signals.get("generated_at") or ledger.get("updated_at") or datetime.now(timezone.utc)
+    )
     from sharp_scout.site.build import _SITE_CSS, _render_analytics_head
 
     html = render_ncaam_page_html(

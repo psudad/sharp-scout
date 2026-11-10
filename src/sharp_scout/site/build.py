@@ -662,7 +662,9 @@ def _strip_demo_signals(sig: dict[str, Any]) -> dict[str, Any]:
 
 
 def _format_timestamp_et(dt: datetime) -> str:
-    return dt.astimezone(ET).strftime("%a %b %-d, %-I:%M %p ET")
+    from sharp_scout.copy.explain import format_display_datetime_et
+
+    return format_display_datetime_et(dt, include_weekday=True)
 
 
 def _resolve_board_updated_at(

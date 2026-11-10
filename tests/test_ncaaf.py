@@ -101,7 +101,7 @@ def test_resolve_board_updated_at_uses_latest_pipeline_timestamp():
         ncaaf_ledger={"updated_at": "2026-08-31T20:45:00+00:00"},
     )
     assert "Aug 31" in ts
-    assert "ET" in ts
+    assert "EDT" in ts or "EST" in ts
     # 21:17 UTC = 5:17 PM ET (EDT)
     assert "5:17 PM" in ts
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 
 from sharp_scout.utils.slate import ET
 from sharp_scout.site.nba_page import (
@@ -197,8 +197,28 @@ def test_score_modeling_display_uses_three_point_threshold():
     assert "MIN +4.5" in titles
 
 
-def test_render_nba_page_price_edge_and_score_modeling_sections():
-    today_kick = datetime.combine(datetime.now(ET).date(), time(19, 0), tzinfo=ET).isoformat()
+def _patch_nba_page_now(monkeypatch, when: datetime) -> None:
+    from sharp_scout.nba import slate_et as slate_et_mod
+    from sharp_scout.site import nba_page as nba_page_mod
+
+    real = datetime
+
+    class _FixedDatetime(real):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return when.replace(tzinfo=None)
+            return when.astimezone(tz)
+
+    monkeypatch.setattr(nba_page_mod, "datetime", _FixedDatetime)
+    monkeypatch.setattr(slate_et_mod, "datetime", _FixedDatetime)
+
+
+def test_render_nba_page_price_edge_and_score_modeling_sections(monkeypatch):
+    # Freeze slate "now" before evening tip so upcoming_slate_items keeps the play visible.
+    fixed_now = datetime(2026, 10, 26, 20, 0, tzinfo=timezone.utc)
+    _patch_nba_page_now(monkeypatch, fixed_now)
+    today_kick = datetime.combine(fixed_now.astimezone(ET).date(), time(19, 0), tzinfo=ET).isoformat()
     payload = {
         "ok": True,
         "demo": False,

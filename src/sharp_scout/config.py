@@ -272,6 +272,8 @@ class Settings(BaseSettings):
     nba_paper_end: str = "2026-12-13"
     nba_pace_min_gap_pts: float = 3.0  # v1 official card (production)
     nba_pace_require_raw_gap: bool = True  # v1: injury adj cannot create a play
+    nba_pace_v1_market_blend_enabled: bool = False
+    nba_pace_v1_market_blend_model_weight: float = 0.35
     # Official Pace card publishes totals only; spreads grade in shadow (weekly review Nov 2026).
     nba_pace_spreads_official_enabled: bool = False
     nba_injury_day_to_day_weight: float = 0.18

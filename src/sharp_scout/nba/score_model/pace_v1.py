@@ -23,6 +23,22 @@ def require_raw_gap_v1() -> bool:
     return bool(getattr(get_settings(), "nba_pace_require_raw_gap", True))
 
 
+def v1_market_blend_enabled() -> bool:
+    return bool(getattr(get_settings(), "nba_pace_v1_market_blend_enabled", False))
+
+
+def v1_market_blend_model_weight() -> float:
+    return float(getattr(get_settings(), "nba_pace_v1_market_blend_model_weight", 0.35))
+
+
+def blend_total_toward_market(injury_total: float, consensus_total: float | None) -> float:
+    """Blend injury-adj total toward the market line before gap qualification."""
+    if consensus_total is None or not v1_market_blend_enabled():
+        return injury_total
+    w = max(0.0, min(1.0, v1_market_blend_model_weight()))
+    return w * float(injury_total) + (1.0 - w) * float(consensus_total)
+
+
 def injury_adj_pace_picks(
     snap: dict[str, Any],
     *,
@@ -68,9 +84,10 @@ def injury_adj_pace_picks(
                 }
             )
     if ct is not None:
+        inj_for_gap = blend_total_toward_market(inj_t, float(ct))
         ok, gap, raw_edge, inj_edge = qualifies_total(
             raw_total=raw_t,
-            injury_total=inj_t,
+            injury_total=inj_for_gap,
             close_total=float(ct),
             min_gap=gap_bar,
             require_raw=require_raw_gap,

@@ -15,7 +15,13 @@ import scripts.check_ncaaf_staleness as stale_mod  # noqa: E402
 def _patch_paths(monkeypatch, root: Path) -> None:
     monkeypatch.setattr(stale_mod, "ROOT", root)
     monkeypatch.setattr(stale_mod, "STATE_PATH", root / "data" / "ncaaf_rebuild_state.json")
-    monkeypatch.setattr(stale_mod, "PLAN_PATH", root / "data" / "ncaaf_line_plan.json")
+    plan_path = root / "data" / "ncaaf_line_plan.json"
+    monkeypatch.setattr(stale_mod, "PLAN_PATH", plan_path)
+    monkeypatch.setattr(
+        stale_mod,
+        "load_plan",
+        lambda path=None: json.loads(plan_path.read_text(encoding="utf-8")),
+    )
 
 
 def _write_last_rebuild(root: Path, when: datetime) -> None:

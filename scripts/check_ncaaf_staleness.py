@@ -178,7 +178,7 @@ def should_run_full_refresh(*, now: datetime | None = None) -> bool:
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
-    plan = load_plan() if PLAN_PATH.exists() else {}
+    plan = load_plan(PLAN_PATH) if PLAN_PATH.exists() else {}
 
     if not _is_ncaaf_gameday(plan, now):
         print("Not an NCAAF game day (no kickoffs today ET, not in pregame zone) — skip")

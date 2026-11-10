@@ -293,6 +293,9 @@ class Settings(BaseSettings):
     nba_v2_roster_priors: bool = True
     nba_v2_slower_observe: bool = True
     # Optional extra line snapshot (disabled — Odds API credits exhausted until reset)
+    nba_league_efficiency_correction_enabled: bool = False
+    nba_league_efficiency_min_games: int = 30
+    nba_league_efficiency_anchor_ortg: float = 112.0
     nba_pace_pre_tip_snapshot_enabled: bool = False
     nba_pace_pre_tip_snapshot_minutes: int = 15
     nba_prop_markets: str = (

@@ -107,9 +107,13 @@ def test_official_record_through_oct27_published_spreads():
     assert sum(1 for p in oct27 if p.get("result") == "loss") == 2
 
 
-def test_official_pace_wrapper_accepts_engine_kw():
+def test_official_pace_wrapper_accepts_engine_kw(tmp_path, monkeypatch):
     from sharp_scout.nba.score_model import official_pace as op
-    from sharp_scout.nba.score_model.state import ensure_score_engine
+    from sharp_scout.nba.score_model import state as score_state
+    from sharp_scout.nba.score_model.engine import V2Engine, V2Params
+
+    state_path = tmp_path / "nba_score_model_state.json"
+    monkeypatch.setattr(score_state, "STATE_PATH", state_path)
 
     snap = {
         "margin": 5.0,
@@ -118,9 +122,10 @@ def test_official_pace_wrapper_accepts_engine_kw():
         "injury_total": 230.0,
         "lines": {"consensus_spread_home": -3.0, "consensus_total": 220.0},
     }
-    engine = ensure_score_engine()
+    engine = V2Engine(params=V2Params(), stage=3)
     pick = op.pace_display_pick_from_snapshot(snap, home="BOS", away="NYK", engine=engine)
     assert pick is None or pick.get("kind") in ("spread", "total")
+    assert not state_path.exists()
 
 
 def test_official_record_through_oct28():

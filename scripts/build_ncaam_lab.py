@@ -298,7 +298,9 @@ def build(out: Path, *, now: datetime | None = None, fixture_sim_demo: bool = Fa
         if not shown:
             continue
         tip = _dt(g.get("tip"))
-        tip_s = tip.astimezone(ET).strftime("%-I:%M %p") if tip else ""
+        from sharp_scout.copy.explain import format_kickoff_time_et
+
+        tip_s = format_kickoff_time_et(tip) if tip else ""
         rows.append(
             "<tr>"
             f"<td>{_esc(tip_s)}</td>"

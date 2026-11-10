@@ -81,6 +81,19 @@ def test_eastern_tz_abbrev_dst_boundaries():
     assert eastern_tz_abbrev(jul) == "EDT"
 
 
+def test_format_display_datetime_et_dst_transitions():
+    # US spring forward 2026-03-08 02:00 → 03:00 (ET)
+    before = format_display_datetime_et("2026-03-08T06:59:00Z")  # 1:59 AM EST
+    after = format_display_datetime_et("2026-03-08T07:00:00Z")  # 3:00 AM EDT
+    assert "1:59 AM EST" in before
+    assert "3:00 AM EDT" in after
+    # US fall back 2026-11-01 02:00 → 01:00 (second pass)
+    pre = format_display_datetime_et("2026-11-01T05:30:00Z")  # 1:30 AM EDT
+    post = format_display_datetime_et("2026-11-01T06:30:00Z")  # 1:30 AM EST
+    assert "1:30 AM EDT" in pre
+    assert "1:30 AM EST" in post
+
+
 def test_format_play_rationale_includes_edge():
     play = {
         "market": "spreads",

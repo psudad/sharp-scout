@@ -79,6 +79,32 @@ def test_staleness_deadline_moves_up_for_early_tip():
     assert nba_scan_stale(_et(14, 40), first_tip_utc=early_tip, scan_fresh=False)[0]
 
 
+def test_pretip_catchup_runs_when_fresh(tmp_path, monkeypatch):
+    from sharp_scout.config import get_settings
+    from sharp_scout.nba.score_model import paper as paper_mod
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "nba_pace_pre_tip_snapshot_enabled", True)
+    monkeypatch.setattr(settings, "nba_pace_pre_tip_snapshot_minutes", 15)
+    store = {
+        "games": [
+            {
+                "kickoff": TIP.isoformat(),
+                "scans": [
+                    {
+                        "at": (TIP - timedelta(hours=4)).isoformat(),
+                        "lines": {"consensus_total": 220.0},
+                    }
+                ],
+            }
+        ]
+    }
+    monkeypatch.setattr(paper_mod, "load_paper_store", lambda: store)
+    now = TIP - timedelta(minutes=12)
+    ok, why = catchup_run_allowed(now, first_tip_utc=TIP, scan_fresh=True, attempts_today=0)
+    assert ok and "pre-tip" in why
+
+
 def test_scan_fresh_reads_latest_signals(tmp_path, monkeypatch):
     import json
 

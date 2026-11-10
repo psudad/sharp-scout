@@ -397,6 +397,20 @@ def record_score_model_scan(
                 scan_at=at,
                 snap=snap,
             )
+            from sharp_scout.nba.score_model.pace_shadow_combo import (
+                safe_maybe_record_shadow_combo_for_scan,
+            )
+
+            safe_maybe_record_shadow_combo_for_scan(
+                engine,
+                event_id=eid,
+                home=home,
+                away=away,
+                kickoff=kick_dt,
+                scan_at=at,
+                snap=snap,
+                game_row=existing,
+            )
 
     save_paper_store(store)
     return store

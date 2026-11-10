@@ -258,6 +258,7 @@ class V2Engine:
         away_travel_mi: float = 0.0,
         home_player_mins: dict[str, float] | None = None,
         away_player_mins: dict[str, float] | None = None,
+        league_efficiency_force: bool = False,
     ) -> dict[str, float]:
         off_fit, def_fit = self._fit_ridge()
 
@@ -268,7 +269,18 @@ class V2Engine:
         h_def_allow = self._effective_rating(home, "def")  # pts allowed per 100
         a_def_allow = self._effective_rating(away, "def")
 
+        from sharp_scout.nba.score_model.league_environment import efficiency_scale
+
+        eff_scale = efficiency_scale(self, game_date, force=league_efficiency_force)
+        if eff_scale is not None:
+            h_off *= eff_scale
+            a_off *= eff_scale
+            h_def_allow *= eff_scale
+            a_def_allow *= eff_scale
+
         mu = getattr(self, "_ridge_intercept", LEAGUE_ORTG)
+        if eff_scale is not None:
+            mu *= eff_scale
         min_team_g = min(self.team_games.get(home, 0), self.team_games.get(away, 0))
         ridge_ok = (
             off_fit

@@ -232,6 +232,14 @@ def settle_nba_ledger(
                 logger.info("NBA totals shadow: graded %d play(s)", n_shadow)
         except Exception as shadow_exc:  # noqa: BLE001
             logger.warning("NBA totals shadow grade skipped: %s", shadow_exc)
+        try:
+            from sharp_scout.nba.score_model.pace_shadow_combo import safe_grade_shadow_combo_from_paper_store
+
+            n_combo = safe_grade_shadow_combo_from_paper_store(paper)
+            if n_combo:
+                logger.info("NBA pace shadow combo: graded %d play(s)", n_combo)
+        except Exception as combo_exc:  # noqa: BLE001
+            logger.warning("NBA pace shadow combo grade skipped: %s", combo_exc)
         grade_injury_lag_entries()
         ensure_score_engine(lookback_days=100)
     except Exception as exc:  # noqa: BLE001

@@ -5,13 +5,20 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pytest
+
 from sharp_scout.nba.schedule_guard import (
+    CATCHUP_CRON_MINUTES_UTC,
+    CATCHUP_SCHEDULE_LABEL_ET,
     CRON_CATCHUP,
     ET,
     MAX_CATCHUP_SCANS_PER_DAY,
     catchup_run_allowed,
+    catchup_utc_hours,
     is_catchup_cron,
     nba_scan_stale,
+    parse_cron_hour_field,
+    pretip_close_scan_allowed,
     scheduled_cron_run_allowed,
 )
 
@@ -77,6 +84,94 @@ def test_staleness_deadline_moves_up_for_early_tip():
     early_tip = datetime(2026, 11, 3, 15, 0, tzinfo=ET).astimezone(timezone.utc)
     # Deadline = 2:30 PM ET (30 min before tip), not 4:52 PM.
     assert nba_scan_stale(_et(14, 40), first_tip_utc=early_tip, scan_fresh=False)[0]
+
+
+def test_pretip_allowed_after_catchup_cap(tmp_path, monkeypatch):
+    from sharp_scout.config import get_settings
+    from sharp_scout.nba.score_model import paper as paper_mod
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "nba_pace_pre_tip_snapshot_enabled", True)
+    store = {
+        "games": [
+            {
+                "kickoff": TIP.isoformat(),
+                "scans": [{"at": (TIP - timedelta(hours=4)).isoformat(), "lines": {"consensus_total": 220.0}}],
+            }
+        ]
+    }
+    monkeypatch.setattr(paper_mod, "load_paper_store", lambda: store)
+    now = TIP - timedelta(minutes=12)
+    ok, why = pretip_close_scan_allowed(
+        now, first_tip_utc=TIP, attempts_today=MAX_CATCHUP_SCANS_PER_DAY
+    )
+    assert ok and "cap-exempt" in why
+    ok2, why2 = catchup_run_allowed(
+        now, first_tip_utc=TIP, scan_fresh=True, attempts_today=MAX_CATCHUP_SCANS_PER_DAY
+    )
+    assert ok2 and "pre-tip" in why2
+
+
+def test_pretip_per_game_window_not_first_tip_only(tmp_path, monkeypatch):
+    """A 7:40 tip opens at 7:25 ET, not when ESPN's earlier first tip would."""
+    from sharp_scout.config import get_settings
+    from sharp_scout.nba.score_model import paper as paper_mod
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "nba_pace_pre_tip_snapshot_enabled", True)
+    late = datetime(2026, 11, 10, 19, 40, tzinfo=ET).astimezone(timezone.utc)
+    espn_first = datetime(2026, 11, 10, 19, 30, tzinfo=ET).astimezone(timezone.utc)
+    store = {
+        "games": [
+            {
+                "kickoff": late.isoformat(),
+                "scans": [{"at": (late - timedelta(hours=4)).isoformat(), "lines": {"consensus_total": 228.0}}],
+            }
+        ]
+    }
+    monkeypatch.setattr(paper_mod, "load_paper_store", lambda: store)
+    at_721 = datetime(2026, 11, 10, 19, 21, tzinfo=ET).astimezone(timezone.utc)
+    ok_early, why_early = pretip_close_scan_allowed(at_721, first_tip_utc=espn_first)
+    assert not ok_early and "no game" in why_early
+    at_726 = datetime(2026, 11, 10, 19, 26, tzinfo=ET).astimezone(timezone.utc)
+    ok_late, why_late = pretip_close_scan_allowed(at_726, first_tip_utc=espn_first)
+    assert ok_late and "19:40" in why_late
+
+
+def test_catchup_and_pretip_never_touch_official_pace(monkeypatch):
+    from sharp_scout.nba.score_model import official_pace as op
+
+    calls: list[int] = []
+
+    def _boom():
+        calls.append(1)
+        return {"plays": []}
+
+    monkeypatch.setattr(op, "load_official_pace", _boom)
+    monkeypatch.setattr(op, "save_official_pace", _boom)
+    catchup_run_allowed(_et(14, 22), first_tip_utc=TIP, scan_fresh=False)
+    pretip_close_scan_allowed(TIP - timedelta(minutes=10), first_tip_utc=TIP)
+    assert calls == []
+
+
+def test_catchup_cron_uses_explicit_utc_hour_list_not_wraparound():
+    assert CRON_CATCHUP == "22,52 0-5,12-23 * * *"
+    hours = catchup_utc_hours()
+    assert hours == frozenset(list(range(0, 6)) + list(range(12, 24)))
+    assert parse_cron_hour_field("0-5,12-23") == hours
+    with pytest.raises(ValueError, match="wrap"):
+        parse_cron_hour_field("12-5")
+    assert CRON_CATCHUP.split()[0] == "22,52"
+    assert CATCHUP_CRON_MINUTES_UTC == frozenset({22, 52})
+
+
+def test_workflow_commits_shadow_combo_and_extended_catchup_cron():
+    wf = (Path(__file__).resolve().parents[1] / ".github/workflows/nba-shadow.yml").read_text()
+    assert f'cron: "{CRON_CATCHUP}"' in wf
+    assert "data/nba_pace_shadow_combo.json" in wf
+    assert "0-5,12-23" in CRON_CATCHUP
+    assert "12-5" not in CRON_CATCHUP.split()[1]
+    assert CATCHUP_SCHEDULE_LABEL_ET
 
 
 def test_pretip_catchup_runs_when_fresh(tmp_path, monkeypatch):

@@ -22,8 +22,8 @@ def main() -> int:
     print(f"With true-close scan in (T-15,T+5]: {have} ({100*have/max(n,1):.1f}%)")
     print(
         "Odds API credits when nba_pace_pre_tip_snapshot_enabled=true: "
-        "~9 credits per extra game-lines scan; at most ~1 extra catch-up scan/slate day "
-        "in the pre-tip window (see schedule_guard), not per game."
+        "~9 credits per extra game-lines scan; typically 1–3 cap-exempt pre-tip scans/slate "
+        "(per-game T-15..T+5 windows; see schedule_guard CRON_CATCHUP), not per game."
     )
     return 0
 

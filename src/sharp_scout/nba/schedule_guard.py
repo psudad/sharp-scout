@@ -299,16 +299,45 @@ def next_nba_scan_et(
 
 # --- Catch-up and staleness backup ------------------------------------------------------
 # GitHub sometimes drops scheduled runs outright (all four :07 slots on Nov 3, 2026).
-# A catch-up cron fires every 30 minutes; it only scans when today's ET slot has passed,
-# no fresh scan exists for today, the first tip is still ahead, and the daily attempt cap
-# has not been hit. Otherwise it exits before touching the Odds API.
-CRON_CATCHUP = "22,52 12-23 * * *"
+# Catch-up / pre-tip crons every 30 min at :22/:52 UTC for hours 0–5 and 12–23 (list form;
+# standard cron does not support wraparound ranges like 12-5). Covers ~7 AM–12:52 AM ET.
+# Cheap gate skips unless a scan is needed; pre-tip true-close scans bypass the daily cap.
+CRON_CATCHUP = "22,52 0-5,12-23 * * *"
+CATCHUP_CRON_MINUTES_UTC = frozenset({22, 52})
+# Human-readable window (EST/EDT via America/New_York at fire time):
+CATCHUP_SCHEDULE_LABEL_ET = (
+    "every :22/:52 UTC hours 0–5 & 12–23 (~7:22 AM–12:52 AM ET; late West Coast tips)"
+)
 CATCHUP_GRACE = timedelta(minutes=20)  # let the primary slot finish before catching up
 MAX_CATCHUP_SCANS_PER_DAY = 3
 # Staleness guard: a game day with no scan by the backup slot + grace fails loudly.
 STALE_GRACE_AFTER_BACKUP = timedelta(minutes=45)
 STALE_MIN_BEFORE_TIP = timedelta(minutes=30)
 STALE_CHECK_UNTIL_AFTER_TIP = timedelta(hours=4)
+
+
+def parse_cron_hour_field(hour_field: str) -> frozenset[int]:
+    """Expand GitHub-style hour lists and ranges (``0-5,12-23``); no wraparound."""
+    allowed: set[int] = set()
+    for part in hour_field.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            start_h, end_h = int(start_s), int(end_s)
+            if start_h > end_h:
+                raise ValueError(f"cron hour range must not wrap midnight: {part!r}")
+            allowed.update(range(start_h, end_h + 1))
+        else:
+            allowed.add(int(part))
+    return frozenset(allowed)
+
+
+def catchup_utc_hours() -> frozenset[int]:
+    """UTC hours when ``CRON_CATCHUP`` may fire (must match workflow YAML)."""
+    hour_field = CRON_CATCHUP.split()[1]
+    return parse_cron_hour_field(hour_field)
 
 
 def is_catchup_cron(cron: str) -> bool:
@@ -353,16 +382,12 @@ def scan_fresh_for_et_date(et_day: date, *, last_scan_utc: datetime | None = Non
 def pretip_close_scan_allowed(
     now: datetime,
     *,
-    first_tip_utc: datetime | None,
-    attempts_today: int = 0,
+    first_tip_utc: datetime | None = None,  # noqa: ARG001 — kept for call-site compat
+    attempts_today: int = 0,  # noqa: ARG001 — pre-tip scans do not count toward catch-up cap
 ) -> tuple[bool, str]:
-    """Extra scan inside the true-close window even when today's primary scan already ran."""
-    if first_tip_utc is None:
-        return False, "no first tip"
+    """Extra scan when any slate game is in its own (T−pre, T+post] window without a close scan."""
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
-    if first_tip_utc.tzinfo is None:
-        first_tip_utc = first_tip_utc.replace(tzinfo=timezone.utc)
     try:
         from sharp_scout.config import get_settings
         from sharp_scout.nba.score_model.paper import load_paper_store
@@ -374,23 +399,20 @@ def pretip_close_scan_allowed(
     settings = get_settings()
     if not getattr(settings, "nba_pace_pre_tip_snapshot_enabled", False):
         return False, "pre-tip snapshot disabled"
-    pre = int(getattr(settings, "nba_pace_pre_tip_snapshot_minutes", 15))
-    post = int(getattr(settings, "nba_pace_true_close_post_minutes", 5))
-    window_start = first_tip_utc - timedelta(minutes=pre)
-    window_end = first_tip_utc + timedelta(minutes=post)
-    if now < window_start or now > window_end:
-        return False, "outside true-close capture window"
-    if attempts_today >= MAX_CATCHUP_SCANS_PER_DAY:
-        return False, f"catch-up cap reached ({attempts_today}/{MAX_CATCHUP_SCANS_PER_DAY})"
     store = load_paper_store()
-    missing = any(
-        game_missing_true_close_scan(g, now=now)
-        for g in store.get("games") or []
-        if parse_kickoff_utc(g.get("kickoff")) and parse_kickoff_utc(g.get("kickoff")) > now
-    )
-    if not missing:
-        return False, "true-close scan already captured for upcoming games"
-    return True, "pre-tip true-close window (extra scan)"
+    waiting: list[str] = []
+    for g in store.get("games") or []:
+        kick = parse_kickoff_utc(g.get("kickoff"))
+        if kick is None:
+            continue
+        if not game_missing_true_close_scan(g, now=now):
+            continue
+        waiting.append(kick.astimezone(ET).strftime("%H:%M %Z"))
+    if not waiting:
+        return False, "no game in per-game true-close window needs a scan"
+    sample = ", ".join(waiting[:3])
+    extra = f" (+{len(waiting) - 3} more)" if len(waiting) > 3 else ""
+    return True, f"pre-tip true-close window for {sample}{extra} (extra scan; cap-exempt)"
 
 
 def catchup_run_allowed(

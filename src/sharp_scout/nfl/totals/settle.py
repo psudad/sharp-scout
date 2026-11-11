@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from sharp_scout.nfl.totals.tracker import load_totals_board, save_totals_board
-from sharp_scout.utils.odds import normalize_team
+from sharp_scout.settlement.score_match import normalize_for_settlement
 from sharp_scout.utils.slate import parse_commence
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ def match_score_row(
 ) -> dict[str, Any] | None:
     """Match by event_id, then season/week/teams, then kickoff date + teams."""
     eid = str(game_row.get("event_id") or "")
-    away = normalize_team(str(game_row.get("away_team") or ""), "nfl")
-    home = normalize_team(str(game_row.get("home_team") or ""), "nfl")
+    away = normalize_for_settlement(str(game_row.get("away_team") or ""), sport="nfl")
+    home = normalize_for_settlement(str(game_row.get("home_team") or ""), sport="nfl")
     season = game_row.get("season")
     week = game_row.get("week")
     kdate = _kickoff_date_key(game_row.get("kickoff") or game_row.get("commence_time"))
@@ -37,8 +37,8 @@ def match_score_row(
 
     candidates: list[dict[str, Any]] = []
     for s in scores:
-        sa = normalize_team(str(s.get("away_team") or ""), "nfl")
-        sh = normalize_team(str(s.get("home_team") or ""), "nfl")
+        sa = normalize_for_settlement(str(s.get("away_team") or ""), sport="nfl")
+        sh = normalize_for_settlement(str(s.get("home_team") or ""), sport="nfl")
         if sa != away or sh != home:
             continue
         if season is not None and week is not None:

@@ -83,6 +83,15 @@ def _parse_event(event: dict[str, Any]) -> dict[str, Any] | None:
         except (TypeError, ValueError):
             week = None
 
+    kickoff = comp.get("date") or event.get("date")
+    gameday = None
+    if kickoff:
+        from sharp_scout.utils.slate import parse_commence
+
+        kick_dt = parse_commence(kickoff)
+        if kick_dt is not None:
+            gameday = kick_dt.astimezone(timezone.utc).date().isoformat()
+
     return {
         "event_id": str(event.get("id") or comp.get("id") or ""),
         "home_team": home_team,
@@ -91,6 +100,9 @@ def _parse_event(event: dict[str, Any]) -> dict[str, Any] | None:
         "away_score": away_score,
         "season": season,
         "week": week,
+        "kickoff": kickoff,
+        "commence_time": kickoff,
+        "gameday": gameday,
         "source": "espn",
     }
 

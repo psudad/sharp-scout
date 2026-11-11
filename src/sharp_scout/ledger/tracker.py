@@ -600,11 +600,11 @@ def settle_from_scores(
     path: Path | None = None,
 ) -> dict[str, Any]:
     """scores: [{home_team, away_team, home_score, away_score, event_id?}, ...]"""
-    from sharp_scout.utils.odds import normalize_team
+    from sharp_scout.settlement.score_match import normalize_for_settlement
     from sharp_scout.utils.slate import parse_commence
 
     def _norm_team(name: Any, *, sport: str = "nfl") -> str:
-        return normalize_team(str(name or ""), sport)
+        return normalize_for_settlement(str(name or ""), sport=sport)
 
     def _kickoff_eligible(row: dict[str, Any]) -> bool:
         """Only grade games whose kickoff is in the past (avoids prior-season score collisions)."""

@@ -2,26 +2,26 @@
 
 Private paper ledger for totals candidates above the LOCKED card EV ceiling (12%). Not linked from the public GitHub Pages board.
 
-_Generated: 2026-11-11T17:29:25.569077+00:00_
+_Generated: 2026-11-11T18:45:35.561622+00:00_
 
 ## High-EV buckets combined (12%+)
 
-- **Record:** 150-174-1 (339 pending)  **Units:** -30.85  **ROI/play:** -0.0949  **Avg CLV:** 0.0098
+- **Record:** 300-321-2 (53 pending)  **Units:** -33.37  **ROI/play:** -0.0536  **Avg CLV:** 0.0098
 
 ## By bucket
 
 ### 12% – <16%
-- Record 78-75-1 | units -0.23 | ROI/play -0.0015 | avg CLV 0.0089
-  - **Over:** 40-40 (156 rows, avg CLV 0.0096)
-  - **Under:** 38-35-1 (112 rows, avg CLV 0.008)
+- Record 121-130-1 | units -15.34 | ROI/play -0.0609 | avg CLV 0.009
+  - **Over:** 76-71 (160 rows, avg CLV 0.0097)
+  - **Under:** 45-59-1 (113 rows, avg CLV 0.008)
 
 ### 16%+
-- Record 72-99 | units -30.62 | ROI/play -0.1791 | avg CLV 0.0104
-  - **Over:** 42-51 (240 rows, avg CLV 0.0108)
-  - **Under:** 30-48 (171 rows, avg CLV 0.0099)
+- Record 179-191-1 | units -18.03 | ROI/play -0.0486 | avg CLV 0.0104
+  - **Over:** 113-110 (245 rows, avg CLV 0.0107)
+  - **Under:** 66-81-1 (173 rows, avg CLV 0.0099)
 
 ### 4–12% cert miss (p_fair / confirmation only)
-- Record 1-2 | units -1.04 | ROI/play -0.3462 | avg CLV 0.008
-  - **Over:** 1-1 (15 rows, avg CLV 0.0054)
-  - **Under:** 0-1 (9 rows, avg CLV 0.0119)
+- Record 10-14 | units -5.97 | ROI/play -0.2489 | avg CLV 0.008
+  - **Over:** 5-10 (15 rows, avg CLV 0.0054)
+  - **Under:** 5-4 (9 rows, avg CLV 0.0119)
 

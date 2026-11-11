@@ -1,6 +1,6 @@
 """ESPN ↔ stage-card team name convergence for ledger settlement."""
 
-from sharp_scout.utils.odds import normalize_team
+from sharp_scout.settlement.score_match import normalize_for_settlement as normalize_team
 
 
 def test_espn_abbrevs_match_stage_card_long_names():
@@ -17,10 +17,10 @@ def test_espn_abbrevs_match_stage_card_long_names():
         ("MAINE", "APPALACHIAN STATE", "ME", "APP"),
     ]
     for card_away, card_home, espn_away, espn_home in pairs:
-        na = normalize_team(card_away, "ncaaf")
-        nh = normalize_team(card_home, "ncaaf")
-        ea = normalize_team(espn_away, "ncaaf")
-        eh = normalize_team(espn_home, "ncaaf")
+        na = normalize_team(card_away, sport="ncaaf")
+        nh = normalize_team(card_home, sport="ncaaf")
+        ea = normalize_team(espn_away, sport="ncaaf")
+        eh = normalize_team(espn_home, sport="ncaaf")
         assert na == ea and nh == eh, (
             f"{card_away}@{card_home} -> {na}@{nh} != ESPN {espn_away}@{espn_home} -> {ea}@{eh}"
         )

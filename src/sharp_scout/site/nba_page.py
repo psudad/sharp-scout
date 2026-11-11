@@ -9,6 +9,14 @@ from pathlib import Path
 from typing import Any
 from sharp_scout.config import ROOT, get_settings
 from sharp_scout.copy.explain import format_kickoff_compact, format_kickoff_et, kickoff_sort_key
+from sharp_scout.ledger.day_record import (
+    filter_graded_on_et_day,
+    graded_status,
+    play_et_calendar_date,
+    summarize_graded_plays,
+    yesterday_et,
+)
+from sharp_scout.nba.score_model.official_pace import load_official_pace
 from sharp_scout.nba import paths as nba_paths
 from sharp_scout.nba.schedule_guard import NBA_SCAN_SCHEDULE_LABEL, next_nba_scan_et
 from sharp_scout.nba.slate_et import (
@@ -803,6 +811,31 @@ def _render_stat_grid(items: list[tuple[str, str]], *, extra_cls: str = "") -> s
             f'<div class="stat-label">{_esc(lbl)}</div></div>'
         )
     return f'<div class="summary-grid {extra_cls}">' + "".join(cards) + "</div>"
+
+
+def _nba_yesterday_totals_summary(pub_ledger: dict[str, Any]) -> dict[str, Any]:
+    day = yesterday_et()
+    rows: list[dict[str, Any]] = []
+    for p in load_official_pace().get("plays") or []:
+        if play_et_calendar_date(p) != day or graded_status(p) not in ("win", "loss", "push"):
+            continue
+        rows.append(
+            {
+                "status": graded_status(p),
+                "pnl_units": p.get("units"),
+                "units": 1.0,
+            }
+        )
+    rows.extend(
+        filter_graded_on_et_day(
+            pub_ledger.get("plays") or [],
+            day,
+            include=lambda p: (p.get("play_type") or "side") == "side" and p.get("market") == "totals",
+        )
+    )
+    out = summarize_graded_plays(rows)
+    out["day_label"] = day.strftime("%a %b %-d")
+    return out
 
 
 def _render_compact_record(
@@ -1988,6 +2021,18 @@ def render_nba_page_html(
         units=float(official_summary.get("units") or 0),
         label=f"Official card · {off_range} ET",
     )
+    nba_yest = _nba_yesterday_totals_summary(pub_ledger)
+    yest_win = (
+        f"{nba_yest['win_pct'] * 100:.0f}%"
+        if nba_yest.get("win_pct") is not None
+        else "—"
+    )
+    yesterday_compact_record = _render_compact_record(
+        record=nba_yest["record"] if nba_yest.get("n") else "—",
+        win_pct=yest_win,
+        units=float(nba_yest.get("pnl_units") or 0),
+        label=f"Yesterday · {nba_yest['day_label']}",
+    )
 
     side_picks = [p for p in picks if (p.get("play_type") or "side") != "prop"]
     side_possible = [p for p in possible if (p.get("play_type") or "side") != "prop"]
@@ -2043,6 +2088,7 @@ def render_nba_page_html(
             f"{window.get('start', '—')}."
         ),
         pace_compact_record=pace_compact_record,
+        yesterday_compact_record=yesterday_compact_record,
         pace_auto_secondary=_esc(pace_auto_secondary),
         pace_plays_html=pace_plays_html,
         pace_spread_shadow_html=pace_spread_shadow_html,
@@ -2309,6 +2355,8 @@ _NBA_SHARED_PAGE_CSS = """
   .nba-h4 {{ font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .06em;
     text-transform: uppercase; color: var(--color-text-muted); margin: 14px 0 6px; }}
   .nba-section-note {{ font-size: 12.5px; color: var(--color-text-muted); margin: 0 0 12px; line-height: 1.5; }}
+  .nba-rec-row {{ display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 14px; }}
+  .nba-rec-row .nba-rec-chip {{ flex: 1 1 260px; margin: 0; }}
   .nba-rec-chip {{
     display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px;
     background: var(--color-bg-soft); border: 1px solid var(--color-border);
@@ -2454,7 +2502,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     <h2 class="nba-h2" id="pace-heading">Pace of Play model</h2>
     <p class="nba-section-note">Official card plays are <strong>totals only</strong>.</p>
     {pace_lines_note}
-    {pace_compact_record}
+    <div class="nba-rec-row">{pace_compact_record}{yesterday_compact_record}</div>
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays (official card — totals only)</div>
       <p class="nba-section-note">Qualifying totals show a <strong>{play_badge_label}</strong> badge — the only rows meant as paper plays.</p>

@@ -9,16 +9,14 @@ from datetime import timedelta
 from typing import Any, Literal
 
 from sharp_scout.utils.odds import normalize_team
-from sharp_scout.utils.slate import parse_commence
+from sharp_scout.utils.slate import ET, parse_commence
 
 logger = logging.getLogger(__name__)
 
 # Plays and ESPN finals can disagree on kickoff by a few hours (tz, delays).
 _DEFAULT_KICKOFF_WINDOW = timedelta(hours=40)
-# Bare away@home without a date is only accepted when there is exactly one candidate.
 _AMBIGUOUS = "ambiguous"
 _NO_MATCH = "no_match"
-_NO_FINAL = "no_final"
 
 
 @dataclass(frozen=True)
@@ -45,18 +43,31 @@ def _kickoff_dt(row: dict[str, Any]) -> Any:
 
 
 def _kickoff_date_key(row: dict[str, Any]) -> str | None:
+    """Slate day in US/Eastern — matches ESPN scoreboard date fetch keys."""
     kick = _kickoff_dt(row)
     if kick is None:
         gd = row.get("gameday")
         return str(gd)[:10] if gd else None
-    return kick.astimezone(__import__("datetime").timezone.utc).date().isoformat()
+    return kick.astimezone(ET).date().isoformat()
+
+
+def _season_week_aligned(play: dict[str, Any], score: dict[str, Any]) -> bool:
+    ps, pw = play.get("season"), play.get("week")
+    ss, sw = score.get("season"), score.get("week")
+    if ps is None or pw is None or ss is None or sw is None:
+        return False
+    return int(ps) == int(ss) and int(pw) == int(sw)
 
 
 def _within_kickoff_window(play: dict[str, Any], score: dict[str, Any], *, window: timedelta) -> bool:
     pk, sk = _kickoff_dt(play), _kickoff_dt(score)
     if sk is None:
-        # ESPN week/date fetches often omit game time; season/week narrowing happens first.
-        return True
+        if _season_week_aligned(play, score):
+            return True
+        if pk is not None:
+            pd, sd = _kickoff_date_key(play), _kickoff_date_key(score)
+            return bool(pd and sd and pd == sd)
+        return False
     if pk is None:
         pd, sd = _kickoff_date_key(play), _kickoff_date_key(score)
         return bool(pd and sd and pd == sd)
@@ -68,15 +79,22 @@ def _oriented_match(
     score: dict[str, Any],
     *,
     sport: str,
+    allow_home_away_swap: bool,
 ) -> bool:
-    """True when canonical away/home align (either orientation)."""
+    """True when canonical away/home align.
+
+    ``allow_home_away_swap`` may only be True for **totals** grading: the combined
+    score is unchanged if venues are flipped. For spreads or moneyline, callers
+    must pass ``allow_home_away_swap=False`` so ``home_score`` / ``away_score`` stay
+    aligned with the play card.
+    """
     pa = normalize_for_settlement(str(play.get("away_team") or ""), sport=sport)
     ph = normalize_for_settlement(str(play.get("home_team") or ""), sport=sport)
     sa = normalize_for_settlement(str(score.get("away_team") or ""), sport=sport)
     sh = normalize_for_settlement(str(score.get("home_team") or ""), sport=sport)
     if pa == sa and ph == sh:
         return True
-    if pa == sh and ph == sa:
+    if allow_home_away_swap and pa == sh and ph == sa:
         return True
     return False
 
@@ -85,12 +103,44 @@ def _score_final(score: dict[str, Any]) -> bool:
     return score.get("home_score") is not None and score.get("away_score") is not None
 
 
+def _event_index_keys(row: dict[str, Any]) -> list[str]:
+    """Prefix ids by feed so Odds API hex and ESPN numerics never collide."""
+    eid = str(row.get("event_id") or "").strip()
+    keys: list[str] = []
+    if eid:
+        src = str(row.get("source") or "").lower()
+        if src == "espn":
+            keys.append(f"espn:{eid}")
+        elif src in ("cfbfastr", "nflverse", "nflfastr"):
+            gid = str(row.get("game_id") or eid).strip()
+            keys.append(f"gid:{gid}")
+        else:
+            keys.append(f"odds:{eid}")
+    gid = str(row.get("game_id") or "").strip()
+    if gid:
+        keys.append(f"gid:{gid}")
+    return keys
+
+
+def _play_event_lookup_keys(play: dict[str, Any]) -> list[str]:
+    eid = str(play.get("event_id") or "").strip()
+    if not eid:
+        return []
+    # Ledger plays use The Odds API ids unless explicitly tagged.
+    src = str(play.get("event_id_source") or play.get("id_source") or "odds").lower()
+    if src == "espn":
+        return [f"espn:{eid}"]
+    if eid.isdigit():
+        return [f"espn:{eid}", f"odds:{eid}"]
+    return [f"odds:{eid}"]
+
+
 def build_score_index(
     scores: list[dict[str, Any]],
     *,
     sport: str,
 ) -> dict[str, list[dict[str, Any]]]:
-    """Index finals by Odds/ESPN event_id and by canonical away@home (+ kickoff date)."""
+    """Index finals by prefixed event_id and by canonical away@home (+ kickoff date)."""
     by_event: dict[str, dict[str, Any]] = {}
     by_pair: dict[str, list[dict[str, Any]]] = {}
 
@@ -106,12 +156,8 @@ def build_score_index(
         row["away_team_norm"] = away
         row["home_team_norm"] = home
 
-        eid = str(row.get("event_id") or "").strip()
-        if eid:
-            by_event[eid] = row
-        gid = str(row.get("game_id") or "").strip()
-        if gid:
-            by_event[f"gid:{gid}"] = row
+        for key in _event_index_keys(row):
+            by_event[key] = row
 
         base = f"{away}@{home}"
         _add_pair(base, row)
@@ -140,10 +186,11 @@ def _filter_candidates(
     *,
     sport: str,
     kickoff_window: timedelta,
+    allow_home_away_swap: bool,
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for score in candidates:
-        if not _oriented_match(play, score, sport=sport):
+        if not _oriented_match(play, score, sport=sport, allow_home_away_swap=allow_home_away_swap):
             continue
         if not _within_kickoff_window(play, score, window=kickoff_window):
             continue
@@ -157,12 +204,14 @@ def match_play_to_score(
     *,
     sport: Literal["nfl", "ncaaf", "ncaam"] = "ncaaf",
     kickoff_window: timedelta = _DEFAULT_KICKOFF_WINDOW,
+    allow_home_away_swap: bool = False,
 ) -> MatchResult:
     """
     Resolve a single final score row for a pending play.
 
-    Prefer event_id when the ledger stores the same id as the score feed. Otherwise
-    match on canonical team names plus kickoff date/window. Multiple candidates → unsettled.
+    Prefer prefixed ``event_id`` when the ledger stores the same id as the score feed,
+    but only after team or kickoff agreement. Otherwise match on canonical team names
+    plus kickoff date/window. Multiple candidates → unsettled.
     """
     if isinstance(index, list):
         built = build_score_index(index, sport=sport)
@@ -172,17 +221,18 @@ def match_play_to_score(
     by_event: dict[str, dict[str, Any]] = built.get("by_event") or {}
     by_pair: dict[str, list[dict[str, Any]]] = built.get("by_pair") or {}
 
-    eid = str(play.get("event_id") or "").strip()
-    if eid and eid in by_event:
-        hit = by_event[eid]
-        if _score_final(hit):
-            return MatchResult(hit, "event_id")
+    for key in _play_event_lookup_keys(play):
+        hit = by_event.get(key)
+        if hit and _score_final(hit):
+            if _oriented_match(
+                play, hit, sport=sport, allow_home_away_swap=allow_home_away_swap
+            ) and _within_kickoff_window(play, hit, window=kickoff_window):
+                return MatchResult(hit, "event_id")
 
     away = normalize_for_settlement(str(play.get("away_team") or ""), sport=sport)
     home = normalize_for_settlement(str(play.get("home_team") or ""), sport=sport)
     base = f"{away}@{home}"
     season, week = play.get("season"), play.get("week")
-    kdate = _kickoff_date_key(play)
 
     rev = f"{home}@{away}"
     raw_pool: list[dict[str, Any]] = []
@@ -196,23 +246,25 @@ def match_play_to_score(
             raw_pool.append(row)
 
     if season is not None:
-        narrowed = [
+        raw_pool = [
             r
             for r in raw_pool
             if r.get("season") is None or int(r.get("season")) == int(season)
         ]
-        if narrowed:
-            raw_pool = narrowed
     if season is not None and week is not None:
-        narrowed = [
+        raw_pool = [
             r
             for r in raw_pool
             if r.get("week") is None or int(r.get("week")) == int(week)
         ]
-        if narrowed:
-            raw_pool = narrowed
 
-    candidates = _filter_candidates(play, raw_pool, sport=sport, kickoff_window=kickoff_window)
+    candidates = _filter_candidates(
+        play,
+        raw_pool,
+        sport=sport,
+        kickoff_window=kickoff_window,
+        allow_home_away_swap=allow_home_away_swap,
+    )
 
     if not candidates:
         return MatchResult(None, _NO_MATCH)
@@ -220,8 +272,6 @@ def match_play_to_score(
     if len(candidates) == 1:
         return MatchResult(candidates[0], "teams_kickoff")
 
-    # Multiple finals in the kickoff window — never guess (wrong-date matches are worse
-    # than leaving the row pending).
     logger.warning(
         "Ambiguous settlement for play %s (%s@%s): %d candidate finals in kickoff window",
         play.get("id"),

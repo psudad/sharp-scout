@@ -56,7 +56,11 @@ INJURY_STATUSES = frozenset({"out", "doubtful", "questionable", "day-to-day", "p
 
 
 def injury_impact_multiplier() -> float:
-    """Scale per-player injury hits until enough official graded plays exist."""
+    """Scale per-player injury hits until enough graded game-line plays exist.
+
+    When Pace of Play is retired, counts graded Sharp Scout spreads/totals from the
+    shadow NBA ledger (props excluded). When pace is active, counts official pace card plays.
+    """
     settings = get_settings()
     scale = float(getattr(settings, "nba_injury_impact_scale", 0.5))
     gate = int(getattr(settings, "nba_injury_impact_scale_full_after_graded", 50))
@@ -74,11 +78,16 @@ def injury_impact_multiplier() -> float:
                 if str(p.get("result") or "") in ("win", "loss", "push")
             ]
         else:
-            graded = [
-                p
-                for p in load_nba_ledger().get("plays") or []
-                if str(p.get("result") or p.get("status") or "") in ("win", "loss", "push", "W", "L", "P")
-            ]
+
+            def _sharp_game_line_graded(play: dict) -> bool:
+                st = str(play.get("result") or play.get("status") or "").lower()
+                if st not in ("win", "loss", "push"):
+                    return False
+                if play.get("play_type") == "prop":
+                    return False
+                return str(play.get("market") or "") in ("spreads", "totals")
+
+            graded = [p for p in load_nba_ledger().get("plays") or [] if _sharp_game_line_graded(p)]
         if len(graded) >= gate:
             return 1.0
     except Exception:  # noqa: BLE001

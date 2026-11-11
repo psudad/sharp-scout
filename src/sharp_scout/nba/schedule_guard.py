@@ -299,18 +299,45 @@ def next_nba_scan_et(
 
 # --- Catch-up and staleness backup ------------------------------------------------------
 # GitHub sometimes drops scheduled runs outright (all four :07 slots on Nov 3, 2026).
-# Catch-up / pre-tip crons every 30 min from noon UTC through 05:52 UTC (covers ~7 AM–12:52 AM ET
-# including late West Coast tips; seasonal offset handled in ET at runtime).
+# Catch-up / pre-tip crons every 30 min at :22/:52 UTC for hours 0–5 and 12–23 (list form;
+# standard cron does not support wraparound ranges like 12-5). Covers ~7 AM–12:52 AM ET.
 # Cheap gate skips unless a scan is needed; pre-tip true-close scans bypass the daily cap.
-CRON_CATCHUP = "22,52 12-5 * * *"
-# Human-readable evening window (EST/EDT via America/New_York at fire time):
-CATCHUP_SCHEDULE_LABEL_ET = "every :22/:52 from 7:22 AM–12:52 AM ET (wraps past midnight for late tips)"
+CRON_CATCHUP = "22,52 0-5,12-23 * * *"
+CATCHUP_CRON_MINUTES_UTC = frozenset({22, 52})
+# Human-readable window (EST/EDT via America/New_York at fire time):
+CATCHUP_SCHEDULE_LABEL_ET = (
+    "every :22/:52 UTC hours 0–5 & 12–23 (~7:22 AM–12:52 AM ET; late West Coast tips)"
+)
 CATCHUP_GRACE = timedelta(minutes=20)  # let the primary slot finish before catching up
 MAX_CATCHUP_SCANS_PER_DAY = 3
 # Staleness guard: a game day with no scan by the backup slot + grace fails loudly.
 STALE_GRACE_AFTER_BACKUP = timedelta(minutes=45)
 STALE_MIN_BEFORE_TIP = timedelta(minutes=30)
 STALE_CHECK_UNTIL_AFTER_TIP = timedelta(hours=4)
+
+
+def parse_cron_hour_field(hour_field: str) -> frozenset[int]:
+    """Expand GitHub-style hour lists and ranges (``0-5,12-23``); no wraparound."""
+    allowed: set[int] = set()
+    for part in hour_field.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            start_h, end_h = int(start_s), int(end_s)
+            if start_h > end_h:
+                raise ValueError(f"cron hour range must not wrap midnight: {part!r}")
+            allowed.update(range(start_h, end_h + 1))
+        else:
+            allowed.add(int(part))
+    return frozenset(allowed)
+
+
+def catchup_utc_hours() -> frozenset[int]:
+    """UTC hours when ``CRON_CATCHUP`` may fire (must match workflow YAML)."""
+    hour_field = CRON_CATCHUP.split()[1]
+    return parse_cron_hour_field(hour_field)
 
 
 def is_catchup_cron(cron: str) -> bool:

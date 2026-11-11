@@ -5,14 +5,19 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pytest
+
 from sharp_scout.nba.schedule_guard import (
+    CATCHUP_CRON_MINUTES_UTC,
     CATCHUP_SCHEDULE_LABEL_ET,
     CRON_CATCHUP,
     ET,
     MAX_CATCHUP_SCANS_PER_DAY,
     catchup_run_allowed,
+    catchup_utc_hours,
     is_catchup_cron,
     nba_scan_stale,
+    parse_cron_hour_field,
     pretip_close_scan_allowed,
     scheduled_cron_run_allowed,
 )
@@ -149,11 +154,23 @@ def test_catchup_and_pretip_never_touch_official_pace(monkeypatch):
     assert calls == []
 
 
+def test_catchup_cron_uses_explicit_utc_hour_list_not_wraparound():
+    assert CRON_CATCHUP == "22,52 0-5,12-23 * * *"
+    hours = catchup_utc_hours()
+    assert hours == frozenset(list(range(0, 6)) + list(range(12, 24)))
+    assert parse_cron_hour_field("0-5,12-23") == hours
+    with pytest.raises(ValueError, match="wrap"):
+        parse_cron_hour_field("12-5")
+    assert CRON_CATCHUP.split()[0] == "22,52"
+    assert CATCHUP_CRON_MINUTES_UTC == frozenset({22, 52})
+
+
 def test_workflow_commits_shadow_combo_and_extended_catchup_cron():
     wf = (Path(__file__).resolve().parents[1] / ".github/workflows/nba-shadow.yml").read_text()
     assert f'cron: "{CRON_CATCHUP}"' in wf
     assert "data/nba_pace_shadow_combo.json" in wf
-    assert "12-5" in CRON_CATCHUP
+    assert "0-5,12-23" in CRON_CATCHUP
+    assert "12-5" not in CRON_CATCHUP.split()[1]
     assert CATCHUP_SCHEDULE_LABEL_ET
 
 

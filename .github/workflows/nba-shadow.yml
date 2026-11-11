@@ -9,8 +9,8 @@ name: NBA Shadow (private)
 # Off-the-hour minutes (:07) because GitHub drops / delays top-of-hour schedules the most.
 # Late GitHub starts are allowed until shortly before the first tip-off of the ET day.
 # Backup runs skip when today's primary scan already succeeded (cheap fallback).
-# Catch-up / pre-tip close: every 30 min (:22/:52) from ~7:22 AM through ~12:52 AM ET
-# (UTC 12–05:52). Gate runs a scan when catch-up rules or per-game true-close windows
+# Catch-up / pre-tip close: every 30 min (:22/:52) UTC hours 0–5 & 12–23 (~7:22 AM–12:52 AM ET).
+# Gate runs a scan when catch-up rules or per-game true-close windows
 # allow; pre-tip scans bypass the 3/day cap. GitHub dropped all four :07 slots Nov 3, 2026.
 # Staleness alarm lives in nba-staleness-guard.yml.
 
@@ -29,7 +29,7 @@ on:
     - cron: "7 15 * * 0,6"
     - cron: "7 16 * * 0,6"
     # Catch-up + pre-tip true-close windows (gate skips most ticks; ~9 credits per real scan)
-    - cron: "22,52 12-5 * * *"
+    - cron: "22,52 0-5,12-23 * * *"
   workflow_dispatch:
     inputs:
       demo:

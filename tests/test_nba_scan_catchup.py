@@ -168,7 +168,7 @@ def test_catchup_cron_uses_explicit_utc_hour_list_not_wraparound():
 def test_workflow_commits_shadow_combo_and_extended_catchup_cron():
     wf = (Path(__file__).resolve().parents[1] / ".github/workflows/nba-shadow.yml").read_text()
     assert f'cron: "{CRON_CATCHUP}"' in wf
-    assert "data/nba_pace_shadow_combo.json" in wf
+    assert "data/nba_pace_shadow_combo.json" not in wf
     assert "0-5,12-23" in CRON_CATCHUP
     assert "12-5" not in CRON_CATCHUP.split()[1]
     assert CATCHUP_SCHEDULE_LABEL_ET

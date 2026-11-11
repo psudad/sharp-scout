@@ -16,7 +16,6 @@ from sharp_scout.ledger.day_record import (
     summarize_graded_plays,
     yesterday_et,
 )
-from sharp_scout.nba.score_model.official_pace import load_official_pace
 from sharp_scout.nba import paths as nba_paths
 from sharp_scout.nba.schedule_guard import NBA_SCAN_SCHEDULE_LABEL, next_nba_scan_et
 from sharp_scout.nba.slate_et import (
@@ -53,12 +52,6 @@ SCORE_MODELING_MIN_EDGE_PT = 3.0
 PACE_LEAN_MIN_EDGE_PT = 1.5
 PLAY_BADGE_LABEL = "Play"
 TRACKING_ONLY_BADGE_LABEL = "Tracking only, not a bet"
-PACE_WATCH_LIST_LABEL = "Near-miss tracking (not bets)"
-PACE_WATCH_LIST_NOTE = (
-    "These spots did not qualify for the official card. "
-    f"{TRACKING_ONLY_BADGE_LABEL} — not part of the season record."
-)
-PACE_SPREAD_SHADOW_SECTION_LABEL = "Pace spread — tracking only, not bets"
 SHARP_LEANS_SECTION_LABEL = "Near-miss Sharp Scout (tracking only, not bets)"
 
 
@@ -497,27 +490,13 @@ def score_modeling_display_leans(
     min_edge: float = PACE_LEAN_MIN_EDGE_PT,
     max_edge: float = SCORE_MODELING_MIN_EDGE_PT,
 ) -> list[dict[str, Any]]:
-    """Near-miss Pace of Play spots: gap in [min_edge, max_edge) vs consensus."""
+    """Near-miss score-model spots: gap in [min_edge, max_edge) vs consensus (research helper)."""
     return score_modeling_display_plays(
         rows,
         min_edge=min_edge,
         max_edge=max_edge,
         include_injury_watch=False,
     )
-
-
-def _score_modeling_record_label(summary: dict[str, Any] | None) -> str:
-    if not summary or not int(summary.get("n_graded") or 0):
-        return ""
-    parts: list[str] = []
-    ats = (summary.get("ats_vs_close") or {}).get("ge_3") or {}
-    ou = (summary.get("ou_vs_close") or {}).get("ge_3") or {}
-    for label, row in (("Spread", ats), ("Total", ou)):
-        w, l, p = int(row.get("wins") or 0), int(row.get("losses") or 0), int(row.get("pushes") or 0)
-        if w + l + p:
-            rec = f"{w}-{l}" + (f"-{p}" if p else "")
-            parts.append(f"{label} {rec}")
-    return " · ".join(parts)
 
 
 def _win_pct(w: int, l: int, p: int) -> str:
@@ -658,174 +637,24 @@ def _render_waiting_for_lines(next_scan: str) -> str:
     )
 
 
-def _pace_record_summary(summary: dict[str, Any] | None) -> dict[str, Any]:
-    if not summary:
-        return {}
-    row3s = (summary.get("ats_vs_close") or {}).get("ge_3") or {}
-    row3t = (summary.get("ou_vs_close") or {}).get("ge_3") or {}
-    row3si = (summary.get("ats_vs_close_injury") or {}).get("ge_3") or {}
-    row3ti = (summary.get("ou_vs_close_injury") or {}).get("ge_3") or {}
-
-    def combine(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
-        w = int(a.get("wins") or 0) + int(b.get("wins") or 0)
-        l = int(a.get("losses") or 0) + int(b.get("losses") or 0)
-        p = int(a.get("pushes") or 0) + int(b.get("pushes") or 0)
-        units = float(a.get("units_at_110") or 0) + float(b.get("units_at_110") or 0)
-        return {"w": w, "l": l, "p": p, "units": round(units, 2)}
-
-    raw = combine(row3s, row3t)
-    inj = combine(row3si, row3ti)
-    return {
-        "raw": {
-            "record": _record_str(raw["w"], raw["l"], raw["p"]),
-            "win_pct": _win_pct(raw["w"], raw["l"], raw["p"]),
-            "units": raw["units"],
-            "spreads": row3s,
-            "totals": row3t,
-        },
-        "injury": {
-            "record": _record_str(inj["w"], inj["l"], inj["p"]),
-            "win_pct": _win_pct(inj["w"], inj["l"], inj["p"]),
-            "units": inj["units"],
-            "spreads": row3si,
-            "totals": row3ti,
-        },
-    }
-
-
-def _pace_pick_rows_from_store(store: dict[str, Any] | None) -> list[dict[str, Any]]:
-    """Graded Pace of Play paper rows (≥3 pt at tip), raw + injury results."""
-    from sharp_scout.nba.score_model.paper import (
-        _ats_units,
-        _game_excluded,
-        _grade_ats_margin,
-        _grade_ou,
-    )
-
-    out: list[dict[str, Any]] = []
-    for g in store.get("games") or [] if store else []:
-        if _game_excluded(g) or not g.get("graded"):
-            continue
-        gr = g["graded"]
-        frozen = g.get("frozen") or {}
-        snap = frozen.get("snapshot") or (g.get("scans") or [{}])[-1]
-        lines = snap.get("lines") or {}
-        cs, ct = gr.get("close_spread_home"), gr.get("close_total")
-        pm = float(snap.get("margin") or 0)
-        pt = float(snap.get("total") or 0)
-        pm_i = float(snap.get("injury_margin") if snap.get("injury_margin") is not None else pm)
-        pt_i = float(snap.get("injury_total") if snap.get("injury_total") is not None else pt)
-        home, away = str(g.get("home") or ""), str(g.get("away") or "")
-        game = f"{away} @ {home}"
-        picks: list[dict[str, Any]] = []
-        if cs is not None:
-            edge = pm_i + float(cs)
-            if abs(edge) >= SCORE_MODELING_MIN_EDGE_PT:
-                pick = _format_model_spread_pick(home, away, float(cs), edge)
-                picks.append({"kind": "spread", "pick": pick, "line": float(cs), "gap": abs(edge)})
-        if ct is not None:
-            edge_t = pt_i - float(ct)
-            if abs(edge_t) >= SCORE_MODELING_MIN_EDGE_PT:
-                side = "Over" if edge_t > 0 else "Under"
-                picks.append(
-                    {
-                        "kind": "total",
-                        "pick": f"{game}: {side} {float(ct):g}",
-                        "line": float(ct),
-                        "gap": abs(edge_t),
-                    }
-                )
-        if not picks:
-            continue
-        primary = max(picks, key=lambda x: x["gap"])
-        raw_res = inj_res = None
-        if primary["kind"] == "spread" and cs is not None:
-            raw_res = _grade_ats_margin(
-                gr["actual_margin"], cs, min_edge=SCORE_MODELING_MIN_EDGE_PT, proj_margin=pm
-            )
-            inj_res = _grade_ats_margin(
-                gr["actual_margin"], cs, min_edge=SCORE_MODELING_MIN_EDGE_PT, proj_margin=pm_i
-            )
-        elif primary["kind"] == "total" and ct is not None:
-            raw_res = _grade_ou(
-                gr["actual_total"], ct, min_edge=SCORE_MODELING_MIN_EDGE_PT, proj_total=pt
-            )
-            inj_res = _grade_ou(
-                gr["actual_total"], ct, min_edge=SCORE_MODELING_MIN_EDGE_PT, proj_total=pt_i
-            )
-        if raw_res is None and inj_res is None:
-            continue
-        out.append(
-            {
-                "kickoff": g.get("kickoff"),
-                "game": game,
-                "market": primary["kind"],
-                "pick": primary["pick"],
-                "line": primary["line"],
-                "gap": primary["gap"],
-                "result_raw": raw_res,
-                "result_injury": inj_res,
-                "units_raw": _ats_units(
-                    1 if raw_res == "win" else 0,
-                    1 if raw_res == "loss" else 0,
-                    1 if raw_res == "push" else 0,
-                )
-                if raw_res
-                else None,
-                "units_injury": _ats_units(
-                    1 if inj_res == "win" else 0,
-                    1 if inj_res == "loss" else 0,
-                    1 if inj_res == "push" else 0,
-                )
-                if inj_res
-                else None,
-            }
-        )
-    out.sort(key=lambda r: r.get("kickoff") or "", reverse=True)
-    return out
-
-
-def _group_rows_by_et_day(rows: list[dict[str, Any]], key: str = "kickoff") -> list[tuple[str, list]]:
-    from sharp_scout.nba.slate_et import kickoff_date_et
-
-    buckets: dict[str, list[dict[str, Any]]] = {}
-    for r in rows:
-        day = kickoff_date_et(r.get(key))
-        label = day.isoformat() if day else "Unknown"
-        buckets.setdefault(label, []).append(r)
-    return sorted(buckets.items(), key=lambda x: x[0], reverse=True)
-
-
-def _render_stat_grid(items: list[tuple[str, str]], *, extra_cls: str = "") -> str:
-    if not items:
-        return ""
-    cards = []
-    for val, lbl in items:
-        cls = "stat-val"
-        if val.startswith("+") and "u" in val:
-            cls += " pos"
-        elif val.startswith("-") and "u" in val:
-            cls += " neg"
-        cards.append(
-            f'<div class="stat-card"><div class="{cls}">{_esc(val)}</div>'
-            f'<div class="stat-label">{_esc(lbl)}</div></div>'
-        )
-    return f'<div class="summary-grid {extra_cls}">' + "".join(cards) + "</div>"
-
-
 def _nba_yesterday_totals_summary(pub_ledger: dict[str, Any]) -> dict[str, Any]:
     day = yesterday_et()
     rows: list[dict[str, Any]] = []
-    for p in load_official_pace().get("plays") or []:
-        if play_et_calendar_date(p) != day or graded_status(p) not in ("win", "loss", "push"):
-            continue
-        rows.append(
-            {
-                "status": graded_status(p),
-                "pnl_units": p.get("units"),
-                "units": 1.0,
-            }
-        )
+    from sharp_scout.config import nba_pace_of_play_active
+
+    if nba_pace_of_play_active():
+        from sharp_scout.nba.score_model.official_pace import load_official_pace
+
+        for p in load_official_pace().get("plays") or []:
+            if play_et_calendar_date(p) != day or graded_status(p) not in ("win", "loss", "push"):
+                continue
+            rows.append(
+                {
+                    "status": graded_status(p),
+                    "pnl_units": p.get("units"),
+                    "units": 1.0,
+                }
+            )
     rows.extend(
         filter_graded_on_et_day(
             pub_ledger.get("plays") or [],
@@ -978,120 +807,6 @@ def _render_sharp_lean_cards(
     return _render_et_date_grouped_cards(possible, render_one=render_one, reference=ref)
 
 
-def _score_card_presentation(*, tracking_only: bool) -> tuple[str, str, str]:
-    if tracking_only:
-        return (
-            TRACKING_ONLY_BADGE_LABEL,
-            "badge-tracking",
-            "sharp-tracking nba-tracking-card",
-        )
-    return (PLAY_BADGE_LABEL, "badge-play", "sharp-play")
-
-
-def _render_score_modeling_card(
-    item: dict[str, Any],
-    *,
-    reference: date | None = None,
-    tracking_only: bool = False,
-) -> str:
-    kick = format_kickoff_et(item.get("kickoff"))
-    day_time = format_kickoff_day_time_et(item.get("kickoff"))
-    badge, badge_cls, card_cls = _score_card_presentation(tracking_only=tracking_only)
-    gap = float(item.get("signed_gap") or 0)
-    gap_s = f"{gap:+.1f} pt vs consensus"
-    secondary = item.get("secondary") or []
-    extra = ""
-    if secondary:
-        bits = []
-        for s in secondary:
-            bits.append(f"{s['title']} ({s['signed_gap']:+.1f} pt)")
-        extra = f'<div class="nba-score-secondary">Also: {_esc(" · ".join(bits))}</div>'
-    absences = item.get("absence_lines") or []
-    abs_html = ""
-    if absences:
-        abs_html = (
-            '<div class="nba-score-absences">'
-            + "<br>".join(_esc(line) for line in absences[:6])
-            + "</div>"
-        )
-    stale = ""
-    if item.get("injury_news_after_line"):
-        stale = '<div class="nba-score-stale">Injury news may have landed after the line we compared to.</div>'
-    flip = ""
-    if item.get("injury_play_flip"):
-        flip = '<div class="nba-score-flip">Injury adjustment changes or removes this display play vs the raw model.</div>'
-    projected = item.get("projected_scores_line") or ""
-    proj_html = ""
-    if projected:
-        proj_html = f'<div class="nba-score-projected">{_esc(projected)}</div>'
-    gap_explain = str(item.get("gap_explain") or "").strip()
-    gap_html = ""
-    if gap_explain:
-        gap_html = f'<div class="nba-score-gap-explain">{_esc(gap_explain)}</div>'
-    # Public card: projection, market, gap only — no raw vs injury-adjusted
-    # breakdown, per-player adjustments, or qualifying-rule text (method stays private).
-    del proj_html, gap_html, abs_html, flip
-    model_line = str(item.get("injury_model_line") or item.get("model_line") or "")
-    model_line = model_line.replace("Injury-adj ", "").replace("Raw ", "")
-    detail_inner = f"""
-          <div class="play-meta">
-            <div class="meta-item"><span class="meta-label">Model </span><span class="meta-val">{_esc(model_line)}</span></div>
-            <div class="meta-item"><span class="meta-label">Market </span><span class="meta-val">{_esc(item.get("consensus_line") or "")}</span></div>
-            <div class="meta-item"><span class="meta-label">Gap </span><span class="meta-val">{_esc(gap_s)}</span></div>
-          </div>
-          {stale}
-          {extra}"""
-    return f"""
-      <div class="play-card {card_cls} nba-pick-card nba-score-card">
-        <div class="card-top">
-          <div class="card-left">
-            <span class="tier-badge {badge_cls}">{_esc(badge)}</span>
-            <div class="nba-card-tip">{_esc(day_time)}</div>
-            <div class="play-title">{_esc(str(item.get("title") or ""))}</div>
-            <div class="play-subtitle">{_esc(item.get("game") or "")}</div>
-          </div>
-          <div class="units-badge nba-gap-badge">{"Injuries" if item.get("injury_watch_only") else f"{float(item.get('gap') or 0):.1f} pt"}</div>
-        </div>
-        <details class="nba-pick-details">
-          <summary>Projections &amp; detail</summary>
-          {detail_inner}
-        </details>
-      </div>"""
-
-
-def _render_score_modeling_cards(
-    plays: list[dict[str, Any]],
-    *,
-    reference: date | None = None,
-    tracking_only: bool = False,
-) -> str:
-    ref = reference or _slate_reference_date()
-    return _render_et_date_grouped_cards(
-        plays,
-        render_one=lambda p: _render_score_modeling_card(
-            p, reference=ref, tracking_only=tracking_only
-        ),
-        reference=ref,
-    )
-
-
-def _render_score_lean_card(item: dict[str, Any], *, reference: date | None = None) -> str:
-    return _render_score_modeling_card(item, reference=reference, tracking_only=True)
-
-
-def _render_score_lean_cards(
-    leans: list[dict[str, Any]],
-    *,
-    reference: date | None = None,
-) -> str:
-    ref = reference or _slate_reference_date()
-    return _render_et_date_grouped_cards(
-        leans,
-        render_one=lambda p: _render_score_lean_card(p, reference=ref),
-        reference=ref,
-    )
-
-
 def _render_props_empty(*, live_scan: bool, updated: str, next_scan: str) -> str:
     if not live_scan:
         return (
@@ -1124,16 +839,6 @@ def _render_picks_empty(*, live_scan: bool, updated: str, next_scan: str) -> str
     )
 
 
-def _render_score_modeling_empty(*, live_scan: bool) -> str:
-    if not live_scan:
-        return ""
-    return (
-        '<div class="nba-picks-empty nba-picks-empty-soft" role="status">'
-        "<p>No Pace of Play plays right now.</p>"
-        "</div>"
-    )
-
-
 def _injury_list_summary(r: dict[str, Any]) -> str:
     from sharp_scout.nba.score_model.injury_adjust import format_absence_line
 
@@ -1151,205 +856,6 @@ def _injury_list_summary(r: dict[str, Any]) -> str:
     if len(bits) > 3:
         return _esc("; ".join(bits[:3]) + f" (+{len(bits) - 3} more)")
     return _esc("; ".join(bits))
-
-
-def _pace_projection_row_html(r: dict[str, Any]) -> str:
-    game = f"{r.get('away', '')} @ {r.get('home', '')}"
-    home, away = str(r.get("home") or ""), str(r.get("away") or "")
-    margin = float(r.get("margin") or 0)
-    total = float(r.get("total") or 0)
-    inj_m = float(r.get("injury_margin") if r.get("injury_margin") is not None else margin)
-    inj_t = float(r.get("injury_total") if r.get("injury_total") is not None else total)
-    h_raw, a_raw = projected_team_scores(margin, total)
-    h_inj, a_inj = projected_team_scores(inj_m, inj_t)
-    raw_score = f"{away} {a_raw:g} – {home} {h_raw:g}"
-    inj_score = f"{away} {a_inj:g} – {home} {h_inj:g}"
-    lines = r.get("lines") or {}
-    spr = lines.get("consensus_spread_home")
-    tot = lines.get("consensus_total")
-    spr_gap = ""
-    tot_gap = ""
-    if spr is not None:
-        spr_gap = f"{inj_m + float(spr):+.1f}"
-    if tot is not None:
-        tot_gap = f"{inj_t - float(tot):+.1f}"
-    if spr is None and tot is None:
-        market_s = "Waiting for lines"
-        gap_s = "—"
-    else:
-        market_s = f"{spr if spr is not None else '—'} / {tot if tot is not None else '—'}"
-        gap_s = f"{spr_gap or '—'} / {tot_gap or '—'}"
-    tip = format_kickoff_day_time_et(r.get("kickoff"))
-    return (
-        "<tr>"
-        f'<td data-label="Tip">{_esc(tip)}</td>'
-        f'<td data-label="Game">{_esc(game)}</td>'
-        f'<td data-label="Projected score">{_esc(inj_score)}</td>'
-        f'<td data-label="Market">{_esc(market_s)}</td>'
-        f'<td data-label="Gap spr / tot">{_esc(gap_s)}</td>'
-        "</tr>"
-    )
-
-
-def _render_pace_projections_table(
-    rows: list[dict[str, Any]],
-    *,
-    reference: date | None = None,
-) -> str:
-    if not rows:
-        return '<p class="empty">No Pace of Play projections on the upcoming slate yet (logged on live scans).</p>'
-    ref = reference or _slate_reference_date()
-    groups = group_items_by_kickoff_et_date(rows, kickoff_key="kickoff", reference=ref)
-    table_head = (
-        "<thead><tr><th>Tip</th><th>Game</th><th>Projected score</th><th>Market spr/tot</th>"
-        "<th>Gap spr / tot</th></tr></thead>"
-    )
-    chunks: list[str] = []
-    for _day, label, group in groups:
-        body = "".join(_pace_projection_row_html(r) for r in group)
-        chunks.append(
-            f'<h4 class="nba-h4">{_esc(label)}</h4>'
-            f'<div class="table-wrap"><table class="export-table plays-table nba-table nba-proj-table">'
-            f"{table_head}<tbody>{body}</tbody></table></div>"
-        )
-    return "\n".join(chunks)
-
-
-def _render_current_season_totals_tracking(
-    score_rows: list[dict[str, Any]],
-    *,
-    reference: date | None = None,
-) -> str:
-    """Shadow-only 2026-27 totals experiment — not official Pace plays."""
-    from sharp_scout.nba.score_model.totals_shadow import (
-        load_totals_shadow,
-        summarize_totals_shadow,
-    )
-    from sharp_scout.nba.slate_et import kickoff_date_et
-    from sharp_scout.nba.teams import normalize_nba_team
-
-    summary = summarize_totals_shadow()
-    record_line = (
-        f"Shadow record (tracking only): "
-        f"{summary.get('record', '—')} · {summary.get('win_pct', '—')} · "
-        f"{float(summary.get('units') or 0):+.2f}u · n={summary.get('n_plays', 0)}"
-    )
-    store = load_totals_shadow()
-    pending_by_slot = {
-        (
-            str(p.get("date_et") or ""),
-            normalize_nba_team(str(p.get("away") or "")),
-            normalize_nba_team(str(p.get("home") or "")),
-        ): p
-        for p in store.get("pending") or []
-    }
-    if not score_rows:
-        return (
-            '<div class="nba-shadow-totals-note">'
-            "<p><strong>Current-season totals (tracking only, not plays)</strong> — "
-            "Nothing here is an official Pace play.</p>"
-            f"<p>{_esc(record_line)}</p>"
-            '<p class="empty">No open slate rows for sample-size diagnostics.</p></div>'
-        )
-    ref = reference or _slate_reference_date()
-    groups = group_items_by_kickoff_et_date(score_rows, kickoff_key="kickoff", reference=ref)
-    table_head = (
-        "<thead><tr><th>Tip</th><th>Game</th><th>Live total</th>"
-        "<th>Shadow total</th>"
-        "<th>Shadow gap (not a play)</th></tr></thead>"
-    )
-    chunks: list[str] = [
-        '<div class="nba-shadow-totals-note">',
-        "<p><strong>Current-season totals (tracking only, not plays)</strong> — "
-        "the official Pace card above is unchanged.</p>",
-        f"<p>{_esc(record_line)}</p>",
-    ]
-    for _day, label, group in groups:
-        body_rows: list[str] = []
-        for r in group:
-            home, away = str(r.get("home") or ""), str(r.get("away") or "")
-            day = kickoff_date_et(r.get("kickoff"))
-            slot = (
-                day.isoformat() if day else "",
-                normalize_nba_team(away),
-                normalize_nba_team(home),
-            )
-            pending = pending_by_slot.get(slot) or {}
-            live_t = float(r.get("total") or 0)
-            live_inj = float(
-                r.get("injury_total") if r.get("injury_total") is not None else live_t
-            )
-            sh_t = pending.get("shadow_total")
-            sh_inj = pending.get("shadow_injury_total")
-            sh_raw_s = f"{float(sh_t):.1f}" if sh_t is not None else "—"
-            sh_inj_s = f"{float(sh_inj):.1f}" if sh_inj is not None else "—"
-            diag = pending.get("shadow_diagnostics") or {}
-            sample_s = "—"
-            if diag:
-                h = diag.get("home") or {}
-                a = diag.get("away") or {}
-                sample_s = (
-                    f"{h.get('team', home)} {h.get('games', 0)}g · "
-                    f"{a.get('team', away)} {a.get('games', 0)}g · "
-                    f"pace {diag.get('expected_pace', '—')}"
-                )
-            would = pending.get("would_play") or {}
-            gap_s = "—"
-            if would:
-                gap_s = f"{would.get('pick', '—')} ({float(would.get('gap') or 0):+.1f} pt shadow)"
-            tip = format_kickoff_day_time_et(r.get("kickoff"))
-            game = f"{away} @ {home}"
-            body_rows.append(
-                "<tr>"
-                f'<td data-label="Tip">{_esc(tip)}</td>'
-                f'<td data-label="Game">{_esc(game)}</td>'
-                f'<td data-label="Live total">{live_inj:.1f}</td>'
-                f'<td data-label="Shadow total">{sh_inj_s}</td>'
-                f'<td data-label="Shadow gap">{_esc(gap_s)}</td>'
-                "</tr>"
-            )
-        body = "".join(body_rows)
-        chunks.append(
-            f'<h4 class="nba-h4">{_esc(label)}</h4>'
-            f'<div class="table-wrap"><table class="export-table plays-table nba-table nba-proj-table">'
-            f"{table_head}<tbody>{body}</tbody></table></div>"
-        )
-    chunks.append("</div>")
-    return "\n".join(chunks)
-
-
-def _render_official_pace_history(store: dict[str, Any] | None) -> str:
-    rows = sorted(
-        (store or {}).get("plays") or [],
-        key=lambda r: (r.get("date_et") or "", r.get("kickoff") or ""),
-        reverse=True,
-    )
-    if not rows:
-        return '<p class="empty">No official Pace of Play plays logged yet.</p>'
-    body = []
-    for r in rows:
-        st = str(r.get("result") or "").upper()
-        units = r.get("units")
-        units_s = f"{float(units):+.2f}u" if units is not None else "—"
-        body.append(
-            "<tr>"
-            f'<td data-label="Date (ET)">{_esc(r.get("date_et") or "")}</td>'
-            f'<td data-label="Game">{_esc(r.get("away", ""))} @ {_esc(r.get("home", ""))}</td>'
-            f'<td data-label="Pick"><b>{_esc(r.get("pick") or "")}</b></td>'
-            f'<td data-label="Line">{_esc(r.get("line", "—"))}</td>'
-            f'<td data-label="Price">{_esc(_price(r.get("price")))}</td>'
-            f'<td data-label="Gap">{float(r.get("gap_pts") or 0):.2f} pt</td>'
-            f'<td data-label="Result" class="{st.lower()}">{_esc(st)}</td>'
-            f'<td data-label="Units" class="{"pos" if (units or 0) >= 0 else "neg"}">{units_s}</td>'
-            f'<td data-label="Final">{_esc(r.get("espn_away_score", "—"))}–{_esc(r.get("espn_home_score", "—"))}</td>'
-            "</tr>"
-        )
-    return (
-        '<div class="table-wrap"><table class="export-table plays-table nba-table nba-official-pace">'
-        "<thead><tr><th>Date (ET)</th><th>Game</th><th>Pick</th><th>Line</th><th>Price</th>"
-        "<th>Gap</th><th>Result</th><th>Units</th><th>Final</th></tr></thead>"
-        f"<tbody>{''.join(body)}</tbody></table></div>"
-    )
 
 
 def _render_sharp_props_history(ledger: dict[str, Any] | None) -> str:
@@ -1381,36 +887,6 @@ def _render_sharp_props_history(ledger: dict[str, Any] | None) -> str:
     return (
         '<div class="table-wrap"><table class="export-table plays-table nba-table">'
         "<thead><tr><th>Tip</th><th>Game</th><th>Pick</th><th>Result</th><th>P/L</th></tr></thead>"
-        f"<tbody>{''.join(body)}</tbody></table></div>"
-    )
-
-
-def _render_pace_graded_history(rows: list[dict[str, Any]]) -> str:
-    if not rows:
-        return '<p class="empty">No graded Pace of Play paper plays yet.</p>'
-    body = []
-    for r in rows:
-        ur = r.get("units_raw")
-        ui = r.get("units_injury")
-        ur_s = f"{float(ur):+.2f}u" if ur is not None else "—"
-        ui_s = f"{float(ui):+.2f}u" if ui is not None else "—"
-        rr = str(r.get("result_raw") or "—").upper()
-        ri = str(r.get("result_injury") or "—").upper()
-        body.append(
-            "<tr>"
-            f'<td data-label="Tip">{_esc(format_kickoff_compact(r.get("kickoff")))}</td>'
-            f'<td data-label="Game">{_esc(r.get("game") or "")}</td>'
-            f'<td data-label="Pick"><b>{_esc(r.get("pick") or "")}</b></td>'
-            f'<td data-label="Line">{_esc(r.get("line", "—"))}</td>'
-            f'<td data-label="Gap">{float(r.get("gap") or 0):.1f} pt</td>'
-            f'<td data-label="Result" class="{rr.lower()}">{_esc(rr)}</td>'
-            f'<td data-label="Units" class="{"pos" if (ur or 0) >= 0 else "neg"}">{ur_s}</td>'
-            "</tr>"
-        )
-    return (
-        '<div class="table-wrap"><table class="export-table plays-table nba-table">'
-        "<thead><tr><th>Tip</th><th>Game</th><th>Pick</th><th>Line</th><th>Gap</th>"
-        "<th>Result</th><th>Units</th></tr></thead>"
         f"<tbody>{''.join(body)}</tbody></table></div>"
     )
 
@@ -1818,42 +1294,6 @@ def _render_ledger_rows(ledger: dict[str, Any] | None) -> str:
     )
 
 
-def _render_pace_v1_v2_shadow_table(rows: list[dict[str, Any]]) -> str:
-    """Side-by-side v1 production pick vs v2 shadow (never official card)."""
-    if not rows:
-        return ""
-    trs: list[str] = []
-    for r in rows:
-        scans = r.get("scans") or []
-        snap = scans[-1] if scans else r
-        away, home = str(r.get("away") or ""), str(r.get("home") or "")
-        v1_pick = snap.get("pace_v1_pick") or "—"
-        v1_gap = snap.get("pace_v1_gap")
-        v1_gap_s = f"{float(v1_gap):.1f}" if v1_gap is not None else "—"
-        units = snap.get("pace_v1_recommended_units")
-        units_s = f"{float(units):g}u" if units is not None else "—"
-        sv2 = snap.get("shadow_v2") or {}
-        v2_pick = sv2.get("pick") or sv2.get("would_be_pick") or "—"
-        v2_gap = sv2.get("gap") if sv2.get("pick") else sv2.get("would_be_gap")
-        v2_gap_s = f"{float(v2_gap):.1f}" if v2_gap is not None else "—"
-        trs.append(
-            f"<tr><td>{_esc(f'{away} @ {home}')}</td>"
-            f"<td>{_esc(str(v1_pick))}</td><td>{v1_gap_s}</td><td>{units_s}</td>"
-            f"<td>{_esc(str(v2_pick))}</td><td>{v2_gap_s}</td></tr>"
-        )
-    if not trs:
-        return ""
-    return (
-        '<div class="nba-pace-shadow" aria-labelledby="pace-shadow-heading">'
-        '<h3 class="nba-h3" id="pace-shadow-heading">Pace v1 vs v2 shadow (paper only)</h3>'
-        '<p class="nba-section-note">v1 drives the official card. v2 is experimental (shadow only).</p>'
-        '<table class="nba-table"><thead><tr><th>Game</th><th>v1 pick</th><th>v1 gap</th>'
-        "<th>v1 rec</th><th>v2 shadow</th><th>v2 gap</th></tr></thead><tbody>"
-        + "".join(trs)
-        + "</tbody></table></div>"
-    )
-
-
 def render_nba_page_html(
     *,
     signals_payload: dict[str, Any] | None,
@@ -1892,13 +1332,7 @@ def render_nba_page_html(
     body_class = "ss-bottom-bar"
     mode_note = "Live shadow scan" if live_scan else "Awaiting live scan"
 
-    from sharp_scout.nba.score_model.official_pace import load_official_pace, summarize_official_pace
-
-    official_pace = load_official_pace()
-    official_summary = summarize_official_pace(official_pace)
     sharp_game_lines = _sharp_scout_record_summary(pub_ledger, game_lines_only=True)
-    pace_summary = _pace_record_summary(score_model_summary)
-    pace_graded = _pace_pick_rows_from_store(score_model_store)
 
     slate_ref = _slate_reference_date()
     picks_slate = upcoming_slate_items(picks)
@@ -1922,89 +1356,6 @@ def render_nba_page_html(
             '<p class="empty nba-leans-empty">No Sharp Scout leans today — near-miss EV spots will show here.</p>'
         )
 
-    score_rows = score_model_rows or []
-    waiting_lines = live_scan and _score_rows_missing_lines(score_rows)
-    pace_plays = (
-        score_modeling_display_plays(
-            score_rows,
-            include_injury_watch=False,
-            kinds=OFFICIAL_PACE_MARKET_KINDS,
-        )
-        if live_scan
-        else []
-    )
-    pace_plays = [p for p in pace_plays if not p.get("injury_watch_only")]
-    pace_spread_shadow = (
-        score_modeling_display_plays(
-            score_rows,
-            include_injury_watch=False,
-            kinds=PACE_SPREAD_SHADOW_KINDS,
-        )
-        if live_scan
-        else []
-    )
-    pace_leans = score_modeling_display_leans(score_rows) if live_scan else []
-
-    pace_plays_html = (
-        _render_score_modeling_cards(pace_plays, reference=slate_ref)
-        if live_scan and pace_plays
-        else ""
-    )
-    pace_spread_shadow_html = (
-        _render_score_modeling_cards(
-            pace_spread_shadow, reference=slate_ref, tracking_only=True
-        )
-        if live_scan and pace_spread_shadow
-        else ""
-    )
-    if live_scan and not pace_plays_html:
-        if waiting_lines:
-            pace_plays_html = _render_waiting_for_lines(next_scan)
-        else:
-            pace_plays_html = _render_score_modeling_empty(live_scan=True)
-    elif not live_scan:
-        pace_plays_html = _render_picks_empty(live_scan=False, updated=updated, next_scan=next_scan)
-
-    pace_leans_html = (
-        _render_score_lean_cards(pace_leans, reference=slate_ref) if live_scan and pace_leans else ""
-    )
-    if live_scan and not pace_leans_html:
-        if waiting_lines:
-            pace_leans_html = _render_waiting_for_lines(next_scan)
-        else:
-            pace_leans_html = (
-                f'<p class="empty nba-leans-empty">No Pace of Play {PACE_WATCH_LIST_LABEL.lower()} '
-                "entries today.</p>"
-            )
-
-    pace_shadow_html = _render_pace_v1_v2_shadow_table(score_rows) if live_scan else ""
-    pace_projections_html = (
-        _render_pace_projections_table(score_rows, reference=slate_ref) if live_scan else ""
-    )
-    pace_totals_shadow_html = ""
-    if live_scan:
-        try:
-            pace_totals_shadow_html = _render_current_season_totals_tracking(
-                score_rows, reference=slate_ref
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("NBA totals shadow page section skipped: %s", exc)
-            pace_totals_shadow_html = (
-                '<p class="empty">Current-season totals tracking temporarily unavailable.</p>'
-            )
-    from sharp_scout.nba.manual_lines import manual_lines_page_note
-
-    pace_lines_note = manual_lines_page_note()
-    pace_history_html = _render_official_pace_history(official_pace)
-    raw_p = pace_summary.get("raw") or {}
-    inj_p = pace_summary.get("injury") or {}
-    pace_auto_secondary = (
-        f"Secondary auto-track: {raw_p.get('record', '—')} "
-        f"({raw_p.get('units', 0):+.2f}u), alt {inj_p.get('record', '—')} "
-        f"({inj_p.get('units', 0):+.2f}u); {len(pace_graded)} pick-rows in store vs "
-        f"{official_summary.get('n_plays', 0)} official card plays."
-    )
-
     sharp_history_html = _render_sharp_graded_history(pub_ledger)
 
     gl_range = sharp_game_lines.get("date_range_et") or "—"
@@ -2013,13 +1364,6 @@ def render_nba_page_html(
         win_pct=sharp_game_lines.get("win_pct") or "—",
         units=float(sharp_game_lines.get("units") or 0),
         label=f"Game lines · {gl_range} ET",
-    )
-    off_range = official_summary.get("date_range_et") or "—"
-    pace_compact_record = _render_compact_record(
-        record=official_summary.get("record") or "—",
-        win_pct=official_summary.get("win_pct") or "—",
-        units=float(official_summary.get("units") or 0),
-        label=f"Official card · {off_range} ET",
     )
     nba_yest = _nba_yesterday_totals_summary(pub_ledger)
     yest_win = (
@@ -2031,7 +1375,7 @@ def render_nba_page_html(
         record=nba_yest["record"] if nba_yest.get("n") else "—",
         win_pct=yest_win,
         units=float(nba_yest.get("pnl_units") or 0),
-        label=f"Yesterday · {nba_yest['day_label']}",
+        label=f"Yesterday totals · {nba_yest['day_label']}",
     )
 
     side_picks = [p for p in picks if (p.get("play_type") or "side") != "prop"]
@@ -2087,27 +1431,11 @@ def render_nba_page_html(
             "Oct 24–26 ET includes pre-window shadow testing; configured paper window starts "
             f"{window.get('start', '—')}."
         ),
-        pace_compact_record=pace_compact_record,
         yesterday_compact_record=yesterday_compact_record,
-        pace_auto_secondary=_esc(pace_auto_secondary),
-        pace_plays_html=pace_plays_html,
-        pace_spread_shadow_html=pace_spread_shadow_html,
-        pace_shadow_html=pace_shadow_html,
-        pace_leans_html=pace_leans_html,
-        pace_projections_html=pace_projections_html,
-        pace_totals_shadow_html=pace_totals_shadow_html,
-        pace_history_html=pace_history_html,
         model_details=model_details,
-        pace_play_threshold=f"{SCORE_MODELING_MIN_EDGE_PT:g}",
-        pace_lean_range=f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g}",
-        pace_watch_list_label=PACE_WATCH_LIST_LABEL,
-        pace_watch_list_note=PACE_WATCH_LIST_NOTE,
-        pace_spread_shadow_section_label=PACE_SPREAD_SHADOW_SECTION_LABEL,
         sharp_leans_section_label=SHARP_LEANS_SECTION_LABEL,
         play_badge_label=PLAY_BADGE_LABEL,
         tracking_only_badge=TRACKING_ONLY_BADGE_LABEL,
-        tracking_only_badge_lower=TRACKING_ONLY_BADGE_LABEL.lower(),
-        pace_lines_note=pace_lines_note,
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
     )
@@ -2264,7 +1592,7 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
 
     # Only the display/result ledger is published. Signals, the paper report and the
-    # score-model / injury / Pace files stay in data/ (docs/ is the GitHub Pages root).
+    # Score-model / injury files stay in data/ (docs/ is the GitHub Pages root).
     from sharp_scout.site.build import PUBLIC_PLAY_FIELDS
 
     pub_ledger_out = {
@@ -2346,7 +1674,6 @@ _NBA_SHARED_PAGE_CSS = """
     border: 2px solid var(--color-border); background: var(--color-bg);
     padding: 16px 14px 18px; margin: 0 0 24px; border-radius: 2px;
   }}
-  .nba-model-panel.pace-panel {{ border-top: 4px solid var(--color-navy); }}
   .nba-model-panel.sharp-panel {{ border-top: 4px solid var(--color-win); }}
   .nba-model-panel.props-panel {{ border-top: 4px solid #7c3aed; }}
   .nba-h2 {{ font-family: var(--font-serif); font-size: clamp(24px, 5vw, 28px); font-weight: 500; margin: 0 0 8px; }}
@@ -2461,7 +1788,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NBA tracking (testing) · Sharp Scout Quant</title>
-<meta name="description" content="NBA Sharp Scout and Pace of Play paper tracking — testing only">
+<meta name="description" content="NBA Sharp Scout game-line paper tracking — testing only">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2493,47 +1820,15 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     <div class="header-logo">{ssq_logo}</div>
     <div class="header-text">
       <h1>NBA tracking board</h1>
-      <p>Pace of Play and Sharp Scout game-line paper picks. {window_note}</p>
+      <p>Sharp Scout game-line paper picks (spreads and totals). {window_note}</p>
     </div>
   </div>
 </header>
 <div class="nba-content">
-  <section class="nba-model-panel pace-panel" aria-labelledby="pace-heading">
-    <h2 class="nba-h2" id="pace-heading">Pace of Play model</h2>
-    <p class="nba-section-note">Official card plays are <strong>totals only</strong>.</p>
-    {pace_lines_note}
-    <div class="nba-rec-row">{pace_compact_record}{yesterday_compact_record}</div>
-    <div class="nba-plays-block">
-      <div class="section-label">Upcoming plays (official card — totals only)</div>
-      <p class="nba-section-note">Qualifying totals show a <strong>{play_badge_label}</strong> badge — the only rows meant as paper plays.</p>
-      {pace_plays_html}
-    </div>
-    <div class="nba-pace-spread-shadow nba-tracking-block" aria-labelledby="pace-spread-shadow-heading">
-      <div class="section-label" id="pace-spread-shadow-heading">{pace_spread_shadow_section_label}</div>
-      <p class="nba-section-note">Spread Pace projections are {tracking_only_badge_lower} — not on the official card or season record.</p>
-      {pace_spread_shadow_html}
-    </div>
-    {pace_shadow_html}
-    <details class="nba-section-details">
-      <summary>{pace_watch_list_label}, projections &amp; history</summary>
-      <p class="nba-section-note">{pace_auto_secondary}</p>
-      <div class="nba-leans-block nba-tracking-block">
-        <div class="section-label">{pace_watch_list_label}</div>
-        <p class="nba-section-note">{pace_watch_list_note}</p>
-        {pace_leans_html}
-      </div>
-      <div class="section-label">Today&apos;s slate projections</div>
-      {pace_projections_html}
-      {pace_totals_shadow_html}
-      <div class="section-label">Results tracking</div>
-      {pace_history_html}
-    </details>
-  </section>
-
   <section class="nba-model-panel sharp-panel" aria-labelledby="sharp-scout-heading">
     <h2 class="nba-h2" id="sharp-scout-heading">Sharp Scout model</h2>
     <p class="nba-section-note">Paper plays on spreads and totals. Paper only — never live bets.</p>
-    {sharp_compact_record}
+    <div class="nba-rec-row">{sharp_compact_record}{yesterday_compact_record}</div>
     <p class="nba-section-note">{sharp_record_note}</p>
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays</div>
@@ -2604,7 +1899,7 @@ NBA_PROPS_PAGE_TEMPLATE = """<!DOCTYPE html>
     <div class="header-logo">{ssq_logo}</div>
     <div class="header-text">
       <h1>NBA player props</h1>
-      <p>Sharp Scout price-edge prop picks (max five per game). Game lines and Pace of Play are on <a href="nba.html">NBA</a>. {window_note}</p>
+      <p>Sharp Scout price-edge prop picks (max five per game). Game lines are on <a href="nba.html">NBA</a>. {window_note}</p>
     </div>
   </div>
 </header>

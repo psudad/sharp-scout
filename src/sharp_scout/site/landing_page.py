@@ -537,7 +537,7 @@ def render_landing_page(
         + _board_card(
             href="nba.html",
             title="NBA",
-            blurb="Pace of Play and game-line paper picks (testing).",
+            blurb="Sharp Scout game-line paper picks (testing).",
             badge=nba_nav_label()[3:].strip(),
         )
         + _board_card(

@@ -10,7 +10,6 @@ from sharp_scout.site.nba_page import (
     OFFICIAL_PACE_MARKET_KINDS,
     PACE_LEAN_MIN_EDGE_PT,
     PACE_SPREAD_SHADOW_KINDS,
-    PACE_SPREAD_SHADOW_SECTION_LABEL,
     PLAY_BADGE_LABEL,
     SCORE_MODELING_MIN_EDGE_PT,
     TRACKING_ONLY_BADGE_LABEL,
@@ -67,8 +66,8 @@ def test_projected_scores_and_gap_copy():
     assert "3+ pts" not in explain  # rule text kept private
 
 
-def test_official_pace_display_plays_are_totals_only():
-    """Spread can outrank total in gap, but official card display must be totals-only."""
+def test_score_modeling_helpers_totals_vs_spread_kinds():
+    """Legacy Pace display helpers remain for research tests; not rendered on the public page."""
     rows = [
         {
             "away": "BOS",
@@ -91,75 +90,8 @@ def test_official_pace_display_plays_are_totals_only():
     )
     assert len(official) == 1
     assert official[0]["kind"] == "total"
-    assert "Over 220" in official[0]["title"]
     assert len(spread_shadow) == 1
     assert spread_shadow[0]["kind"] == "spread"
-    assert "NYK" in spread_shadow[0]["title"] or "BOS" in spread_shadow[0]["title"]
-
-
-def test_spread_shadow_cards_use_tracking_badge_not_play():
-    today_kick = datetime.combine(datetime.now(ET).date(), time(19, 0), tzinfo=ET).isoformat()
-    score_rows = [
-        {
-            "away": "BOS",
-            "home": "NYK",
-            "kickoff": today_kick,
-            "margin": 10.0,
-            "total": 230.0,
-            "injury_margin": 10.0,
-            "injury_total": 230.0,
-            "home_absences": [],
-            "away_absences": [],
-            "lines": {"consensus_spread_home": -3.0, "consensus_total": 220.0},
-        }
-    ]
-    html = render_nba_page_html(
-        signals_payload={"ok": True, "demo": False, "generated_at": "2026-10-26T12:00:00+00:00", "signals": [], "possible_signals": []},
-        ledger={"plays": []},
-        report={},
-        analytics_head="",
-        score_model_rows=score_rows,
-        score_model_summary={"n_graded": 0},
-    )
-    shadow_start = html.index(PACE_SPREAD_SHADOW_SECTION_LABEL)
-    spread_shadow_block = html[shadow_start : html.index("Near-miss tracking")]
-    assert TRACKING_ONLY_BADGE_LABEL in spread_shadow_block
-    assert f'badge-play">{PLAY_BADGE_LABEL}' not in spread_shadow_block
-
-
-def test_render_nba_page_official_upcoming_excludes_spread_candidates():
-    today_kick = datetime.combine(datetime.now(ET).date(), time(19, 0), tzinfo=ET).isoformat()
-    score_rows = [
-        {
-            "away": "BOS",
-            "home": "NYK",
-            "kickoff": today_kick,
-            "margin": 10.0,
-            "total": 230.0,
-            "injury_margin": 10.0,
-            "injury_total": 230.0,
-            "home_absences": [],
-            "away_absences": [],
-            "lines": {"consensus_spread_home": -3.0, "consensus_total": 220.0},
-        }
-    ]
-    html = render_nba_page_html(
-        signals_payload={"ok": True, "demo": False, "generated_at": "2026-10-26T12:00:00+00:00", "signals": [], "possible_signals": []},
-        ledger={"plays": []},
-        report={},
-        analytics_head="",
-        score_model_rows=score_rows,
-        score_model_summary={"n_graded": 0},
-    )
-    official_start = html.index("Upcoming plays (official card — totals only)")
-    shadow_start = html.index(PACE_SPREAD_SHADOW_SECTION_LABEL)
-    official_block = html[official_start:shadow_start]
-    spread_shadow_block = html[shadow_start : html.index("Near-miss tracking")]
-    assert "Over 220" in official_block
-    assert "NYK -3" not in official_block and "NYK +3" not in official_block
-    assert "BOS +3" not in official_block
-    assert any(x in spread_shadow_block for x in ("NYK -3", "NYK +3", "BOS +3", "BOS -3"))
-    assert "lean" not in official_block.lower()
 
 
 def test_score_modeling_display_uses_three_point_threshold():
@@ -243,48 +175,25 @@ def test_render_nba_page_price_edge_and_score_modeling_sections(monkeypatch):
         ],
         "possible_signals": [],
     }
-    score_rows = [
-        {
-            "away": "DAL",
-            "home": "MIA",
-            "kickoff": "2026-10-27T00:00:00+00:00",
-            "margin": 2.0,
-            "total": 232.0,
-            "injury_margin": 2.0,
-            "injury_total": 232.0,
-            "home_absences": [],
-            "away_absences": [],
-            "lines": {"consensus_spread_home": -3.0, "consensus_total": 240.75},
-        }
-    ]
-    summary = {
-        "n_graded": 10,
-        "ats_vs_close": {"ge_3": {"wins": 6, "losses": 4, "pushes": 0}},
-        "ou_vs_close": {"ge_3": {"wins": 5, "losses": 5, "pushes": 0}},
-    }
     html = render_nba_page_html(
         signals_payload=payload,
         ledger={"plays": []},
         report={},
         analytics_head="",
-        score_model_rows=score_rows,
-        score_model_summary=summary,
+        score_model_rows=[],
+        score_model_summary={},
     )
     idx_sharp = html.index('id="sharp-scout-heading"')
-    idx_pace = html.index('id="pace-heading"')
-    idx_pace_plays = html.index("Upcoming plays (official card — totals only)")
     idx_sharp_plays = html.index('<div class="section-label">Upcoming plays</div>', idx_sharp)
     idx_diag = html.index("Diagnostics")
-    assert idx_pace < idx_pace_plays < idx_sharp < idx_sharp_plays < idx_diag
+    assert idx_sharp < idx_sharp_plays < idx_diag
+    assert "pace-heading" not in html
+    assert "Pace of Play" not in html
     assert "nba-props.html" not in html
     assert "nav-test-badge" in html
     assert "WAS @ CHA: Over 227.5" in html
     assert f'tier-badge badge-play">{PLAY_BADGE_LABEL}' in html
     assert "Tonight&apos;s play" not in html
-    assert "DAL @ MIA: Under 240.75" in html
-    assert "Projections &amp; detail" in html
-    assert "Near-miss tracking (not bets), projections &amp; history" in html
-    assert "Player props (separate)" not in html
     assert "nba-rec-chip" in html
     assert "Export tables" not in html.split("Diagnostics")[0]
 
@@ -324,7 +233,10 @@ def test_score_modeling_skips_when_raw_qualifies_but_injury_vetoes():
 def test_build_nba_page_with_mixed_qualifying_rows_does_not_crash():
     from sharp_scout.site.nba_page import build_nba_page
 
-    build_nba_page()
+    html_path = build_nba_page()
+    html = html_path.read_text()
+    assert "Sharp Scout model" in html
+    assert "pace-heading" not in html
 
 
 def test_pace_leans_use_band_between_one_five_and_three():
@@ -359,60 +271,7 @@ def test_render_nba_page_no_live_scan_message():
     assert NO_LIVE_SCAN_MESSAGE in html
     assert "1:07 PM" in html
     assert "no-cache" in html.lower()
-
-
-def test_render_nba_page_groups_plays_by_et_date():
-    ref_day = datetime(2026, 10, 27, 15, 0, tzinfo=ET)
-    payload = {
-        "ok": True,
-        "demo": False,
-        "generated_at": "2026-10-27T19:00:00+00:00",
-        "signals": [],
-        "possible_signals": [],
-    }
-    score_rows = [
-        {
-            "away": "PHI",
-            "home": "IND",
-            "kickoff": "2026-10-29T00:00:00Z",
-            "margin": 2.0,
-            "total": 232.0,
-            "injury_margin": 2.0,
-            "injury_total": 232.0,
-            "home_absences": [],
-            "away_absences": [],
-            "lines": {"consensus_spread_home": -3.0, "consensus_total": 240.75},
-        },
-        {
-            "away": "DAL",
-            "home": "MIA",
-            "kickoff": "2026-10-28T02:00:00Z",
-            "margin": 2.0,
-            "total": 232.0,
-            "injury_margin": 2.0,
-            "injury_total": 232.0,
-            "home_absences": [],
-            "away_absences": [],
-            "lines": {"consensus_spread_home": -3.0, "consensus_total": 240.75},
-        },
-    ]
-    from unittest.mock import patch
-
-    with patch("sharp_scout.site.nba_page.datetime") as mock_dt:
-        mock_dt.now.return_value = ref_day
-        mock_dt.side_effect = lambda *a, **k: datetime(*a, **k)
-        html = render_nba_page_html(
-            signals_payload=payload,
-            ledger={"plays": []},
-            report={},
-            analytics_head="",
-            score_model_rows=score_rows,
-            score_model_summary={"n_graded": 0},
-        )
-    t_pos = html.index("Tonight, Tue Oct 27")
-    m_pos = html.index("Tomorrow, Wed Oct 28")
-    assert t_pos < m_pos
-    assert html.index("DAL @ MIA") < html.index("PHI @ IND")
+    assert "Pace of Play" not in html
 
 
 def test_render_nba_props_page_empty_when_no_props():

@@ -212,34 +212,39 @@ def settle_nba_ledger(
         from sharp_scout.nba.score_model.state import ensure_score_engine
 
         paper = grade_score_model_paper(scores=scores)
-        try:
-            from sharp_scout.nba.score_model.official_pace import sync_auto_pace_from_paper_store
+        from sharp_scout.config import nba_pace_of_play_active
 
-            sync_auto_pace_from_paper_store(paper)
-            from sharp_scout.nba.score_model.pace_spreads_shadow import sync_spread_shadow_from_paper_store
+        if nba_pace_of_play_active():
+            try:
+                from sharp_scout.nba.score_model.official_pace import sync_auto_pace_from_paper_store
 
-            sync_spread_shadow_from_paper_store(paper)
-            from sharp_scout.nba.score_model.mechanical_pace import sync_mechanical_pace_from_paper_store
+                sync_auto_pace_from_paper_store(paper)
+                from sharp_scout.nba.score_model.pace_spreads_shadow import sync_spread_shadow_from_paper_store
 
-            sync_mechanical_pace_from_paper_store(paper)
-        except Exception as sync_exc:  # noqa: BLE001
-            logger.warning("NBA official pace sync skipped: %s", sync_exc)
-        try:
-            from sharp_scout.nba.score_model.totals_shadow import safe_grade_shadow_from_paper_store
+                sync_spread_shadow_from_paper_store(paper)
+                from sharp_scout.nba.score_model.mechanical_pace import sync_mechanical_pace_from_paper_store
 
-            n_shadow = safe_grade_shadow_from_paper_store(paper)
-            if n_shadow:
-                logger.info("NBA totals shadow: graded %d play(s)", n_shadow)
-        except Exception as shadow_exc:  # noqa: BLE001
-            logger.warning("NBA totals shadow grade skipped: %s", shadow_exc)
-        try:
-            from sharp_scout.nba.score_model.pace_shadow_combo import safe_grade_shadow_combo_from_paper_store
+                sync_mechanical_pace_from_paper_store(paper)
+            except Exception as sync_exc:  # noqa: BLE001
+                logger.warning("NBA official pace sync skipped: %s", sync_exc)
+            try:
+                from sharp_scout.nba.score_model.totals_shadow import safe_grade_shadow_from_paper_store
 
-            n_combo = safe_grade_shadow_combo_from_paper_store(paper)
-            if n_combo:
-                logger.info("NBA pace shadow combo: graded %d play(s)", n_combo)
-        except Exception as combo_exc:  # noqa: BLE001
-            logger.warning("NBA pace shadow combo grade skipped: %s", combo_exc)
+                n_shadow = safe_grade_shadow_from_paper_store(paper)
+                if n_shadow:
+                    logger.info("NBA totals shadow: graded %d play(s)", n_shadow)
+            except Exception as shadow_exc:  # noqa: BLE001
+                logger.warning("NBA totals shadow grade skipped: %s", shadow_exc)
+            try:
+                from sharp_scout.nba.score_model.pace_shadow_combo import (
+                    safe_grade_shadow_combo_from_paper_store,
+                )
+
+                n_combo = safe_grade_shadow_combo_from_paper_store(paper)
+                if n_combo:
+                    logger.info("NBA pace shadow combo: graded %d play(s)", n_combo)
+            except Exception as combo_exc:  # noqa: BLE001
+                logger.warning("NBA pace shadow combo grade skipped: %s", combo_exc)
         grade_injury_lag_entries()
         ensure_score_engine(lookback_days=100)
     except Exception as exc:  # noqa: BLE001

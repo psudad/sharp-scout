@@ -270,6 +270,8 @@ class Settings(BaseSettings):
     nba_cap_units_per_night: float = 8.0
     nba_paper_start: str = "2026-11-02"
     nba_paper_end: str = "2026-12-13"
+    # Retired Nov 2026: Pace of Play official card (archives remain; no generation or publish).
+    nba_pace_of_play_enabled: bool = False
     nba_pace_min_gap_pts: float = 3.0  # v1 official card (production)
     nba_pace_require_raw_gap: bool = True  # v1: injury adj cannot create a play
     nba_league_efficiency_correction_enabled: bool = False
@@ -277,7 +279,7 @@ class Settings(BaseSettings):
     nba_league_efficiency_anchor_ortg: float = 112.0
     nba_pace_v1_market_blend_enabled: bool = False
     nba_pace_v1_market_blend_model_weight: float = 0.35
-    nba_pace_shadow_combo_enabled: bool = True
+    nba_pace_shadow_combo_enabled: bool = False
     nba_pace_shadow_combo_blend_weight: float = 0.35
     # Official Pace card publishes totals only; spreads grade in shadow (weekly review Nov 2026).
     nba_pace_spreads_official_enabled: bool = False
@@ -288,7 +290,7 @@ class Settings(BaseSettings):
     nba_pace_large_gap_warn_pts: float = 7.0  # v1 half-unit sizing only
     nba_pace_half_unit_sizing_enabled: bool = True
     # Shadow Pace v2 (paper only — never on official Jason card)
-    nba_pace_v2_shadow_enabled: bool = True
+    nba_pace_v2_shadow_enabled: bool = False
     nba_v2_early_min_gap: bool = True
     nba_v2_early_min_gap_pts: float = 4.5
     nba_v2_early_season_team_games: int = 15
@@ -300,9 +302,9 @@ class Settings(BaseSettings):
     nba_v2_roster_priors: bool = True
     nba_v2_slower_observe: bool = True
     # Optional extra line snapshot (disabled — Odds API credits exhausted until reset)
-    nba_pace_true_close_enabled: bool = True
+    nba_pace_true_close_enabled: bool = False
     nba_pace_true_close_post_minutes: int = 5
-    nba_pace_pre_tip_snapshot_enabled: bool = True
+    nba_pace_pre_tip_snapshot_enabled: bool = False
     nba_pace_pre_tip_snapshot_minutes: int = 15
     nba_prop_markets: str = (
         "player_points,player_rebounds,player_assists,player_threes,"
@@ -343,3 +345,8 @@ def get_settings() -> Settings:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     return Settings()
+
+
+def nba_pace_of_play_active() -> bool:
+    """Whether production Pace of Play picks are generated, settled, and published."""
+    return bool(getattr(get_settings(), "nba_pace_of_play_enabled", False))

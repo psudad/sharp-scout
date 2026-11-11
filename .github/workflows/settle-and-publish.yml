@@ -41,7 +41,7 @@ jobs:
       - name: Settle NFL + NCAAF and rebuild site
         run: python scripts/settle_now.py
 
-      - name: Settle NBA pace paper + official ledger
+      - name: Settle NBA sharp paper ledger
         continue-on-error: true
         run: python scripts/settle_nba.py --build-page
 
@@ -53,12 +53,12 @@ jobs:
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ledger.json data/props_ledger.json data/ncaaf_ledger.json data/ncaam_ledger.json data/shadow/ data/ncaam/ data/paper/nba_score_model.json data/paper/nba_pace_of_play_official.json data/paper/nba_pace_of_play_official.csv data/paper/nba_totals_current_season_shadow.json data/paper/nba_totals_current_season_shadow.csv reports/ncaaf_totals_high_ev.md data/site_state/ docs/
+          git add data/ledger.json data/props_ledger.json data/ncaaf_ledger.json data/ncaam_ledger.json data/shadow/ data/ncaam/ data/paper/nba_score_model.json reports/ncaaf_totals_high_ev.md data/site_state/ docs/
           if git diff --staged --quiet; then
             echo "No settlement/site changes"
           else
             chmod +x scripts/ci_git_push_retry.sh
-            export ADD_PATHS="data/ledger.json data/props_ledger.json data/ncaaf_ledger.json data/ncaam_ledger.json data/shadow/ data/ncaam/ data/paper/nba_score_model.json data/paper/nba_pace_of_play_official.json data/paper/nba_pace_of_play_official.csv data/paper/nba_totals_current_season_shadow.json data/paper/nba_totals_current_season_shadow.csv reports/ncaaf_totals_high_ev.md data/site_state/ docs/"
+            export ADD_PATHS="data/ledger.json data/props_ledger.json data/ncaaf_ledger.json data/ncaam_ledger.json data/shadow/ data/ncaam/ data/paper/nba_score_model.json reports/ncaaf_totals_high_ev.md data/site_state/ docs/"
             ./scripts/ci_git_push_retry.sh "chore: automatic settlement + site rebuild" python scripts/settle_now.py
           fi
 

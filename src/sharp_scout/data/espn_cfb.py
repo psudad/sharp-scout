@@ -90,7 +90,9 @@ def _parse_event(event: dict[str, Any]) -> dict[str, Any] | None:
 
         kick_dt = parse_commence(kickoff)
         if kick_dt is not None:
-            gameday = kick_dt.astimezone(timezone.utc).date().isoformat()
+            from sharp_scout.utils.slate import ET
+
+            gameday = kick_dt.astimezone(ET).date().isoformat()
 
     return {
         "event_id": str(event.get("id") or comp.get("id") or ""),

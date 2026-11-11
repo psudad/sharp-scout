@@ -405,9 +405,9 @@ NCAAF_ALIASES: dict[str, str] = {
     "ARMY BLACK KNIGHTS": "ARMY",
     "NAVY": "NAVY",
     "NAVY MIDSHIPMEN": "NAVY",
-    "AF": "AF",
-    "AIR FORCE": "AF",
-    "AIR FORCE FALCONS": "AF",
+    "AF": "AIR FORCE",
+    "AIR FORCE": "AIR FORCE",
+    "AIR FORCE FALCONS": "AIR FORCE",
     "BSU": "BSU",
     "BOIS": "BSU",  # ESPN abbreviation for Boise State
     "CIT": "CITADEL",  # ESPN abbreviation for The Citadel
@@ -749,7 +749,7 @@ NCAAF_ALIASES: dict[str, str] = {
     "ILLINOIS STATE": "ILLINOIS STATE",
     "UND": "NORTH DAKOTA",
     "NORTH DAKOTA": "NORTH DAKOTA",
-    "AFA": "AF",
+    "AFA": "AIR FORCE",
     "UNCO": "NORTHERN COLORADO",
     "NORTHERN COLORADO": "NORTHERN COLORADO",
     "PV": "PRAIRIE VIEW A&M",

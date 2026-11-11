@@ -56,7 +56,12 @@ def settle_shadow_ledger(
         kick = parse_commence(play.get("kickoff"))
         if kick is not None and kick > now:
             continue
-        result = match_play_to_score(play, index, sport="ncaaf")
+        result = match_play_to_score(
+            play,
+            index,
+            sport="ncaaf",
+            allow_home_away_swap=True,  # totals only — never enable for spreads/ML
+        )
         if result.reason == "ambiguous":
             ambiguous += 1
             continue

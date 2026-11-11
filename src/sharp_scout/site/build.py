@@ -27,6 +27,7 @@ from sharp_scout.copy.explain import (
     STAGE_RECORD_SECTION_NOTE,
     STAGE_RECORD_TIPS,
 )
+from sharp_scout.ledger.day_record import format_yesterday_stat_value, summarize_yesterday
 from sharp_scout.ledger.tracker import (
     PROPS_LEDGER_PATH,
     compute_record,
@@ -360,6 +361,16 @@ def _locked_play_status_by_key(plays: list[dict[str, Any]]) -> dict[tuple[str, s
         if eid and side:
             out[(eid, market, side)] = play.get("status") or "pending"
     return out
+
+
+def _yesterday_stat_card(plays: list[dict[str, Any]], *, include: Any = None) -> str:
+    summary = summarize_yesterday(plays, include=include)
+    tip = f"Graded plays that tipped off on {summary['day_label']} (Eastern)."
+    val = format_yesterday_stat_value(summary)
+    cls = ""
+    if summary.get("n"):
+        cls = "pos" if float(summary.get("pnl_units") or 0) >= 0 else "neg"
+    return _stat_card(val, f"Yesterday · {summary['day_label']}", tip, val_cls=cls)
 
 
 def _locked_week_play_summary(plays: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1058,8 +1069,10 @@ def build_site(
     ncaaf_overall_banner_html = _render_overall_banner(ncaaf_record.get("win_pct"), ncaaf_record.get("pnl_units") or 0)
     ncaaf_ledger_rows = _render_ledger_rows(ncaaf_settled_sorted + ncaaf_pending_sorted)
 
+    nfl_locked_all = collapse_best_signals(_filter_locked_plays(ledger["plays"]))
     nfl_top_stats_html = "".join(
         [
+            _yesterday_stat_card(nfl_locked_all),
             _stat_card(
                 nfl_week_stats["record"] if nfl_week_stats["wins"] + nfl_week_stats["losses"] else "0-0",
                 "This Week's Plays Record",
@@ -1079,8 +1092,10 @@ def build_site(
             ),
         ]
     )
+    ncaaf_locked_all = collapse_best_signals(_filter_locked_plays(ncaaf_ledger["plays"]))
     ncaaf_top_stats_html = "".join(
         [
+            _yesterday_stat_card(ncaaf_locked_all),
             _stat_card(
                 ncaaf_week_stats["record"] if ncaaf_week_stats["wins"] + ncaaf_week_stats["losses"] else "0-0",
                 "This Week's Plays Record",
@@ -3772,6 +3787,7 @@ _SITE_CSS = """\
   .guide-callout p { margin: 0; font-size: 14px; }
   .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 22px; }
   @media (min-width: 700px) { .summary-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 960px) { .summary-grid.summary-grid-5 { grid-template-columns: repeat(5, 1fr); } }
   
   /* Team search box - sits above stats boxes on each tab */
   .team-search-wrap { margin: 16px 0 20px; }
@@ -4320,7 +4336,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <input type="text" id="nfl-team-search" class="team-search-input" placeholder="Search for a team (e.g. Chiefs, KC)..." />
   </div>
   <p id="nfl-team-search-hint" class="team-search-hint" style="display:none" aria-live="polite"></p>
-  <div class="summary-grid">{nfl_top_stats_html}</div>
+  <div class="summary-grid summary-grid-5">{nfl_top_stats_html}</div>
   <div class="section-label">Season Overview</div>
   {nfl_overall_banner_html}
   {nfl_plays_heading}
@@ -4365,7 +4381,7 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     <input type="text" id="cfb-team-search" class="team-search-input" placeholder="Search for a team (e.g. Alabama, Crimson Tide)..." />
   </div>
   <p id="cfb-team-search-hint" class="team-search-hint" style="display:none" aria-live="polite"></p>
-  <div class="summary-grid">{ncaaf_top_stats_html}</div>
+  <div class="summary-grid summary-grid-5">{ncaaf_top_stats_html}</div>
   <div class="section-label">Season Overview</div>
   {ncaaf_overall_banner_html}
   {ncaaf_plays_heading}

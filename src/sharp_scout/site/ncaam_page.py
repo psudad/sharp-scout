@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT, get_settings
 from sharp_scout.copy.explain import format_display_datetime_et
+from sharp_scout.ledger.day_record import format_yesterday_stat_value, summarize_yesterday
 from sharp_scout.ledger.tracker import compute_record, load_ledger
 from sharp_scout.site.bottom_bar import (
     BOTTOM_BAR_SCRIPT,
@@ -166,8 +167,16 @@ def _render_record(rec: dict[str, Any], ledger: dict[str, Any]) -> str:
     clv_pct = f"{100.0 * clv_beat / clv_total:.0f}%" if clv_total else "—"
     roi = rec.get("roi_pct")
     roi_s = f"{float(roi):+.1f}%" if roi is not None else "—"
+    yest = summarize_yesterday(
+        ledger.get("plays") or [],
+        include=lambda p: bool(p.get("side")) and str(p.get("status") or "").lower() not in _NOT_A_PLAY,
+    )
+    yest_val = format_yesterday_stat_value(yest)
+    yest_cls = "pos" if float(yest.get("pnl_units") or 0) >= 0 else "neg" if yest.get("n") else ""
     return (
-        f'<div class="summary-grid ncaam-record">'
+        f'<div class="summary-grid summary-grid-5 ncaam-record">'
+        f'<div class="stat-card"><div class="stat-val {yest_cls}">{_esc(yest_val)}</div>'
+        f'<div class="stat-label">Yesterday · {_esc(yest["day_label"])}</div></div>'
         f'<div class="stat-card"><div class="stat-val">{_esc(record)}</div>'
         f'<div class="stat-label">Season record</div></div>'
         f'<div class="stat-card"><div class="stat-val {cls}">{pnl_s}u</div>'

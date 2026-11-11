@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sharp_scout.config import DATA_DIR, get_settings
+from sharp_scout.config import DATA_DIR, get_settings, nba_pace_of_play_active
 from sharp_scout.nba.score_model.engine import V2Engine, p_cover_home, p_over
 from sharp_scout.nba.score_model.lines import snapshot_game_lines
 from sharp_scout.nba.score_model.state import ensure_score_engine
@@ -330,27 +330,31 @@ def record_score_model_scan(
         )
         kick_dt = parse_kickoff_utc(kick)
         snap["after_tip"] = bool(kick_dt and now > kick_dt)
-        from sharp_scout.nba.score_model.pace_v1 import (
-            pace_display_pick_from_snapshot,
-            pace_official_published_pick_from_snapshot,
-            pace_spread_shadow_pick_from_snapshot,
-            recommended_unit_fraction,
-        )
-
-        v1_pick = pace_display_pick_from_snapshot(snap, home=home, away=away, engine=engine)
-        official_pick = pace_official_published_pick_from_snapshot(
-            snap, home=home, away=away, engine=engine
-        )
-        spread_shadow_pick = pace_spread_shadow_pick_from_snapshot(
-            snap, home=home, away=away, engine=engine
-        )
-        if v1_pick:
-            snap["pace_v1_pick"] = v1_pick.get("pick")
-            snap["pace_v1_gap"] = v1_pick.get("gap")
-            snap["pace_v1_recommended_units"] = recommended_unit_fraction(
-                snap, v1_pick, home=home, away=away, engine=engine
+        if nba_pace_of_play_active():
+            from sharp_scout.nba.score_model.pace_v1 import (
+                pace_display_pick_from_snapshot,
+                pace_official_published_pick_from_snapshot,
+                pace_spread_shadow_pick_from_snapshot,
+                recommended_unit_fraction,
             )
-        if shadow_engine is not None:
+
+            v1_pick = pace_display_pick_from_snapshot(snap, home=home, away=away, engine=engine)
+            official_pick = pace_official_published_pick_from_snapshot(
+                snap, home=home, away=away, engine=engine
+            )
+            spread_shadow_pick = pace_spread_shadow_pick_from_snapshot(
+                snap, home=home, away=away, engine=engine
+            )
+            if v1_pick:
+                snap["pace_v1_pick"] = v1_pick.get("pick")
+                snap["pace_v1_gap"] = v1_pick.get("gap")
+                snap["pace_v1_recommended_units"] = recommended_unit_fraction(
+                    snap, v1_pick, home=home, away=away, engine=engine
+                )
+        else:
+            official_pick = None
+            spread_shadow_pick = None
+        if shadow_engine is not None and nba_pace_of_play_active():
             from sharp_scout.nba.score_model.shadow_v2_proj import shadow_v2_proj_row
 
             snap["shadow_v2"] = shadow_v2_proj_row(
@@ -381,36 +385,37 @@ def record_score_model_scan(
         existing["scans"].append(snap)
         if len(existing["scans"]) > 40:
             existing["scans"] = existing["scans"][-40:]
-        if official_pick and not snap.get("after_tip"):
-            existing["pace_published_pick"] = official_pick
-        if spread_shadow_pick and not snap.get("after_tip"):
-            existing["pace_spread_shadow_pick"] = spread_shadow_pick
-        if kick_dt and not snap.get("after_tip"):
-            from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
+        if nba_pace_of_play_active():
+            if official_pick and not snap.get("after_tip"):
+                existing["pace_published_pick"] = official_pick
+            if spread_shadow_pick and not snap.get("after_tip"):
+                existing["pace_spread_shadow_pick"] = spread_shadow_pick
+            if kick_dt and not snap.get("after_tip"):
+                from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
 
-            safe_maybe_record_totals_shadow_for_scan(
-                engine,
-                event_id=eid,
-                home=home,
-                away=away,
-                kickoff=kick_dt,
-                scan_at=at,
-                snap=snap,
-            )
-            from sharp_scout.nba.score_model.pace_shadow_combo import (
-                safe_maybe_record_shadow_combo_for_scan,
-            )
+                safe_maybe_record_totals_shadow_for_scan(
+                    engine,
+                    event_id=eid,
+                    home=home,
+                    away=away,
+                    kickoff=kick_dt,
+                    scan_at=at,
+                    snap=snap,
+                )
+                from sharp_scout.nba.score_model.pace_shadow_combo import (
+                    safe_maybe_record_shadow_combo_for_scan,
+                )
 
-            safe_maybe_record_shadow_combo_for_scan(
-                engine,
-                event_id=eid,
-                home=home,
-                away=away,
-                kickoff=kick_dt,
-                scan_at=at,
-                snap=snap,
-                game_row=existing,
-            )
+                safe_maybe_record_shadow_combo_for_scan(
+                    engine,
+                    event_id=eid,
+                    home=home,
+                    away=away,
+                    kickoff=kick_dt,
+                    scan_at=at,
+                    snap=snap,
+                    game_row=existing,
+                )
 
     save_paper_store(store)
     return store
@@ -498,10 +503,7 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
     """Lock one tip-time snapshot (merged pre-tip lines + v1 pick; shadow v2 sidecar)."""
     now = now or datetime.now(timezone.utc)
     frozen = 0
-    from sharp_scout.nba.score_model.pace_v1 import (
-        pace_display_pick_from_snapshot,
-        pace_spread_shadow_pick_from_snapshot,
-    )
+    pace_active = nba_pace_of_play_active()
 
     for g in store.get("games") or []:
         if _game_excluded(g) or g.get("frozen") or g.get("graded"):
@@ -519,21 +521,26 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
             last["lines"] = merged
         home = str(g.get("home") or "")
         away = str(g.get("away") or "")
-        display_pick = pace_display_pick_from_snapshot(last, home=home, away=away)
-        spread_shadow = g.get("pace_spread_shadow_pick") or pace_spread_shadow_pick_from_snapshot(
-            last, home=home, away=away
-        )
-        from sharp_scout.nba.score_model.true_close import true_close_lines_for_game
-
         frozen_blob: dict[str, Any] = {
             "frozen_at": now.isoformat(),
             "snapshot": last,
             "first_snapshot": scans[0],
-            "pace_display_pick": display_pick,
-            "pace_published_pick": g.get("pace_published_pick"),
-            "pace_spread_shadow_pick": spread_shadow,
-            "shadow_v2": last.get("shadow_v2"),
         }
+        if pace_active:
+            from sharp_scout.nba.score_model.pace_v1 import (
+                pace_display_pick_from_snapshot,
+                pace_spread_shadow_pick_from_snapshot,
+            )
+
+            display_pick = pace_display_pick_from_snapshot(last, home=home, away=away)
+            spread_shadow = g.get("pace_spread_shadow_pick") or pace_spread_shadow_pick_from_snapshot(
+                last, home=home, away=away
+            )
+            frozen_blob["pace_display_pick"] = display_pick
+            frozen_blob["pace_published_pick"] = g.get("pace_published_pick")
+            frozen_blob["pace_spread_shadow_pick"] = spread_shadow
+            frozen_blob["shadow_v2"] = last.get("shadow_v2")
+        from sharp_scout.nba.score_model.true_close import true_close_lines_for_game
         tc = true_close_lines_for_game(g)
         if tc:
             frozen_blob.update(tc)
@@ -688,19 +695,20 @@ def grade_score_model_paper(
             "mae_total_blend": abs(act_t - blend_t) if ct is not None else None,
             "clv_line_move_toward_model_margin": clv_margin,
         }
-        from sharp_scout.nba.score_model.pace_clv import pace_clv_fields
+        if nba_pace_of_play_active():
+            from sharp_scout.nba.score_model.pace_clv import pace_clv_fields
 
-        pub = frozen.get("pace_published_pick") or g.get("pace_published_pick")
-        if isinstance(pub, dict):
-            first = frozen.get("first_snapshot") or snap
-            g["graded"]["pace_clv"] = pace_clv_fields(
-                pick=pub,
-                pre_tip=first,
-                close_spread_home=float(clv_spread) if clv_spread is not None else None,
-                close_total=float(clv_total) if clv_total is not None else None,
-                proj_margin=inj_m,
-                proj_total=inj_t,
-            )
+            pub = frozen.get("pace_published_pick") or g.get("pace_published_pick")
+            if isinstance(pub, dict):
+                first = frozen.get("first_snapshot") or snap
+                g["graded"]["pace_clv"] = pace_clv_fields(
+                    pick=pub,
+                    pre_tip=first,
+                    close_spread_home=float(clv_spread) if clv_spread is not None else None,
+                    close_total=float(clv_total) if clv_total is not None else None,
+                    proj_margin=inj_m,
+                    proj_total=inj_t,
+                )
 
     store["summary"] = summarize_score_paper(store)
     save_paper_store(store)

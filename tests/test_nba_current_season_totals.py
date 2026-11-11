@@ -363,7 +363,7 @@ def test_live_scan_and_page_survive_shadow_record_failure(tmp_path, monkeypatch)
     store = load_paper_store(store_path)
     assert len(store["games"]) == 1
     assert store["games"][0]["scans"]
-    assert store["games"][0].get("pace_published_pick") == fake_pick
+    assert store["games"][0].get("pace_published_pick") is None
 
     monkeypatch.setattr(
         "sharp_scout.site.nba_page._render_current_season_totals_tracking",
@@ -388,5 +388,5 @@ def test_live_scan_and_page_survive_shadow_record_failure(tmp_path, monkeypatch)
             }
         ],
     )
-    assert "Current-season totals tracking temporarily unavailable" in html
-    assert "Pace of Play model" in html
+    assert "Sharp Scout model" in html
+    assert "Pace of Play" not in html

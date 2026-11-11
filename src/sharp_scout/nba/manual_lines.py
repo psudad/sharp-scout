@@ -9,6 +9,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from sharp_scout.config import nba_pace_of_play_active
 from sharp_scout.nba.paths import NBA_MANUAL_LINES_PATH
 from sharp_scout.nba.score_model.paper import (
     _find_game_by_matchup,
@@ -174,48 +175,49 @@ def apply_manual_lines_to_paper_store(
             first_scan_at=first_scan_at,
         )
         snap["source"] = "manual_lines"
-        from sharp_scout.nba.score_model.pace_v1 import (
-            pace_display_pick_from_snapshot,
-            pace_official_published_pick_from_snapshot,
-            pace_spread_shadow_pick_from_snapshot,
-            recommended_unit_fraction,
-        )
-
-        v1_pick = pace_display_pick_from_snapshot(snap, home=home, away=away, engine=engine)
-        official_pick = pace_official_published_pick_from_snapshot(
-            snap, home=home, away=away, engine=engine
-        )
-        spread_shadow_pick = pace_spread_shadow_pick_from_snapshot(
-            snap, home=home, away=away, engine=engine
-        )
-        if v1_pick:
-            snap["pace_v1_pick"] = v1_pick.get("pick")
-            snap["pace_v1_gap"] = v1_pick.get("gap")
-            snap["pace_v1_recommended_units"] = recommended_unit_fraction(
-                snap, v1_pick, home=home, away=away, engine=engine
-            )
         g["scans"].append(snap)
         if len(g["scans"]) > 40:
             g["scans"] = g["scans"][-40:]
-        if official_pick:
-            g["pace_published_pick"] = official_pick
-        if spread_shadow_pick:
-            g["pace_spread_shadow_pick"] = spread_shadow_pick
-        from sharp_scout.utils.kickoff import parse_kickoff_utc
-
-        kick_dt = parse_kickoff_utc(g.get("kickoff"))
-        if kick_dt:
-            from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
-
-            safe_maybe_record_totals_shadow_for_scan(
-                engine,
-                event_id=str(g.get("event_id") or ""),
-                home=home,
-                away=away,
-                kickoff=kick_dt,
-                scan_at=at,
-                snap=snap,
+        if nba_pace_of_play_active():
+            from sharp_scout.nba.score_model.pace_v1 import (
+                pace_display_pick_from_snapshot,
+                pace_official_published_pick_from_snapshot,
+                pace_spread_shadow_pick_from_snapshot,
+                recommended_unit_fraction,
             )
+
+            v1_pick = pace_display_pick_from_snapshot(snap, home=home, away=away, engine=engine)
+            official_pick = pace_official_published_pick_from_snapshot(
+                snap, home=home, away=away, engine=engine
+            )
+            spread_shadow_pick = pace_spread_shadow_pick_from_snapshot(
+                snap, home=home, away=away, engine=engine
+            )
+            if v1_pick:
+                snap["pace_v1_pick"] = v1_pick.get("pick")
+                snap["pace_v1_gap"] = v1_pick.get("gap")
+                snap["pace_v1_recommended_units"] = recommended_unit_fraction(
+                    snap, v1_pick, home=home, away=away, engine=engine
+                )
+            if official_pick:
+                g["pace_published_pick"] = official_pick
+            if spread_shadow_pick:
+                g["pace_spread_shadow_pick"] = spread_shadow_pick
+            from sharp_scout.utils.kickoff import parse_kickoff_utc
+
+            kick_dt = parse_kickoff_utc(g.get("kickoff"))
+            if kick_dt:
+                from sharp_scout.nba.score_model.totals_shadow import safe_maybe_record_totals_shadow_for_scan
+
+                safe_maybe_record_totals_shadow_for_scan(
+                    engine,
+                    event_id=str(g.get("event_id") or ""),
+                    home=home,
+                    away=away,
+                    kickoff=kick_dt,
+                    scan_at=at,
+                    snap=snap,
+                )
         updated += 1
 
     if updated:

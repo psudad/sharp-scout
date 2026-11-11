@@ -16,7 +16,6 @@ from sharp_scout.ledger.day_record import (
     summarize_graded_plays,
     yesterday_et,
 )
-from sharp_scout.nba.score_model.official_pace import load_official_pace
 from sharp_scout.nba import paths as nba_paths
 from sharp_scout.nba.schedule_guard import NBA_SCAN_SCHEDULE_LABEL, next_nba_scan_et
 from sharp_scout.nba.slate_et import (
@@ -816,21 +815,26 @@ def _render_stat_grid(items: list[tuple[str, str]], *, extra_cls: str = "") -> s
 def _nba_yesterday_totals_summary(pub_ledger: dict[str, Any]) -> dict[str, Any]:
     day = yesterday_et()
     rows: list[dict[str, Any]] = []
-    for p in load_official_pace().get("plays") or []:
-        if play_et_calendar_date(p) != day or graded_status(p) not in ("win", "loss", "push"):
-            continue
-        rows.append(
-            {
-                "status": graded_status(p),
-                "pnl_units": p.get("units"),
-                "units": 1.0,
-            }
-        )
+    from sharp_scout.config import nba_pace_of_play_active
+
+    if nba_pace_of_play_active():
+        from sharp_scout.nba.score_model.official_pace import load_official_pace
+
+        for p in load_official_pace().get("plays") or []:
+            if play_et_calendar_date(p) != day or graded_status(p) not in ("win", "loss", "push"):
+                continue
+            rows.append(
+                {
+                    "status": graded_status(p),
+                    "pnl_units": p.get("units"),
+                    "units": 1.0,
+                }
+            )
     rows.extend(
         filter_graded_on_et_day(
             pub_ledger.get("plays") or [],
             day,
-            include=lambda p: (p.get("play_type") or "side") == "side" and p.get("market") == "totals",
+            include=lambda p: (p.get("play_type") or "side") == "side",
         )
     )
     out = summarize_graded_plays(rows)
@@ -1892,13 +1896,7 @@ def render_nba_page_html(
     body_class = "ss-bottom-bar"
     mode_note = "Live shadow scan" if live_scan else "Awaiting live scan"
 
-    from sharp_scout.nba.score_model.official_pace import load_official_pace, summarize_official_pace
-
-    official_pace = load_official_pace()
-    official_summary = summarize_official_pace(official_pace)
     sharp_game_lines = _sharp_scout_record_summary(pub_ledger, game_lines_only=True)
-    pace_summary = _pace_record_summary(score_model_summary)
-    pace_graded = _pace_pick_rows_from_store(score_model_store)
 
     slate_ref = _slate_reference_date()
     picks_slate = upcoming_slate_items(picks)
@@ -1922,89 +1920,6 @@ def render_nba_page_html(
             '<p class="empty nba-leans-empty">No Sharp Scout leans today — near-miss EV spots will show here.</p>'
         )
 
-    score_rows = score_model_rows or []
-    waiting_lines = live_scan and _score_rows_missing_lines(score_rows)
-    pace_plays = (
-        score_modeling_display_plays(
-            score_rows,
-            include_injury_watch=False,
-            kinds=OFFICIAL_PACE_MARKET_KINDS,
-        )
-        if live_scan
-        else []
-    )
-    pace_plays = [p for p in pace_plays if not p.get("injury_watch_only")]
-    pace_spread_shadow = (
-        score_modeling_display_plays(
-            score_rows,
-            include_injury_watch=False,
-            kinds=PACE_SPREAD_SHADOW_KINDS,
-        )
-        if live_scan
-        else []
-    )
-    pace_leans = score_modeling_display_leans(score_rows) if live_scan else []
-
-    pace_plays_html = (
-        _render_score_modeling_cards(pace_plays, reference=slate_ref)
-        if live_scan and pace_plays
-        else ""
-    )
-    pace_spread_shadow_html = (
-        _render_score_modeling_cards(
-            pace_spread_shadow, reference=slate_ref, tracking_only=True
-        )
-        if live_scan and pace_spread_shadow
-        else ""
-    )
-    if live_scan and not pace_plays_html:
-        if waiting_lines:
-            pace_plays_html = _render_waiting_for_lines(next_scan)
-        else:
-            pace_plays_html = _render_score_modeling_empty(live_scan=True)
-    elif not live_scan:
-        pace_plays_html = _render_picks_empty(live_scan=False, updated=updated, next_scan=next_scan)
-
-    pace_leans_html = (
-        _render_score_lean_cards(pace_leans, reference=slate_ref) if live_scan and pace_leans else ""
-    )
-    if live_scan and not pace_leans_html:
-        if waiting_lines:
-            pace_leans_html = _render_waiting_for_lines(next_scan)
-        else:
-            pace_leans_html = (
-                f'<p class="empty nba-leans-empty">No Pace of Play {PACE_WATCH_LIST_LABEL.lower()} '
-                "entries today.</p>"
-            )
-
-    pace_shadow_html = _render_pace_v1_v2_shadow_table(score_rows) if live_scan else ""
-    pace_projections_html = (
-        _render_pace_projections_table(score_rows, reference=slate_ref) if live_scan else ""
-    )
-    pace_totals_shadow_html = ""
-    if live_scan:
-        try:
-            pace_totals_shadow_html = _render_current_season_totals_tracking(
-                score_rows, reference=slate_ref
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("NBA totals shadow page section skipped: %s", exc)
-            pace_totals_shadow_html = (
-                '<p class="empty">Current-season totals tracking temporarily unavailable.</p>'
-            )
-    from sharp_scout.nba.manual_lines import manual_lines_page_note
-
-    pace_lines_note = manual_lines_page_note()
-    pace_history_html = _render_official_pace_history(official_pace)
-    raw_p = pace_summary.get("raw") or {}
-    inj_p = pace_summary.get("injury") or {}
-    pace_auto_secondary = (
-        f"Secondary auto-track: {raw_p.get('record', '—')} "
-        f"({raw_p.get('units', 0):+.2f}u), alt {inj_p.get('record', '—')} "
-        f"({inj_p.get('units', 0):+.2f}u); {len(pace_graded)} pick-rows in store vs "
-        f"{official_summary.get('n_plays', 0)} official card plays."
-    )
-
     sharp_history_html = _render_sharp_graded_history(pub_ledger)
 
     gl_range = sharp_game_lines.get("date_range_et") or "—"
@@ -2013,13 +1928,6 @@ def render_nba_page_html(
         win_pct=sharp_game_lines.get("win_pct") or "—",
         units=float(sharp_game_lines.get("units") or 0),
         label=f"Game lines · {gl_range} ET",
-    )
-    off_range = official_summary.get("date_range_et") or "—"
-    pace_compact_record = _render_compact_record(
-        record=official_summary.get("record") or "—",
-        win_pct=official_summary.get("win_pct") or "—",
-        units=float(official_summary.get("units") or 0),
-        label=f"Official card · {off_range} ET",
     )
     nba_yest = _nba_yesterday_totals_summary(pub_ledger)
     yest_win = (
@@ -2087,27 +1995,11 @@ def render_nba_page_html(
             "Oct 24–26 ET includes pre-window shadow testing; configured paper window starts "
             f"{window.get('start', '—')}."
         ),
-        pace_compact_record=pace_compact_record,
         yesterday_compact_record=yesterday_compact_record,
-        pace_auto_secondary=_esc(pace_auto_secondary),
-        pace_plays_html=pace_plays_html,
-        pace_spread_shadow_html=pace_spread_shadow_html,
-        pace_shadow_html=pace_shadow_html,
-        pace_leans_html=pace_leans_html,
-        pace_projections_html=pace_projections_html,
-        pace_totals_shadow_html=pace_totals_shadow_html,
-        pace_history_html=pace_history_html,
         model_details=model_details,
-        pace_play_threshold=f"{SCORE_MODELING_MIN_EDGE_PT:g}",
-        pace_lean_range=f"{PACE_LEAN_MIN_EDGE_PT:g}–{SCORE_MODELING_MIN_EDGE_PT:g}",
-        pace_watch_list_label=PACE_WATCH_LIST_LABEL,
-        pace_watch_list_note=PACE_WATCH_LIST_NOTE,
-        pace_spread_shadow_section_label=PACE_SPREAD_SHADOW_SECTION_LABEL,
         sharp_leans_section_label=SHARP_LEANS_SECTION_LABEL,
         play_badge_label=PLAY_BADGE_LABEL,
         tracking_only_badge=TRACKING_ONLY_BADGE_LABEL,
-        tracking_only_badge_lower=TRACKING_ONLY_BADGE_LABEL.lower(),
-        pace_lines_note=pace_lines_note,
         bottom_bar=render_bottom_bar(active="plays"),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
     )
@@ -2264,7 +2156,7 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
 
     # Only the display/result ledger is published. Signals, the paper report and the
-    # score-model / injury / Pace files stay in data/ (docs/ is the GitHub Pages root).
+    # Score-model / injury files stay in data/ (docs/ is the GitHub Pages root).
     from sharp_scout.site.build import PUBLIC_PLAY_FIELDS
 
     pub_ledger_out = {
@@ -2461,7 +2353,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NBA tracking (testing) · Sharp Scout Quant</title>
-<meta name="description" content="NBA Sharp Scout and Pace of Play paper tracking — testing only">
+<meta name="description" content="NBA Sharp Scout game-line paper tracking — testing only">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2493,47 +2385,15 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
     <div class="header-logo">{ssq_logo}</div>
     <div class="header-text">
       <h1>NBA tracking board</h1>
-      <p>Pace of Play and Sharp Scout game-line paper picks. {window_note}</p>
+      <p>Sharp Scout game-line paper picks (spreads and totals). {window_note}</p>
     </div>
   </div>
 </header>
 <div class="nba-content">
-  <section class="nba-model-panel pace-panel" aria-labelledby="pace-heading">
-    <h2 class="nba-h2" id="pace-heading">Pace of Play model</h2>
-    <p class="nba-section-note">Official card plays are <strong>totals only</strong>.</p>
-    {pace_lines_note}
-    <div class="nba-rec-row">{pace_compact_record}{yesterday_compact_record}</div>
-    <div class="nba-plays-block">
-      <div class="section-label">Upcoming plays (official card — totals only)</div>
-      <p class="nba-section-note">Qualifying totals show a <strong>{play_badge_label}</strong> badge — the only rows meant as paper plays.</p>
-      {pace_plays_html}
-    </div>
-    <div class="nba-pace-spread-shadow nba-tracking-block" aria-labelledby="pace-spread-shadow-heading">
-      <div class="section-label" id="pace-spread-shadow-heading">{pace_spread_shadow_section_label}</div>
-      <p class="nba-section-note">Spread Pace projections are {tracking_only_badge_lower} — not on the official card or season record.</p>
-      {pace_spread_shadow_html}
-    </div>
-    {pace_shadow_html}
-    <details class="nba-section-details">
-      <summary>{pace_watch_list_label}, projections &amp; history</summary>
-      <p class="nba-section-note">{pace_auto_secondary}</p>
-      <div class="nba-leans-block nba-tracking-block">
-        <div class="section-label">{pace_watch_list_label}</div>
-        <p class="nba-section-note">{pace_watch_list_note}</p>
-        {pace_leans_html}
-      </div>
-      <div class="section-label">Today&apos;s slate projections</div>
-      {pace_projections_html}
-      {pace_totals_shadow_html}
-      <div class="section-label">Results tracking</div>
-      {pace_history_html}
-    </details>
-  </section>
-
   <section class="nba-model-panel sharp-panel" aria-labelledby="sharp-scout-heading">
     <h2 class="nba-h2" id="sharp-scout-heading">Sharp Scout model</h2>
     <p class="nba-section-note">Paper plays on spreads and totals. Paper only — never live bets.</p>
-    {sharp_compact_record}
+    <div class="nba-rec-row">{sharp_compact_record}{yesterday_compact_record}</div>
     <p class="nba-section-note">{sharp_record_note}</p>
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays</div>
@@ -2604,7 +2464,7 @@ NBA_PROPS_PAGE_TEMPLATE = """<!DOCTYPE html>
     <div class="header-logo">{ssq_logo}</div>
     <div class="header-text">
       <h1>NBA player props</h1>
-      <p>Sharp Scout price-edge prop picks (max five per game). Game lines and Pace of Play are on <a href="nba.html">NBA</a>. {window_note}</p>
+      <p>Sharp Scout price-edge prop picks (max five per game). Game lines are on <a href="nba.html">NBA</a>. {window_note}</p>
     </div>
   </div>
 </header>

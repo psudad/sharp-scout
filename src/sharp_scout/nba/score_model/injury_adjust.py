@@ -63,13 +63,22 @@ def injury_impact_multiplier() -> float:
     if scale >= 1.0 or gate <= 0:
         return 1.0
     try:
+        from sharp_scout.config import nba_pace_of_play_active
+        from sharp_scout.nba.ledger import load_nba_ledger
         from sharp_scout.nba.score_model.official_pace import load_official_pace
 
-        graded = [
-            p
-            for p in load_official_pace().get("plays") or []
-            if str(p.get("result") or "") in ("win", "loss", "push")
-        ]
+        if nba_pace_of_play_active():
+            graded = [
+                p
+                for p in load_official_pace().get("plays") or []
+                if str(p.get("result") or "") in ("win", "loss", "push")
+            ]
+        else:
+            graded = [
+                p
+                for p in load_nba_ledger().get("plays") or []
+                if str(p.get("result") or p.get("status") or "") in ("win", "loss", "push", "W", "L", "P")
+            ]
         if len(graded) >= gate:
             return 1.0
     except Exception:  # noqa: BLE001

@@ -60,12 +60,12 @@ def true_close_lines_for_game(g: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def game_missing_true_close_scan(g: dict[str, Any], *, now: datetime) -> bool:
-    """True when tip is soon and we have no scan in the pre-tip close window."""
+    """True when ``now`` is inside this game's (T−pre, T+post] window and no close scan exists."""
     kick = parse_kickoff_utc(g.get("kickoff"))
-    if kick is None or kick <= now:
+    if kick is None:
         return False
-    start, _ = _window_bounds(kick)
-    if now < start:
+    start, end = _window_bounds(kick)
+    if now < start or now > end:
         return False
     snap, _ = select_true_close_scan(g.get("scans") or [], kick)
     return snap is None

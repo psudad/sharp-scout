@@ -9,9 +9,9 @@ name: NBA Shadow (private)
 # Off-the-hour minutes (:07) because GitHub drops / delays top-of-hour schedules the most.
 # Late GitHub starts are allowed until shortly before the first tip-off of the ET day.
 # Backup runs skip when today's primary scan already succeeded (cheap fallback).
-# Catch-up: every 30 min (:22/:52) a cheap check runs a scan only when today's slot has
-# passed, no scan landed today, first tip is still ahead, and fewer than 3 scans were
-# attempted today. GitHub dropped all four :07 slots on Nov 3, 2026.
+# Catch-up / pre-tip close: every 30 min (:22/:52) from ~7:22 AM through ~12:52 AM ET
+# (UTC 12–05:52). Gate runs a scan when catch-up rules or per-game true-close windows
+# allow; pre-tip scans bypass the 3/day cap. GitHub dropped all four :07 slots Nov 3, 2026.
 # Staleness alarm lives in nba-staleness-guard.yml.
 
 on:
@@ -28,8 +28,8 @@ on:
     # Weekend 11:07 AM ET backup — 15:07 UTC (EDT) and 16:07 UTC (EST)
     - cron: "7 15 * * 0,6"
     - cron: "7 16 * * 0,6"
-    # Catch-up every 30 min (gate skips unless no scan has landed today; ~9 credits per real scan)
-    - cron: "22,52 12-23 * * *"
+    # Catch-up + pre-tip true-close windows (gate skips most ticks; ~9 credits per real scan)
+    - cron: "22,52 12-5 * * *"
   workflow_dispatch:
     inputs:
       demo:
@@ -126,13 +126,14 @@ jobs:
             data/paper/nba_pace_of_play_official.csv \
             data/paper/nba_totals_current_season_shadow.json \
             data/paper/nba_totals_current_season_shadow.csv \
+            data/nba_pace_shadow_combo.json \
             docs/nba.html \
             docs/nba_ledger.json
           if git diff --staged --quiet; then
             echo "No shadow changes"
           else
             chmod +x scripts/ci_git_push_retry.sh
-            export ADD_PATHS="data/shadow/ data/paper/nba_score_model.json data/paper/nba_score_model_priors.json data/paper/nba_score_model_state.json data/paper/nba_injury_lag.json data/paper/nba_pace_of_play_official.json data/paper/nba_pace_of_play_official.csv data/paper/nba_totals_current_season_shadow.json data/paper/nba_totals_current_season_shadow.csv docs/nba.html docs/nba_ledger.json"
+            export ADD_PATHS="data/shadow/ data/paper/nba_score_model.json data/paper/nba_score_model_priors.json data/paper/nba_score_model_state.json data/paper/nba_injury_lag.json data/paper/nba_pace_of_play_official.json data/paper/nba_pace_of_play_official.csv data/paper/nba_totals_current_season_shadow.json data/paper/nba_totals_current_season_shadow.csv data/nba_pace_shadow_combo.json docs/nba.html docs/nba_ledger.json"
             ./scripts/ci_git_push_retry.sh "chore(nba): shadow paper-trading scan"
           fi
 

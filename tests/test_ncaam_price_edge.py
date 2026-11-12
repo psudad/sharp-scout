@@ -1,8 +1,11 @@
 """Unit tests for NCAAM price-edge gate math."""
 
+from sharp_scout.config import get_settings
 from sharp_scout.ncaam.price_edge import (
     diagnostic_row,
+    filter_day_picks_for_price_edge,
     price_edge_ev,
+    price_edge_filter_reason,
     price_edge_qualifies,
     split_lock_ev_parts,
 )
@@ -41,6 +44,44 @@ def test_split_matches_review_formulas():
     assert abs(model_part - ((p_true - p_fair) * dec)) < 1e-9
 
 
+def test_config_gate_on_by_default():
+    assert get_settings().ncaam_price_edge_gate_enabled is True
+    assert get_settings().ncaam_price_edge_min == 0.01
+
+
+def test_gate_blocks_below_min_allows_at_threshold():
+    # -110 needs ~52.38% implied; 0.53 fair → small positive edge
+    assert price_edge_qualifies(0.53, -110, min_edge=0.01)
+    assert price_edge_filter_reason(0.53, -110, min_edge=0.01) is None
+    # 0.51 at -110 is below fair → negative price edge
+    assert not price_edge_qualifies(0.51, -110, min_edge=0.01)
+    reason = price_edge_filter_reason(0.51, -110, min_edge=0.01)
+    assert reason is not None and reason.startswith("price_edge_below_min")
+
+
+def test_filter_day_picks_marks_filtered_out():
+    picks = [
+        {"espn_id": "ok", "p_fair": 0.55, "p_true": 0.56, "price": -110, "p_push": 0.0},
+        {"espn_id": "low", "p_fair": 0.51, "p_true": 0.56, "price": -110, "p_push": 0.0},
+        {"espn_id": "nofair", "p_fair": None, "p_true": 0.56, "price": -110, "p_push": 0.0},
+    ]
+    locked, rows = filter_day_picks_for_price_edge(picks, gate_enabled=True, min_edge=0.01)
+    assert [p["espn_id"] for p in locked] == ["ok"]
+    by_id = {r["espn_id"]: r for r in rows}
+    assert by_id["ok"]["filtered_out"] is False and by_id["ok"]["would_post"] is True
+    assert by_id["low"]["filtered_out"] is True and by_id["low"]["filter_reason"].startswith("price_edge_below_min")
+    assert by_id["nofair"]["filtered_out"] is True and by_id["nofair"]["filter_reason"] == "missing_pinnacle_fair"
+
+
+def test_gate_off_posts_all_but_still_diagnoses():
+    picks = [{"espn_id": "low", "p_fair": 0.51, "p_true": 0.56, "price": -110, "p_push": 0.0}]
+    locked, rows = filter_day_picks_for_price_edge(picks, gate_enabled=False, min_edge=0.01)
+    assert len(locked) == 1
+    assert rows[0]["filtered_out"] is False
+    assert rows[0]["would_pass_gate"] is False
+    assert rows[0]["would_post"] is True
+
+
 def test_diagnostic_row_never_invents_fair():
     row = diagnostic_row(
         {
@@ -56,3 +97,5 @@ def test_diagnostic_row_never_invents_fair():
     )
     assert row["price_edge"] is None
     assert row["would_pass_gate"] is False
+    assert row["filtered_out"] is True
+    assert row["filter_reason"] == "missing_pinnacle_fair"

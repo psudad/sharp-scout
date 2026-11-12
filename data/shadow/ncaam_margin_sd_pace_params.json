@@ -1,0 +1,54 @@
+{
+  "model": "linear_pace",
+  "base": 12.0,
+  "ref_poss": 67.0,
+  "train_seasons": [
+    2012,
+    2013,
+    2014,
+    2015,
+    2016
+  ],
+  "holdout_seasons": [
+    2017,
+    2018,
+    2019,
+    2020,
+    2021
+  ],
+  "train_games": 3750,
+  "holdout_games": 5884,
+  "extended_holdout_games": 1943,
+  "fits_train_nll": {
+    "constant": 0.7973,
+    "sqrt_pace": 0.8025,
+    "linear_pace": 0.8071
+  },
+  "fits_base": {
+    "constant": 12.0,
+    "sqrt_pace": 12.0,
+    "linear_pace": 12.0
+  },
+  "holdout_nll_live_sd": 0.8541,
+  "holdout_brier_live_sd": 0.304,
+  "holdout_comparison": {
+    "constant": {
+      "nll": 0.8159,
+      "brier": 0.2943,
+      "delta_nll_vs_live": -0.0382
+    },
+    "sqrt_pace": {
+      "nll": 0.8135,
+      "brier": 0.2936,
+      "delta_nll_vs_live": -0.0406
+    },
+    "linear_pace": {
+      "nll": 0.8114,
+      "brier": 0.293,
+      "delta_nll_vs_live": -0.0427
+    }
+  },
+  "winner": "linear_pace",
+  "live_margin_sd": 10.5,
+  "base_bounds": [9.0, 12.0]
+}

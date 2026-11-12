@@ -20,6 +20,7 @@ from sharp_scout.ncaam.rules import (
     price_qualifies,
 )
 from sharp_scout.phase3.market import anchor_probability, fair_probs_from_two_way, shift_prob_to_line
+from sharp_scout.ncaam.margin_sd_shadow import enrich_candidate_shadow
 from sharp_scout.utils.odds import american_to_implied_prob, win_prob_to_conditional
 
 logger = logging.getLogger(__name__)
@@ -188,12 +189,15 @@ def evaluate_game(
         neutral_site=bool(game.get("neutral_site")),
     )
     margins = simulate_margin(proj)
+    expected_poss = float(getattr(proj, "poss", 0.0) or 0.0)
     pin_home_line = None
     pin = (event.get("bookmakers") or {}).get("pinnacle") or {}
+    pin_spread_prices: dict[str, float] = {}
     for o in (pin.get("markets") or {}).get("spreads") or []:
-        if o.get("side") == "home" and o.get("point") is not None:
+        if o.get("side") == "home" and o.get("point") is not None and pin_home_line is None:
             pin_home_line = float(o["point"])
-            break
+        if o.get("side") in ("home", "away") and o.get("price") is not None:
+            pin_spread_prices[str(o.get("side"))] = float(o.get("price"))
     if pin_home_line is None:
         return []
     if not model_gap_qualifies(proj.margin_model, pin_home_line):
@@ -201,6 +205,12 @@ def evaluate_game(
 
     k = anchor_k_spread(now)
     cands: list[dict[str, Any]] = []
+    p_home_fair_pin: float | None = None
+    if set(pin_spread_prices) == {"home", "away"}:
+        p_home_fair_pin, _ = fair_probs_from_two_way(
+            pin_spread_prices["home"], pin_spread_prices["away"]
+        )
+
     spread_out = _outcomes_by_side(event, "spreads")
     for side in ("home", "away"):
         for offer in spread_out[side]:
@@ -218,29 +228,39 @@ def evaluate_game(
             if not ev_qualifies(ev):
                 continue
             open_key = f"{game.get('espn_id')}:{side}"
-            cands.append(
-                {
-                    "event_id": event.get("event_id") or game.get("odds_event_id"),
-                    "espn_id": game.get("espn_id"),
-                    "market": "spreads",
-                    "side": side,
-                    "line": line,
-                    "price": price,
-                    "book": offer["book"],
-                    "ev": ev,
-                    "p_true": round(p_true, 4),
-                    "p_model": p_mod,
-                    "p_fair": p_fair,
-                    "p_push": p_push,
-                    "model_margin": proj.margin_model,
-                    "hook_score": hook_tiebreak_score(side, line),
-                    "beat_open": _beat_open(side, line, (open_lines or {}).get(open_key)),
-                    "selection": game[f"{side}_team"],
-                    "home_team": game["home_team"],
-                    "away_team": game["away_team"],
-                    "tip": game.get("commence_time"),
-                }
+            row = {
+                "event_id": event.get("event_id") or game.get("odds_event_id"),
+                "espn_id": game.get("espn_id"),
+                "market": "spreads",
+                "side": side,
+                "line": line,
+                "price": price,
+                "book": offer["book"],
+                "ev": ev,
+                "p_true": round(p_true, 4),
+                "p_model": p_mod,
+                "p_fair": p_fair,
+                "p_push": p_push,
+                "model_margin": proj.margin_model,
+                "projected_poss": round(expected_poss, 3),
+                "hook_score": hook_tiebreak_score(side, line),
+                "beat_open": _beat_open(side, line, (open_lines or {}).get(open_key)),
+                "selection": game[f"{side}_team"],
+                "home_team": game["home_team"],
+                "away_team": game["away_team"],
+                "tip": game.get("commence_time"),
+            }
+            enrich_candidate_shadow(
+                row,
+                expected_poss=expected_poss,
+                p_mod_live=p_mod,
+                p_push=p_push,
+                p_home_fair_pin=p_home_fair_pin,
+                home_spread_pin=pin_home_line,
+                k=k,
+                now=now,
             )
+            cands.append(row)
 
     # ML only if spread did not already qualify with higher EV — handled in pick_best per game later.
     h2h_out = _outcomes_by_side(event, "h2h")
@@ -258,29 +278,39 @@ def evaluate_game(
             ev = candidate_ev(p_cond, price, p_push)
             if not ev_qualifies(ev):
                 continue
-            cands.append(
-                {
-                    "event_id": event.get("event_id"),
-                    "espn_id": game.get("espn_id"),
-                    "market": "h2h",
-                    "side": side,
-                    "line": None,
-                    "price": price,
-                    "book": offer["book"],
-                    "ev": ev,
-                    "p_true": round(p_true, 4),
-                    "p_model": p_mod,
-                    "p_fair": p_fair,
-                    "p_push": p_push,
-                    "model_margin": proj.margin_model,
-                    "hook_score": 0,
-                    "beat_open": False,
-                    "selection": game[f"{side}_team"],
-                    "home_team": game["home_team"],
-                    "away_team": game["away_team"],
-                    "tip": game.get("commence_time"),
-                }
+            row = {
+                "event_id": event.get("event_id"),
+                "espn_id": game.get("espn_id"),
+                "market": "h2h",
+                "side": side,
+                "line": None,
+                "price": price,
+                "book": offer["book"],
+                "ev": ev,
+                "p_true": round(p_true, 4),
+                "p_model": p_mod,
+                "p_fair": p_fair,
+                "p_push": p_push,
+                "model_margin": proj.margin_model,
+                "projected_poss": round(expected_poss, 3),
+                "hook_score": 0,
+                "beat_open": False,
+                "selection": game[f"{side}_team"],
+                "home_team": game["home_team"],
+                "away_team": game["away_team"],
+                "tip": game.get("commence_time"),
+            }
+            enrich_candidate_shadow(
+                row,
+                expected_poss=expected_poss,
+                p_mod_live=p_mod,
+                p_push=p_push,
+                p_home_fair_pin=p_home_fair_pin,
+                home_spread_pin=pin_home_line,
+                k=k,
+                now=now,
             )
+            cands.append(row)
     return cands
 
 

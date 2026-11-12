@@ -34,6 +34,7 @@ from sharp_scout.ncaam.lock import (
     record_missed,
 )
 from sharp_scout.ncaam.ratings import ensure_daily_ratings, load_ratings
+from sharp_scout.ncaam.margin_sd_shadow import record_shadow_rows
 from sharp_scout.ncaam.rules import apply_daily_cap
 from sharp_scout.ncaam.settle import settle_ncaam_ledger
 from sharp_scout.ncaam.slate import build_slate, load_demo_slate, save_slate
@@ -266,6 +267,9 @@ def run_pass(
         for c in evaluate_game(game, ev, ratings, now=now):
             c["et_day"] = tip.astimezone(ET).date().isoformat()
             candidates.append(c)
+
+    if candidates:
+        record_shadow_rows(candidates, generated_at=now.isoformat())
 
     best = pick_best_per_game(candidates)
     et_today = now.astimezone(ET).date().isoformat()

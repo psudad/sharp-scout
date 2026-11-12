@@ -51,10 +51,11 @@ def simulate_margin(
     *,
     n: int | None = None,
     rng: np.random.Generator | None = None,
+    sd: float | None = None,
 ) -> np.ndarray:
     n = n or RULES.mc_sims
     rng = rng or np.random.default_rng()
-    sd = RULES.margin_sd
+    sd = RULES.margin_sd if sd is None else float(sd)
     # Bivariate normal on margin with mean = model margin.
     noise = rng.normal(0.0, sd, size=n)
     return proj.margin_model + noise

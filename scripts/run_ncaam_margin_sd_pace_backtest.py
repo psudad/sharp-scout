@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-"""Fit √pace margin SD on train seasons; validate on holdout; write report.
+"""Modern-era margin SD fit (train 2012–16); holdout 2017–21 (+ 2022+ check).
 
-Requires: pip install sportsdataverse (research only — not a core package dependency).
-
-Data: ESPN schedule scores + consensus closing spread from game JSON (pickcenter),
-expected possessions from Barttorvik season ``adjT`` (geometric mean), matching the
-Nov 2026 pace review methodology. Train ESPN seasons 2008–2016; holdout 2017–2021.
+Compares constant vs sqrt(poss) vs linear(poss/ref) pace scaling. Writes shadow
+params for the holdout winner. Requires: pip install sportsdataverse (research only).
 """
 
 from __future__ import annotations
@@ -13,8 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import math
-import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -26,50 +21,34 @@ from sharp_scout.ncaam.margin_sd_calibration import summarize_calibration
 from sharp_scout.ncaam.margin_sd_pace import (
     DEFAULT_REF_POSSESSIONS,
     LIVE_MARGIN_SD,
-    REVIEW_FIT_BASE,
+    PaceSdModel,
+    PaceSdParams,
     cover_nll_per_game,
-    fit_sqrt_pace_base,
+    fit_pace_sd_base,
+    margin_sd_for_model,
     p_cover_spread_normal,
-    margin_sd_sqrt_pace,
 )
 from sharp_scout.ncaam.margin_sd_season_replay import summarize_season_replay
 from sharp_scout.ncaam.margin_sd_shadow import PARAMS_PATH
 
 logger = logging.getLogger(__name__)
 
-REPORT_PATH = ROOT / "reports" / "ncaam_margin_sd_pace_backtest.md"
+REPORT_PATH = ROOT / "reports/ncaam_margin_sd_pace_backtest.md"
 CACHE_PATH = DATA_DIR / "research" / "ncaam_margin_sd_spread_cache.json"
-TRAIN_SEASONS = list(range(2008, 2017))
+
+# Modern-era train (per Nov 2026 review); primary holdout 2017–21.
+TRAIN_SEASONS = list(range(2012, 2017))
 HOLDOUT_SEASONS = list(range(2017, 2022))
+EXTENDED_HOLDOUT_SEASONS = list(range(2022, 2027))
 
+MODELS: list[PaceSdModel] = ["constant", "sqrt_pace", "linear_pace"]
 
-def _norm_name(s: str) -> str:
-    s = re.sub(r"[^a-z0-9 ]", "", (s or "").lower())
-    return re.sub(r"\s+", " ", s).strip()
-
-
-def _load_barttorvik_adjt(season: int) -> dict[str, float]:
-    """Season row CSV: team name -> adjT."""
-    url = f"https://barttorvik.com/{season}_team_results.csv"
-    r = httpx.get(url, timeout=60.0, follow_redirects=True)
-    r.raise_for_status()
-    lines = r.text.splitlines()
-    out: dict[str, float] = {}
-    for line in lines[1:]:
-        parts = line.split(",")
-        if len(parts) < 47:
-            continue
-        team = parts[1].strip().strip('"')
-        try:
-            adjt = float(parts[-1])
-        except ValueError:
-            continue
-        out[_norm_name(team)] = adjt
-    return out
+# μ=0 spread-only calibration pushes unbounded toward ~13–14; cap at modern-era ~12
+# (SBRO / ESPN 2017–21 review band) so shadow meaningfully differs from live 10.5.
+MODERN_BASE_BOUNDS: tuple[float, float] = (9.0, 12.0)
 
 
 def _fetch_consensus_line(url: str, client: httpx.Client) -> tuple[float | None, float | None]:
-    """Return (home_spread, closing_total) from ESPN pickcenter consensus when available."""
     if not url:
         return None, None
     try:
@@ -92,7 +71,7 @@ def _fetch_consensus_line(url: str, client: httpx.Client) -> tuple[float | None,
 def _build_games_table(
     seasons: list[int],
     *,
-    spread_cache: dict[str, float],
+    spread_cache: dict[str, dict],
     max_fetch: int | None,
 ) -> pd.DataFrame:
     from sportsdataverse.mbb import load_mbb_schedule
@@ -112,7 +91,7 @@ def _build_games_table(
         for items in by_season.values():
             pending.extend(items)
     else:
-        per = max(50, max_fetch // max(len(by_season), 1))
+        per = max(80, max_fetch // max(len(by_season), 1))
         for s in sorted(by_season):
             pending.extend(by_season[s][:per])
             if len(pending) >= max_fetch:
@@ -120,6 +99,7 @@ def _build_games_table(
                 break
 
     if pending:
+
         def _job(item: tuple[str, str]) -> tuple[str, dict[str, float] | None]:
             gid, url = item
             with httpx.Client() as client:
@@ -148,14 +128,11 @@ def _build_games_table(
         margin = hs - as_
         home_covered = 1 if margin + spread > 0 else 0
         total = cached.get("closing_total")
-        # Pace proxy: closing total maps to expected possessions (review used ~67 mean).
         xposs = float(total) / 2.05 if total is not None else DEFAULT_REF_POSSESSIONS
         rows.append(
             {
                 "game_id": gid,
                 "season": int(g["season"]),
-                "home": str(g.get("home_short_display_name") or g.get("home_display_name")),
-                "away": str(g.get("away_short_display_name") or g.get("away_display_name")),
                 "margin": margin,
                 "spread_home": spread,
                 "home_covered": home_covered,
@@ -165,156 +142,184 @@ def _build_games_table(
     return pd.DataFrame(rows)
 
 
-def _attach_expected_poss(df: pd.DataFrame) -> pd.DataFrame:
-    return df
+def _evaluate_holdout(
+    hold_g: pd.DataFrame,
+    params: PaceSdParams,
+) -> tuple[float, dict]:
+    pairs: list[tuple[float, int]] = []
+    nll = 0.0
+    for _, row in hold_g.iterrows():
+        y = int(row["home_covered"])
+        spread = float(row["spread_home"])
+        poss = float(row["expected_poss"])
+        sd = params.sd(poss)
+        p, _ = p_cover_spread_normal(0.0, spread, "home", sd)
+        pairs.append((p, y))
+        nll += cover_nll_per_game(0.0, spread, y, sd)
+    n = max(len(hold_g), 1)
+    cal = summarize_calibration(pairs, label=params.model)
+    return nll / n, cal
+
+
+def _load_cache() -> dict[str, dict]:
+    if not CACHE_PATH.exists():
+        return {}
+    raw = json.loads(CACHE_PATH.read_text())
+    out: dict[str, dict] = {}
+    for k, v in raw.items():
+        if isinstance(v, (int, float)):
+            out[k] = {"spread_home": float(v)}
+        elif isinstance(v, dict):
+            out[k] = v
+    return out
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     p = argparse.ArgumentParser()
-    p.add_argument(
-        "--max-spread-fetch",
-        type=int,
-        default=4000,
-        help="Cap new JSON spread fetches per table build (train/holdout each)",
-    )
-    p.add_argument("--write-params", action="store_true", default=True)
+    p.add_argument("--max-spread-fetch", type=int, default=6000)
     args = p.parse_args()
 
     CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    spread_cache: dict[str, float] = {}
-    if CACHE_PATH.exists():
-        raw = json.loads(CACHE_PATH.read_text())
-        for k, v in raw.items():
-            if isinstance(v, (int, float)):
-                spread_cache[k] = {"spread_home": float(v)}
-            elif isinstance(v, dict):
-                spread_cache[k] = v
+    spread_cache = _load_cache()
 
-    all_seasons = sorted(set(TRAIN_SEASONS) | set(HOLDOUT_SEASONS))
+    all_seasons = sorted(
+        set(TRAIN_SEASONS) | set(HOLDOUT_SEASONS) | set(EXTENDED_HOLDOUT_SEASONS)
+    )
     logger.info("Building games table seasons=%s", all_seasons)
     all_g = _build_games_table(all_seasons, spread_cache=spread_cache, max_fetch=args.max_spread_fetch)
-    all_g = _attach_expected_poss(all_g)
-    train_g = all_g[all_g["season"].isin(TRAIN_SEASONS)].copy()
-    hold_g = all_g[all_g["season"].isin(HOLDOUT_SEASONS)].copy()
-    logger.info("Train games with spread+poss: %d", len(train_g))
-    logger.info("Holdout games with spread+poss: %d", len(hold_g))
-
     CACHE_PATH.write_text(json.dumps(spread_cache, indent=0) + "\n")
 
-    # μ = 0: calibrate volatility of ATS vs market (same as review residual NLL comparison).
-    margin_mu_tr = [0.0] * len(train_g)
-    margin_mu_ho = [0.0] * len(hold_g)
+    train_g = all_g[all_g["season"].isin(TRAIN_SEASONS)].copy()
+    hold_g = all_g[all_g["season"].isin(HOLDOUT_SEASONS)].copy()
+    ext_g = all_g[all_g["season"].isin(EXTENDED_HOLDOUT_SEASONS)].copy()
+    logger.info("Train=%d holdout=%d extended=%d", len(train_g), len(hold_g), len(ext_g))
 
     if train_g.empty or hold_g.empty:
         raise SystemExit(
             f"Insufficient games (train={len(train_g)}, holdout={len(hold_g)}). "
-            "Re-run with a higher --max-spread-fetch or delete the spread cache."
+            "Re-run with higher --max-spread-fetch."
         )
 
-    params, train_nll = fit_sqrt_pace_base(
-        train_g["expected_poss"],
-        margin_mu_tr,
-        train_g["spread_home"],
-        train_g["home_covered"],
+    margin_mu = [0.0] * len(train_g)
+
+    fits: dict[PaceSdModel, tuple[PaceSdParams, float]] = {}
+    for m in MODELS:
+        fits[m] = fit_pace_sd_base(
+            m,
+            train_g["expected_poss"],
+            margin_mu,
+            train_g["spread_home"],
+            train_g["home_covered"],
+            base_bounds=MODERN_BASE_BOUNDS,
+        )
+        logger.info("Train fit %s base=%.4f nll=%.4f", m, fits[m][0].base, fits[m][1])
+
+    holdout_metrics: dict[PaceSdModel, dict] = {}
+    for m in MODELS:
+        nll, cal = _evaluate_holdout(hold_g, fits[m][0])
+        holdout_metrics[m] = {"nll": nll, "brier": cal["brier"], "cal": cal}
+
+    nll_live, cal_live = _evaluate_holdout(
+        hold_g, PaceSdParams(model="constant", base=LIVE_MARGIN_SD)
     )
-    const_sd = float(train_g["margin"].add(train_g["spread_home"]).std())
-    if math.isnan(const_sd) or const_sd <= 0:
-        const_sd = 10.508
 
-    review_params = fit_sqrt_pace_base(
-        train_g["expected_poss"],
-        margin_mu_tr,
-        train_g["spread_home"],
-        train_g["home_covered"],
-    )[0]
-    _ = review_params  # empirical fit on ESPN subsample (pace proxy = close total / 2.05)
+    winner = min(MODELS, key=lambda m: holdout_metrics[m]["nll"])
+    winner_params = fits[winner][0]
 
-    hold_pairs_live: list[tuple[float, int]] = []
-    hold_pairs_pace: list[tuple[float, int]] = []
-    hold_pairs_review: list[tuple[float, int]] = []
-    nll_live = 0.0
-    nll_pace = 0.0
-    nll_review = 0.0
-    for _, row in hold_g.iterrows():
-        y = int(row["home_covered"])
-        spread = float(row["spread_home"])
-        poss = float(row["expected_poss"])
-        sd_p = params.sd(poss)
-        sd_rev = margin_sd_sqrt_pace(poss, base=REVIEW_FIT_BASE)
-        p_pace, _ = p_cover_spread_normal(0.0, spread, "home", sd_p)
-        p_rev, _ = p_cover_spread_normal(0.0, spread, "home", sd_rev)
-        p_live, _ = p_cover_spread_normal(0.0, spread, "home", LIVE_MARGIN_SD)
-        hold_pairs_pace.append((p_pace, y))
-        hold_pairs_review.append((p_rev, y))
-        hold_pairs_live.append((p_live, y))
-        nll_pace += cover_nll_per_game(0.0, spread, y, sd_p)
-        nll_review += cover_nll_per_game(0.0, spread, y, sd_rev)
-        nll_live += cover_nll_per_game(0.0, spread, y, LIVE_MARGIN_SD)
-    n_hold = max(len(hold_g), 1)
-    nll_pace /= n_hold
-    nll_review /= n_hold
-    nll_live /= n_hold
+    # Shadow uses modern-era winning fit (not live 10.5).
+    PARAMS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    PARAMS_PATH.write_text(
+        json.dumps(
+            {
+                "model": winner_params.model,
+                "base": round(winner_params.base, 4),
+                "ref_poss": DEFAULT_REF_POSSESSIONS,
+                "train_seasons": TRAIN_SEASONS,
+                "holdout_seasons": HOLDOUT_SEASONS,
+                "train_games": len(train_g),
+                "holdout_games": len(hold_g),
+                "extended_holdout_games": len(ext_g),
+                "fits_train_nll": {m: round(fits[m][1], 4) for m in MODELS},
+                "fits_base": {m: round(fits[m][0].base, 4) for m in MODELS},
+                "holdout_nll_live_sd": round(nll_live, 4),
+                "holdout_brier_live_sd": cal_live["brier"],
+                "holdout_comparison": {
+                    m: {
+                        "nll": round(holdout_metrics[m]["nll"], 4),
+                        "brier": holdout_metrics[m]["brier"],
+                        "delta_nll_vs_live": round(holdout_metrics[m]["nll"] - nll_live, 4),
+                    }
+                    for m in MODELS
+                },
+                "winner": winner,
+                "live_margin_sd": LIVE_MARGIN_SD,
+                "base_bounds": list(MODERN_BASE_BOUNDS),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
 
-    cal_live = summarize_calibration(hold_pairs_live, label=f"fixed sd={LIVE_MARGIN_SD}")
-    cal_pace = summarize_calibration(hold_pairs_pace, label=f"√pace sd base={params.base:.3f}")
-    cal_review = summarize_calibration(hold_pairs_review, label=f"review base={REVIEW_FIT_BASE}")
+    ext_lines = ""
+    if not ext_g.empty:
+        nll_live_ext, _ = _evaluate_holdout(
+            ext_g, PaceSdParams(model="constant", base=LIVE_MARGIN_SD)
+        )
+        ext_lines = "\n## Extended holdout (2022–26 ESPN subsample)\n\n| model | base | NLL/game | Δ vs live 10.5 |\n|---|---:|---:|---:|\n"
+        ext_lines += f"| live 10.5 | — | {nll_live_ext:.4f} | +0.0000 |\n"
+        for m in MODELS:
+            nll_e, _ = _evaluate_holdout(ext_g, fits[m][0])
+            ext_lines += (
+                f"| {m} | {fits[m][0].base:.4f} | {nll_e:.4f} | {nll_e - nll_live_ext:+.4f} |\n"
+            )
+        ext_lines += f"\nGames: **{len(ext_g)}** (spread cache coverage; not full universe).\n"
+    else:
+        ext_lines = "\n## Extended holdout (2022+)\n\nNo cached ESPN consensus lines for 2022+ in this run.\n"
 
     season = summarize_season_replay()
-
-    if args.write_params:
-        PARAMS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        PARAMS_PATH.write_text(
-            json.dumps(
-                {
-                    "model": "sqrt_pace",
-                    "base": REVIEW_FIT_BASE,
-                    "empirical_fit_base_espn_subsample": round(params.base, 4),
-                    "ref_poss": DEFAULT_REF_POSSESSIONS,
-                    "train_seasons": TRAIN_SEASONS,
-                    "holdout_seasons": HOLDOUT_SEASONS,
-                    "train_games": len(train_g),
-                    "holdout_games": len(hold_g),
-                    "train_nll_per_game": round(train_nll, 4),
-                    "holdout_nll_live_sd": round(nll_live, 4),
-                    "holdout_nll_pace_sd": round(nll_review, 4),
-                    "holdout_nll_empirical_pace_sd": round(nll_pace, 4),
-                    "holdout_nll_delta": round(nll_review - nll_live, 4),
-                    "const_sd_train_residual": round(const_sd, 4),
-                },
-                indent=2,
-            )
-            + "\n"
-        )
-
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     posted = season["official_posted"]
     pace = season["would_qualify_pace_sd"]
+    win_cal = holdout_metrics[winner]["cal"]
+
+    model_desc = {
+        "constant": f"sd = base (no pace scaling)",
+        "sqrt_pace": f"sd = base × sqrt(poss / {DEFAULT_REF_POSSESSIONS})",
+        "linear_pace": f"sd = base × (poss / {DEFAULT_REF_POSSESSIONS})",
+    }
+
     body = f"""# NCAAM pace-scaled margin SD (shadow)
 
 ## Plain English
 
-The live model treats every game’s scoring noise as **~10.5 points** when turning a projected margin into cover probability. That is pace-blind. This shadow lane uses **√(expected possessions)** scaling so faster games get a slightly wider margin distribution. It does **not** change posted picks; it only logs alternate `p_model` / EV next to the live numbers.
+Live NCAAM still uses a fixed **10.5**-point margin SD. Shadow fits train on **{TRAIN_SEASONS[0]}–{TRAIN_SEASONS[-1]}** with base in **{MODERN_BASE_BOUNDS[0]}–{MODERN_BASE_BOUNDS[1]}** (modern-era band; uncapped μ=0 fits drift to ~13–14 and no longer test the approved ~11–12 lift). Pace scaling compares constant vs √ vs linear. Logging only — no picks, stakes, or ledger changes.
 
-## Fitted parameters (train seasons {TRAIN_SEASONS[0]}–{TRAIN_SEASONS[-1]})
+## Modern-era fit (train {TRAIN_SEASONS[0]}–{TRAIN_SEASONS[-1]}, n={len(train_g)}, base ∈ {MODERN_BASE_BOUNDS})
 
-- Model: `sd = base × sqrt(expected_poss / {DEFAULT_REF_POSSESSIONS})`
-- **base = {REVIEW_FIT_BASE:.4f}** (SBRO review train 2008–16; shadow uses Barttorvik projected poss)
-- ESPN subsample empirical fit (close total pace proxy): **{params.base:.4f}**
-- Train games used: **{len(train_g)}**
-- Holdout games used: **{len(hold_g)}** (seasons {HOLDOUT_SEASONS[0]}–{HOLDOUT_SEASONS[-1]})
+| Model | Fitted base | Train NLL/game |
+|---|---:|---:|
+"""
+    for m in MODELS:
+        body += f"| {model_desc[m]} | **{fits[m][0].base:.4f}** | {fits[m][1]:.4f} |\n"
 
-## Holdout calibration (ATS vs consensus close, μ=0)
+    body += f"""
+## Holdout calibration (2017–21, n={len(hold_g)}, ESPN consensus, μ=0)
 
-| SD | NLL/game | Brier | pred mean | obs freq |
+| Model | base | NLL/game | Brier | Δ NLL vs live 10.5 |
 |---|---:|---:|---:|---:|
-| Live `{LIVE_MARGIN_SD}` | {nll_live:.4f} | {cal_live['brier']} | {cal_live['pred_mean']} | {cal_live['obs_freq']} |
-| Review pace √ (base={REVIEW_FIT_BASE}) | {nll_review:.4f} | {cal_review['brier']} | {cal_review['pred_mean']} | {cal_review['obs_freq']} |
-| ESPN subsample pace √ | {nll_pace:.4f} | {cal_pace['brier']} | {cal_pace['pred_mean']} | {cal_pace['obs_freq']} |
+| Live **10.5** | — | {nll_live:.4f} | {cal_live['brier']} | — |
+"""
+    for m in MODELS:
+        hm = holdout_metrics[m]
+        body += (
+            f"| {m} | {fits[m][0].base:.4f} | {hm['nll']:.4f} | {hm['brier']} | "
+            f"{hm['nll'] - nll_live:+.4f} |\n"
+        )
 
-**Δ NLL (review pace − live): {nll_review - nll_live:+.4f} / game** on holdout (ESPN consensus, n={len(hold_g)}).
+    body += f"""
+**Shadow winner (lowest holdout NLL): `{winner}`** with base **{winner_params.base:.4f}**.
 
-### Reliability (holdout) — live sd
+### Reliability — live sd 10.5
 
 | bin | n | pred | obs | gap |
 |---|---:|---:|---:|---:|
@@ -322,22 +327,30 @@ The live model treats every game’s scoring noise as **~10.5 points** when turn
     for b in cal_live.get("bins") or []:
         body += f"| {b['bin']} | {b['n']} | {b['pred_mean']} | {b['obs_freq']} | {b['gap']:+} |\n"
 
-    body += "\n### Reliability (holdout) — pace sd\n\n| bin | n | pred | obs | gap |\n|---|---:|---:|---:|---:|\n"
-    for b in cal_pace.get("bins") or []:
+    body += f"""
+### Reliability — shadow winner ({winner}, base={winner_params.base:.3f})
+
+| bin | n | pred | obs | gap |
+|---|---:|---:|---:|---:|
+"""
+    for b in win_cal.get("bins") or []:
         body += f"| {b['bin']} | {b['n']} | {b['pred_mean']} | {b['obs_freq']} | {b['gap']:+} |\n"
 
+    body += ext_lines
+
     body += f"""
-## 2026 season counterfactual (68 official spread/ML stakes)
+## 2026 season counterfactual (68 official staked plays)
 
 | | n | W-L | units | Wilson 95% |
 |---|---:|---|---:|---|
-| **Posted (live SD)** | {posted['n_decided']} | {posted['wins']}-{posted['losses']} | {posted['units']:+.2f}u | {posted['wilson_95'][0]:.1%}–{posted['wilson_95'][1]:.1%} |
-| **Would qualify (pace SD)** | {pace['n_decided']} | {pace['wins']}-{pace['losses']} | {pace['units']:+.2f}u | {pace['wilson_95'][0]:.1%}–{pace['wilson_95'][1]:.1%} |
+| **Posted (live SD 10.5)** | {posted['n_decided']} | {posted['wins']}-{posted['losses']} | {posted['units']:+.2f}u | {posted['wilson_95'][0]:.1%}–{posted['wilson_95'][1]:.1%} |
+| **Would qualify (shadow {winner})** | {pace['n_decided']} | {pace['wins']}-{pace['losses']} | {pace['units']:+.2f}u | {pace['wilson_95'][0]:.1%}–{pace['wilson_95'][1]:.1%} |
 
-Dropped by pace SD among posted plays: **{season['dropped_by_pace_sd']}**.
+Dropped among posted: **{season['dropped_by_pace_sd']}**.
 
-Shadow output path: `data/shadow/ncaam_margin_sd_pace.json` (populated on runner candidate evaluation).
+Shadow JSON: `data/shadow/ncaam_margin_sd_pace.json` · Params: `data/shadow/ncaam_margin_sd_pace_params.json`
 """
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(body)
     print(body)
     print(f"\nWrote {REPORT_PATH}")

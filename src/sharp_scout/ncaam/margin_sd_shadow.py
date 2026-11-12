@@ -9,7 +9,11 @@ from pathlib import Path
 from typing import Any
 
 from sharp_scout.config import DATA_DIR
-from sharp_scout.ncaam.margin_sd_pace import DEFAULT_PACE_SHADOW, LIVE_MARGIN_SD, margin_sd_sqrt_pace
+from sharp_scout.ncaam.margin_sd_pace import (
+    DEFAULT_PACE_SHADOW,
+    LIVE_MARGIN_SD,
+    margin_sd_for_model,
+)
 from sharp_scout.ncaam.rules import RULES, candidate_ev
 from sharp_scout.phase3.market import anchor_probability, shift_prob_to_line
 from sharp_scout.utils.odds import win_prob_to_conditional
@@ -37,7 +41,9 @@ def load_params() -> dict[str, Any]:
 
 def pace_shadow_sd(expected_poss: float) -> float:
     p = load_params()
-    return margin_sd_sqrt_pace(
+    model = str(p.get("model", DEFAULT_PACE_SHADOW.model))
+    return margin_sd_for_model(
+        model,
         expected_poss,
         base=float(p.get("base", DEFAULT_PACE_SHADOW.base)),
         ref_poss=float(p.get("ref_poss", DEFAULT_PACE_SHADOW.ref_poss)),

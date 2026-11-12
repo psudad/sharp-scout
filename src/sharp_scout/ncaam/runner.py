@@ -34,7 +34,7 @@ from sharp_scout.ncaam.lock import (
     record_missed,
 )
 from sharp_scout.ncaam.ratings import ensure_daily_ratings, load_ratings
-from sharp_scout.ncaam.price_edge import diagnostic_row
+from sharp_scout.ncaam.price_edge import filter_day_picks_for_price_edge
 from sharp_scout.ncaam.price_edge_diagnostics import record_price_edge_batch
 from sharp_scout.ncaam.rules import apply_daily_cap
 from sharp_scout.ncaam.settle import settle_ncaam_ledger
@@ -282,19 +282,20 @@ def run_pass(
     settings = get_settings()
     min_edge = float(settings.ncaam_price_edge_min)
     gate_on = bool(settings.ncaam_price_edge_gate_enabled)
-    diag_rows = [diagnostic_row(p, min_edge=min_edge) for p in day_picks]
+    before_gate_n = len(day_picks)
+    day_picks, diag_rows = filter_day_picks_for_price_edge(
+        day_picks, gate_enabled=gate_on, min_edge=min_edge
+    )
     if diag_rows:
         record_price_edge_batch(diag_rows, gate_enabled=gate_on, min_edge=min_edge)
-    if gate_on:
-        allowed = {str(r.get("espn_id")) for r in diag_rows if r.get("would_pass_gate")}
-        skipped = [p for p in day_picks if str(p.get("espn_id")) not in allowed]
-        day_picks = [p for p in day_picks if str(p.get("espn_id")) in allowed]
-        if skipped:
-            logger.info(
-                "ncaam price-edge gate skipped %s pick(s) below %.1f%% vs Pinnacle fair",
-                len(skipped),
-                100 * min_edge,
-            )
+    filtered_n = before_gate_n - len(day_picks)
+    if gate_on and filtered_n:
+        logger.info(
+            "ncaam price-edge gate filtered %s/%s pick(s) below %.1f%% vs Pinnacle fair",
+            filtered_n,
+            before_gate_n,
+            100 * min_edge,
+        )
 
     for play in day_picks:
         tip = play.get("tip")

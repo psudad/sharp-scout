@@ -271,8 +271,9 @@ class Settings(BaseSettings):
     nba_paper_start: str = "2026-11-02"
     nba_paper_end: str = "2026-12-13"
     # NCAAM board — require ≥min EV vs Pinnacle no-vig alone before model tilt (Jason Nov 2026 review).
-    # Off by default: live picks unchanged; shadow diagnostics in data/shadow/ncaam_price_edge_diagnostics.json.
-    ncaam_price_edge_gate_enabled: bool = False
+    # On by default; set NCAAM_PRICE_EDGE_GATE_ENABLED=false to post all qualifying EV≥3% picks again.
+    # Filtered candidates stay in data/shadow/ncaam_price_edge_diagnostics.json with filtered_out=true.
+    ncaam_price_edge_gate_enabled: bool = True
     ncaam_price_edge_min: float = 0.01
 
     # Retired Nov 2026: Pace of Play official card (archives remain; no generation or publish).

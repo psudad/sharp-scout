@@ -11,8 +11,14 @@ from sharp_scout.utils.kickoff import parse_kickoff_utc
 
 def _window_bounds(kickoff: datetime) -> tuple[datetime, datetime]:
     settings = get_settings()
-    pre = int(getattr(settings, "nba_pace_pre_tip_snapshot_minutes", 15))
-    post = int(getattr(settings, "nba_pace_true_close_post_minutes", 5))
+    pre = int(
+        getattr(settings, "nba_pre_tip_snapshot_minutes", None)
+        or getattr(settings, "nba_pace_pre_tip_snapshot_minutes", 15)
+    )
+    post = int(
+        getattr(settings, "nba_true_close_post_minutes", None)
+        or getattr(settings, "nba_pace_true_close_post_minutes", 5)
+    )
     return kickoff - timedelta(minutes=pre), kickoff + timedelta(minutes=post)
 
 

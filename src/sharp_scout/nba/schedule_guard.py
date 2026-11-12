@@ -396,9 +396,10 @@ def pretip_close_scan_allowed(
     except Exception as exc:  # noqa: BLE001
         return False, f"pretip deps unavailable ({exc})"
 
-    settings = get_settings()
-    if not getattr(settings, "nba_pace_pre_tip_snapshot_enabled", False):
-        return False, "pre-tip snapshot disabled"
+    from sharp_scout.config import nba_pre_tip_close_scan_active
+
+    if not nba_pre_tip_close_scan_active():
+        return False, "pre-tip true-close scan disabled"
     store = load_paper_store()
     waiting: list[str] = []
     for g in store.get("games") or []:

@@ -25,6 +25,7 @@ from sharp_scout.nba.slate_et import (
     kickoff_date_et,
     upcoming_slate_items,
 )
+from sharp_scout.utils.kickoff import parse_kickoff_utc
 from sharp_scout.utils.slate import ET, parse_commence
 
 DOCS_DIR = ROOT / "docs"
@@ -520,6 +521,57 @@ def _is_sharp_game_line_play(play: dict[str, Any]) -> bool:
     return market in ("spreads", "totals")
 
 
+def _open_game_line_plays_today_et(
+    ledger: dict[str, Any] | None,
+    *,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Unsettled Sharp Scout game-line rows on today's ET slate (board fallback)."""
+    now = now or datetime.now(timezone.utc)
+    today_et = now.astimezone(ET).date()
+    out: list[dict[str, Any]] = []
+    for play in (ledger or {}).get("plays") or []:
+        if not _is_sharp_game_line_play(play):
+            continue
+        st = str(play.get("status") or "").lower()
+        if st in ("win", "loss", "push", "void"):
+            continue
+        day = play_et_calendar_date(play)
+        if day != today_et:
+            continue
+        out.append(play)
+    return out
+
+
+def _merge_signals_with_todays_open_ledger(
+    signals: list[dict[str, Any]],
+    ledger: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    merged = list(signals)
+    seen = {str(p.get("event_id") or "") for p in merged if p.get("event_id")}
+    for play in _open_game_line_plays_today_et(ledger):
+        eid = str(play.get("event_id") or "")
+        if eid and eid in seen:
+            continue
+        merged.append(play)
+        if eid:
+            seen.add(eid)
+    return merged
+
+
+def _play_in_progress_badge_html(play: dict[str, Any], *, now: datetime | None = None) -> str:
+    now = now or datetime.now(timezone.utc)
+    kick = parse_kickoff_utc(play.get("kickoff"))
+    if kick is None:
+        return ""
+    st = str(play.get("status") or "").lower()
+    if st in ("win", "loss", "push", "void"):
+        return ""
+    if kick >= now - timedelta(minutes=15):
+        return ""
+    return '<span class="nba-progress-badge">In progress</span>'
+
+
 def _sharp_scout_record_summary(
     ledger: dict[str, Any] | None,
     *,
@@ -737,6 +789,7 @@ def _render_nba_play_card(
     if not badge:
         badge = _play_badge_label()
     tags = _model_sharp_tags(play)
+    progress_badge = _play_in_progress_badge_html(play)
     stake_block = (
         f'<div class="units-badge">{units_s}<span class="nba-stake-dollars">{stake_s}</span></div>'
         if show_stake
@@ -750,6 +803,7 @@ def _render_nba_play_card(
         <div class="card-top">
           <div class="card-left">
             <span class="tier-badge {badge_cls}">{_esc(badge)}</span>
+            {progress_badge}
             <div class="nba-card-tip">{_esc(day_time)}</div>
             <div class="play-title">{_esc(title)}</div>
             <div class="play-subtitle">{_esc(subtitle)}</div>
@@ -1323,7 +1377,10 @@ def render_nba_page_html(
     pub_ledger = public_nba_ledger(ledger)
     pub_report = public_nba_report(report, ledger=ledger, live_scan=live_scan)
 
-    picks = list(pub_signals.get("signals") or [])
+    picks = _merge_signals_with_todays_open_ledger(
+        list(pub_signals.get("signals") or []),
+        pub_ledger,
+    )
     possible = list(pub_signals.get("possible_signals") or [])
     generated = parse_commence(pub_signals.get("generated_at"))
     updated = _format_timestamp_et(generated) if generated else "—"
@@ -1344,7 +1401,10 @@ def render_nba_page_html(
         _render_price_edge_cards(side_picks_slate, reference=slate_ref) if live_scan else ""
     )
     if live_scan and not sharp_plays_html:
-        sharp_plays_html = _render_picks_empty(live_scan=True, updated=updated, next_scan=next_scan)
+        if not _open_game_line_plays_today_et(pub_ledger):
+            sharp_plays_html = _render_picks_empty(
+                live_scan=True, updated=updated, next_scan=next_scan
+            )
     elif not live_scan:
         sharp_plays_html = _render_picks_empty(live_scan=False, updated=updated, next_scan=next_scan)
 
@@ -1735,6 +1795,11 @@ _NBA_SHARED_PAGE_CSS = """
   }}
   .nba-tracking-units {{ font-size: 10px; color: #64748b; }}
   .badge-play {{ font-weight: 700; letter-spacing: .12em; }}
+  .nba-progress-badge {{
+    display: inline-block; margin-left: 8px; font-family: var(--font-mono); font-size: 9px;
+    font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #b45309;
+    background: #fffbeb; border: 1px solid #fcd34d; padding: 2px 6px; border-radius: 4px;
+  }}
   .nba-picks-empty {{
     border: 2px solid var(--color-border); background: var(--color-bg);
     padding: 16px 14px; margin: 0 0 12px; line-height: 1.55; font-size: 15px;

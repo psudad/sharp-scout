@@ -9,6 +9,8 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT, get_settings
+
+NCAAM_LINE_HISTORY_PATH = DATA_DIR / "ncaam" / "line_history.json"
 from sharp_scout.copy.explain import format_display_datetime_et
 from sharp_scout.ledger.day_record import format_yesterday_stat_value, summarize_yesterday
 from sharp_scout.ledger.tracker import compute_record, load_ledger
@@ -140,12 +142,17 @@ def ncaam_record(ledger: dict[str, Any], *, path: Path | None = None) -> dict[st
     Only real picks count: no-edge / missed markers (no side) are left out, so they are not
     reported as "pending". Voids are counted as void with 0u and never enter W-L, units or CLV.
     """
+    from sharp_scout.data.line_store import load_history_merged
     from sharp_scout.ledger.clv import summarize_clv
+    from sharp_scout.ncaam.clv_stats import summarize_price_aware_beat_close
 
     plays = ledger.get("plays") or []
     picks = [p for p in plays if p.get("side") and p.get("status") not in _NOT_A_PLAY]
     rec = compute_record({**ledger, "plays": picks}, path=path or NCAAM_LEDGER_PATH)
-    rec["clv"] = summarize_clv({**ledger, "plays": [p for p in picks if p.get("status") != "void"]})
+    clv_plays = [p for p in picks if p.get("status") != "void"]
+    rec["clv"] = summarize_clv({**ledger, "plays": clv_plays})
+    history = load_history_merged(path=NCAAM_LINE_HISTORY_PATH)
+    rec["clv"]["price_aware"] = summarize_price_aware_beat_close(clv_plays, history=history)
     rec["n_no_play"] = len(plays) - len(picks)
     return rec
 
@@ -155,16 +162,25 @@ def _render_record(rec: dict[str, Any], ledger: dict[str, Any]) -> str:
     pnl = float(rec.get("pnl_units") or 0)
     pnl_s = f"+{pnl:.2f}" if pnl >= 0 else f"{pnl:.2f}"
     cls = "pos" if pnl >= 0 else "neg"
-    clv_beat = 0
-    clv_total = 0
-    for p in ledger.get("plays") or []:
-        if p.get("status") == "void":
-            continue
-        if p.get("clv_points") is not None:
-            clv_total += 1
-            if float(p.get("clv_points") or 0) > 0:
-                clv_beat += 1
-    clv_pct = f"{100.0 * clv_beat / clv_total:.0f}%" if clv_total else "—"
+    pa = (rec.get("clv") or {}).get("price_aware") or {}
+    n_pa = int(pa.get("n_beat_close") or 0)
+    pct_pa = pa.get("beat_close_pct")
+    if n_pa and pct_pa is not None:
+        clv_main = f"{100.0 * float(pct_pa):.0f}%"
+        clv_sub = f"n={n_pa}"
+        line_pct = pa.get("line_only_beat_close_pct")
+        line_n = int(pa.get("line_only_n_beat_close") or 0)
+        if line_n and line_pct is not None:
+            clv_secondary = (
+                f'<div class="stat-sub" style="font-size:11px;color:var(--color-text-muted);margin-top:4px">'
+                f"Line vs close only: {100.0 * float(line_pct):.0f}% (n={line_n})</div>"
+            )
+        else:
+            clv_secondary = ""
+    else:
+        clv_main = "—"
+        clv_sub = ""
+        clv_secondary = ""
     roi = rec.get("roi_pct")
     roi_s = f"{float(roi):+.1f}%" if roi is not None else "—"
     yest = summarize_yesterday(
@@ -183,8 +199,9 @@ def _render_record(rec: dict[str, Any], ledger: dict[str, Any]) -> str:
         f'<div class="stat-label">Units P&amp;L</div></div>'
         f'<div class="stat-card"><div class="stat-val">{_esc(roi_s)}</div>'
         f'<div class="stat-label">ROI</div></div>'
-        f'<div class="stat-card"><div class="stat-val">{_esc(clv_pct)}</div>'
-        f'<div class="stat-label">CLV beat close</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{_esc(clv_main)}</div>'
+        f'<div class="stat-label">Beat close (price-aware){f" · {_esc(clv_sub)}" if clv_sub else ""}</div>'
+        f"{clv_secondary}</div>"
         f"</div>"
     )
 

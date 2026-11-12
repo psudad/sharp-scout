@@ -270,6 +270,11 @@ class Settings(BaseSettings):
     nba_cap_units_per_night: float = 8.0
     nba_paper_start: str = "2026-11-02"
     nba_paper_end: str = "2026-12-13"
+    # NCAAM board — require ≥min EV vs Pinnacle no-vig alone before model tilt (Jason Nov 2026 review).
+    # Off by default: live picks unchanged; shadow diagnostics in data/shadow/ncaam_price_edge_diagnostics.json.
+    ncaam_price_edge_gate_enabled: bool = False
+    ncaam_price_edge_min: float = 0.01
+
     # Retired Nov 2026: Pace of Play official card (archives remain; no generation or publish).
     nba_pace_of_play_enabled: bool = False
     nba_pace_min_gap_pts: float = 3.0  # v1 official card (production)

@@ -306,3 +306,60 @@ def test_render_nba_props_page_empty_when_no_props():
     assert "No NBA prop picks on today&apos;s slate" in html
     assert "tab-nba-props" not in html
     assert "WAS @ CHA" not in html
+
+
+def test_render_nba_page_keeps_todays_open_ledger_plays_after_tip(monkeypatch):
+    fixed_now = datetime(2026, 11, 12, 3, 30, tzinfo=timezone.utc)  # 10:30 PM ET Nov 11
+    _patch_nba_page_now(monkeypatch, fixed_now)
+    today_kick = "2026-11-12T02:40:00+00:00"
+    tomorrow_kick = "2026-11-13T00:10:00+00:00"
+    payload = {
+        "ok": True,
+        "demo": False,
+        "generated_at": "2026-11-12T03:00:00+00:00",
+        "signals": [
+            {
+                "event_id": "tomorrow-only",
+                "away_team": "TOR",
+                "home_team": "PHI",
+                "kickoff": tomorrow_kick,
+                "market": "totals",
+                "side": "over",
+                "play_type": "side",
+                "line": 220.5,
+                "edge": 0.04,
+                "price": -110,
+                "units": 1.0,
+                "book": "fanduel",
+                "status": "paper",
+            }
+        ],
+        "possible_signals": [],
+    }
+    ledger = {
+        "plays": [
+            {
+                "event_id": "tonight-open",
+                "away_team": "GSW",
+                "home_team": "HOU",
+                "kickoff": today_kick,
+                "market": "totals",
+                "side": "under",
+                "play_type": "side",
+                "line": 222.5,
+                "price": -110,
+                "units": 1.0,
+                "book": "fanduel",
+                "status": "paper",
+            }
+        ]
+    }
+    html = render_nba_page_html(
+        signals_payload=payload,
+        ledger=ledger,
+        report={},
+        analytics_head="",
+    )
+    assert "GSW @ HOU: Under 222.5" in html
+    assert "In progress" in html
+    assert "No NBA price-edge picks yet today" not in html

@@ -11,6 +11,7 @@ from sharp_scout.nba.slate_et import (
     format_kickoff_day_time_et,
     group_items_by_kickoff_et_date,
     kickoff_date_et,
+    upcoming_slate_items,
 )
 
 ET = ZoneInfo("America/New_York")
@@ -56,3 +57,33 @@ def test_injury_window_includes_all_of_today_et_plus_horizon_tomorrow():
     picked = espn_events_for_injury_window(events, now=now, horizon_hours=36.0)
     ids = {e["event_id"] for e in picked}
     assert ids == {"1", "2", "3", "4"}
+
+
+def test_upcoming_slate_keeps_todays_open_plays_after_tip():
+    now = datetime(2026, 11, 12, 3, 30, tzinfo=timezone.utc)  # 10:30 PM ET Nov 11
+    items = [
+        {
+            "kickoff": "2026-11-12T02:40:00+00:00",
+            "status": "paper",
+            "id": "gsw-hou",
+        },
+        {
+            "kickoff": "2026-11-13T00:10:00+00:00",
+            "status": "paper",
+            "id": "tor-phl",
+        },
+    ]
+    slate = upcoming_slate_items(items, now=now)
+    assert {r["id"] for r in slate} == {"gsw-hou", "tor-phl"}
+
+
+def test_upcoming_slate_drops_todays_graded_after_tip():
+    now = datetime(2026, 11, 12, 3, 30, tzinfo=timezone.utc)
+    items = [
+        {
+            "kickoff": "2026-11-12T02:40:00+00:00",
+            "status": "win",
+            "id": "done",
+        }
+    ]
+    assert upcoming_slate_items(items, now=now) == []

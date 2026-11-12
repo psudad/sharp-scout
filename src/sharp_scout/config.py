@@ -301,7 +301,12 @@ class Settings(BaseSettings):
     nba_v2_schedule_context: bool = True
     nba_v2_roster_priors: bool = True
     nba_v2_slower_observe: bool = True
-    # Optional extra line snapshot (disabled — Odds API credits exhausted until reset)
+    # Score-model odds scans (independent of retired Pace of Play card).
+    nba_pre_tip_close_scan_enabled: bool = True
+    nba_true_close_clv_enabled: bool = True
+    nba_pre_tip_snapshot_minutes: int = 15
+    nba_true_close_post_minutes: int = 5
+    # Legacy Pace-prefixed toggles (off; use nba_pre_tip_close_scan_enabled for scans).
     nba_pace_true_close_enabled: bool = False
     nba_pace_true_close_post_minutes: int = 5
     nba_pace_pre_tip_snapshot_enabled: bool = False
@@ -350,3 +355,11 @@ def get_settings() -> Settings:
 def nba_pace_of_play_active() -> bool:
     """Whether production Pace of Play picks are generated, settled, and published."""
     return bool(getattr(get_settings(), "nba_pace_of_play_enabled", False))
+
+
+def nba_pre_tip_close_scan_active() -> bool:
+    """Whether catch-up cron may run per-game pre-tip / true-close odds scans."""
+    settings = get_settings()
+    if bool(getattr(settings, "nba_pre_tip_close_scan_enabled", True)):
+        return True
+    return bool(getattr(settings, "nba_pace_pre_tip_snapshot_enabled", False))

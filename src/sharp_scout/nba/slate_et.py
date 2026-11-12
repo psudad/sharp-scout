@@ -9,6 +9,8 @@ from sharp_scout.copy.explain import eastern_tz_abbrev, kickoff_sort_key
 from sharp_scout.utils.kickoff import kickoff_in_horizon, parse_kickoff_utc
 from sharp_scout.utils.slate import ET
 
+_SETTLED_PLAY_STATUSES = frozenset({"win", "loss", "push", "void"})
+
 
 def kickoff_date_et(kickoff: Any) -> date | None:
     kick = parse_kickoff_utc(kickoff)
@@ -79,11 +81,15 @@ def upcoming_slate_items(
     for item in items:
         raw = item.get(kickoff_key)
         kick = parse_kickoff_utc(raw)
-        if kick is None or kick < cutoff:
+        if kick is None:
             continue
         day = kickoff_date_et(raw)
         if day is not None and day < today_et:
             continue
+        status = str(item.get("status") or "").lower()
+        if kick < cutoff:
+            if day != today_et or status in _SETTLED_PLAY_STATUSES:
+                continue
         out.append(item)
     return out
 

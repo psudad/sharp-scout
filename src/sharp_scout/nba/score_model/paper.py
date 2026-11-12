@@ -11,6 +11,7 @@ from sharp_scout.config import DATA_DIR, get_settings, nba_pace_of_play_active
 from sharp_scout.nba.score_model.engine import V2Engine, p_cover_home, p_over
 from sharp_scout.nba.score_model.lines import snapshot_game_lines
 from sharp_scout.nba.score_model.state import ensure_score_engine
+from sharp_scout.nba.score_model.true_close import true_close_lines_for_game
 from sharp_scout.nba.teams import normalize_nba_team
 from sharp_scout.utils.kickoff import kickoff_in_horizon, parse_kickoff_utc
 
@@ -540,7 +541,6 @@ def freeze_and_close_lines(store: dict[str, Any], *, now: datetime | None = None
             frozen_blob["pace_published_pick"] = g.get("pace_published_pick")
             frozen_blob["pace_spread_shadow_pick"] = spread_shadow
             frozen_blob["shadow_v2"] = last.get("shadow_v2")
-        from sharp_scout.nba.score_model.true_close import true_close_lines_for_game
         tc = true_close_lines_for_game(g)
         if tc:
             frozen_blob.update(tc)
@@ -661,7 +661,11 @@ def grade_score_model_paper(
         close_spread_true = tc.get("close_spread_home_true")
         close_total_true = tc.get("close_total_true")
         captured_at = tc.get("close_captured_at")
-        use_true = bool(get_settings().nba_pace_true_close_enabled)
+        settings = get_settings()
+        use_true = bool(
+            getattr(settings, "nba_true_close_clv_enabled", True)
+            or getattr(settings, "nba_pace_true_close_enabled", False)
+        )
         clv_spread = cs
         clv_total = ct
         if use_true:

@@ -65,6 +65,36 @@ def test_publish_heartbeat_only_when_publish_ok_and_no_new_locks(ncaam_paths, mo
     assert staged == [runner_mod.HEARTBEAT_COMMIT_PATHS]
 
 
+def test_publish_heartbeat_includes_torvik_fetch_failure_marker(ncaam_paths, monkeypatch):
+    root, hb, _, ncaam_dir, _ = ncaam_paths
+    hb.write_text(json.dumps({"runner_id": "r1", "at": "2026-11-08T20:00:00+00:00", "note": "pass", "last_publish_ok": True}) + "\n")
+    fixed = datetime(2026, 11, 13, 12, 0, tzinfo=runner_mod.ET)
+
+    class FakeDT(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is runner_mod.ET:
+                return fixed
+            return fixed.astimezone(tz or timezone.utc)
+
+    from sharp_scout.ncaam import ratings as ratings_mod
+
+    monkeypatch.setattr(ratings_mod, "NCAAM_DATA", ncaam_dir)
+    monkeypatch.setattr(ratings_mod, "datetime", FakeDT)
+    marker = ncaam_dir / "ratings_fetch_failed_20261113.json"
+    marker.write_text("{}\n")
+    staged: list[list[str]] = []
+
+    def fake_push(message, *, trigger_pages=True, add_paths=None):
+        staged.append(list(add_paths or []))
+        return True
+
+    monkeypatch.setattr(runner_mod, "_git_commit_push", fake_push)
+    assert runner_mod.publish_pass(new_locks=False, runner_id="r1")
+    assert staged[0][0] == runner_mod.HEARTBEAT_COMMIT_PATHS[0]
+    assert "data/ncaam/ratings_fetch_failed_20261113.json" in staged[0]
+
+
 def test_publish_lock_uses_full_paths_and_pages(ncaam_paths, monkeypatch):
     _, _, _, ncaam_dir, docs = ncaam_paths
     sharp = ncaam_dir / "sharp3_ledger.json"

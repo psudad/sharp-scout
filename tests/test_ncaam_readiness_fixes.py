@@ -234,9 +234,77 @@ def test_ensure_daily_ratings_falls_back_when_fetch_fails(tmp_path, monkeypatch)
     monkeypatch.setattr(ratings_mod, "datetime", FakeDT)
     latest = tmp_path / "ratings_latest.csv"
     latest.write_bytes(FIXTURE_RATINGS.read_bytes())
+    calls: list[int] = []
 
     def boom(*, dest: Path | None = None) -> Path:
+        calls.append(1)
         raise OSError("network down")
 
     monkeypatch.setattr(ratings_mod, "fetch_torvik_csv", boom)
     assert ratings_mod.ensure_daily_ratings() == latest
+    assert len(calls) == 1
+    fail_path = tmp_path / "ratings_fetch_failed_20261103.json"
+    assert fail_path.is_file()
+    assert ratings_mod.ensure_daily_ratings() == latest
+    assert len(calls) == 1
+
+
+def test_ensure_daily_ratings_uses_todays_committed_file_without_fetch(tmp_path, monkeypatch):
+    monkeypatch.setattr(ratings_mod, "NCAAM_DATA", tmp_path)
+    fixed = datetime(2026, 11, 5, 9, tzinfo=ET)
+
+    class FakeDT(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is ET:
+                return fixed
+            return fixed.astimezone(tz or timezone.utc)
+
+    monkeypatch.setattr(ratings_mod, "datetime", FakeDT)
+    today = tmp_path / "ratings_20261105.csv"
+    today.write_bytes(FIXTURE_RATINGS.read_bytes())
+
+    def boom(*, dest: Path | None = None) -> Path:
+        raise AssertionError("fetch should not run when today's cache exists")
+
+    monkeypatch.setattr(ratings_mod, "fetch_torvik_csv", boom)
+    assert ratings_mod.ensure_daily_ratings() == today
+
+
+def test_ensure_daily_ratings_retries_fetch_on_next_et_day_after_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(ratings_mod, "NCAAM_DATA", tmp_path)
+    day1 = datetime(2026, 11, 8, 10, tzinfo=ET)
+    day2 = datetime(2026, 11, 9, 10, tzinfo=ET)
+    clock = {"now": day1}
+
+    class FakeDT(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            cur = clock["now"]
+            if tz is ET:
+                return cur
+            return cur.astimezone(tz or timezone.utc)
+
+    monkeypatch.setattr(ratings_mod, "datetime", FakeDT)
+    latest = tmp_path / "ratings_latest.csv"
+    latest.write_bytes(FIXTURE_RATINGS.read_bytes())
+    calls: list[Path] = []
+
+    def fake_fetch(*, dest: Path | None = None) -> Path:
+        dest = dest or ratings_mod.ratings_path_for()
+        calls.append(dest)
+        if len(calls) == 1:
+            raise OSError("403 Forbidden")
+        dest.write_bytes(FIXTURE_RATINGS.read_bytes())
+        return dest
+
+    monkeypatch.setattr(ratings_mod, "fetch_torvik_csv", fake_fetch)
+    assert ratings_mod.ensure_daily_ratings() == latest
+    assert len(calls) == 1
+    assert ratings_mod.ensure_daily_ratings() == latest
+    assert len(calls) == 1
+
+    clock["now"] = day2
+    got = ratings_mod.ensure_daily_ratings()
+    assert got.name == "ratings_20261109.csv"
+    assert len(calls) == 2

@@ -212,6 +212,66 @@ def _fallback_ratings_path() -> Path | None:
     return dated[0] if dated else None
 
 
+def _fetch_failure_path(day: date | None = None) -> Path:
+    day = day or datetime.now(ET).date()
+    return NCAAM_DATA / f"ratings_fetch_failed_{day.strftime('%Y%m%d')}.json"
+
+
+def _load_fetch_failure(day: date | None = None) -> dict[str, Any] | None:
+    p = _fetch_failure_path(day)
+    if not p.is_file():
+        return None
+    try:
+        return json.loads(p.read_text())
+    except (OSError, ValueError):
+        return {"date": (day or datetime.now(ET).date()).isoformat(), "recorded": True}
+
+
+def daily_fetch_state_paths_for_commit() -> list[str]:
+    """Repo-relative paths to stage on heartbeat commits so fetch backoff survives checkouts."""
+    from sharp_scout.config import ROOT
+
+    p = _fetch_failure_path(datetime.now(ET).date())
+    if not p.is_file():
+        return []
+    try:
+        return [p.relative_to(ROOT).as_posix()]
+    except ValueError:
+        return [str(p)]
+
+
+def write_fetch_failure(
+    exc: BaseException,
+    *,
+    day: date | None = None,
+    attempted_at: datetime | None = None,
+) -> dict[str, Any]:
+    day = day or datetime.now(ET).date()
+    attempted_at = attempted_at or datetime.now(timezone.utc)
+    record: dict[str, Any] = {
+        "date_et": day.isoformat(),
+        "source_url": TORVIK_URL,
+        "attempted_at_utc": attempted_at.isoformat(),
+        "error_type": type(exc).__name__,
+        "error": str(exc),
+    }
+    p = _fetch_failure_path(day)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+    return record
+
+
+def _log_ratings_selection(path: Path, *, reason: str) -> None:
+    cache_dt = cache_date_from_path(path)
+    label = cache_dt.isoformat() if cache_dt else path.name
+    logger.info(
+        "NCAAM Barttorvik ratings: %s file=%s cache_date_et=%s",
+        reason,
+        path.name,
+        label,
+    )
+
+
 def ensure_daily_ratings(*, demo: bool = False, fixture: Path | None = None) -> Path:
     """Return path to Torvik cache used for picks.
 
@@ -230,6 +290,7 @@ def ensure_daily_ratings(*, demo: bool = False, fixture: Path | None = None) -> 
     et_day = datetime.now(ET).date()
     today_path = ratings_path_for(et_day)
     if today_path.exists():
+        _log_ratings_selection(today_path, reason="using committed or prior fetch for today ET")
         return today_path
     if demo:
         fx = DATA_DIR.parent / "tests" / "fixtures" / "ncaam" / "torvik_sample.csv"
@@ -238,11 +299,30 @@ def ensure_daily_ratings(*, demo: bool = False, fixture: Path | None = None) -> 
             latest.parent.mkdir(parents=True, exist_ok=True)
             latest.write_bytes(fx.read_bytes())
             return latest
+    if _load_fetch_failure(et_day):
+        fb = _fallback_ratings_path()
+        if fb is None:
+            raise FileNotFoundError(
+                f"Torvik fetch already failed today ({et_day.isoformat()}) and no cached ratings exist"
+            )
+        _log_ratings_selection(
+            fb,
+            reason=f"skipping re-fetch (failed earlier today ET; see {_fetch_failure_path(et_day).name})",
+        )
+        return fb
     try:
-        return fetch_torvik_csv(dest=today_path)
+        dest = fetch_torvik_csv(dest=today_path)
+        _log_ratings_selection(dest, reason="fetched fresh Barttorvik CSV for today ET")
+        return dest
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Torvik daily fetch failed (%s); using last cached file", exc)
+        write_fetch_failure(exc, day=et_day)
+        logger.warning(
+            "Torvik daily fetch failed (%s); will not retry until next ET day (%s)",
+            exc,
+            et_day.isoformat(),
+        )
         fb = _fallback_ratings_path()
         if fb is None:
             raise
+        _log_ratings_selection(fb, reason="using fallback cache after fetch failure")
         return fb

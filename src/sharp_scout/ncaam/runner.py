@@ -33,7 +33,7 @@ from sharp_scout.ncaam.lock import (
     lock_window,
     record_missed,
 )
-from sharp_scout.ncaam.ratings import ensure_daily_ratings, load_ratings
+from sharp_scout.ncaam.ratings import daily_fetch_state_paths_for_commit, ensure_daily_ratings, load_ratings
 from sharp_scout.ncaam.price_edge import filter_day_picks_for_price_edge
 from sharp_scout.ncaam.price_edge_diagnostics import record_price_edge_batch
 from sharp_scout.ncaam.rules import apply_daily_cap
@@ -429,7 +429,13 @@ def publish_pass(*, new_locks: bool, runner_id: str | None = None) -> bool:
     """
     full = _needs_full_publish(new_locks=new_locks)
     msg = "chore(ncaam): lock picks" if full else "chore(ncaam): runner heartbeat"
-    paths = NCAAM_COMMIT_PATHS if full else HEARTBEAT_COMMIT_PATHS
+    if full:
+        paths = list(NCAAM_COMMIT_PATHS)
+    else:
+        paths = list(HEARTBEAT_COMMIT_PATHS)
+        for rel in daily_fetch_state_paths_for_commit():
+            if rel not in paths:
+                paths.append(rel)
     ok = _git_commit_push(msg, trigger_pages=full, add_paths=paths)
     if runner_id:
         write_heartbeat(

@@ -227,6 +227,24 @@ def _load_fetch_failure(day: date | None = None) -> dict[str, Any] | None:
         return {"date": (day or datetime.now(ET).date()).isoformat(), "recorded": True}
 
 
+def daily_fetch_state_paths_for_commit() -> list[str]:
+    """Repo-relative paths to stage on heartbeat commits so fetch backoff survives checkouts."""
+    from sharp_scout.config import ROOT
+
+    paths: list[str] = []
+    day = datetime.now(ET).date()
+    for p in (_fetch_failure_path(day), ratings_path_for(day)):
+        if p.is_file():
+            try:
+                paths.append(p.relative_to(ROOT).as_posix())
+            except ValueError:
+                paths.append(str(p))
+            meta = _meta_path_for(p)
+            if meta.is_file():
+                paths.append(meta.relative_to(ROOT).as_posix())
+    return paths
+
+
 def write_fetch_failure(
     exc: BaseException,
     *,

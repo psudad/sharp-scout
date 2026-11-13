@@ -275,7 +275,8 @@ def _market_label(market: str | None) -> str:
     return {"spreads": "spread", "totals": "total", "h2h": "moneyline"}.get(market or "", market or "bet")
 
 
-def _line_phrase(play: dict[str, Any]) -> str:
+def format_game_line_pick(play: dict[str, Any]) -> str:
+    """Short pick text for cards, tables, and exports (e.g. ``IND ML``, ``Under 221.5``)."""
     market = play.get("market")
     side = str(play.get("side") or "").lower()
     line = play.get("line")
@@ -283,10 +284,19 @@ def _line_phrase(play: dict[str, Any]) -> str:
     if market == "spreads" and line is not None:
         return f"{team} {float(line):+g}"
     if market == "totals" and line is not None:
-        return f"{side.upper()} {line}"
+        mag = abs(float(line))
+        mag_s = f"{int(mag)}" if mag == int(mag) else f"{mag:g}"
+        label = "Over" if side == "over" else "Under"
+        return f"{label} {mag_s}"
     if market == "h2h":
         return f"{team} ML"
+    if market == "totals":
+        return "Over" if side == "over" else "Under"
     return team
+
+
+def _line_phrase(play: dict[str, Any]) -> str:
+    return format_game_line_pick(play)
 
 
 def format_play_rationale_short(play: dict[str, Any]) -> str:

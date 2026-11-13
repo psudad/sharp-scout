@@ -8,7 +8,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from sharp_scout.config import ROOT, get_settings
-from sharp_scout.copy.explain import format_kickoff_compact, format_kickoff_et, kickoff_sort_key
+from sharp_scout.copy.explain import format_kickoff_compact, format_kickoff_et, kickoff_sort_key, side_team
 from sharp_scout.ledger.day_record import (
     filter_graded_on_et_day,
     graded_status,
@@ -117,6 +117,8 @@ def _game_pick(play: dict[str, Any]) -> str:
         if isinstance(line, (int, float)):
             return f"{label} {line:g}"
         return label
+    if market == "h2h":
+        return f"{side_team(play)} ML"
     return side.title()
 
 
@@ -772,8 +774,13 @@ def _render_nba_play_card(
     title = _price_edge_card_title(play)
     book = _book_label(play.get("book"))
     price = _price(play.get("price"))
+    market = str(play.get("market") or "")
     line = play.get("line")
-    line_s = f"{float(line):g}" if isinstance(line, (int, float)) else "—"
+    if market == "h2h":
+        detail = f"ML {_price(play.get('price'))}".strip()
+    else:
+        line_s = f"{float(line):g}" if isinstance(line, (int, float)) else "—"
+        detail = f"Line {line_s}"
     units = play.get("units")
     units_f = float(units) if isinstance(units, (int, float)) else None
     units_s = f"{units_f:.2f}u" if units_f is not None else "—"
@@ -782,7 +789,7 @@ def _render_nba_play_card(
     edge_s = _pct(edge)
     fair = play.get("p_true") if play.get("p_true") is not None else play.get("p_fair")
     fair_s = _pct(fair)
-    sub_parts = [f"{away} @ {home}", _market_label(play), f"Line {line_s}"]
+    sub_parts = [f"{away} @ {home}", _market_label(play), detail]
     if play.get("play_type") == "prop":
         sub_parts.insert(1, "Prop")
     subtitle = " · ".join(sub_parts)
@@ -1024,7 +1031,7 @@ def _market_label(play: dict[str, Any]) -> str:
     if play.get("play_type") == "prop":
         return NBA_PROP_LABELS.get(str(play.get("market")), str(play.get("market")))
     m = str(play.get("market") or "")
-    return {"spreads": "Spread", "totals": "Total"}.get(m, m.title())
+    return {"spreads": "Spread", "totals": "Total", "h2h": "H2H"}.get(m, m.title())
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:

@@ -233,7 +233,7 @@ def _pick_headline_html(play: dict[str, Any], *, sport: str) -> str:
             hint = "pick em"
         return f"{team_s} {line_s} <small>{hint}</small>"
     if market == "h2h":
-        return f"{team_s} <small>to win</small>"
+        return f"{team_s} ML"
     return team_s
 
 

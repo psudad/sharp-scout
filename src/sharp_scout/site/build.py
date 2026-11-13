@@ -235,8 +235,12 @@ def _side_label(p: dict[str, Any]) -> str:
         line_s = f" {line}" if line is not None else ""
         mkt = str(p.get("market") or "").replace("player_", "").replace("_", " ")
         return f"{p.get('player_name')} {str(p.get('side', '')).upper()}{line_s} ({mkt}) {_price(p.get('price'))}"
+    market = str(p.get("market") or "")
+    if market == "h2h":
+        team = _team_for_side(p)
+        return f"{team} ML {_price(p.get('price'))}".strip()
     line_s = _format_play_line_suffix(p)
-    m = {"spreads": "spread", "totals": "total", "h2h": "ML"}.get(p.get("market"), p.get("market"))
+    m = {"spreads": "spread", "totals": "total"}.get(market, market)
     team = _team_for_side(p)
     return f"{team}{line_s} ({m}) {_price(p.get('price'))}"
 

@@ -511,6 +511,16 @@ def _git_commit_push(
     return True
 
 
+def _file_has_conflict_markers(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    try:
+        text = path.read_text(errors="replace")
+    except OSError:
+        return False
+    return "<<<<<<< " in text or ">>>>>>> " in text
+
+
 def restore_from_backup(backup: Path) -> None:
     """Copy backed-up NCAAM files over the working tree and rebuild the page (conflict recovery)."""
     import shutil
@@ -519,8 +529,20 @@ def restore_from_backup(backup: Path) -> None:
         src = backup / rel
         dst = ROOT / rel
         if src.is_dir():
-            shutil.copytree(src, dst, dirs_exist_ok=True)
+            dst.mkdir(parents=True, exist_ok=True)
+            for child in src.rglob("*"):
+                if not child.is_file():
+                    continue
+                if _file_has_conflict_markers(child):
+                    logger.error("Skipping conflict-marked backup file %s", child)
+                    continue
+                target = dst / child.relative_to(src)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(child, target)
         elif src.exists():
+            if _file_has_conflict_markers(src):
+                logger.error("Skipping conflict-marked backup file %s", src)
+                continue
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
     build_ncaam_page()

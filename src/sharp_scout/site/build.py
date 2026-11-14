@@ -1231,7 +1231,9 @@ def build_site(
     from sharp_scout.site.ncaam_page import NCAAM_LEDGER_PATH as _NCAAM_LEDGER
     from sharp_scout.ledger.tracker import load_ledger as _load_ledger
 
-    ncaam_record = compute_record(_load_ledger(_NCAAM_LEDGER), path=_NCAAM_LEDGER)
+    ncaam_record = compute_record(
+        _load_ledger(_NCAAM_LEDGER, fallback=True), path=_NCAAM_LEDGER
+    )
 
     nfl_landing_leans = landing_lean_plays(
         nfl_current_stage_cards,
@@ -1304,7 +1306,17 @@ def build_site(
     build_nba_page(docs_dir=out)
     from sharp_scout.site.ncaam_page import build_ncaam_page
 
-    build_ncaam_page(docs_dir=out)
+    try:
+        build_ncaam_page(docs_dir=out)
+    except Exception:
+        # A corrupt NCAAM ledger (conflict markers, mid-write JSON) must not
+        # fail the NFL/NCAAF/NBA site rebuild — that is what killed NCAAF
+        # Staleness Guard on Nov 14 2026.
+        import logging
+
+        logging.getLogger(__name__).exception(
+            "NCAAM page build failed; continuing with the rest of the site"
+        )
     return out
 
 

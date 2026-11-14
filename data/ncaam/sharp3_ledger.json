@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-14T18:07:34.830946+00:00",
+  "updated_at": "2026-11-14T18:38:08.317743+00:00",
   "starting_units": 100.0,
   "plays": [
     {
@@ -6939,7 +6939,14 @@
       "lead_min": 22.6,
       "late_lock": true,
       "status": "pending",
-      "inputs_sha256": "2d11fec9d78349d439af0543188bd59094a58e0f2da96f1efc97d6b7b1ec7211"
+      "inputs_sha256": "2d11fec9d78349d439af0543188bd59094a58e0f2da96f1efc97d6b7b1ec7211",
+      "close_line": 8.0,
+      "close_price": -110.0,
+      "close_book": "pinnacle",
+      "clv_points": -0.5,
+      "clv_prob": null,
+      "clv_basis": "points",
+      "clv_at": "2026-11-14T16:22:44.672902+00:00"
     },
     {
       "id": "10747261-f3fa-43eb-a6d1-ea6be75173ea",
@@ -7018,7 +7025,93 @@
       "lead_min": 82.6,
       "late_lock": false,
       "status": "pending",
-      "inputs_sha256": "5aeeb906f15d11e408a0c1c05bc6e1280a1ed7fa5d5755eb457ab7ec684e7854"
+      "inputs_sha256": "5aeeb906f15d11e408a0c1c05bc6e1280a1ed7fa5d5755eb457ab7ec684e7854",
+      "close_line": -9.0,
+      "close_price": -113.0,
+      "close_book": "pinnacle",
+      "clv_points": 0.0,
+      "clv_prob": -0.0347,
+      "clv_basis": "prob",
+      "clv_at": "2026-11-14T18:07:33.244779+00:00"
+    },
+    {
+      "id": "adab9f19-967b-4f9a-ab2b-af178acaccb9",
+      "created_at": "2026-11-14T18:38:08.317691+00:00",
+      "locked_at": "2026-11-14T18:38:08.317691+00:00",
+      "model_version": "sharp3-v1",
+      "espn_id": "401924921",
+      "event_id": "eac5014e07a9672daa591aa30d48a936",
+      "engine": "sharp3",
+      "market": "spreads",
+      "side": "away",
+      "selection": "Wyoming",
+      "line": -7.0,
+      "price": -130.0,
+      "book": "draftkings",
+      "units": 4.0,
+      "tier": "DIAMOND",
+      "conf": 0.885,
+      "edge": 31.98,
+      "gap": 23.0,
+      "money_pct": 73.0,
+      "ticket_pct": 50.0,
+      "flags": [
+        "BUY_POINT"
+      ],
+      "price_estimated": true,
+      "sim_rec": "proj 4583-5417/10000 MC",
+      "sim_projection": {
+        "status": "ok",
+        "kind": "projection",
+        "model": "torvik-efficiency-mc-v1",
+        "n": 10000,
+        "wins": 4583,
+        "losses": 5417,
+        "pushes": 0,
+        "p_cover_or_ml": 0.4583,
+        "margin_model": -5.86,
+        "margin_sd": 10.5,
+        "hfa": 3.0,
+        "inputs": {
+          "espn_id": "401924921",
+          "side": "away",
+          "market": "spreads",
+          "line": -7.0,
+          "neutral_site": false,
+          "note": "Juice/price not used; spread/ML result vs locked line only."
+        },
+        "reproducibility": {
+          "seed": 54676901135117,
+          "seed_inputs": "sharp3-sim|401924921|away|spreads|-7.0",
+          "rng": "numpy.random.Generator"
+        },
+        "ratings_provenance": {
+          "source": "barttorvik",
+          "source_url": "https://barttorvik.com/2027_team_results.csv",
+          "cache_path": "/home/runner/work/sharp-scout/sharp-scout/data/ncaam/ratings_20261114.csv",
+          "cache_date_et": "2026-11-14",
+          "cache_date_note": "Filename label only; not used for retrieval freshness",
+          "retrieval_verified": true,
+          "retrieval_unavailable_reason": null,
+          "retrieved_at_utc": "2026-11-14T13:34:39.714296+00:00",
+          "content_sha256": "41b32f23e5fa53ebff0472f1845ed1f0067b8fbf83e19ed117f75c2e3d9b7429",
+          "ratings_snapshot_as_of": null,
+          "ratings_snapshot_as_of_note": "unknown: Barttorvik team_results CSV has no publisher snapshot/as-of field",
+          "upstream_http_last_modified_utc": "2026-11-14T13:22:15+00:00",
+          "upstream_http_last_modified_note": "Optional HTTP Last-Modified from response; file revision time only \u2014 not ratings snapshot date"
+        },
+        "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
+        "ratings_display_policy_note": "Sharp 3 MC display requires retrieval_verified (successful fetch meta + SHA-256 match). Freshness window: retrieved_at ET within today or yesterday. Publisher ratings snapshot date remains unknown. Failed fetch does not renew freshness.",
+        "ratings_display_max_acquisition_age_days": 1
+      },
+      "pick_status": "HOLD",
+      "home_team": "Denver",
+      "away_team": "Wyoming",
+      "tip": "2026-11-14T20:00:00+00:00",
+      "lead_min": 82.0,
+      "late_lock": false,
+      "status": "pending",
+      "inputs_sha256": "254aaf305f6509213a95ea83d4ad296e981642e47aa9f9b195e951ff05564687"
     }
   ],
   "stage_cards": [],

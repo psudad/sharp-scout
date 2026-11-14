@@ -158,6 +158,29 @@ def run_ncaaf_pipeline(
 
     splits = prepare_splits_for_filters(splits, events, sport="ncaaf")
 
+    from sharp_scout.phase4.filters import _find_split_game
+
+    n_splits_games = 0
+    unmatched_names: list[str] = []
+    for ev in events:
+        home, away = ev["home_team"], ev["away_team"]
+        if _find_split_game(splits, home, away, sport="ncaaf"):
+            n_splits_games += 1
+        elif not (demo or not settings.odds_api_key):
+            unmatched_names.append(f"{away} @ {home}")
+    if unmatched_names:
+        sample = unmatched_names[:5]
+        more = len(unmatched_names) - len(sample)
+        tail = f" (+{more} more)" if more > 0 else ""
+        logger.info(
+            "NCAAF Action Network splits: matched %d/%d Odds API games; %d unmatched — sample: %s%s",
+            n_splits_games,
+            len(events),
+            len(unmatched_names),
+            "; ".join(sample),
+            tail,
+        )
+
     game_results: list[dict[str, Any]] = []
     all_signals: list[dict[str, Any]] = []
     sims_by_event: dict[str, Any] = {}
@@ -264,6 +287,7 @@ def run_ncaaf_pipeline(
         "week": week,
         "skip_pbp": skip_pbp,
         "demo": demo or not settings.odds_api_key,
+        "n_splits_games": n_splits_games,
         "n_games": len(game_results),
         "n_candidates": len(all_signals),
         "n_validated": len(validated),

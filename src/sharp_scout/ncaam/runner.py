@@ -60,8 +60,18 @@ NCAAM_COMMIT_PATHS = [
 # Only spend Odds API credits when a game is inside the lock window (T-90..T-20).
 SNAPSHOT_LOOKAHEAD_MIN = 95
 HEARTBEAT_COMMIT_PATHS = ["data/ncaam/runner_heartbeat.json"]
+FULL_PUBLISH_INTERVAL_MIN = 60
 DEMO_ODDS_FIXTURE = ROOT / "tests" / "fixtures" / "ncaam" / "demo_odds.json"
 DEMO_SLATE_FIXTURE = ROOT / "tests" / "fixtures" / "ncaam" / "demo_slate.json"
+
+
+def _read_heartbeat() -> dict[str, Any]:
+    if not HEARTBEAT_PATH.exists():
+        return {}
+    try:
+        return json.loads(HEARTBEAT_PATH.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
 
 
 def write_heartbeat(
@@ -70,8 +80,10 @@ def write_heartbeat(
     note: str = "",
     pass_n: int | None = None,
     last_publish_ok: bool | None = None,
+    last_full_publish_at: str | None | object = ...,
 ) -> None:
     HEARTBEAT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    existing = _read_heartbeat()
     payload: dict[str, Any] = {
         "runner_id": runner_id,
         "at": datetime.now(timezone.utc).isoformat(),
@@ -79,8 +91,17 @@ def write_heartbeat(
     }
     if pass_n is not None:
         payload["pass_n"] = pass_n
+    elif existing.get("pass_n") is not None:
+        payload["pass_n"] = existing["pass_n"]
     if last_publish_ok is not None:
         payload["last_publish_ok"] = last_publish_ok
+    elif existing.get("last_publish_ok") is not None:
+        payload["last_publish_ok"] = existing["last_publish_ok"]
+    if last_full_publish_at is not ...:
+        if last_full_publish_at is not None:
+            payload["last_full_publish_at"] = last_full_publish_at
+    elif existing.get("last_full_publish_at"):
+        payload["last_full_publish_at"] = existing["last_full_publish_at"]
     HEARTBEAT_PATH.write_text(json.dumps(payload, indent=2) + "\n")
 
 
@@ -325,11 +346,22 @@ def run_pass(
             ratings_path=ratings_path,
         )
 
+    games_with_odds = sum(
+        1
+        for g in all_slate
+        if g.get("odds_event_id") and odds_by_id.get(str(g.get("odds_event_id")))
+    )
     signals = {
         "generated_at": now.isoformat(),
         "model_version": get_sport("ncaam").key,
         "locks": locked,
         "candidates_n": len(candidates),
+        "pass_summary": {
+            "games_checked": len(all_slate),
+            "games_with_odds": games_with_odds,
+            "candidates": len(candidates),
+            "locks": len(locked),
+        },
     }
     if demo:
         # Demo fixtures never touch the live board: write next to the temp ledger.
@@ -404,31 +436,51 @@ def run_sharp_systems(
         return 0
 
 
-def _needs_full_publish(*, new_locks: bool) -> bool:
-    """Full artifact push when we locked this pass or a prior push is still outstanding."""
+def _needs_full_publish(*, new_locks: bool, now: datetime | None = None) -> bool:
+    """Full artifact push when we locked, retrying a failed push, or the board is stale on Pages."""
     if new_locks:
         return True
-    if not HEARTBEAT_PATH.exists():
-        return False
-    try:
-        data = json.loads(HEARTBEAT_PATH.read_text())
-    except (OSError, json.JSONDecodeError):
+    data = _read_heartbeat()
+    if not data:
         return False
     if data.get("last_publish_ok") is False:
         return True
     note = str(data.get("note") or "")
-    return note.startswith("stuck:")
+    if note.startswith("stuck:"):
+        return True
+    now = now or datetime.now(timezone.utc)
+    lfp = data.get("last_full_publish_at")
+    if lfp:
+        try:
+            at = datetime.fromisoformat(str(lfp).replace("Z", "+00:00"))
+            if (now - at).total_seconds() / 60.0 >= FULL_PUBLISH_INTERVAL_MIN:
+                return True
+        except ValueError:
+            pass
+    return False
 
 
-def publish_pass(*, new_locks: bool, runner_id: str | None = None) -> bool:
-    """Push heartbeat every pass; full board publish when picks lock.
+def publish_pass(
+    *,
+    new_locks: bool,
+    runner_id: str | None = None,
+    now: datetime | None = None,
+) -> bool:
+    """Push heartbeat every pass; full board publish when picks lock or board is stale.
 
     Locks are already on disk when this runs. A failed push must not discard them — the backup
     hook in :func:`_git_commit_push` restores NCAAM-owned paths before retry. Subsequent passes
-    with zero new locks still push the full board while ``last_publish_ok`` is false.
+    with zero new locks still push the full board while ``last_publish_ok`` is false or the last
+    full Pages publish was more than :data:`FULL_PUBLISH_INTERVAL_MIN` ago.
     """
-    full = _needs_full_publish(new_locks=new_locks)
-    msg = "chore(ncaam): lock picks" if full else "chore(ncaam): runner heartbeat"
+    now = now or datetime.now(timezone.utc)
+    full = _needs_full_publish(new_locks=new_locks, now=now)
+    if full and new_locks:
+        msg = "chore(ncaam): lock picks"
+    elif full:
+        msg = "chore(ncaam): board refresh"
+    else:
+        msg = "chore(ncaam): runner heartbeat"
     if full:
         paths = list(NCAAM_COMMIT_PATHS)
     else:
@@ -438,11 +490,14 @@ def publish_pass(*, new_locks: bool, runner_id: str | None = None) -> bool:
                 paths.append(rel)
     ok = _git_commit_push(msg, trigger_pages=full, add_paths=paths)
     if runner_id:
-        write_heartbeat(
-            runner_id=runner_id,
-            note="pass" if ok else "stuck:publish_failed",
-            last_publish_ok=ok,
-        )
+        hb_kw: dict[str, Any] = {
+            "runner_id": runner_id,
+            "note": "pass" if ok else "stuck:publish_failed",
+            "last_publish_ok": ok,
+        }
+        if full and ok:
+            hb_kw["last_full_publish_at"] = now.isoformat()
+        write_heartbeat(**hb_kw)
     if full and not ok:
         logger.error("NCAAM lock publish failed — picks remain in local ledger until push succeeds")
     return ok

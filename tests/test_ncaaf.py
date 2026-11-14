@@ -70,6 +70,7 @@ def test_ncaaf_demo_pipeline_and_stage_picks():
     assert result["sport"] == "ncaaf"
     assert result["demo"] is True
     assert result["n_games"] == 1
+    assert result.get("n_splits_games", 0) >= 1
     game = result["games"][0]
     assert game["away_team"] == "ALA"
     assert game["home_team"] == "UGA"

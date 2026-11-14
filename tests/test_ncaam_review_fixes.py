@@ -91,7 +91,21 @@ def test_no_snapshot_when_no_games_near_lock():
     assert runner_mod._games_near_lock(rows, now) == 1
 
 
-def test_publish_pass_heartbeat_only_without_locks(monkeypatch):
+def test_publish_pass_heartbeat_only_without_locks(monkeypatch, tmp_path):
+    hb = tmp_path / "runner_heartbeat.json"
+    hb.write_text(
+        json.dumps(
+            {
+                "runner_id": "r1",
+                "at": datetime.now(timezone.utc).isoformat(),
+                "note": "pass",
+                "last_publish_ok": True,
+                "last_full_publish_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setattr(runner_mod, "HEARTBEAT_PATH", hb)
     calls: list[tuple[str, bool, list[str]]] = []
 
     def fake_push(message, *, trigger_pages=True, add_paths=None):

@@ -38,18 +38,24 @@ jobs:
       - name: Install
         run: pip install -e .
 
+      # Football site rebuild can fail (e.g. a corrupt NCAAM ledger) without
+      # blocking NBA/NCAAM settlement or the later commit/pages upload.
       - name: Settle NFL + NCAAF and rebuild site
+        continue-on-error: true
         run: python scripts/settle_now.py
 
       - name: Settle NBA sharp paper ledger
+        if: always()
         continue-on-error: true
         run: python scripts/settle_nba.py --build-page
 
       - name: Settle NCAAM ledger
+        if: always()
         continue-on-error: true
         run: python scripts/settle_ncaam.py --build-page
 
       - name: Commit ledger + site
+        if: always()
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -69,6 +75,7 @@ jobs:
         run: python3 scripts/build_ncaam_lab.py || true
 
       - name: Upload Pages artifact
+        if: always()
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs

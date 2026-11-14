@@ -366,3 +366,18 @@ def test_record_and_site(tmp_path: Path, monkeypatch):
     rec = compute_record(tr.load_ledger(path))
     assert rec["wins"] == 1
     assert rec["record"] == "1-0"
+
+
+def test_load_ledger_fallback_on_conflict_markers(tmp_path: Path):
+    """A conflict-marked ledger must not crash site-display loads (NCAAF Nov 14 failure)."""
+    path = tmp_path / "ncaam_ledger.json"
+    path.write_text(
+        "{\n<<<<<<< Updated upstream\n  \"plays\": []\n=======\n  \"plays\": []\n>>>>>>> Stashed changes\n}\n"
+    )
+    import pytest
+
+    with pytest.raises(json.JSONDecodeError):
+        load_ledger(path)
+    led = load_ledger(path, fallback=True)
+    assert led["plays"] == []
+    assert "starting_units" in led

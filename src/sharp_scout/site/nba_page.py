@@ -17,7 +17,7 @@ from sharp_scout.ledger.day_record import (
     yesterday_et,
 )
 from sharp_scout.nba import paths as nba_paths
-from sharp_scout.nba.schedule_guard import NBA_SCAN_SCHEDULE_LABEL, next_nba_scan_et
+from sharp_scout.nba.schedule_guard import NBA_SCAN_SCHEDULE_LABEL, next_nba_scan_et, upcoming_nba_scan_times_et, kickoffs_from_paper_store
 from sharp_scout.nba.slate_et import (
     format_et_slate_day_label,
     format_kickoff_day_time_et,
@@ -682,6 +682,48 @@ def _score_rows_missing_lines(rows: list[dict[str, Any]]) -> bool:
         if lines.get("consensus_spread_home") is None and lines.get("consensus_total") is None:
             return True
     return False
+
+
+
+def _next_scan_context(score_model_store: dict[str, Any] | None = None) -> tuple[str, str]:
+    """Formatted next-scan label plus a JSON list of upcoming scan instants for live page updates."""
+    import json
+
+    from sharp_scout.site.build import _format_timestamp_et
+
+    kickoffs = kickoffs_from_paper_store(score_model_store)
+    times = upcoming_nba_scan_times_et(kickoffs=kickoffs)
+    nxt = times[0] if times else next_nba_scan_et(kickoffs=kickoffs)
+    payload = [{"iso": ts.isoformat(), "label": _format_timestamp_et(ts)} for ts in times[:16]]
+    return _format_timestamp_et(nxt), json.dumps(payload, separators=(",", ":"))
+
+
+NBA_NEXT_SCAN_SCRIPT = """
+<script>
+(function(){
+  document.querySelectorAll("[data-nba-next-scans]").forEach(function(el){
+    var raw = el.getAttribute("data-nba-next-scans");
+    if (!raw) return;
+    var slots;
+    try { slots = JSON.parse(raw); } catch (e) { return; }
+    function pick(){
+      var now = Date.now();
+      for (var i = 0; i < slots.length; i++){
+        var t = Date.parse(slots[i].iso);
+        if (!isNaN(t) && t > now + 15000) return slots[i].label;
+      }
+      return null;
+    }
+    function tick(){
+      var label = pick();
+      if (label) el.textContent = label;
+    }
+    tick();
+    setInterval(tick, 30000);
+  });
+})();
+</script>
+"""
 
 
 def _render_waiting_for_lines(next_scan: str) -> str:
@@ -1391,7 +1433,7 @@ def render_nba_page_html(
     possible = list(pub_signals.get("possible_signals") or [])
     generated = parse_commence(pub_signals.get("generated_at"))
     updated = _format_timestamp_et(generated) if generated else "—"
-    next_scan = _format_timestamp_et(next_nba_scan_et())
+    next_scan, next_scans_json = _next_scan_context(score_model_store)
 
     body_class = "ss-bottom-bar"
     mode_note = "Live shadow scan" if live_scan else "Awaiting live scan"
@@ -1488,6 +1530,8 @@ def render_nba_page_html(
         updated=_esc(updated),
         mode_note=_esc(mode_note),
         next_scan=_esc(next_scan),
+        next_scans_json=_esc(next_scans_json),
+        next_scan_script=NBA_NEXT_SCAN_SCRIPT,
         window_note=_esc(window_s + window_flag),
         sharp_compact_record=sharp_compact_record,
         sharp_plays_html=sharp_plays_html,
@@ -1537,7 +1581,7 @@ def render_nba_props_page_html(
     possible = list(pub_signals.get("possible_signals") or [])
     generated = parse_commence(pub_signals.get("generated_at"))
     updated = _format_timestamp_et(generated) if generated else "—"
-    next_scan = _format_timestamp_et(next_nba_scan_et())
+    next_scan, next_scans_json = _next_scan_context()
 
     props_ledger_summary = _sharp_scout_record_summary(pub_ledger, game_lines_only=False)
     props_summary = props_ledger_summary["props"]
@@ -1602,6 +1646,8 @@ def render_nba_props_page_html(
         updated=_esc(updated),
         mode_note=_esc("Live shadow scan" if live_scan else "Awaiting live scan"),
         next_scan=_esc(next_scan),
+        next_scans_json=_esc(next_scans_json),
+        next_scan_script=NBA_NEXT_SCAN_SCRIPT,
         window_note=_esc(window_s + window_flag),
         props_compact_record=props_compact_record,
         prop_plays_html=prop_plays_html,
@@ -1884,7 +1930,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
   {site_tabs}
   <div class="board-updated-bar" role="status">
     <span class="board-updated-label">NBA shadow board</span>
-    <span class="board-updated-time">{mode_note} · Updated {updated} · Next scan {next_scan}</span>
+    <span class="board-updated-time">{mode_note} · Updated {updated} · Next scan <span class="nba-next-scan-time" data-nba-next-scans='{next_scans_json}'>{next_scan}</span></span>
   </div>
 </div>
 <header class="header">
@@ -1929,6 +1975,7 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 </div>
 {bottom_bar}
 {bottom_bar_script}
+{next_scan_script}
 </body>
 </html>
 """
@@ -1963,7 +2010,7 @@ NBA_PROPS_PAGE_TEMPLATE = """<!DOCTYPE html>
   {site_tabs}
   <div class="board-updated-bar" role="status">
     <span class="board-updated-label">NBA props board</span>
-    <span class="board-updated-time">{mode_note} · Updated {updated} · Next scan {next_scan}</span>
+    <span class="board-updated-time">{mode_note} · Updated {updated} · Next scan <span class="nba-next-scan-time" data-nba-next-scans='{next_scans_json}'>{next_scan}</span></span>
   </div>
 </div>
 <header class="header">
@@ -2010,6 +2057,7 @@ NBA_PROPS_PAGE_TEMPLATE = """<!DOCTYPE html>
 </div>
 {bottom_bar}
 {bottom_bar_script}
+{next_scan_script}
 </body>
 </html>
 """

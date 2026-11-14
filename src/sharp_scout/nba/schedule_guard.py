@@ -61,8 +61,11 @@ TIP_OFF_BUFFER = timedelta(minutes=10)
 TIP_GATE_MAX_LOOKBACK_HOURS = 12
 
 NBA_SCAN_SCHEDULE_LABEL = (
-    "weekdays 1:07 PM ET (4:07 PM backup) & weekends 9:07 AM ET (11:07 AM backup)"
+    "weekdays 1:07 PM ET (4:07 PM backup) & weekends 9:07 AM ET (11:07 AM backup), "
+    "plus a close scan about 6 minutes before each tip"
 )
+# Matches the box precise-scheduler (tip-6) and sits inside the T-15..T+5 true-close window.
+PRETIP_SCAN_OFFSET = timedelta(minutes=6)
 
 
 def target_time_for_et_date(et_now: datetime) -> time:
@@ -259,16 +262,41 @@ def scheduled_cron_run_allowed(
     return trigger_cron == expected_cron_for_intended_slot(intended, slot_time=target)
 
 
-def next_nba_scan_et(
+def kickoffs_from_paper_store(store: dict | None = None) -> list[datetime]:
+    """Kickoff times from the NBA paper store (used for pre-tip close-scan labels)."""
+    try:
+        from sharp_scout.utils.kickoff import parse_kickoff_utc
+    except Exception:
+        return []
+    if store is None:
+        try:
+            from sharp_scout.nba.score_model.paper import load_paper_store
+
+            store = load_paper_store()
+        except Exception:
+            return []
+    out: list[datetime] = []
+    for game in store.get("games") or []:
+        kick = parse_kickoff_utc(game.get("kickoff"))
+        if kick is not None:
+            out.append(kick)
+    return out
+
+
+def upcoming_nba_scan_times_et(
     now: datetime | None = None,
     *,
     primary_done_today: bool | None = None,
-) -> datetime:
-    """Next GitHub scheduled NBA shadow run (honors weekday vs weekend ET and DST).
+    kickoffs: list[datetime] | None = None,
+    horizon_days: int = 8,
+) -> list[datetime]:
+    """Upcoming NBA scan instants in ET: named :07 slots plus tip-6 close scans.
 
-    Includes today's backup slot when today's primary scan has not been recorded
-    (backup runs skip once the primary succeeded). ``primary_done_today=None`` reads
-    the paper store.
+    The public "Next scan" label used to advertise only the weekday 1:07 PM /
+    weekend 9:07 AM (and backup) GitHub slots. After a primary scan landed, the
+    page jumped to the next morning even when the box precise-scheduler and the
+    GitHub catch-up cron would still fire a close scan ~6 minutes before tonight's
+    tips. ``kickoffs=None`` reads the paper store; pass ``[]`` to ignore tips.
     """
     if now is None:
         now = datetime.now(ET)
@@ -277,22 +305,71 @@ def next_nba_scan_et(
     else:
         now = now.astimezone(ET)
 
-    for day_offset in range(0, 8):
-        day = now.date() + timedelta(days=day_offset)
+    if kickoffs is None:
+        kickoffs = kickoffs_from_paper_store()
+
+    scans: list[datetime] = []
+    today = now.date()
+    for day_offset in range(0, horizon_days):
+        day = today + timedelta(days=day_offset)
         noon = datetime.combine(day, time(12, 0), tzinfo=ET)
-        target_t = target_time_for_et_date(noon)
-        candidate = datetime.combine(day, target_t, tzinfo=ET)
-        if candidate > now:
-            return candidate
-        if day_offset == 0:
-            backup_t = WEEKDAY_BACKUP if noon.weekday() <= 4 else WEEKEND_BACKUP
-            backup = datetime.combine(day, backup_t, tzinfo=ET)
-            if backup > now:
-                done = primary_done_today
-                if done is None:
-                    done = primary_scan_satisfied_for_et_date(day)
-                if not done:
-                    return backup
+        primary = datetime.combine(day, target_time_for_et_date(noon), tzinfo=ET)
+        backup_t = WEEKDAY_BACKUP if noon.weekday() <= 4 else WEEKEND_BACKUP
+        backup = datetime.combine(day, backup_t, tzinfo=ET)
+        if primary > now:
+            scans.append(primary)
+        elif day_offset == 0:
+            done = primary_done_today
+            if done is None:
+                done = primary_scan_satisfied_for_et_date(day)
+            if not done and backup > now:
+                scans.append(backup)
+
+    for kick in kickoffs:
+        if kick.tzinfo is None:
+            kick = kick.replace(tzinfo=timezone.utc)
+        pretip = kick.astimezone(ET) - PRETIP_SCAN_OFFSET
+        if pretip > now:
+            scans.append(pretip)
+
+    # Unique, sorted, future instants (1-second fuzz for equal TZ folds).
+    uniq: list[datetime] = []
+    seen: set[str] = set()
+    for ts in sorted(scans, key=lambda d: d.isoformat()):
+        key = ts.isoformat()
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(ts)
+    return uniq
+
+
+def next_nba_scan_et(
+    now: datetime | None = None,
+    *,
+    primary_done_today: bool | None = None,
+    kickoffs: list[datetime] | None = None,
+) -> datetime:
+    """Next NBA shadow scan: named GitHub slots or the next tip-6 close scan.
+
+    Includes today's backup slot when today's primary scan has not been recorded
+    (backup runs skip once the primary succeeded). ``primary_done_today=None`` reads
+    the paper store. ``kickoffs=None`` also reads the paper store; pass ``[]`` to
+    consider named slots only.
+    """
+    times = upcoming_nba_scan_times_et(
+        now,
+        primary_done_today=primary_done_today,
+        kickoffs=kickoffs,
+    )
+    if times:
+        return times[0]
+    if now is None:
+        now = datetime.now(ET)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc).astimezone(ET)
+    else:
+        now = now.astimezone(ET)
     fallback_day = now.date() + timedelta(days=1)
     return datetime.combine(fallback_day, WEEKDAY_PRIMARY, tzinfo=ET)
 

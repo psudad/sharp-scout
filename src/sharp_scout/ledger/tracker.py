@@ -40,11 +40,28 @@ def empty_ledger() -> dict[str, Any]:
     }
 
 
-def load_ledger(path: Path | None = None) -> dict[str, Any]:
+def load_ledger(path: Path | None = None, *, fallback: bool = False) -> dict[str, Any]:
+    """Load a ledger JSON file.
+
+    When ``fallback=True`` (site-display paths only), a missing or unreadable
+    file returns an empty ledger instead of raising. Never use fallback on a
+    path that will later be saved — that would overwrite a corrupt file.
+    """
     p = path or LEDGER_PATH
     if not p.exists():
         return empty_ledger()
-    data = json.loads(p.read_text())
+    try:
+        data = json.loads(p.read_text())
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        if not fallback:
+            raise
+        logger.exception("Corrupt or unreadable ledger at %s (%s); using empty ledger for display", p, exc)
+        return empty_ledger()
+    if not isinstance(data, dict):
+        if not fallback:
+            raise ValueError(f"Ledger at {p} is not a JSON object")
+        logger.error("Ledger at %s is not a JSON object; using empty ledger for display", p)
+        return empty_ledger()
     data.setdefault("plays", [])
     data.setdefault("stage_cards", [])
     data.setdefault("disagreements", [])

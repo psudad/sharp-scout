@@ -21,6 +21,7 @@ from sharp_scout.nba.schedule_guard import (
     expected_cron_for_intended_slot,
     is_backup_cron,
     next_nba_scan_et,
+    upcoming_nba_scan_times_et,
     primary_scan_satisfied_for_et_date,
     scheduled_cron_run_allowed,
     target_time_for_et_date,
@@ -150,26 +151,26 @@ def test_target_time_by_weekday():
 
 def test_next_scan_weekday_edt_after_evening_slot():
     now = datetime(2026, 10, 27, 21, 13, tzinfo=ET)
-    nxt = next_nba_scan_et(now, primary_done_today=True)
+    nxt = next_nba_scan_et(now, primary_done_today=True, kickoffs=[])
     assert nxt == datetime(2026, 10, 28, 13, 7, tzinfo=ET)
     assert nxt.utcoffset() == timedelta(hours=-4)
 
 
 def test_next_scan_weekend_then_monday():
     sat_noon = datetime(2026, 10, 31, 12, 0, tzinfo=ET)
-    assert next_nba_scan_et(sat_noon, primary_done_today=False) == datetime(2026, 11, 1, 9, 7, tzinfo=ET)
+    assert next_nba_scan_et(sat_noon, primary_done_today=False, kickoffs=[]) == datetime(2026, 11, 1, 9, 7, tzinfo=ET)
     sun_afternoon = datetime(2026, 11, 1, 13, 0, tzinfo=ET)
-    assert next_nba_scan_et(sun_afternoon, primary_done_today=False) == datetime(
+    assert next_nba_scan_et(sun_afternoon, primary_done_today=False, kickoffs=[]) == datetime(
         2026, 11, 2, 13, 7, tzinfo=ET
     )
 
 
 def test_next_scan_shows_same_day_backup_when_primary_missing():
     after_primary = datetime(2026, 11, 2, 14, 0, tzinfo=ET)
-    assert next_nba_scan_et(after_primary, primary_done_today=False) == datetime(
+    assert next_nba_scan_et(after_primary, primary_done_today=False, kickoffs=[]) == datetime(
         2026, 11, 2, 16, 7, tzinfo=ET
     )
-    assert next_nba_scan_et(after_primary, primary_done_today=True) == datetime(
+    assert next_nba_scan_et(after_primary, primary_done_today=True, kickoffs=[]) == datetime(
         2026, 11, 3, 13, 7, tzinfo=ET
     )
 
@@ -190,3 +191,29 @@ def test_primary_scan_satisfied_reads_paper_store(monkeypatch):
         },
     )
     assert primary_scan_satisfied_for_et_date(day)
+
+
+def test_next_scan_uses_tonight_pretip_after_primary():
+    """After the Friday primary, show tonight's tip-6 close scan — not Saturday 9:07 AM."""
+    now = datetime(2026, 11, 13, 20, 35, tzinfo=ET)
+    tip = datetime(2026, 11, 13, 22, 0, tzinfo=ET)
+    nxt = next_nba_scan_et(now, primary_done_today=True, kickoffs=[tip])
+    assert nxt == datetime(2026, 11, 13, 21, 54, tzinfo=ET)
+
+
+def test_next_scan_weekend_morning_still_before_evening_pretip():
+    """Saturday 8 AM: next named slot is 9:07 AM, which is before tonight's tip-6."""
+    now = datetime(2026, 11, 14, 8, 0, tzinfo=ET)
+    tip = datetime(2026, 11, 14, 19, 30, tzinfo=ET)
+    nxt = next_nba_scan_et(now, primary_done_today=False, kickoffs=[tip])
+    assert nxt == datetime(2026, 11, 14, 9, 7, tzinfo=ET)
+    times = upcoming_nba_scan_times_et(now, primary_done_today=True, kickoffs=[tip])
+    assert times[0] == datetime(2026, 11, 14, 9, 7, tzinfo=ET)
+    assert datetime(2026, 11, 14, 19, 24, tzinfo=ET) in times
+
+
+def test_next_scan_after_weekend_primary_is_tonight_pretip_not_monday():
+    now = datetime(2026, 11, 14, 10, 0, tzinfo=ET)
+    tip = datetime(2026, 11, 14, 19, 30, tzinfo=ET)
+    nxt = next_nba_scan_et(now, primary_done_today=True, kickoffs=[tip])
+    assert nxt == datetime(2026, 11, 14, 19, 24, tzinfo=ET)

@@ -302,7 +302,7 @@ def _render_play_card(
 def _render_locks(signals: dict[str, Any]) -> str:
     locks = [p for p in (signals.get("locks") or []) if _is_official_play(p)]
     if not locks:
-        locks = _official_board_plays(load_ledger(NCAAM_LEDGER_PATH))
+        locks = _official_board_plays(load_ledger(NCAAM_LEDGER_PATH, fallback=True))
     if not locks:
         return (
             '<div class="ncaam-empty">'
@@ -439,7 +439,7 @@ def build_ncaam_page(
     out = docs_dir or DOCS_DIR
     out.mkdir(parents=True, exist_ok=True)
     ledger_path = ledger_path or NCAAM_LEDGER_PATH
-    ledger = load_ledger(ledger_path)
+    ledger = load_ledger(ledger_path, fallback=True)
     signals = _load_signals(signals_path)
     updated = format_display_datetime_et(
         signals.get("generated_at") or ledger.get("updated_at") or datetime.now(timezone.utc)

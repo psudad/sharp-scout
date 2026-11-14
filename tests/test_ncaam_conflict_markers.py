@@ -16,3 +16,17 @@ def test_detects_standard_and_stash_markers(tmp_path: Path) -> None:
 
     missing = tmp_path / "nope.json"
     assert _file_has_conflict_markers(missing) is False
+
+
+def test_build_ncaam_page_survives_conflict_ledger(tmp_path: Path) -> None:
+    from sharp_scout.site.ncaam_page import build_ncaam_page
+
+    ledger = tmp_path / "ncaam_ledger.json"
+    ledger.write_text(
+        "{\n<<<<<<< Updated upstream\n  \"plays\": []\n=======\n  \"plays\": []\n>>>>>>> Stashed changes\n}\n"
+    )
+    docs = tmp_path / "docs"
+    out = build_ncaam_page(docs_dir=docs, ledger_path=ledger)
+    assert out.exists()
+    html = out.read_text()
+    assert "College Basketball" in html or "ncaam" in html.lower() or "No locked plays" in html

@@ -61,6 +61,8 @@ def test_publish_heartbeat_only_when_publish_ok_and_no_new_locks(ncaam_paths, mo
         return True
 
     monkeypatch.setattr(runner_mod, "_git_commit_push", fake_push)
+    # Isolate from a real ratings_fetch_failed_YYYYMMDD.json on the repo checkout.
+    monkeypatch.setattr(runner_mod, "daily_fetch_state_paths_for_commit", lambda: [])
     assert runner_mod.publish_pass(new_locks=False, runner_id="r1")
     assert staged == [runner_mod.HEARTBEAT_COMMIT_PATHS]
 

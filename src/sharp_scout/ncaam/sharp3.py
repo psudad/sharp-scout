@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from sharp_scout.ncaam.lab_stakes import cap_lab_stake
 from sharp_scout.ncaam.sharp3_sim import format_sim_rec, monte_carlo_projection
 from sharp_scout.ncaam.splits import has_splits
 
@@ -69,7 +70,7 @@ def tier_and_units(*, money_pct: float, conf: float, edge: float, trap: bool) ->
         units = min(2.0, 1.0 + (edge - 4.0) * 0.2)
     elif tier == "TRAP":
         units = 0.0
-    return tier, round(units, 1)
+    return tier, cap_lab_stake(units)
 
 
 def _is_hook(line: float) -> bool:

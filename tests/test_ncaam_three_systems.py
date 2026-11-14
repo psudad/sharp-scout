@@ -24,7 +24,7 @@ GATE_CASES = [
     # line, price, money, ticket, mid, road, ml, expect market, line, price, tier, units, flags
     (4.5, -110, 58, 40, False, True, None, "spreads", 4.5, -110, "DIAMOND", 4.0, []),
     (4.5, -110, 50, 40, False, False, None, "spreads", 4.5, -110, "GOLD", 2.0, []),
-    (4.5, -110, 80, 40, False, False, None, "spreads", 4.5, -110, "DOUBLE_DIAMOND", 10.0, []),
+    (4.5, -110, 80, 40, False, False, None, "spreads", 4.5, -110, "DOUBLE_DIAMOND", 4.0, []),
     (-4.5, -110, 58, 40, False, False, -140, "h2h", None, -140, "DIAMOND", 4.0, ["PIVOT_TO_ML"]),
     (-4.5, -110, 58, 40, False, False, -160, "h2h", None, -160, "TRAP", 0.0, ["PIVOT_TO_ML", "JUICE_TRAP"]),
     (-4.5, -110, 58, 40, False, False, -200, "spreads", -4.0, -130, "DIAMOND", 4.0, ["BUY_POINT"]),
@@ -83,9 +83,9 @@ def test_shin_known_example():
         (3.5, "DIAMOND", 2.0),
         (4.8, "DIAMOND", 3.7),
         (4.99, "DIAMOND", 4.0),
-        (5.0, "DOUBLE_DIAMOND", 5.0),
-        (8.6, "DOUBLE_DIAMOND", 8.6),
-        (15.0, "DOUBLE_DIAMOND", 10.0),
+        (5.0, "DOUBLE_DIAMOND", 4.0),
+        (8.6, "DOUBLE_DIAMOND", 4.0),
+        (15.0, "DOUBLE_DIAMOND", 4.0),
         (15.01, None, 0.0),
     ],
 )
@@ -361,3 +361,16 @@ def test_public_site_never_mentions_sharp_systems():
         assert "Sharp 3<" not in txt and "Sharp 3 " not in txt, p
     src = (ROOT / "src" / "sharp_scout" / "site" / "ncaam_page.py").read_text()
     assert "sharp3" not in src and "Sharp 3" not in src
+
+
+def test_lab_stake_cap_constant_and_clip():
+    from sharp_scout.ncaam.lab_stakes import LAB_MAX_STAKE_UNITS, cap_lab_stake
+
+    assert LAB_MAX_STAKE_UNITS == 4.0
+    assert cap_lab_stake(10.0) == 4.0
+    assert cap_lab_stake(5.0) == 4.0
+    assert cap_lab_stake(4.0) == 4.0
+    assert cap_lab_stake(2.0) == 2.0
+    assert cap_lab_stake(0.0) == 0.0
+    # Sharp 3 DOUBLE_DIAMOND would have been 5–10u; tier is unchanged, stake is clipped.
+    assert sharp3.tier_and_units(money_pct=80, conf=0.92, edge=12, trap=False) == ("DOUBLE_DIAMOND", 4.0)

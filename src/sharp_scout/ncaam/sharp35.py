@@ -13,6 +13,7 @@ from typing import Any
 
 import numpy as np
 
+from sharp_scout.ncaam.lab_stakes import cap_lab_stake
 from sharp_scout.ncaam.model import p_cover_side, project_game
 from sharp_scout.ncaam.ratings import ratings_for_team
 from sharp_scout.ncaam.shin import implied, shin_two_way
@@ -45,10 +46,11 @@ def tier_and_units(edge: float) -> tuple[str | None, float]:
     if edge < MIN_EDGE:
         return "LEAN", 0.0
     if edge >= 5.0:
-        return "DOUBLE_DIAMOND", round(min(10.0, max(5.0, edge)), 1)
+        units = min(10.0, max(5.0, edge))
+        return "DOUBLE_DIAMOND", cap_lab_stake(units)
     if edge >= 3.5:
-        return "DIAMOND", round(min(4.0, max(2.0, 2.0 + (edge - 3.5) / 1.5 * 2.0)), 1)
-    return "GOLD", round(min(2.0, max(1.0, 1.0 + (edge - 2.5))), 1)
+        return "DIAMOND", cap_lab_stake(min(4.0, max(2.0, 2.0 + (edge - 3.5) / 1.5 * 2.0)))
+    return "GOLD", cap_lab_stake(min(2.0, max(1.0, 1.0 + (edge - 2.5))))
 
 
 def _seed(espn_id: str) -> int:

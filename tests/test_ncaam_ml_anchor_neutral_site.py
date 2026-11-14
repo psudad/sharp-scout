@@ -351,7 +351,9 @@ def test_repo_sharp3_gonzaga_purdue_row_is_void():
     ov = json.loads((DATA_DIR / "ncaam" / "manual_overrides.json").read_text())["overrides"]
     o = next(o for o in ov if o["id"] == gid)
     assert (o["ledger"], o["action"]) == ("sharp3_ledger.json", "void")
-    assert not any(o.get("action") == "set" for o in ov)
+    # Other owner-approved "set" corrections may exist (e.g. team-label fixes);
+    # this row must stay a void and must not be converted to set.
+    assert o.get("action") == "void"
     row = next(p for p in json.loads((DATA_DIR / "ncaam" / "sharp3_ledger.json").read_text())["plays"]
                if p["id"] == gid)
     assert (row["status"], row["units"], row["pnl_units"]) == ("void", 0.0, 0.0)

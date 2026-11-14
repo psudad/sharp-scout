@@ -53,7 +53,19 @@ def test_needs_full_publish_retries_after_failed_push(ncaam_paths):
 
 def test_publish_heartbeat_only_when_publish_ok_and_no_new_locks(ncaam_paths, monkeypatch):
     _, hb, _, _, _ = ncaam_paths
-    hb.write_text(json.dumps({"runner_id": "r1", "at": "2026-11-08T20:00:00+00:00", "note": "pass", "last_publish_ok": True}) + "\n")
+    recent = datetime.now(timezone.utc).isoformat()
+    hb.write_text(
+        json.dumps(
+            {
+                "runner_id": "r1",
+                "at": "2026-11-08T20:00:00+00:00",
+                "note": "pass",
+                "last_publish_ok": True,
+                "last_full_publish_at": recent,
+            }
+        )
+        + "\n"
+    )
     staged: list[list[str] | None] = []
 
     def fake_push(message, *, trigger_pages=True, add_paths=None):
@@ -69,7 +81,19 @@ def test_publish_heartbeat_only_when_publish_ok_and_no_new_locks(ncaam_paths, mo
 
 def test_publish_heartbeat_includes_torvik_fetch_failure_marker(ncaam_paths, monkeypatch):
     root, hb, _, ncaam_dir, _ = ncaam_paths
-    hb.write_text(json.dumps({"runner_id": "r1", "at": "2026-11-08T20:00:00+00:00", "note": "pass", "last_publish_ok": True}) + "\n")
+    recent = datetime.now(timezone.utc).isoformat()
+    hb.write_text(
+        json.dumps(
+            {
+                "runner_id": "r1",
+                "at": "2026-11-08T20:00:00+00:00",
+                "note": "pass",
+                "last_publish_ok": True,
+                "last_full_publish_at": recent,
+            }
+        )
+        + "\n"
+    )
     fixed = datetime(2026, 11, 13, 12, 0, tzinfo=runner_mod.ET)
 
     class FakeDT(datetime):
@@ -238,6 +262,76 @@ def test_lab_uses_lock_window_lab_not_official_floor():
     tip = datetime(2026, 11, 8, 23, 0, tzinfo=timezone.utc)
     assert lock_window(tip - timedelta(minutes=5), tip) == LockWindow.MISSED
     assert lock_window_lab(tip - timedelta(minutes=5), tip) == LockWindow.LATE
+
+
+def test_needs_full_publish_after_sixty_minutes_without_locks(ncaam_paths):
+    _, hb, _, _, _ = ncaam_paths
+    old = (datetime.now(timezone.utc) - timedelta(minutes=61)).isoformat()
+    hb.write_text(
+        json.dumps(
+            {
+                "runner_id": "r1",
+                "at": "2026-11-08T20:00:00+00:00",
+                "note": "pass",
+                "last_publish_ok": True,
+                "last_full_publish_at": old,
+            }
+        )
+        + "\n"
+    )
+    assert runner_mod._needs_full_publish(new_locks=False) is True
+
+
+def test_needs_full_publish_not_within_sixty_minutes(ncaam_paths):
+    _, hb, _, _, _ = ncaam_paths
+    recent = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+    hb.write_text(
+        json.dumps(
+            {
+                "runner_id": "r1",
+                "at": "2026-11-08T20:00:00+00:00",
+                "note": "pass",
+                "last_publish_ok": True,
+                "last_full_publish_at": recent,
+            }
+        )
+        + "\n"
+    )
+    assert runner_mod._needs_full_publish(new_locks=False) is False
+
+
+def test_hourly_full_publish_without_locks_or_odds_fetch(ncaam_paths, monkeypatch):
+    _, hb, _, _, _ = ncaam_paths
+    old = (datetime.now(timezone.utc) - timedelta(minutes=75)).isoformat()
+    hb.write_text(
+        json.dumps(
+            {
+                "runner_id": "r1",
+                "at": "2026-11-08T20:00:00+00:00",
+                "note": "pass",
+                "last_publish_ok": True,
+                "last_full_publish_at": old,
+            }
+        )
+        + "\n"
+    )
+
+    def forbid_odds(**_kw):
+        raise AssertionError("fetch_odds_snapshot must not run during publish_pass")
+
+    monkeypatch.setattr(runner_mod, "fetch_odds_snapshot", forbid_odds)
+    captured: list[tuple[str, bool, list[str]]] = []
+
+    def fake_push(message, *, trigger_pages=True, add_paths=None):
+        captured.append((message, trigger_pages, list(add_paths or [])))
+        return True
+
+    monkeypatch.setattr(runner_mod, "_git_commit_push", fake_push)
+    now = datetime.now(timezone.utc)
+    assert runner_mod.publish_pass(new_locks=False, runner_id="r1", now=now)
+    assert captured == [("chore(ncaam): board refresh", True, NCAAM_COMMIT_PATHS)]
+    data = json.loads(hb.read_text())
+    assert data["last_full_publish_at"] == now.isoformat()
 
 
 def test_ncaam_workflow_declares_actions_write():

@@ -396,6 +396,17 @@ def _ledger_rows(ledger: dict[str, Any]) -> str:
     )
 
 
+def _format_last_scan(signals: dict[str, Any]) -> str:
+    ps = signals.get("pass_summary") or {}
+    if not ps:
+        return ""
+    return (
+        f"Last scan: {int(ps.get('games_checked') or 0)} games checked, "
+        f"{int(ps.get('games_with_odds') or 0)} with odds matched, "
+        f"{int(ps.get('candidates') or 0)} candidates, {int(ps.get('locks') or 0)} locks."
+    )
+
+
 def _how_it_works() -> str:
     """Public disclaimer only — no method or model detail on the page."""
     return """
@@ -412,6 +423,10 @@ def render_ncaam_page_html(
     updated: str,
 ) -> str:
     rec = ncaam_record(ledger, path=NCAAM_LEDGER_PATH)
+    last_scan = _format_last_scan(signals)
+    last_scan_html = (
+        f'<p class="phase-note last-scan">{_esc(last_scan)}</p>' if last_scan else ""
+    )
     return NCAAM_PAGE_TEMPLATE.format(
         site_tabs=render_site_tabs(active="ncaam"),
         site_css=site_css,
@@ -419,6 +434,7 @@ def render_ncaam_page_html(
         bottom_bar_css=bottom_bar_css(),
         analytics_head=analytics_head,
         updated=_esc(updated),
+        last_scan=last_scan_html,
         record_block=_render_record(rec, ledger),
         plays_html=_render_locks(signals),
         ledger_html=_ledger_rows(ledger),
@@ -525,6 +541,7 @@ NCAAM_PAGE_TEMPLATE = """<!DOCTYPE html>
     <h1>College Basketball</h1>
     <p>Automated NCAAM picks. Locks are timestamped before tip; results settle from ESPN finals.</p>
     <p class="phase-note">Updated {updated}</p>
+    {last_scan}
     {record_block}
   </div>
   <div class="plays-heading">

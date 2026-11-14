@@ -222,6 +222,9 @@ def run_pass(
     odds_by_id = {str(e.get("event_id")): e for e in odds_events}
     candidates: list[dict[str, Any]] = []
     locked: list[dict[str, Any]] = []
+    in_window_total = 0
+    in_window_with_odds = 0
+    no_odds_match_games: list[str] = []
     for game in all_slate:
         tip = game.get("commence_time")
         if not isinstance(tip, datetime):
@@ -236,6 +239,7 @@ def run_pass(
             continue
         if window not in (LockWindow.PRIMARY, LockWindow.LATE):
             continue
+        in_window_total += 1
         oid = game.get("odds_event_id")
         ev = odds_by_id.get(str(oid)) if oid else None
         if (
@@ -250,11 +254,15 @@ def run_pass(
         if not ev and demo:
             ev = odds_events[0] if odds_events else None
         if not ev:
+            no_odds_match_games.append(
+                f"{game.get('away_team')} @ {game.get('home_team')} (espn_id={eid})"
+            )
             append_lock(
                 {
                     "espn_id": eid,
                     "event_id": eid,
                     "status": "no_play",
+                    "reason": "no_odds_match",
                     "tip": tip.isoformat(),
                     "lead_min": (tip - now).total_seconds() / 60.0,
                     "market": "spreads",
@@ -265,9 +273,30 @@ def run_pass(
                 allow_no_play=True,
             )
             continue
+        in_window_with_odds += 1
         for c in evaluate_game(game, ev, ratings, now=now):
             c["et_day"] = tip.astimezone(ET).date().isoformat()
             candidates.append(c)
+
+    if no_odds_match_games:
+        attached_ids = {
+            str(g.get("odds_event_id"))
+            for g in all_slate
+            if g.get("odds_event_id")
+        }
+        unmatched_odds = [
+            f"{e.get('away_team')} @ {e.get('home_team')}"
+            for e in odds_events
+            if str(e.get("event_id")) not in attached_ids
+        ]
+        logger.warning(
+            "NCAAM no_odds_match: matched %s of %s in-window games; "
+            "unmatched in-window: %s; Odds API events without slate match: %s",
+            in_window_with_odds,
+            in_window_total,
+            "; ".join(no_odds_match_games),
+            "; ".join(unmatched_odds) if unmatched_odds else "(none)",
+        )
 
     best = pick_best_per_game(candidates)
     et_today = now.astimezone(ET).date().isoformat()

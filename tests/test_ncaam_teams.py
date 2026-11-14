@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from sharp_scout.ncaam.espn import _parse_event
 from sharp_scout.ncaam.teams import normalize_ncaam, slate_match_stats
 
@@ -99,6 +101,47 @@ def test_unique_expansion_still_works():
     assert normalize_ncaam("Nicholls") == "Nicholls St."
     assert normalize_ncaam("Sam Houston") == "Sam Houston St."
     assert normalize_ncaam("McNeese") == "McNeese St."
+
+
+@pytest.mark.parametrize(
+    "odds_name,canon",
+    [
+        ("Tulane Green Wave", "Tulane"),
+        ("Maine Black Bears", "Maine"),
+        ("Marshall Thundering Herd", "Marshall"),
+        ("Texas Tech Red Raiders", "Texas Tech"),
+        ("Evansville Purple Aces", "Evansville"),
+        ("Cornell Big Red", "Cornell"),
+        ("Wake Forest Demon Deacons", "Wake Forest"),
+        ("Georgia Tech Yellow Jackets", "Georgia Tech"),
+        ("California Golden Bears", "California"),
+        ("Nevada Wolf Pack", "Nevada"),
+        ("Campbell Fighting Camels", "Campbell"),
+        ("Oakland Golden Grizzlies", "Oakland"),
+        ("North Texas Mean Green", "North Texas"),
+        ("Louisiana Ragin' Cajuns", "Louisiana"),
+        ("North Dakota Fighting Hawks", "North Dakota"),
+        ("St. Thomas (MN) Tommies", "St. Thomas"),
+        ("Loyola (Chi) Ramblers", "Loyola Chicago"),
+    ],
+)
+def test_multi_word_mascot_odds_names(odds_name: str, canon: str) -> None:
+    assert normalize_ncaam(odds_name) == canon
+
+
+def test_pre_pr180_single_and_multi_mascot_still_resolve():
+    """Regression: mascot stripping and unique expansion from before PR #180."""
+    assert normalize_ncaam("Duke Blue Devils") == "Duke"
+    assert normalize_ncaam("Florida Gators") == "Florida"
+    assert normalize_ncaam("Appalachian State Mountaineers") == "Appalachian St."
+    assert normalize_ncaam("San Diego State Aztecs") == "San Diego St."
+    assert normalize_ncaam("Grambling Tigers") == "Grambling St."
+
+
+def test_texas_tech_red_raiders_not_texas():
+    assert normalize_ncaam("Texas Tech Red Raiders") == "Texas Tech"
+    assert normalize_ncaam("Texas Tech") == "Texas Tech"
+    assert normalize_ncaam("Texas") == "Texas"
 
 
 def test_unknown_or_different_schools_are_not_guessed():

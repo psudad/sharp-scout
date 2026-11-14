@@ -56,6 +56,8 @@ _IDENTITY_TOKENS = frozenset(
         "BAKERSFIELD",
         "MARCOS",
         "VALLEY",
+        "ORLEANS",
+        "NEW",
         "A&T",
         "T",  # A&T -> A T
     }
@@ -134,22 +136,41 @@ def normalize_ncaam(name: str) -> str | None:
     if hit:
         return hit
 
-    # Strip a trailing mascot ("Texas Longhorns") only when every leftover
-    # token is not a school-identity word and the remainder is an exact match.
+    # Strip trailing mascot word(s) ("Texas Longhorns", "Wake Forest Demon Deacons")
+    # when stripped tokens are not school-identity words and the remainder is an
+    # exact alias/canonical match. Prefer the longest valid school remainder.
     parts = raw.split()
     if len(parts) >= 2:
-        remainder = " ".join(parts[:-1])
-        last_tokens = _norm_key(parts[-1]).split()
-        # "A&M-Kingsville" is one whitespace token but contains identity words.
-        if last_tokens and not any(tok in _IDENTITY_TOKENS for tok in last_tokens):
+        best_hit: str | None = None
+        best_remainder_len = -1
+        for k in (1, 2, 3):
+            if len(parts) <= k:
+                continue
+            remainder = " ".join(parts[:-k])
+            mascot_tokens: list[str] = []
+            for word in parts[-k:]:
+                mascot_tokens.extend(_norm_key(word).split())
+            if any(tok in _IDENTITY_TOKENS for tok in mascot_tokens):
+                continue
             hit = _lookup_exact(remainder, aliases, canon)
-            # Remainder must itself be that school (exact or State/St. variant),
-            # not a unique-expansion of a different name.
-            if hit and (
-                _norm_key(hit) == _norm_key(remainder)
-                or _norm_key(remainder) in set(_variant_keys(hit))
-            ):
-                return hit
+            if not hit:
+                continue
+            # Reject contraction to a shorter school (e.g. Texas Tech -> Texas) unless
+            # the remainder literally resolves to that shorter school name/key.
+            rem_key = _norm_key(remainder)
+            hit_key = _norm_key(hit)
+            if rem_key != hit_key and rem_key not in set(_variant_keys(hit)):
+                alias_hit = aliases.get(rem_key)
+                if alias_hit != hit and not any(
+                    aliases.get(k) == hit for k in _variant_keys(remainder)
+                ):
+                    continue
+            rlen = len(rem_key)
+            if rlen > best_remainder_len:
+                best_remainder_len = rlen
+                best_hit = hit
+        if best_hit:
+            return best_hit
 
     # Unique expansion: query is a proper prefix of exactly one canonical (or alias target).
     # "Grambling" -> "Grambling St."  — not "Texas A&M-CC" -> "Texas".

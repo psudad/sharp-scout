@@ -81,6 +81,35 @@ def test_loop_never_sleeps_past_budget(tmp_path, monkeypatch):
     assert json.loads((tmp_path / "hb.json").read_text())["note"] == runner_mod.EXITED_NOTE
 
 
+def test_no_odds_match_reason_persisted_on_no_play(tmp_path):
+    from datetime import timedelta
+
+    from sharp_scout.ncaam.lock import append_lock, load_ledger
+
+    path = tmp_path / "ncaam_ledger.json"
+    path.write_text(
+        '{"updated_at":"1970-01-01T00:00:00+00:00","starting_units":100,"plays":[],"stage_cards":[],"disagreements":[]}\n'
+    )
+    tip = datetime(2030, 1, 1, tzinfo=timezone.utc) + timedelta(hours=2)
+    append_lock(
+        {
+            "espn_id": "espn-1",
+            "event_id": "espn-1",
+            "status": "no_play",
+            "reason": "no_odds_match",
+            "tip": tip.isoformat(),
+            "lead_min": 120.0,
+            "market": "spreads",
+            "inputs_sha256": "",
+        },
+        path=path,
+        allow_no_play=True,
+    )
+    row = load_ledger(path)["plays"][-1]
+    assert row["status"] == "no_play"
+    assert row["reason"] == "no_odds_match"
+
+
 def test_no_snapshot_when_no_games_near_lock():
     now = datetime(2026, 11, 2, 15, tzinfo=timezone.utc)
     rows = [{"commence_time": now + timedelta(hours=5)}, {"commence_time": now - timedelta(hours=1)}]

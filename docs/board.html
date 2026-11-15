@@ -12,13 +12,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-1PT74LM4LF"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-1PT74LM4LF', { anonymize_ip: true });
-</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -748,6 +742,122 @@
   .lp-topnav a .nav-test-badge { background: rgba(255,255,255,.22); color: #fff; }
   .tab .nav-test-badge { background: rgba(30,58,95,.12); color: var(--color-navy); font-size: 8px; }
   .tab.active .nav-test-badge { background: rgba(255,255,255,.28); color: #fff; }
+
+  .lp-nba-section, .board-nba-section {
+    margin: 28px 0 8px;
+    padding: 18px 16px 20px;
+    background: #fff;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(16,24,40,.04);
+  }
+  .board-nba-section {
+    max-width: 1240px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 20px 16px 24px;
+  }
+  .lp-nba-title {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    color: var(--color-navy, #1e3a5f);
+  }
+  .lp-nba-note {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    line-height: 1.45;
+  }
+  .lp-nba-note a { color: var(--color-navy, #1e3a5f); font-weight: 700; }
+  .lp-nba-updated { margin: 0 0 10px; font-size: 12px; color: var(--color-text-muted); }
+  .lp-nba-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  @media (min-width: 640px) { .lp-nba-grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1024px) { .lp-nba-grid { grid-template-columns: repeat(3, 1fr); } }
+  .lp-nba-card {
+    border: 1px solid var(--color-border);
+    border-left: 3px solid #64748b;
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    background: #fafbfc;
+    position: relative;
+  }
+  .lp-nba-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+  }
+  .lp-nba-stake {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--color-text);
+    font-size: 13px;
+    text-align: right;
+  }
+  .lp-nba-stake-usd {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+  .lp-nba-game {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin-bottom: 4px;
+  }
+  .lp-nba-pick {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    color: var(--color-text);
+  }
+  .lp-nba-odds {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 6px;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .lp-nba-odds-k {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--color-text-muted);
+    font-weight: 700;
+  }
+  .lp-nba-odds-v { font-weight: 700; color: var(--color-text); }
+  .lp-nba-odds-sep { color: #cbd5e1; }
+  .lp-nba-paper-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .lp-nba-empty {
+    text-align: center;
+    padding: 16px 12px;
+    border: 1px dashed var(--color-border);
+    border-radius: 12px;
+    color: var(--color-text-muted);
+    font-size: 15px;
+  }
+  .lp-nba-empty-sub { font-size: 13px; margin-top: 8px; }
 
 
   body.ss-bottom-bar { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 12px); }
@@ -5190,6 +5300,33 @@
 <tr data-team-search="mem memphis memphis tigers rebels tigers unlv unlv rebels" data-event-id="90d9b4e9c9485143021eb1535e792164"><td>Sat Aug 29, 10:00 PM EDT</td><td>MEM @ UNLV</td><td>Total</td><td class='hybrid-cell lean-only' title='Research lean — not a posted play.'><span class="lean-only-badge">LEAN ONLY</span><div class='hybrid-pick-text muted-pick'><b>Over 56.0</b></div></td><td><b>Over 56.0</b></td><td><b>Under 56.0</b></td><td><b>Under 55.5</b></td><td><b>Under 55.5</b></td><td><span class="sharp-money none"><b>Over</b> +7%<span class="split-pct-hint">14% tix · 21% $</span></span></td><td><span class='pending'>—</span></td><td>model, sharp_edge</td></tr></tbody></table></div><p class="phase-note stage-scroll-hint">Three rows per game (spread, ML, total). <b>Quant Pick</b> shows <span class='lock-badge-inline'>LOCKED</span> when that row is on the weekly card above; <span class='lean-only-badge-inline'>LEAN ONLY</span> is research.</p></div>
   </details>
 </div>
+
+<section class="board-nba-section" aria-labelledby="nba-home-heading" data-nba-paper-section="1"><div class="lp-nba-head"><h2 class="lp-nba-title" id="nba-home-heading">NBA paper plays — testing only</h2><p class="lp-nba-note">Paper only — never live bets. <a href="nba.html">Full NBA board →</a></p><p class="lp-nba-updated">NBA scan Sat Nov 14, 2026 at 8:02 PM EST</p></div><div class="lp-nba-empty" role="status"><p><strong>No NBA paper plays yet today.</strong></p><p class="lp-nba-empty-sub">Next scan <span class="nba-next-scan-time" data-nba-next-scans='[{&quot;iso&quot;:&quot;2026-11-15T09:07:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 9:07 AM EST&quot;},{&quot;iso&quot;:&quot;2026-11-15T12:54:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 12:54 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-15T15:54:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 3:54 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-15T16:24:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 4:24 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-15T16:54:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 4:54 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-15T17:54:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 5:54 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-15T18:54:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 6:54 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-15T19:54:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 7:54 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-15T20:54:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 15, 2026 at 8:54 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-16T13:07:00-05:00&quot;,&quot;label&quot;:&quot;Mon Nov 16, 2026 at 1:07 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-17T13:07:00-05:00&quot;,&quot;label&quot;:&quot;Tue Nov 17, 2026 at 1:07 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-18T13:07:00-05:00&quot;,&quot;label&quot;:&quot;Wed Nov 18, 2026 at 1:07 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-19T13:07:00-05:00&quot;,&quot;label&quot;:&quot;Thu Nov 19, 2026 at 1:07 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-20T13:07:00-05:00&quot;,&quot;label&quot;:&quot;Fri Nov 20, 2026 at 1:07 PM EST&quot;},{&quot;iso&quot;:&quot;2026-11-21T09:07:00-05:00&quot;,&quot;label&quot;:&quot;Sat Nov 21, 2026 at 9:07 AM EST&quot;},{&quot;iso&quot;:&quot;2026-11-22T09:07:00-05:00&quot;,&quot;label&quot;:&quot;Sun Nov 22, 2026 at 9:07 AM EST&quot;}]'>Sun Nov 15, 2026 at 9:07 AM EST</span>.</p></div></section>
+<script>
+(function(){
+  document.querySelectorAll("[data-nba-next-scans]").forEach(function(el){
+    var raw = el.getAttribute("data-nba-next-scans");
+    if (!raw) return;
+    var slots;
+    try { slots = JSON.parse(raw); } catch (e) { return; }
+    function pick(){
+      var now = Date.now();
+      for (var i = 0; i < slots.length; i++){
+        var t = Date.parse(slots[i].iso);
+        if (!isNaN(t) && t > now + 15000) return slots[i].label;
+      }
+      return null;
+    }
+    function tick(){
+      var label = pick();
+      if (label) el.textContent = label;
+    }
+    tick();
+    setInterval(tick, 30000);
+  });
+})();
+</script>
+
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>
 Source: ledger.json · record.json · ncaaf_ledger.json · ncaaf_record.json</p>

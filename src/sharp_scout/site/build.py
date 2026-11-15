@@ -1158,7 +1158,10 @@ def build_site(
     )
     from sharp_scout.site.site_nav import render_board_aux_tab_links
 
+    nba_home_section = render_nba_home_section(variant="board")
+
     html = SITE_TEMPLATE.format(
+        nba_home_section=nba_home_section,
         board_aux_tabs=render_board_aux_tab_links(),
         bottom_bar_css=bottom_bar_css(),
         slip_overlay=render_slip_overlay(),
@@ -4290,9 +4293,10 @@ _SITE_CSS = """\
   }
 """
 
+from sharp_scout.site.nba_home_section import NBA_HOME_SECTION_CSS, render_nba_home_section
 from sharp_scout.site.site_nav import NAV_TEST_BADGE_CSS as _NAV_BADGE_CSS
 
-_SITE_CSS = _SITE_CSS + _NAV_BADGE_CSS
+_SITE_CSS = _SITE_CSS + _NAV_BADGE_CSS + NBA_HOME_SECTION_CSS
 
 
 SITE_TEMPLATE = """<!DOCTYPE html>
@@ -4432,6 +4436,8 @@ SITE_TEMPLATE = """<!DOCTYPE html>
     {ncaaf_historical_html}
   </details>
 </div>
+
+{nba_home_section}
 
 <p class="footer">Signals only — no auto-betting. Data: nflverse · cfbfastR · The Odds API · Action Network.<br>
 Source: ledger.json · record.json · ncaaf_ledger.json · ncaaf_record.json</p>

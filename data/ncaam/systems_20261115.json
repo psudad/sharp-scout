@@ -478,39 +478,41 @@
    "home_team": "Buffalo",
    "sharp3": {
     "book": "draftkings",
-    "conf": 0.78,
-    "edge": 25.62,
+    "conf": 0.735,
+    "edge": 16.98,
     "first_tier": "GOLD",
-    "flags": [],
-    "gap": 2.0,
-    "line": 13.5,
+    "flags": [
+     "BUY_POINT"
+    ],
+    "gap": 3.0,
+    "line": -13.0,
     "line_source": "odds_api",
     "market": "spreads",
-    "money_pct": 62.0,
-    "orig_line": 13.5,
+    "money_pct": 42.0,
+    "orig_line": -13.5,
     "orig_price": -110.0,
-    "price": -110.0,
-    "price_estimated": false,
+    "price": -130.0,
+    "price_estimated": true,
     "reason": "Volume (not played)",
     "result": "play",
-    "side": "away",
+    "side": "home",
     "sim_projection": {
      "hfa": 3.0,
      "inputs": {
       "espn_id": "401911017",
-      "line": 13.5,
+      "line": -13.0,
       "market": "spreads",
       "neutral_site": false,
       "note": "Juice/price not used; spread/ML result vs locked line only.",
-      "side": "away"
+      "side": "home"
      },
      "kind": "projection",
-     "losses": 4097,
+     "losses": 5606,
      "margin_model": 11.21,
      "margin_sd": 10.5,
      "model": "torvik-efficiency-mc-v1",
      "n": 10000,
-     "p_cover_or_ml": 0.5903,
+     "p_cover_or_ml": 0.4394,
      "pushes": 0,
      "ratings_display_max_acquisition_age_days": 1,
      "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
@@ -532,33 +534,33 @@
      },
      "reproducibility": {
       "rng": "numpy.random.Generator",
-      "seed": 140146896824986,
-      "seed_inputs": "sharp3-sim|401911017|away|spreads|13.5"
+      "seed": 81751484507471,
+      "seed_inputs": "sharp3-sim|401911017|home|spreads|-13.0"
      },
      "status": "ok",
-     "wins": 5903
+     "wins": 4394
     },
-    "sim_rec": "proj 5903-4097/10000 MC",
+    "sim_rec": "proj 4394-5606/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 60.0,
+    "ticket_pct": 39.0,
     "tier": "GOLD",
     "units": 2.0,
     "volume": true
    },
    "sharp35": {
     "flags": [],
-    "gap": 2.0,
+    "gap": 3.0,
     "market": "spreads",
-    "money_pct": 62.0,
+    "money_pct": 42.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
-    "side": "away",
+    "side": "home",
     "signals": {
      "away": [],
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 60.0
+    "ticket_pct": 39.0
    },
    "tip": "2026-11-15T22:30:00+00:00"
   },
@@ -1342,16 +1344,26 @@
   },
   "401920124": {
    "away_team": "Cal Poly",
-   "has_splits": false,
+   "has_splits": true,
    "home_team": "Montana St.",
    "sharp3": {
-    "reason": "No splits data",
-    "result": "no_splits"
+    "reason": "No sharp gap",
+    "result": "warning"
    },
    "sharp35": {
+    "flags": [],
+    "gap": 0.0,
     "market": "spreads",
-    "reason": "No splits data",
-    "result": "no_splits"
+    "money_pct": 57.0,
+    "reason": "Fewer than 2 signals",
+    "result": "not_shortlisted",
+    "side": "home",
+    "signals": {
+     "away": [],
+     "home": []
+    },
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 57.0
    },
    "tip": "2026-11-15T23:00:00+00:00"
   },
@@ -1736,15 +1748,15 @@
    "home_team": "Wisconsin",
    "sharp3": {
     "book": "draftkings",
-    "conf": 0.785,
-    "edge": 26.58,
+    "conf": 0.8,
+    "edge": 28.08,
     "first_tier": "GOLD",
     "flags": [],
-    "gap": 3.0,
+    "gap": 6.0,
     "line": 27.5,
     "line_source": "odds_api",
     "market": "spreads",
-    "money_pct": 75.0,
+    "money_pct": 76.0,
     "orig_line": 27.5,
     "orig_price": -108.0,
     "price": -108.0,
@@ -1798,16 +1810,16 @@
     },
     "sim_rec": "proj 8079-1921/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 72.0,
+    "ticket_pct": 70.0,
     "tier": "GOLD",
     "units": 2.0,
     "volume": true
    },
    "sharp35": {
     "flags": [],
-    "gap": 3.0,
+    "gap": 6.0,
     "market": "spreads",
-    "money_pct": 75.0,
+    "money_pct": 76.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "away",
@@ -1816,7 +1828,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 72.0
+    "ticket_pct": 70.0
    },
    "tip": "2026-11-16T01:00:00+00:00"
   },
@@ -2597,10 +2609,13 @@
     "gap": 22.0,
     "line": 13.5,
     "line_source": "odds_api",
+    "locked": true,
+    "locked_at": "2026-11-15T20:44:03.770259+00:00",
     "market": "spreads",
     "money_pct": 67.0,
     "orig_line": 13.5,
     "orig_price": -108.0,
+    "pick_status": "HOLD",
     "price": -108.0,
     "price_estimated": false,
     "result": "play",
@@ -2871,15 +2886,15 @@
    "home_team": "UTSA",
    "sharp3": {
     "book": "draftkings",
-    "conf": 0.94,
-    "edge": 41.62,
+    "conf": 0.95,
+    "edge": 42.62,
     "first_tier": "DOUBLE_DIAMOND",
     "flags": [],
-    "gap": 34.0,
+    "gap": 36.0,
     "line": 3.5,
     "line_source": "odds_api",
     "market": "spreads",
-    "money_pct": 79.0,
+    "money_pct": 78.0,
     "orig_line": 3.5,
     "orig_price": -110.0,
     "price": -110.0,
@@ -2932,7 +2947,7 @@
     },
     "sim_rec": "proj 4799-5201/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 45.0,
+    "ticket_pct": 42.0,
     "tier": "DOUBLE_DIAMOND",
     "units": 4.0
    },
@@ -2940,9 +2955,9 @@
     "flags": [
      "WHALE_GAP"
     ],
-    "gap": 34.0,
+    "gap": 36.0,
     "market": "spreads",
-    "money_pct": 79.0,
+    "money_pct": 78.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "home",
@@ -2953,7 +2968,7 @@
      ]
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 45.0
+    "ticket_pct": 42.0
    },
    "tip": "2026-11-16T01:00:00+00:00"
   },
@@ -2975,10 +2990,10 @@
  },
  "splits": {
   "auth_mode": "token",
-  "coverage": "32/34",
+  "coverage": "33/34",
   "n_games": 34,
-  "n_with_money": 32,
+  "n_with_money": 33,
   "status": 200
  },
- "updated_at": "2026-11-15T20:28:47.708731+00:00"
+ "updated_at": "2026-11-15T20:43:58.818070+00:00"
 }

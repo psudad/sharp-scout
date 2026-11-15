@@ -17,6 +17,11 @@ ADD_PATHS="${ADD_PATHS:-}"
 MAX_ATTEMPTS=5
 attempt=1
 
+commits_ahead_of_origin_main() {
+  git fetch origin main 2>/dev/null || true
+  git rev-list --count "origin/main..HEAD" 2>/dev/null || echo 0
+}
+
 conflict_marker_files() {
   # List tracked or staged files that contain conflict markers.
   local files=""
@@ -50,37 +55,42 @@ while (( attempt <= MAX_ATTEMPTS )); do
     "$(dirname "$0")/ci_git_add_paths.sh" $ADD_PATHS
   fi
   if git diff --staged --quiet; then
-    echo "No staged changes to commit"
-    exit 0
+    ahead="$(commits_ahead_of_origin_main)"
+    if [[ "$ahead" -eq 0 ]]; then
+      echo "No staged changes to commit"
+      exit 0
+    fi
+    echo "No new staged changes; local branch is ${ahead} commit(s) ahead of origin/main — syncing and pushing"
+  else
+    marked="$(conflict_marker_files || true)"
+    if [[ -n "$marked" ]]; then
+      echo "REFUSING to commit files that contain git conflict markers:"
+      printf '%s\n' "$marked"
+      echo "Rebase/autostash conflict on attempt ${attempt} — will not keep markers"
+      reset_and_rerun
+    else
+      git commit -m "$COMMIT_MSG"
+    fi
   fi
 
-  marked="$(conflict_marker_files || true)"
-  if [[ -n "$marked" ]]; then
-    echo "REFUSING to commit files that contain git conflict markers:"
-    printf '%s\n' "$marked"
-    echo "Rebase/autostash conflict on attempt ${attempt} — will not keep markers"
-    reset_and_rerun
-  else
-    git commit -m "$COMMIT_MSG"
-    # --autostash: pipeline steps can leave tracked files modified that are not part of
-    # this commit (e.g. NBA injury refresh); plain --rebase refused with "unstaged changes".
-    if git pull --rebase --autostash origin main; then
-      marked="$(conflict_marker_files || true)"
-      if [[ -n "$marked" ]]; then
-        echo "Autostash/rebase left conflict markers after a 'successful' pull:"
-        printf '%s\n' "$marked"
-        echo "Not pushing this state. Resetting."
-        reset_and_rerun
-      elif git push origin HEAD:main; then
-        echo "Push succeeded on attempt ${attempt}"
-        exit 0
-      else
-        echo "Push failed on attempt ${attempt}"
-      fi
-    else
-      echo "Rebase conflict on attempt ${attempt} — resetting to origin/main"
+  # --autostash: pipeline steps can leave tracked files modified that are not part of
+  # this commit (e.g. NBA injury refresh); plain --rebase refused with "unstaged changes".
+  if git pull --rebase --autostash origin main; then
+    marked="$(conflict_marker_files || true)"
+    if [[ -n "$marked" ]]; then
+      echo "Autostash/rebase left conflict markers after a 'successful' pull:"
+      printf '%s\n' "$marked"
+      echo "Not pushing this state. Resetting."
       reset_and_rerun
+    elif git push origin HEAD:main; then
+      echo "Push succeeded on attempt ${attempt}"
+      exit 0
+    else
+      echo "Push failed on attempt ${attempt}"
     fi
+  else
+    echo "Rebase conflict on attempt ${attempt} — resetting to origin/main"
+    reset_and_rerun
   fi
   if (( attempt < MAX_ATTEMPTS )); then
     backoff=$((4 ** attempt))

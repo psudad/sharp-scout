@@ -1663,11 +1663,8 @@ def render_nba_props_page_html(
     )
 
 
-def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
-    """Write docs/nba.html and shadow JSON copies. Does not touch football artifacts."""
-    out = docs_dir or DOCS_DIR
-    out.mkdir(parents=True, exist_ok=True)
-
+def load_nba_site_sources() -> dict[str, Any]:
+    """Load shadow NBA JSON used by nba.html and the home/board embed (no docs I/O)."""
     signals_payload = _load_json(nba_paths.NBA_LATEST_SIGNALS_PATH)
     ledger = _load_json(nba_paths.NBA_LEDGER_PATH)
     report = _load_json(nba_paths.NBA_REPORT_PATH)
@@ -1699,6 +1696,33 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
     except Exception:  # noqa: BLE001
         pass
     live_scan = has_live_nba_scan(signals_payload)
+    paper_store: dict[str, Any] = {}
+    try:
+        from sharp_scout.nba.score_model.paper import load_paper_store
+
+        paper_store = load_paper_store()
+    except Exception:  # noqa: BLE001
+        pass
+    return {
+        "signals_payload": signals_payload,
+        "ledger": ledger,
+        "report": report,
+        "live_scan": live_scan,
+        "paper_store": paper_store,
+    }
+
+
+def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
+    """Write docs/nba.html and shadow JSON copies. Does not touch football artifacts."""
+    out = docs_dir or DOCS_DIR
+    out.mkdir(parents=True, exist_ok=True)
+
+    sources = load_nba_site_sources()
+    signals_payload = sources["signals_payload"]
+    ledger = sources["ledger"]
+    report = sources["report"]
+    live_scan = sources["live_scan"]
+    paper_store = sources["paper_store"]
 
     pub_signals = public_nba_signals(signals_payload)
     pub_ledger = public_nba_ledger(ledger)
@@ -1729,27 +1753,18 @@ def build_nba_page(*, docs_dir: Path | None = None) -> Path | None:
 
     score_model_rows: list[dict[str, Any]] = []
     injury_lag_rows: list[dict[str, Any]] = []
-    score_model_summary: dict[str, Any] = {}
+    score_model_summary: dict[str, Any] = paper_store.get("summary") or {}
     if live_scan:
         try:
             from sharp_scout.nba.score_model.injury_lag import open_entries_for_page
-            from sharp_scout.nba.score_model.paper import load_paper_store, slate_projections_for_page
+            from sharp_scout.nba.score_model.paper import slate_projections_for_page
 
             score_model_rows = slate_projections_for_page()
             injury_lag_rows = open_entries_for_page()
-            score_model_summary = load_paper_store().get("summary") or {}
+            if not score_model_summary:
+                score_model_summary = paper_store.get("summary") or {}
         except Exception:  # noqa: BLE001
             pass
-
-    paper_store: dict[str, Any] = {}
-    try:
-        from sharp_scout.nba.score_model.paper import load_paper_store
-
-        paper_store = load_paper_store()
-        if not score_model_summary:
-            score_model_summary = paper_store.get("summary") or {}
-    except Exception:  # noqa: BLE001
-        pass
 
     analytics_head = _render_analytics_head(get_settings().ga_measurement_id)
     html = render_nba_page_html(

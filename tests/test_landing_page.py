@@ -27,6 +27,13 @@ def test_landing_and_board_are_both_written(site: Path):
     assert (site / "board.html").exists()
 
 
+def test_landing_has_nba_paper_section(site: Path):
+    html = (site / "index.html").read_text()
+    assert "NBA paper plays — testing only" in html
+    assert 'data-nba-paper-section="1"' in html
+    assert "Full NBA board" in html
+
+
 def test_landing_hub_links_to_all_boards(site: Path):
     html = (site / "index.html").read_text()
     assert "Model boards" in html

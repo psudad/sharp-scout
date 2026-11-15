@@ -20,7 +20,6 @@ from sharp_scout.site.bottom_bar import (
     render_bottom_bar,
     render_slip_overlay,
 )
-from sharp_scout.site.nba_home_section import NBA_HOME_SECTION_CSS, render_nba_home_section
 from sharp_scout.site.site_nav import render_lp_topnav
 
 
@@ -423,7 +422,6 @@ LANDING_PAGE_CSS = """
   .lp-slip li button { border: 0; background: none; color: #b91c1c; cursor: pointer; font-size: 13px; }
   .lp-slip .lp-copy { width: 100%; margin-top: 10px; border: 1px solid var(--color-navy); background: #fff;
     color: var(--color-navy); border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); }
-""" + NBA_HOME_SECTION_CSS + """
   @media (min-width: 900px) {
     .lp-topnav { margin-left: 20px; gap: 4px; }
     .lp-topnav a { padding: 8px 12px; font-size: 14px; }
@@ -519,8 +517,6 @@ def render_landing_page(
     del ncaaf_plays, nfl_plays, ncaaf_leans, nfl_leans, nfl_signal_plays, ncaaf_signal_plays
     del nfl_season_week, ncaaf_season_week
 
-    nba_home_section = render_nba_home_section(variant="landing")
-
     b = _site_build()
     from sharp_scout.site.site_nav import nba_nav_label
 
@@ -571,7 +567,6 @@ def render_landing_page(
         slip_overlay=render_slip_overlay(),
         bottom_bar_script=BOTTOM_BAR_SCRIPT,
         lp_topnav=render_lp_topnav(active="home"),
-        nba_home_section=nba_home_section,
     )
 
 
@@ -618,7 +613,6 @@ LANDING_TEMPLATE = """<!DOCTYPE html>
     <div class="lp-updated">Football boards updated {board_updated}</div>
   </div>
   <div class="lp-board-grid">{board_cards}</div>
-  {nba_home_section}
 </main>
 
 {slip_overlay}

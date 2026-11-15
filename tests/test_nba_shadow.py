@@ -62,18 +62,10 @@ def test_football_pages_have_no_nba_shadow_content(tmp_path, monkeypatch):
     combined = html + board
     assert "nba_shadow" not in combined.lower()
     assert "basketball_nba" not in combined
-    assert "NBA paper plays — testing only" in html
-    assert "NBA paper plays — testing only" in board
-    assert "Pace of Play" not in combined
-    assert 'data-nba-paper-section="1"' in html
-
-
-def _nba_home_section(html: str) -> str:
-    import re
-
-    m = re.search(r'<section[^>]*data-nba-paper-section="1"[^>]*>.*?</section>', html, re.S)
-    assert m, "missing NBA home embed section"
-    return m.group(0)
+    assert "NBA paper plays — testing only" not in html
+    assert "NBA paper plays — testing only" not in board
+    assert 'data-nba-paper-section="1"' not in combined
+    assert 'href="nba.html"' in html
 
 
 def test_nba_public_page_isolated(tmp_path, monkeypatch):
@@ -113,69 +105,6 @@ def test_nba_public_page_isolated(tmp_path, monkeypatch):
     assert pub_signals.get("demo") is False
     pub_ledger = json.loads((docs / "nba_ledger.json").read_text())
     assert pub_ledger.get("plays") == []
-
-
-def test_home_and_board_embed_nba_paper_plays(tmp_path, monkeypatch):
-    from datetime import datetime, time
-
-    from sharp_scout.nba import paths as nba_paths
-    from sharp_scout.utils.slate import ET
-
-    today_kick = datetime.combine(datetime.now(ET).date(), time(19, 30), tzinfo=ET).isoformat()
-    shadow = tmp_path / "shadow"
-    shadow.mkdir()
-    monkeypatch.setattr(nba_paths, "SHADOW_DIR", shadow)
-    monkeypatch.setattr(nba_paths, "NBA_LEDGER_PATH", shadow / "nba_ledger.json")
-    monkeypatch.setattr(nba_paths, "NBA_LATEST_SIGNALS_PATH", shadow / "nba_latest_signals.json")
-    monkeypatch.setattr(nba_paths, "NBA_REPORT_PATH", shadow / "nba_paper_report.json")
-
-    live_signals = {
-        "ok": True,
-        "demo": False,
-        "generated_at": "2026-10-24T18:00:00+00:00",
-        "n_events": 1,
-        "n_signals": 1,
-        "signals": [
-            {
-                "event_id": "live-ev-1",
-                "play_type": "side",
-                "kickoff": today_kick,
-                "away_team": "BOS",
-                "home_team": "NYK",
-                "market": "spreads",
-                "side": "away",
-                "line": 4.5,
-                "book": "fanduel",
-                "price": -110,
-                "units": 1.0,
-                "edge": 0.03,
-                "p_true": 0.54,
-                "filter_passed": True,
-            }
-        ],
-    }
-    (shadow / "nba_latest_signals.json").write_text(json.dumps(live_signals) + "\n")
-    (shadow / "nba_ledger.json").write_text(
-        json.dumps({"updated_at": "2026-10-24T18:00:00+00:00", "sport": "nba", "mode": "shadow", "plays": []})
-        + "\n"
-    )
-
-    docs = tmp_path / "docs"
-    build_site(docs_dir=docs, signals_path=Path("/workspace/artifacts/latest_signals.json"))
-    index = (docs / "index.html").read_text()
-    board = (docs / "board.html").read_text()
-    for html in (index, board):
-        section = _nba_home_section(html)
-        assert "NBA paper plays — testing only" in section
-        assert "Paper only — never live bets" in section
-        assert 'href="nba.html"' in section
-        assert "BOS" in section
-        assert "4.5" in section
-        assert "FanDuel" in section
-        assert "-110" in section
-        assert "1.00u" in section
-        assert "lp-add" not in section
-        assert "Pace" not in section
 
 
 def test_nba_public_page_shows_live_scan_only(tmp_path, monkeypatch):

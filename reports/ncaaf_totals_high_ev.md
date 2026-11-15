@@ -2,11 +2,11 @@
 
 Private paper ledger for totals candidates above the LOCKED card EV ceiling (12%). Not linked from the public GitHub Pages board.
 
-_Generated: 2026-11-15T01:03:04.709267+00:00_
+_Generated: 2026-11-15T01:08:37.491158+00:00_
 
 ## High-EV buckets combined (12%+)
 
-- **Record:** 307-331-2 (37 pending)  **Units:** -36.85  **ROI/play:** -0.0576  **Avg CLV:** 0.0094
+- **Record:** 307-331-2 (37 pending)  **Units:** -36.85  **ROI/play:** -0.0576  **Avg CLV:** 0.0095
 
 ## By bucket
 
@@ -16,9 +16,9 @@ _Generated: 2026-11-15T01:03:04.709267+00:00_
   - **Under:** 45-60-1 (113 rows, avg CLV 0.008)
 
 ### 16%+
-- Record 184-195-1 | units -17.33 | ROI/play -0.0456 | avg CLV 0.0102
+- Record 184-195-1 | units -17.33 | ROI/play -0.0456 | avg CLV 0.0103
   - **Over:** 115-113 (245 rows, avg CLV 0.0109)
-  - **Under:** 69-82-1 (173 rows, avg CLV 0.0091)
+  - **Under:** 69-82-1 (173 rows, avg CLV 0.0094)
 
 ### 4–12% cert miss (p_fair / confirmation only)
 - Record 10-14 | units -5.97 | ROI/play -0.2489 | avg CLV 0.008

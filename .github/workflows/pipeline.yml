@@ -38,6 +38,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pipeline
@@ -46,6 +47,8 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    outputs:
+      ran: ${{ steps.ran_flag.outputs.ran }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,10 +57,32 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Gate — skip late schedule if backup already ran this slot
+        id: dedupe
+        if: github.event_name == 'schedule'
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SCHEDULE_CRON: ${{ github.event.schedule }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/check_nfl_schedule_dedupe.py
+
+      - id: ran_flag
+        if: always()
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.dedupe.outputs.skip }}" != "true" ]; then
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         run: pip install -e .
 
       - name: Configure env
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         run: |
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> $GITHUB_ENV
           echo "ACTION_NETWORK_TOKEN=${{ secrets.ACTION_NETWORK_TOKEN }}" >> $GITHUB_ENV
@@ -66,16 +91,19 @@ jobs:
           echo "GA_MEASUREMENT_ID=${{ secrets.GA_MEASUREMENT_ID }}" >> $GITHUB_ENV
 
       - name: Settle prior NFL plays
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         continue-on-error: true
         run: python scripts/settle_plays.py
 
       - name: Refit probability calibration
         # Self-updates data/calibration.json from settled history. No-op / identity
         # until enough plays have graded; safe to run every pipeline execution.
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         continue-on-error: true
         run: python scripts/fit_calibration.py
 
       - name: Run pipeline
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         env:
           DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
           SKIP_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_pbp || false }}
@@ -103,9 +131,11 @@ jobs:
           python scripts/run_pipeline.py $ARGS
 
       - name: QA gate (block demo/stale deploys)
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         run: python scripts/qa_gate.py --sport nfl --strict --build-site
 
       - name: Commit site + shared data
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -123,19 +153,20 @@ jobs:
           fi
 
       - name: Build unlisted NCAAM page (not committed, not linked)
-        if: always()
+        if: always() && (github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true')
         env:
           NCAAM_LAB_SLUG: ${{ secrets.NCAAM_LAB_SLUG }}
         run: python3 scripts/build_ncaam_lab.py || true
 
       - name: Upload Pages artifact
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
   deploy:
     needs: run
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.run.outputs.ran == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

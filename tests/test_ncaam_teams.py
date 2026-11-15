@@ -87,6 +87,8 @@ def test_cal_state_and_usc_not_contracted():
     assert normalize_ncaam("Cal State Fullerton") == "Cal St. Fullerton"
     assert normalize_ncaam("Cal State Northridge") == "Cal St. Northridge"
     assert normalize_ncaam("Cal State Bakersfield") == "Cal St. Bakersfield"
+    assert normalize_ncaam("CSU Bakersfield") == "Cal St. Bakersfield"
+    assert normalize_ncaam("CSU Bakersfield Roadrunners") == "Cal St. Bakersfield"
     assert normalize_ncaam("California Baptist") == "Cal Baptist"
     assert normalize_ncaam("Southern California") == "USC"
     assert normalize_ncaam("USC") == "USC"

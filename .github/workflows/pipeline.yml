@@ -130,6 +130,17 @@ jobs:
           fi
           python scripts/run_pipeline.py $ARGS
 
+      - name: Feed health (critical inputs)
+        if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
+        env:
+          DEMO_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.demo || false }}
+        run: |
+          if [ "$DEMO_INPUT" = "true" ] || [ -z "$ODDS_API_KEY" ]; then
+            echo "Skipping feed health check (demo / no Odds API key)"
+            exit 0
+          fi
+          python scripts/check_feed_health.py --sport nfl
+
       - name: QA gate (block demo/stale deploys)
         if: github.event_name == 'workflow_dispatch' || steps.dedupe.outputs.skip != 'true'
         run: python scripts/qa_gate.py --sport nfl --strict --build-site

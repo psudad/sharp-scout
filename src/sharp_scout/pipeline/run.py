@@ -439,6 +439,33 @@ def run_pipeline(
         payload["site"] = str(site_path)
         logger.info("Built GitHub Pages site at %s", site_path)
 
+    if not demo or manual_mode:
+        from sharp_scout.copy.explain import action_network_auth_status
+        from sharp_scout.health.feeds import (
+            FeedHealthRegistry,
+            evaluate_registry_for_ci,
+            record_action_network_splits,
+            record_odds_api,
+            write_feeds_file,
+        )
+
+        health = FeedHealthRegistry()
+        record_odds_api(health, sport="nfl", n_events=len(events), demo=demo and not manual_mode)
+        record_action_network_splits(
+            health,
+            sport="nfl",
+            splits=splits,
+            events=events,
+            auth_configured=bool(action_network_auth_status().get("configured")),
+        )
+        write_feeds_file(health, context="nfl_pipeline")
+        exit_code = evaluate_registry_for_ci(health, sport="nfl")
+        payload["feed_health_exit"] = exit_code
+        if exit_code:
+            logger.error(
+                "Critical feed health failure (see data/health/feeds.json) — pipeline flagged"
+            )
+
     return payload
 
 

@@ -116,5 +116,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - id: deployment
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Retry Pages deploy once
+        if: steps.deployment.outcome == 'failure'
+        id: deployment_retry
         uses: actions/deploy-pages@v4

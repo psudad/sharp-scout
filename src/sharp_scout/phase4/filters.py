@@ -37,11 +37,15 @@ def _find_split_game(
         return normalize_team(team, sport)
 
     nh, na = norm(home), norm(away)
+    want = frozenset({nh, na})
     for g in splits:
         gh, ga = norm(str(g.get("home_team") or "")), norm(str(g.get("away_team") or ""))
         if gh == nh and ga == na:
             return g
         if gh == na and ga == nh:
+            return g
+        if frozenset({gh, ga}) == want:
+            # Home/away labels may disagree between Odds API and AN; still the same game.
             return g
     return None
 

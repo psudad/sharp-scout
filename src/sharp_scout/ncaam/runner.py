@@ -426,6 +426,37 @@ def run_pass(
     if commit and not demo:
         publish_pass(new_locks=bool(locked or sharp_locked), runner_id=runner_id)
 
+    if not demo:
+        from sharp_scout.health.feeds import (
+            FeedHealthRegistry,
+            record_odds_api,
+            record_torvik_ratings,
+            write_feeds_file,
+        )
+
+        health = FeedHealthRegistry()
+        record_torvik_ratings(
+            health,
+            ok=bool(ratings),
+            reason=f"ratings from {ratings_path.name}" if ratings else "missing torvik ratings",
+            cache_date=str(ratings_path.parent.name) if ratings_path else None,
+        )
+        record_odds_api(
+            health,
+            sport="ncaam",
+            n_events=len(odds_events),
+            demo=False,
+        )
+        if skip:
+            from sharp_scout.health.feeds import FeedStatus
+
+            health.update(
+                f"odds_api_ncaam",
+                status=FeedStatus.DEGRADED,
+                reason=f"odds snapshot skipped: {reason}",
+            )
+        write_feeds_file(health, context="ncaam_runner")
+
     return {
         "locked": len(locked),
         "sharp_locked": sharp_locked,

@@ -520,7 +520,29 @@ def _is_sharp_game_line_play(play: dict[str, Any]) -> bool:
     if play.get("play_type") == "prop":
         return False
     market = str(play.get("market") or "")
-    return market in ("spreads", "totals")
+    return market in ("spreads", "totals", "h2h")
+
+
+def _is_sharp_scout_model_line_play(play: dict[str, Any]) -> bool:
+    """Score-model / EV scanner game lines (spreads, totals, ML) — not props or ad-hoc shadow."""
+    if play.get("play_type") == "prop":
+        return False
+    if str(play.get("lane") or "") in ("pace_v1", "shadow_webhook"):
+        return False
+    if not _is_sharp_game_line_play(play):
+        return False
+    return play.get("model_mean") is not None or play.get("model_alignment") is not None
+
+
+def _is_supplemental_shadow_play(play: dict[str, Any]) -> bool:
+    """Props and non-model shadow rows tracked separately on nba.html."""
+    if play.get("play_type") == "prop":
+        return True
+    if str(play.get("lane") or "") in ("pace_v1", "shadow_webhook"):
+        return True
+    if _is_sharp_game_line_play(play) and not _is_sharp_scout_model_line_play(play):
+        return True
+    return False
 
 
 def _open_game_line_plays_today_et(
@@ -578,6 +600,7 @@ def _sharp_scout_record_summary(
     ledger: dict[str, Any] | None,
     *,
     game_lines_only: bool = False,
+    play_filter: Any | None = None,
 ) -> dict[str, Any]:
     from sharp_scout.nba.slate_et import kickoff_date_et
 
@@ -586,6 +609,7 @@ def _sharp_scout_record_summary(
         "all": {"w": 0, "l": 0, "p": 0, "units": 0.0},
         "spreads": {"w": 0, "l": 0, "p": 0, "units": 0.0},
         "totals": {"w": 0, "l": 0, "p": 0, "units": 0.0},
+        "h2h": {"w": 0, "l": 0, "p": 0, "units": 0.0},
         "prop": {"w": 0, "l": 0, "p": 0, "units": 0.0},
     }
 
@@ -602,6 +626,8 @@ def _sharp_scout_record_summary(
 
     dates: list[str] = []
     for p in plays:
+        if play_filter is not None and not play_filter(p):
+            continue
         st = str(p.get("status") or "").lower()
         if st not in ("win", "loss", "push"):
             continue
@@ -618,6 +644,8 @@ def _sharp_scout_record_summary(
             bump("totals", st, pnl if pnl is not None else None)
         elif str(p.get("market") or "") == "spreads":
             bump("spreads", st, pnl if pnl is not None else None)
+        elif str(p.get("market") or "") == "h2h":
+            bump("h2h", st, pnl if pnl is not None else None)
 
     all_b = buckets["all"]
     ds = sorted(set(dates))
@@ -632,8 +660,32 @@ def _sharp_scout_record_summary(
         "spreads": buckets["spreads"],
         "totals": buckets["totals"],
         "props": buckets["prop"],
+        "h2h": buckets["h2h"],
         "date_range_et": date_range,
     }
+
+
+def _record_breakdown_note(summary: dict[str, Any]) -> str:
+    sp = summary.get("spreads") or {}
+    ml = summary.get("h2h") or {}
+    tot = summary.get("totals") or {}
+    prop = summary.get("props") or {}
+    parts: list[str] = []
+    if (sp.get("w") or 0) + (sp.get("l") or 0) + (sp.get("p") or 0):
+        parts.append(
+            f"Spreads {_record_str(sp['w'], sp['l'], sp['p'])} ({sp.get('units', 0):+.2f}u)"
+        )
+    if (ml.get("w") or 0) + (ml.get("l") or 0) + (ml.get("p") or 0):
+        parts.append(f"ML {_record_str(ml['w'], ml['l'], ml['p'])} ({ml.get('units', 0):+.2f}u)")
+    if (tot.get("w") or 0) + (tot.get("l") or 0) + (tot.get("p") or 0):
+        parts.append(
+            f"Totals {_record_str(tot['w'], tot['l'], tot['p'])} ({tot.get('units', 0):+.2f}u)"
+        )
+    if (prop.get("w") or 0) + (prop.get("l") or 0) + (prop.get("p") or 0):
+        parts.append(
+            f"Props {_record_str(prop['w'], prop['l'], prop['p'])} ({prop.get('units', 0):+.2f}u)"
+        )
+    return " · ".join(parts) if parts else "No graded plays yet."
 
 
 def _signals_for_today_et(signals: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -733,33 +785,43 @@ def _render_waiting_for_lines(next_scan: str) -> str:
     )
 
 
-def _nba_yesterday_totals_summary(pub_ledger: dict[str, Any]) -> dict[str, Any]:
+def _nba_yesterday_model_summary(pub_ledger: dict[str, Any]) -> dict[str, Any]:
+    """Yesterday ET graded rows for Sharp Scout score-model game lines (all markets)."""
     day = yesterday_et()
-    rows: list[dict[str, Any]] = []
-    from sharp_scout.config import nba_pace_of_play_active
-
-    if nba_pace_of_play_active():
-        from sharp_scout.nba.score_model.official_pace import load_official_pace
-
-        for p in load_official_pace().get("plays") or []:
-            if play_et_calendar_date(p) != day or graded_status(p) not in ("win", "loss", "push"):
-                continue
-            rows.append(
-                {
-                    "status": graded_status(p),
-                    "pnl_units": p.get("units"),
-                    "units": 1.0,
-                }
-            )
-    rows.extend(
-        filter_graded_on_et_day(
-            pub_ledger.get("plays") or [],
-            day,
-            include=lambda p: (p.get("play_type") or "side") == "side" and p.get("market") == "totals",
-        )
+    rows = filter_graded_on_et_day(
+        pub_ledger.get("plays") or [],
+        day,
+        include=lambda p: _is_sharp_scout_model_line_play(p),
     )
+    buckets = {
+        "spreads": {"w": 0, "l": 0, "p": 0, "units": 0.0},
+        "totals": {"w": 0, "l": 0, "p": 0, "units": 0.0},
+        "h2h": {"w": 0, "l": 0, "p": 0, "units": 0.0},
+    }
+
+    def bump(key: str, st: str, pnl: float | None) -> None:
+        b = buckets[key]
+        if st == "win":
+            b["w"] += 1
+        elif st == "loss":
+            b["l"] += 1
+        elif st == "push":
+            b["p"] += 1
+        if pnl is not None:
+            b["units"] += float(pnl)
+
+    for p in rows:
+        st = graded_status(p)
+        pnl = p.get("pnl_units")
+        market = str(p.get("market") or "")
+        if market in buckets:
+            bump(market, st, pnl if pnl is not None else None)
+
     out = summarize_graded_plays(rows)
     out["day_label"] = day.strftime("%a %b %-d")
+    out["spreads"] = buckets["spreads"]
+    out["totals"] = buckets["totals"]
+    out["h2h"] = buckets["h2h"]
     return out
 
 
@@ -994,12 +1056,18 @@ def _render_sharp_props_history(ledger: dict[str, Any] | None) -> str:
     )
 
 
-def _render_sharp_graded_history(ledger: dict[str, Any] | None) -> str:
+def _render_sharp_graded_history(
+    ledger: dict[str, Any] | None,
+    *,
+    play_filter: Any | None = None,
+) -> str:
     plays = (ledger or {}).get("plays") or []
     graded = [
         p
         for p in plays
-        if str(p.get("status") or "").lower() in ("win", "loss", "push") and _is_sharp_game_line_play(p)
+        if str(p.get("status") or "").lower() in ("win", "loss", "push")
+        and _is_sharp_game_line_play(p)
+        and (play_filter(p) if play_filter is not None else True)
     ]
     graded = sorted(graded, key=lambda p: p.get("settled_at") or p.get("created_at") or "", reverse=True)
     if not graded:
@@ -1438,7 +1506,12 @@ def render_nba_page_html(
     body_class = "ss-bottom-bar"
     mode_note = "Live shadow scan" if live_scan else "Awaiting live scan"
 
-    sharp_game_lines = _sharp_scout_record_summary(pub_ledger, game_lines_only=True)
+    model_game_lines = _sharp_scout_record_summary(
+        pub_ledger, game_lines_only=True, play_filter=_is_sharp_scout_model_line_play
+    )
+    supplemental_lines = _sharp_scout_record_summary(
+        pub_ledger, game_lines_only=False, play_filter=_is_supplemental_shadow_play
+    )
 
     slate_ref = _slate_reference_date()
     picks_slate = upcoming_slate_items(picks)
@@ -1465,16 +1538,27 @@ def render_nba_page_html(
             '<p class="empty nba-leans-empty">No Sharp Scout leans today — near-miss EV spots will show here.</p>'
         )
 
-    sharp_history_html = _render_sharp_graded_history(pub_ledger)
-
-    gl_range = sharp_game_lines.get("date_range_et") or "—"
-    sharp_compact_record = _render_compact_record(
-        record=sharp_game_lines.get("record") or "—",
-        win_pct=sharp_game_lines.get("win_pct") or "—",
-        units=float(sharp_game_lines.get("units") or 0),
-        label=f"Game lines · {gl_range} ET",
+    sharp_history_html = _render_sharp_graded_history(
+        pub_ledger, play_filter=_is_sharp_scout_model_line_play
     )
-    nba_yest = _nba_yesterday_totals_summary(pub_ledger)
+    supplemental_history_html = _render_sharp_graded_history(
+        pub_ledger, play_filter=_is_supplemental_shadow_play
+    )
+
+    gl_range = model_game_lines.get("date_range_et") or "—"
+    sharp_compact_record = _render_compact_record(
+        record=model_game_lines.get("record") or "—",
+        win_pct=model_game_lines.get("win_pct") or "—",
+        units=float(model_game_lines.get("units") or 0),
+        label=f"Sharp Scout NBA model · {gl_range} ET",
+    )
+    supplemental_compact_record = _render_compact_record(
+        record=supplemental_lines.get("record") or "—",
+        win_pct=supplemental_lines.get("win_pct") or "—",
+        units=float(supplemental_lines.get("units") or 0),
+        label="Paper / shadow plays",
+    )
+    nba_yest = _nba_yesterday_model_summary(pub_ledger)
     yest_win = (
         f"{nba_yest['win_pct'] * 100:.0f}%"
         if nba_yest.get("win_pct") is not None
@@ -1484,7 +1568,14 @@ def render_nba_page_html(
         record=nba_yest["record"] if nba_yest.get("n") else "—",
         win_pct=yest_win,
         units=float(nba_yest.get("pnl_units") or 0),
-        label=f"Yesterday totals · {nba_yest['day_label']}",
+        label=f"Yesterday · {nba_yest['day_label']}",
+    )
+    yesterday_breakdown = _record_breakdown_note(
+        {
+            "spreads": nba_yest.get("spreads") or {},
+            "totals": nba_yest.get("totals") or {},
+            "h2h": nba_yest.get("h2h") or {},
+        }
     )
 
     side_picks = [p for p in picks if (p.get("play_type") or "side") != "prop"]
@@ -1537,12 +1628,12 @@ def render_nba_page_html(
         sharp_plays_html=sharp_plays_html,
         sharp_leans_html=sharp_leans_html,
         sharp_history_html=sharp_history_html,
-        sharp_record_note=(
-            "Spreads and totals only. "
-            "Oct 24–26 ET includes pre-window shadow testing; configured paper window starts "
-            f"{window.get('start', '—')}."
-        ),
+        sharp_record_note=_record_breakdown_note(model_game_lines),
+        supplemental_compact_record=supplemental_compact_record,
+        supplemental_record_note=_record_breakdown_note(supplemental_lines),
+        supplemental_history_html=supplemental_history_html,
         yesterday_compact_record=yesterday_compact_record,
+        yesterday_breakdown=yesterday_breakdown,
         model_details=model_details,
         sharp_leans_section_label=SHARP_LEANS_SECTION_LABEL,
         play_badge_label=PLAY_BADGE_LABEL,
@@ -1959,9 +2050,10 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
 </header>
 <div class="nba-content">
   <section class="nba-model-panel sharp-panel" aria-labelledby="sharp-scout-heading">
-    <h2 class="nba-h2" id="sharp-scout-heading">Sharp Scout model</h2>
-    <p class="nba-section-note">Paper plays on spreads and totals. Paper only — never live bets.</p>
+    <h2 class="nba-h2" id="sharp-scout-heading">Sharp Scout NBA model</h2>
+    <p class="nba-section-note">Score-model game lines (spreads, totals, ML). Paper only — not on the NFL/NCAAM official card.</p>
     <div class="nba-rec-row">{sharp_compact_record}{yesterday_compact_record}</div>
+    <p class="nba-section-note">{yesterday_breakdown}</p>
     <p class="nba-section-note">{sharp_record_note}</p>
     <div class="nba-plays-block">
       <div class="section-label">Upcoming plays</div>
@@ -1978,6 +2070,15 @@ NBA_PAGE_TEMPLATE = """<!DOCTYPE html>
       <div class="section-label">Results tracking (game lines)</div>
       {sharp_history_html}
     </details>
+  </section>
+
+  <section class="nba-model-panel shadow-panel" aria-labelledby="shadow-paper-heading">
+    <h2 class="nba-h2" id="shadow-paper-heading">Paper / shadow plays</h2>
+    <p class="nba-section-note">Props, experimental lanes, and non-model game-line rows tracked separately.</p>
+    <div class="nba-rec-row">{supplemental_compact_record}</div>
+    <p class="nba-section-note">{supplemental_record_note}</p>
+    <div class="section-label">Graded history (shadow / paper)</div>
+    {supplemental_history_html}
   </section>
 
   <details class="nba-model-details">

@@ -242,7 +242,7 @@ def test_nba_page_picks_and_possible_sections(tmp_path, monkeypatch):
     docs = tmp_path / "docs"
     build_nba_page(docs_dir=docs)
     html = (docs / "nba.html").read_text()
-    assert "Sharp Scout model" in html
+    assert "Sharp Scout NBA model" in html
     assert "Diagnostics" in html
     assert "Near-miss tables" in html
     assert "After more testing, we'd pick:" in html

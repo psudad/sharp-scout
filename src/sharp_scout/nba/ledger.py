@@ -67,7 +67,10 @@ def append_nba_signals(signals: list[dict[str, Any]], *, path: Path | None = Non
 
     overrides = load_nba_overrides()
     apply_nba_ledger_overrides(ledger, overrides)
-    existing = {_play_key(p) for p in ledger["plays"]}
+    from sharp_scout.ledger.tracker import _logical_play_key
+
+    existing_full = {_play_key(p) for p in ledger["plays"]}
+    existing_logical = {_logical_play_key(p) for p in ledger["plays"]}
     added = 0
     for s in signals:
         if overrides and voided_override_for(s, overrides) is not None:
@@ -127,10 +130,12 @@ def append_nba_signals(signals: list[dict[str, Any]], *, path: Path | None = Non
             "prop_result": None,
         }
         key = _play_key(row)
-        if key in existing:
+        logical = _logical_play_key(row)
+        if key in existing_full or logical in existing_logical:
             continue
         ledger["plays"].append(row)
-        existing.add(key)
+        existing_full.add(key)
+        existing_logical.add(logical)
         added += 1
     save_nba_ledger(ledger, path)
     return {"added": added, "ledger": ledger}

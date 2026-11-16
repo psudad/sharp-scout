@@ -235,7 +235,7 @@ def test_build_nba_page_with_mixed_qualifying_rows_does_not_crash():
 
     html_path = build_nba_page()
     html = html_path.read_text()
-    assert "Sharp Scout model" in html
+    assert "Sharp Scout NBA model" in html
     assert "pace-heading" not in html
 
 

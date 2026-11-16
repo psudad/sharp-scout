@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from sharp_scout.config import DATA_DIR
+from sharp_scout.ncaam.ratings import barttorvik_headers
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +233,7 @@ class Situational:
             from sharp_scout.ncaam.teams import normalize_ncaam
 
             url = f"https://barttorvik.com/getadvstats.php?year={_torvik_year(self.et_day)}&csv=1"
-            with httpx.Client(timeout=60.0, headers={"User-Agent": "SharpScout/1.0"}) as c:
+            with httpx.Client(timeout=60.0, headers=barttorvik_headers()) as c:
                 r = c.get(url)
                 r.raise_for_status()
             for row in csv.reader(r.text.splitlines()):

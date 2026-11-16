@@ -86,12 +86,19 @@ def test_fetch_writes_retrieval_meta_runner_integration(tmp_path, monkeypatch):
         def raise_for_status(self):
             return None
 
-    client = MagicMock()
-    client.get.return_value = Resp()
-    client.__enter__ = lambda s: s
-    client.__exit__ = lambda *a: None
-    monkeypatch.setattr(ratings_mod.httpx, "Client", lambda **kw: client)
+    captured: dict = {}
+
+    def client_factory(**kw):
+        captured.update(kw)
+        client = MagicMock()
+        client.get.return_value = Resp()
+        client.__enter__ = lambda s: s
+        client.__exit__ = lambda *a: None
+        return client
+
+    monkeypatch.setattr(ratings_mod.httpx, "Client", client_factory)
     ratings_mod.fetch_torvik_csv(dest=dest)
+    assert "jayegg-tr17" in (captured.get("headers") or {}).get("User-Agent", "")
     ok, reason, _ = verify_retrieval_record(dest)
     assert ok and reason == ""
     prov = ratings_provenance_for_path(dest)

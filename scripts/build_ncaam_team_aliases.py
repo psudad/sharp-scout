@@ -13,8 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.config import DATA_DIR  # noqa: E402
-
-TORVIK_URL = "https://barttorvik.com/2027_team_results.csv"
+from sharp_scout.ncaam.ratings import TORVIK_URL, barttorvik_headers  # noqa: E402
 OUT = DATA_DIR / "ncaam" / "team_aliases.json"
 
 # ESPN location strings that do not follow the State -> St. rule.
@@ -68,11 +67,7 @@ def main() -> int:
         import httpx
 
         torvik_path.parent.mkdir(parents=True, exist_ok=True)
-        r = httpx.get(
-            TORVIK_URL,
-            headers={"User-Agent": "SharpScout/1.0 (github.com/psudad/sharp-scout; ratings cache)"},
-            timeout=60.0,
-        )
+        r = httpx.get(TORVIK_URL, headers=barttorvik_headers(), timeout=60.0)
         r.raise_for_status()
         torvik_path.write_bytes(r.content)
 

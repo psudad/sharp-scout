@@ -21,7 +21,14 @@ from zoneinfo import ZoneInfo
 logger = logging.getLogger(__name__)
 
 TORVIK_URL = "https://barttorvik.com/2027_team_results.csv"
-UA = "SharpScout/1.0 (github.com/psudad/sharp-scout; NCAAM ratings cache)"
+BARTTORVIK_USER_AGENT = (
+    "SharpScout/1.0 jayegg-tr17 (github.com/psudad/sharp-scout; NCAAM ratings cache)"
+)
+UA = BARTTORVIK_USER_AGENT
+
+
+def barttorvik_headers() -> dict[str, str]:
+    return {"User-Agent": BARTTORVIK_USER_AGENT}
 NCAAM_DATA = DATA_DIR / "ncaam"
 ET = ZoneInfo("America/New_York")
 _RATINGS_DATED = re.compile(r"^ratings_(\d{4})(\d{2})(\d{2})\.csv$")
@@ -98,7 +105,7 @@ def fetch_torvik_csv(*, dest: Path | None = None) -> Path:
     dest = dest or ratings_path_for()
     dest.parent.mkdir(parents=True, exist_ok=True)
     upstream_last_modified: str | None = None
-    with httpx.Client(timeout=60.0, headers={"User-Agent": UA}) as client:
+    with httpx.Client(timeout=60.0, headers=barttorvik_headers()) as client:
         resp = client.get(TORVIK_URL)
         resp.raise_for_status()
         dest.write_bytes(resp.content)

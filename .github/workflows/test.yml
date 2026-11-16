@@ -29,3 +29,9 @@ jobs:
 
       - name: Pytest
         run: pytest -q
+
+      - name: Barttorvik whitelist probe (one live request on PRs)
+        if: github.event_name == 'pull_request'
+        env:
+          TORVIK_WHITELIST_PROBE: "1"
+        run: pytest -q tests/test_torvik_http.py::test_torvik_whitelist_live_probe_from_ci

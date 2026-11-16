@@ -347,6 +347,26 @@ def run_pass(
             100 * min_edge,
         )
 
+    from sharp_scout.ncaam.certification_gates import filter_day_picks_for_certification
+
+    before_cert_n = len(day_picks)
+    day_picks, cert_blocked = filter_day_picks_for_certification(day_picks)
+    if cert_blocked:
+        logger.info(
+            "ncaam model-agreement / outlier gate blocked %s/%s pick(s)",
+            len(cert_blocked),
+            before_cert_n,
+        )
+        for row in cert_blocked:
+            logger.info(
+                "ncaam certification blocked %s %s %s @ %s: %s",
+                row.get("selection"),
+                row.get("market"),
+                row.get("side"),
+                row.get("book"),
+                row.get("certification_block"),
+            )
+
     for play in day_picks:
         tip = play.get("tip")
         if isinstance(tip, datetime):

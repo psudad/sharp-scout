@@ -275,6 +275,12 @@ class Settings(BaseSettings):
     # Filtered candidates stay in data/shadow/ncaam_price_edge_diagnostics.json with filtered_out=true.
     ncaam_price_edge_gate_enabled: bool = True
     ncaam_price_edge_min: float = 0.01
+    # Official card: model must favor our side (prob ≥ break-even and margin/total lean).
+    ncaam_model_agreement_gate_enabled: bool = True
+    # Block when only one book's price beats Pinnacle fair vs peer median (American cents).
+    ncaam_one_book_outlier_cents: float = 12.0
+    # NFL/NCAAF LOCKED certification (same rule when p_model / sim lean is on the play).
+    product_model_agreement_enabled: bool = True
 
     # Retired Nov 2026: Pace of Play official card (archives remain; no generation or publish).
     nba_pace_of_play_enabled: bool = False

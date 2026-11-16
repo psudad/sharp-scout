@@ -415,6 +415,33 @@ def run_ncaaf_pipeline(
     except Exception as exc:  # noqa: BLE001
         logger.warning("NCAAF totals shadow capture skipped: %s", exc)
 
+    if not demo and settings.odds_api_key:
+        from sharp_scout.copy.explain import action_network_auth_status
+        from sharp_scout.health.feeds import (
+            FeedHealthRegistry,
+            evaluate_registry_for_ci,
+            record_action_network_splits,
+            record_odds_api,
+            write_feeds_file,
+        )
+
+        health = FeedHealthRegistry()
+        record_odds_api(health, sport="ncaaf", n_events=len(events), demo=demo)
+        record_action_network_splits(
+            health,
+            sport="ncaaf",
+            splits=splits,
+            events=events,
+            auth_configured=bool(action_network_auth_status().get("configured")),
+        )
+        write_feeds_file(health, context="ncaaf_pipeline")
+        exit_code = evaluate_registry_for_ci(health, sport="ncaaf")
+        payload["feed_health_exit"] = exit_code
+        if exit_code:
+            logger.error(
+                "Critical feed health failure (see data/health/feeds.json) — NCAAF pipeline flagged"
+            )
+
     return payload
 
 

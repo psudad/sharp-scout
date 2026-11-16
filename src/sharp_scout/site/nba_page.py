@@ -669,6 +669,7 @@ def _record_breakdown_note(summary: dict[str, Any]) -> str:
     sp = summary.get("spreads") or {}
     ml = summary.get("h2h") or {}
     tot = summary.get("totals") or {}
+    prop = summary.get("props") or {}
     parts: list[str] = []
     if (sp.get("w") or 0) + (sp.get("l") or 0) + (sp.get("p") or 0):
         parts.append(
@@ -680,7 +681,11 @@ def _record_breakdown_note(summary: dict[str, Any]) -> str:
         parts.append(
             f"Totals {_record_str(tot['w'], tot['l'], tot['p'])} ({tot.get('units', 0):+.2f}u)"
         )
-    return " · ".join(parts) if parts else "No graded game lines yet."
+    if (prop.get("w") or 0) + (prop.get("l") or 0) + (prop.get("p") or 0):
+        parts.append(
+            f"Props {_record_str(prop['w'], prop['l'], prop['p'])} ({prop.get('units', 0):+.2f}u)"
+        )
+    return " · ".join(parts) if parts else "No graded plays yet."
 
 
 def _signals_for_today_et(signals: list[dict[str, Any]]) -> list[dict[str, Any]]:

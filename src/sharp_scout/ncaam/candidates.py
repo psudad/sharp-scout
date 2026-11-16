@@ -53,6 +53,16 @@ def _pinnacle_spread_age_ok(event: dict[str, Any], now: datetime) -> bool:
     return (now - lu).total_seconds() <= RULES.pinnacle_max_age_min * 60
 
 
+def _same_line_prices(offers: list[dict[str, Any]], line: float | None) -> list[float]:
+    if line is None:
+        return [float(o["price"]) for o in offers if o.get("price") is not None]
+    return [
+        float(o["price"])
+        for o in offers
+        if o.get("price") is not None and o.get("line") is not None and float(o["line"]) == float(line)
+    ]
+
+
 def _outcomes_by_side(event: dict[str, Any], market: str) -> dict[str, list[dict[str, Any]]]:
     out: dict[str, list[dict[str, Any]]] = {"home": [], "away": []}
     books = event.get("bookmakers") or {}
@@ -217,6 +227,7 @@ def evaluate_game(
             ev = candidate_ev(p_cond, price, p_push)
             if not ev_qualifies(ev):
                 continue
+            peer_prices = _same_line_prices(spread_out[side], line)
             open_key = f"{game.get('espn_id')}:{side}"
             cands.append(
                 {
@@ -227,6 +238,7 @@ def evaluate_game(
                     "line": line,
                     "price": price,
                     "book": offer["book"],
+                    "peer_prices_at_line": peer_prices,
                     "ev": ev,
                     "p_true": round(p_true, 4),
                     "p_model": p_mod,
@@ -258,6 +270,7 @@ def evaluate_game(
             ev = candidate_ev(p_cond, price, p_push)
             if not ev_qualifies(ev):
                 continue
+            peer_prices_ml = _same_line_prices(h2h_out[side], None)
             cands.append(
                 {
                     "event_id": event.get("event_id"),
@@ -267,6 +280,7 @@ def evaluate_game(
                     "line": None,
                     "price": price,
                     "book": offer["book"],
+                    "peer_prices_at_line": peer_prices_ml,
                     "ev": ev,
                     "p_true": round(p_true, 4),
                     "p_model": p_mod,

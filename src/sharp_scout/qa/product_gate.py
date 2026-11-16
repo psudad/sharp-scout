@@ -651,7 +651,32 @@ def _evaluate_narrow_lane_play(
 
     if reasons:
         return ProductGateResult(False, tuple(reasons))
+
+    _append_model_agreement_reasons(play, sport=sport, signals=signals, settings=settings, reasons=reasons)
+    if reasons:
+        return ProductGateResult(False, tuple(reasons))
     return ProductGateResult(True, ())
+
+
+def _append_model_agreement_reasons(
+    play: dict[str, Any],
+    *,
+    sport: str,
+    signals: dict[str, Any] | None,
+    settings: Any,
+    reasons: list[str],
+) -> None:
+    if not settings.product_model_agreement_enabled:
+        return
+    from sharp_scout.qa.model_agreement import (
+        football_model_lean_from_signals,
+        model_agreement_block_reason,
+    )
+
+    row = football_model_lean_from_signals(play, signals)
+    agr = model_agreement_block_reason(row, signals=signals)
+    if agr:
+        reasons.append(f"model agreement: {agr}")
 
 
 def evaluate_product_play(
@@ -750,6 +775,8 @@ def evaluate_product_play(
     reasons.extend(_public_side_veto(play, signals, settings))
     if sport == "nfl":
         reasons.extend(_nfl_price_reasons(play, signals, settings))
+
+    _append_model_agreement_reasons(play, sport=sport, signals=signals, settings=settings, reasons=reasons)
 
     if reasons:
         return ProductGateResult(False, tuple(reasons))

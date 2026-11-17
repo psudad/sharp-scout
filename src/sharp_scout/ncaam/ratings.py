@@ -21,7 +21,9 @@ from zoneinfo import ZoneInfo
 logger = logging.getLogger(__name__)
 
 TORVIK_URL = "https://barttorvik.com/2027_team_results.csv"
-UA = "SharpScout/1.0 (github.com/psudad/sharp-scout; NCAAM ratings cache)"
+from sharp_scout.ncaam.torvik_cadence import TORVIK_UA  # noqa: E402
+
+UA = TORVIK_UA
 NCAAM_DATA = DATA_DIR / "ncaam"
 ET = ZoneInfo("America/New_York")
 _RATINGS_DATED = re.compile(r"^ratings_(\d{4})(\d{2})(\d{2})\.csv$")
@@ -129,6 +131,24 @@ def _validate_csv(path: Path) -> None:
         raise ValueError(f"Torvik CSV missing required columns at {path}")
 
 
+def count_teams_in_csv(path: Path) -> int:
+    """Row count with parseable adjoe/adjde/adjt (for refresh validation)."""
+    n = 0
+    with path.open(newline="") as f:
+        for row in csv.DictReader(f):
+            team = str(row.get("team") or "").strip()
+            if not team:
+                continue
+            try:
+                float(row["adjoe"])
+                float(row["adjde"])
+                float(row["adjt"])
+            except (KeyError, ValueError):
+                continue
+            n += 1
+    return n
+
+
 def load_ratings(path: Path | None = None) -> dict[str, dict[str, float]]:
     p = path or (NCAAM_DATA / "ratings_latest.csv")
     if not p.exists():
@@ -228,16 +248,8 @@ def _load_fetch_failure(day: date | None = None) -> dict[str, Any] | None:
 
 
 def daily_fetch_state_paths_for_commit() -> list[str]:
-    """Repo-relative paths to stage on heartbeat commits so fetch backoff survives checkouts."""
-    from sharp_scout.config import ROOT
-
-    p = _fetch_failure_path(datetime.now(ET).date())
-    if not p.is_file():
-        return []
-    try:
-        return [p.relative_to(ROOT).as_posix()]
-    except ValueError:
-        return [str(p)]
+    """Runners no longer fetch Torvik; nothing to stage on heartbeat."""
+    return []
 
 
 def write_fetch_failure(
@@ -273,25 +285,12 @@ def _log_ratings_selection(path: Path, *, reason: str) -> None:
 
 
 def ensure_daily_ratings(*, demo: bool = False, fixture: Path | None = None) -> Path:
-    """Return path to Torvik cache used for picks.
-
-    - If ``ratings_{today_et}.csv`` exists, return it **without re-fetching** (content may be
-      from an earlier run today).
-    - On fetch success, writes HTTP body to today's dated path (acquisition label = today ET).
-    - On fetch failure, falls back to ``ratings_latest.csv`` or the newest dated cache — **same
-      bytes may be older than the filename suggests** when fallback ≠ today.
-    CSV payload has **no** embedded snapshot/as-of date.
-    """
+    """Return path to committed Torvik cache (newest ``retrieved_at_utc``). No network."""
     if demo and fixture and fixture.exists():
         dest = NCAAM_DATA / "ratings_latest.csv"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(fixture.read_bytes())
         return dest
-    et_day = datetime.now(ET).date()
-    today_path = ratings_path_for(et_day)
-    if today_path.exists():
-        _log_ratings_selection(today_path, reason="using committed or prior fetch for today ET")
-        return today_path
     if demo:
         fx = DATA_DIR.parent / "tests" / "fixtures" / "ncaam" / "torvik_sample.csv"
         if fx.exists():
@@ -299,30 +298,12 @@ def ensure_daily_ratings(*, demo: bool = False, fixture: Path | None = None) -> 
             latest.parent.mkdir(parents=True, exist_ok=True)
             latest.write_bytes(fx.read_bytes())
             return latest
-    if _load_fetch_failure(et_day):
-        fb = _fallback_ratings_path()
-        if fb is None:
-            raise FileNotFoundError(
-                f"Torvik fetch already failed today ({et_day.isoformat()}) and no cached ratings exist"
-            )
-        _log_ratings_selection(
-            fb,
-            reason=f"skipping re-fetch (failed earlier today ET; see {_fetch_failure_path(et_day).name})",
+    from sharp_scout.ncaam.torvik_cache import best_ratings_cache_path
+
+    path = best_ratings_cache_path()
+    if path is None:
+        raise FileNotFoundError(
+            "No committed NCAAM Barttorvik ratings cache; run scripts/torvik_refresh.py on a box"
         )
-        return fb
-    try:
-        dest = fetch_torvik_csv(dest=today_path)
-        _log_ratings_selection(dest, reason="fetched fresh Barttorvik CSV for today ET")
-        return dest
-    except Exception as exc:  # noqa: BLE001
-        write_fetch_failure(exc, day=et_day)
-        logger.warning(
-            "Torvik daily fetch failed (%s); will not retry until next ET day (%s)",
-            exc,
-            et_day.isoformat(),
-        )
-        fb = _fallback_ratings_path()
-        if fb is None:
-            raise
-        _log_ratings_selection(fb, reason="using fallback cache after fetch failure")
-        return fb
+    _log_ratings_selection(path, reason="using newest committed cache by retrieved_at_utc")
+    return path

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from sharp_scout.config import DATA_DIR, get_settings
+from sharp_scout.ncaam.torvik_cadence import parse_retrieved_at
 
 logger = logging.getLogger(__name__)
 
@@ -239,17 +240,49 @@ def record_odds_api(
     )
 
 
-def record_torvik_ratings(registry: FeedHealthRegistry, *, ok: bool, reason: str, cache_date: str | None = None) -> None:
-    if ok:
+def record_torvik_ratings(
+    registry: FeedHealthRegistry,
+    *,
+    ok: bool,
+    reason: str,
+    cache_date: str | None = None,
+    retrieved_at_utc: str | None = None,
+    age_days: float | None = None,
+    cadence: str | None = None,
+    stale: bool = False,
+) -> None:
+    detail: dict[str, Any] = {}
+    if cache_date:
+        detail["cache_date_et"] = cache_date
+    if retrieved_at_utc:
+        detail["retrieved_at_utc"] = retrieved_at_utc
+    if age_days is not None:
+        detail["age_days"] = round(age_days, 2)
+    if cadence:
+        detail["cadence"] = cadence
+    if stale:
+        detail["stale"] = True
+
+    if not ok:
+        registry.update("torvik_ratings", status=FeedStatus.MISSING, reason=reason, detail=detail or None)
+        return
+    last_ok = parse_retrieved_at(retrieved_at_utc) if retrieved_at_utc else datetime.now(timezone.utc)
+    if stale:
         registry.update(
             "torvik_ratings",
-            status=FeedStatus.OK,
+            status=FeedStatus.DEGRADED,
             reason=reason,
-            last_success_at=datetime.now(timezone.utc),
-            detail={"cache_date_et": cache_date},
+            last_success_at=last_ok,
+            detail=detail or None,
         )
-    else:
-        registry.update("torvik_ratings", status=FeedStatus.MISSING, reason=reason)
+        return
+    registry.update(
+        "torvik_ratings",
+        status=FeedStatus.OK,
+        reason=reason,
+        last_success_at=last_ok,
+        detail=detail or None,
+    )
 
 
 def critical_feed_ids_for_sport(sport: str) -> set[str]:

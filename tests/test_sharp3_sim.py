@@ -158,27 +158,19 @@ def test_copied_csv_without_meta_not_verified(tmp_path):
     assert not prov["retrieval_verified"]
 
 
-def test_failed_refresh_does_not_renew_meta(tmp_path, monkeypatch):
+def test_runner_uses_existing_cache_without_fetch(tmp_path, monkeypatch):
     monkeypatch.setattr(ratings_mod, "NCAAM_DATA", tmp_path)
-
-    class _FakeDateTime:
-        @staticmethod
-        def now(tz=None):
-            return EVAL_NOW.astimezone(tz) if tz is not None else EVAL_NOW
-
-    monkeypatch.setattr(ratings_mod, "datetime", _FakeDateTime)
     stale_day = datetime(2026, 11, 4, 12, 0, tzinfo=timezone.utc)
     old = _verified_path(tmp_path, name="ratings_20261104.csv", body=CSV_ROW, retrieved_at=stale_day)
 
     def _boom(**_kw):
-        raise OSError("network down")
+        raise AssertionError("fetch_torvik_csv must not run on runner path")
 
     monkeypatch.setattr(ratings_mod, "fetch_torvik_csv", _boom)
     got = ratings_mod.ensure_daily_ratings()
     assert got == old
     meta = json.loads(ratings_mod._meta_path_for(old).read_text())
     assert meta["retrieved_at_utc"].startswith("2026-11-04")
-    assert not (tmp_path / "ratings_20261107.csv.meta.json").exists()
 
 
 def test_cache_date_not_used_for_freshness(tmp_path):

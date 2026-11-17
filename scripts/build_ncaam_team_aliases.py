@@ -14,7 +14,6 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.config import DATA_DIR  # noqa: E402
 
-TORVIK_URL = "https://barttorvik.com/2027_team_results.csv"
 OUT = DATA_DIR / "ncaam" / "team_aliases.json"
 
 # ESPN location strings that do not follow the State -> St. rule.
@@ -63,18 +62,16 @@ def _variants(name: str) -> set[str]:
 
 
 def main() -> int:
-    torvik_path = DATA_DIR / "ncaam" / "ratings_latest.csv"
-    if not torvik_path.exists():
-        import httpx
+    from sharp_scout.ncaam.torvik_cache import best_ratings_cache_path
 
-        torvik_path.parent.mkdir(parents=True, exist_ok=True)
-        r = httpx.get(
-            TORVIK_URL,
-            headers={"User-Agent": "SharpScout/1.0 (github.com/psudad/sharp-scout; ratings cache)"},
-            timeout=60.0,
+    torvik_path = best_ratings_cache_path() or (DATA_DIR / "ncaam" / "ratings_latest.csv")
+    if not torvik_path.exists():
+        print(
+            "No committed Torvik ratings cache. Run scripts/torvik_refresh.py on a box "
+            f"(UA: SharpScout/1.0 jayegg-tr17).",
+            file=sys.stderr,
         )
-        r.raise_for_status()
-        torvik_path.write_bytes(r.content)
+        return 1
 
     canon = [row["team"] for row in csv.DictReader(torvik_path.open())]
     canon_set = set(canon)

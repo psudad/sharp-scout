@@ -435,11 +435,30 @@ def run_pass(
         )
 
         health = FeedHealthRegistry()
+        from sharp_scout.ncaam.ratings import cache_date_from_path
+        from sharp_scout.ncaam.torvik_cache import ratings_cache_health_info
+
+        torvik_info = ratings_cache_health_info(ratings_path if ratings else None, now=now)
+        age = torvik_info.get("age_days")
+        stale = bool(torvik_info.get("stale"))
+        cadence = str(torvik_info.get("cadence") or "")
+        cache_et = torvik_info.get("cache_date_et")
+        if ratings:
+            if stale and age is not None:
+                tv_reason = f"ratings from {ratings_path.name} (stale {age:.1f}d, cadence={cadence})"
+            else:
+                tv_reason = f"ratings from {ratings_path.name}"
+        else:
+            tv_reason = "missing torvik ratings"
         record_torvik_ratings(
             health,
             ok=bool(ratings),
-            reason=f"ratings from {ratings_path.name}" if ratings else "missing torvik ratings",
-            cache_date=str(ratings_path.parent.name) if ratings_path else None,
+            reason=tv_reason,
+            cache_date=cache_et or (cache_date_from_path(ratings_path).isoformat() if ratings_path else None),
+            retrieved_at_utc=torvik_info.get("retrieved_at_utc"),
+            age_days=age,
+            cadence=cadence or None,
+            stale=stale,
         )
         record_odds_api(
             health,

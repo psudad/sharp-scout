@@ -218,38 +218,16 @@ class Situational:
     def _usage_table(self) -> dict[str, dict[str, float]]:
         if self._usage is not None:
             return self._usage
-        path = NCAAM_DATA / f"usage_{self.et_day.strftime('%Y%m%d')}.json"
-        if path.exists():
+        from sharp_scout.ncaam.torvik_cache import best_usage_cache_path
+
+        path = best_usage_cache_path()
+        if path and path.is_file():
             try:
                 self._usage = json.loads(path.read_text())
                 return self._usage
             except Exception:  # noqa: BLE001
                 pass
         self._usage = {}
-        if self.offline:
-            return self._usage
-        try:
-            from sharp_scout.ncaam.teams import normalize_ncaam
-
-            url = f"https://barttorvik.com/getadvstats.php?year={_torvik_year(self.et_day)}&csv=1"
-            with httpx.Client(timeout=60.0, headers={"User-Agent": "SharpScout/1.0"}) as c:
-                r = c.get(url)
-                r.raise_for_status()
-            for row in csv.reader(r.text.splitlines()):
-                if len(row) < 7:
-                    continue
-                try:
-                    usg = float(row[6])
-                except ValueError:
-                    continue
-                if usg <= STAR_USAGE:
-                    continue
-                team = normalize_ncaam(row[1]) or row[1]
-                self._usage.setdefault(team, {})[_norm_name(row[0])] = usg
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(self._usage, separators=(",", ":"), sort_keys=True) + "\n")
-        except Exception as exc:  # noqa: BLE001
-            logger.info("Torvik usage unavailable: %s", type(exc).__name__)
         return self._usage
 
     def players_out(self, team_id: str) -> list[str]:

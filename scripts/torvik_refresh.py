@@ -14,7 +14,8 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
@@ -36,7 +37,6 @@ from sharp_scout.ncaam.situational import STAR_USAGE, _norm_name, _torvik_year  
 from sharp_scout.ncaam.torvik_cadence import (  # noqa: E402
     TORVIK_UA,
     effective_cadence,
-    freshness_window,
     parse_retrieved_at,
     refresh_due_today,
 )
@@ -47,6 +47,16 @@ from zoneinfo import ZoneInfo  # noqa: E402
 ET = ZoneInfo("America/New_York")
 ADVSTATS_URL = "https://barttorvik.com/getadvstats.php?year={year}&csv=1"
 MIN_TEAMS = 50
+RATINGS_LATEST_REL = "data/ncaam/ratings_latest.csv"
+USAGE_LATEST_REL = f"data/ncaam/{USAGE_LATEST}"
+
+
+@dataclass(frozen=True)
+class RefreshPlan:
+    skip_all: bool
+    reason: str
+    fetch_ratings: bool
+    fetch_usage: bool
 
 
 def _repo() -> str:
@@ -63,8 +73,10 @@ def _token() -> str:
     return tok
 
 
-def _gh_api(*args: str, input_text: str | None = None) -> dict:
-    cmd = ["gh", "api", *args]
+def _gh_api(endpoint: str, *, method: str = "GET", input_text: str | None = None) -> dict:
+    cmd = ["gh", "api", "--method", method, endpoint]
+    if input_text is not None:
+        cmd.extend(["--input", "-"])
     env = {**os.environ, "GH_TOKEN": _token(), "GITHUB_TOKEN": _token()}
     proc = subprocess.run(
         cmd,
@@ -75,7 +87,7 @@ def _gh_api(*args: str, input_text: str | None = None) -> dict:
         check=False,
     )
     if proc.returncode != 0:
-        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or f"gh api failed: {args}")
+        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or f"gh api failed: {cmd}")
     if not proc.stdout.strip():
         return {}
     return json.loads(proc.stdout)
@@ -86,7 +98,7 @@ def _gh_get_file_sha(repo: str, path: str, ref: str = "main") -> tuple[str | Non
 
     q = urllib.parse.quote(path, safe="")
     try:
-        data = _gh_api("GET", f"repos/{repo}/contents/{q}?ref={ref}")
+        data = _gh_api(f"repos/{repo}/contents/{q}?ref={ref}", method="GET")
     except RuntimeError:
         return None, None
     content_b64 = data.get("content")
@@ -124,7 +136,11 @@ def _gh_put_file(
                 sha_now, _ = _gh_get_file_sha(repo, path)
                 if sha_now:
                     payload["sha"] = sha_now
-            _gh_api("--method", "PUT", f"repos/{repo}/contents/{q}", input_text=json.dumps(payload))
+            _gh_api(
+                f"repos/{repo}/contents/{q}",
+                method="PUT",
+                input_text=json.dumps(payload),
+            )
             return
         except Exception as exc:  # noqa: BLE001
             last_err = exc
@@ -147,18 +163,64 @@ def _committed_retrieved_at(repo: str, rel_path: str) -> datetime | None:
         return None
 
 
-def skip_refresh(repo: str, *, now: datetime) -> tuple[bool, str]:
+def _et_date_of(dt: datetime) -> date:
+    return dt.astimezone(ET).date()
+
+
+def _week_refresh_monday(et_day: date) -> date:
+    return et_day - timedelta(days=et_day.weekday())
+
+
+def is_cache_fresh_for_cadence(retrieved: datetime | None, et_day: date) -> bool:
+    """Daily: cache ET date equals today ET. Weekly: cache ET date on/after this week's Monday."""
+    if retrieved is None:
+        return False
+    cache_day = _et_date_of(retrieved)
+    if effective_cadence(et_day) == "daily":
+        return cache_day == et_day
+    return cache_day >= _week_refresh_monday(et_day)
+
+
+def plan_refresh(repo: str, *, now: datetime) -> RefreshPlan:
     et_day = now.astimezone(ET).date()
     if not refresh_due_today(et_day):
-        return True, f"cadence={effective_cadence(et_day)}: not a scheduled refresh day"
-    rel = "data/ncaam/ratings_latest.csv"
-    retrieved = _committed_retrieved_at(repo, rel)
-    if retrieved is None:
-        return False, "no ratings_latest meta on main"
-    age = now - retrieved
-    if age <= freshness_window(et_day):
-        return True, f"main cache fresh ({age.total_seconds() / 3600:.1f}h old, within window)"
-    return False, f"cache older than freshness window ({age.days}d)"
+        return RefreshPlan(
+            True,
+            f"cadence={effective_cadence(et_day)}: not a scheduled refresh day",
+            False,
+            False,
+        )
+
+    ratings_at = _committed_retrieved_at(repo, RATINGS_LATEST_REL)
+    usage_at = _committed_retrieved_at(repo, USAGE_LATEST_REL)
+    ratings_fresh = is_cache_fresh_for_cadence(ratings_at, et_day)
+    usage_fresh = is_cache_fresh_for_cadence(usage_at, et_day)
+
+    if ratings_fresh and usage_fresh:
+        return RefreshPlan(
+            True,
+            "main ratings and usage caches fresh for current cadence",
+            False,
+            False,
+        )
+
+    need: list[str] = []
+    if not ratings_fresh:
+        need.append("ratings")
+    if not usage_fresh:
+        need.append("usage")
+    return RefreshPlan(
+        False,
+        f"refresh needed: {', '.join(need)}",
+        fetch_ratings=not ratings_fresh,
+        fetch_usage=not usage_fresh,
+    )
+
+
+def skip_refresh(repo: str, *, now: datetime) -> tuple[bool, str]:
+    """Backward-compatible wrapper: skip only when the full refresh plan is empty."""
+    plan = plan_refresh(repo, now=now)
+    return plan.skip_all, plan.reason
 
 
 def _fetch_bytes(url: str) -> tuple[bytes, str | None]:
@@ -198,69 +260,100 @@ def refresh(*, dry_run: bool = False, force: bool = False) -> int:
     et_day = now.astimezone(ET).date()
     repo = _repo()
 
-    skip, why = (False, "forced") if force else skip_refresh(repo, now=now)
-    if skip:
-        print(f"Skip: {why}")
+    if force:
+        plan = RefreshPlan(False, "forced", True, True)
+    else:
+        plan = plan_refresh(repo, now=now)
+
+    if plan.skip_all:
+        print(f"Skip: {plan.reason}")
         return 0
-    print(f"Proceed: {why}")
+    print(f"Proceed: {plan.reason}")
 
     day_tag = et_day.strftime("%Y%m%d")
     ratings_rel = f"data/ncaam/ratings_{day_tag}.csv"
-    ratings_latest_rel = "data/ncaam/ratings_latest.csv"
+    ratings_latest_rel = RATINGS_LATEST_REL
     usage_rel = f"data/ncaam/usage_{day_tag}.json"
-    usage_latest_rel = f"data/ncaam/usage_latest.json"
+    usage_latest_rel = USAGE_LATEST_REL
 
     if dry_run:
-        print(
-            f"Dry run: would GET {TORVIK_URL} and advstats year={_torvik_year(et_day)}, "
-            f"then commit {ratings_rel}, meta, {ratings_latest_rel}, meta, {usage_rel}, meta, {usage_latest_rel}"
-        )
+        fetches: list[str] = []
+        if plan.fetch_ratings:
+            fetches.append(TORVIK_URL)
+        if plan.fetch_usage:
+            fetches.append(ADVSTATS_URL.format(year=_torvik_year(et_day)))
+        commits: list[str] = []
+        if plan.fetch_ratings:
+            commits.extend([ratings_rel, ratings_rel + ".meta.json", ratings_latest_rel, ratings_latest_rel + ".meta.json"])
+        if plan.fetch_usage:
+            commits.extend([usage_rel, usage_rel + ".meta.json", usage_latest_rel, usage_latest_rel + ".meta.json"])
+        print(f"Dry run: would GET {', '.join(fetches) or 'nothing'}; commit {', '.join(commits) or 'nothing'}")
         return 0
 
-    csv_bytes, upstream_lm = _fetch_bytes(TORVIK_URL)
-    dest = NCAAM_DATA / f"ratings_{day_tag}.csv"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(csv_bytes)
-    _validate_csv(dest)
-    teams = count_teams_in_csv(dest)
-    if teams < MIN_TEAMS:
-        raise SystemExit(f"Torvik CSV has only {teams} teams (expected >={MIN_TEAMS})")
-    existing = count_teams_in_csv(DATA_DIR / "ncaam" / "ratings_latest.csv") if (DATA_DIR / "ncaam" / "ratings_latest.csv").is_file() else 0
-    if existing and teams < int(existing * 0.9):
-        raise SystemExit(f"Torvik CSV team count {teams} is far below prior cache {existing}")
+    pairs: list[tuple[str, bytes]] = []
+    teams = 0
+    msg_bits: list[str] = []
 
-    digest = content_sha256(dest)
-    meta = write_successful_retrieval_meta(
-        dest,
-        source_url=TORVIK_URL,
-        content_digest=digest,
-        retrieved_at=now,
-        upstream_http_last_modified_utc=upstream_lm,
-    )
+    if plan.fetch_ratings:
+        csv_bytes, upstream_lm = _fetch_bytes(TORVIK_URL)
+        dest = NCAAM_DATA / f"ratings_{day_tag}.csv"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(csv_bytes)
+        _validate_csv(dest)
+        teams = count_teams_in_csv(dest)
+        if teams < MIN_TEAMS:
+            raise SystemExit(f"Torvik CSV has only {teams} teams (expected >={MIN_TEAMS})")
+        existing = (
+            count_teams_in_csv(DATA_DIR / "ncaam" / "ratings_latest.csv")
+            if (DATA_DIR / "ncaam" / "ratings_latest.csv").is_file()
+            else 0
+        )
+        if existing and teams < int(existing * 0.9):
+            raise SystemExit(f"Torvik CSV team count {teams} is far below prior cache {existing}")
 
-    year = _torvik_year(et_day)
-    adv_bytes, _adv_lm = _fetch_bytes(ADVSTATS_URL.format(year=year))
-    usage = _build_usage_table(adv_bytes.decode("utf-8", errors="replace"))
-    if not usage:
-        raise SystemExit("advstats CSV produced empty usage table")
-    usage_json = (json.dumps(usage, separators=(",", ":"), sort_keys=True) + "\n").encode()
+        digest = content_sha256(dest)
+        meta = write_successful_retrieval_meta(
+            dest,
+            source_url=TORVIK_URL,
+            content_digest=digest,
+            retrieved_at=now,
+            upstream_http_last_modified_utc=upstream_lm,
+        )
+        pairs.extend(
+            [
+                (ratings_rel, csv_bytes),
+                (ratings_rel + ".meta.json", _meta_bytes(meta)),
+                (ratings_latest_rel, csv_bytes),
+                (ratings_latest_rel + ".meta.json", _meta_bytes(meta)),
+            ]
+        )
+        msg_bits.append(f"ratings ({teams} teams)")
 
-    usage_path = NCAAM_DATA / f"usage_{day_tag}.json"
-    usage_path.write_bytes(usage_json)
-    usage_meta = write_usage_meta(usage_path, source_url=ADVSTATS_URL.format(year=year), retrieved_at=now)
+    if plan.fetch_usage:
+        year = _torvik_year(et_day)
+        adv_bytes, _adv_lm = _fetch_bytes(ADVSTATS_URL.format(year=year))
+        usage = _build_usage_table(adv_bytes.decode("utf-8", errors="replace"))
+        if not usage:
+            raise SystemExit("advstats CSV produced empty usage table")
+        usage_json = (json.dumps(usage, separators=(",", ":"), sort_keys=True) + "\n").encode()
 
-    msg = f"Torvik cache refresh {day_tag} ({teams} teams, cadence={effective_cadence(et_day)})"
-    pairs = [
-        (ratings_rel, csv_bytes, None),
-        (ratings_rel + ".meta.json", _meta_bytes(meta), None),
-        (ratings_latest_rel, csv_bytes, None),
-        (ratings_latest_rel + ".meta.json", _meta_bytes(meta), None),
-        (usage_rel, usage_json, None),
-        (usage_rel + ".meta.json", _meta_bytes(usage_meta), None),
-        (usage_latest_rel, usage_json, None),
-        (usage_latest_rel + ".meta.json", _meta_bytes(usage_meta), None),
-    ]
-    for rel, content, _ in pairs:
+        usage_path = NCAAM_DATA / f"usage_{day_tag}.json"
+        usage_path.write_bytes(usage_json)
+        usage_meta = write_usage_meta(
+            usage_path, source_url=ADVSTATS_URL.format(year=year), retrieved_at=now
+        )
+        pairs.extend(
+            [
+                (usage_rel, usage_json),
+                (usage_rel + ".meta.json", _meta_bytes(usage_meta)),
+                (usage_latest_rel, usage_json),
+                (usage_latest_rel + ".meta.json", _meta_bytes(usage_meta)),
+            ]
+        )
+        msg_bits.append("usage")
+
+    msg = f"Torvik cache refresh {day_tag} ({'; '.join(msg_bits)}, cadence={effective_cadence(et_day)})"
+    for rel, content in pairs:
         sha, _ = _gh_get_file_sha(repo, rel)
         _gh_put_file(repo, rel, content, msg, sha=sha)
         print(f"Committed {rel}")

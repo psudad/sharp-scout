@@ -37,13 +37,9 @@ def main() -> int:
     parser.add_argument(
         "--preview",
         action="store_true",
-        help="Morning preview only (one Odds snapshot; does not lock picks)",
+        help="Demo: fixture preview. Live: rebuild board from preview JSON (no API)",
     )
-    parser.add_argument(
-        "--preview-force",
-        action="store_true",
-        help="Re-run morning preview even if today's file already exists",
-    )
+    parser.add_argument("--preview-force", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--restore-from", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()

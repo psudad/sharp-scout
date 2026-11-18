@@ -1,6 +1,7 @@
 name: NCAAM morning preview
 
-# One Odds API snapshot (~2 credits) + full-slate candidate evaluation for the public board.
+# Rebuilds the NCAAM board preview section from committed JSON (zero Odds API credits).
+# Intraday preview rows are refreshed by the lock runner when it already fetched odds.
 # Scheduled 10:00 AM America/New_York (15:00 UTC during EST; 11:00 AM during EDT).
 
 on:
@@ -9,11 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       demo:
-        description: "Offline demo preview (no API keys)"
-        type: boolean
-        default: false
-      force:
-        description: "Re-run even if today's preview file already exists"
+        description: "Offline demo preview (fixtures only)"
         type: boolean
         default: false
 
@@ -30,7 +27,7 @@ concurrency:
 jobs:
   preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -42,26 +39,15 @@ jobs:
       - name: Install
         run: pip install -e .
 
-      - name: Morning preview
-        env:
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-          GH_TOKEN: ${{ github.token }}
+      - name: Rebuild preview section (no Odds API)
         run: |
           git config user.name "sharp-scout-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ "${{ github.event.inputs.demo }}" = "true" ]; then
             python scripts/run_ncaam.py --demo --preview
-            exit 0
+          else
+            python scripts/run_ncaam.py --preview
           fi
-          if [ -z "$ODDS_API_KEY" ]; then
-            echo "No ODDS_API_KEY; skipping morning preview"
-            exit 0
-          fi
-          FORCE=""
-          if [ "${{ github.event.inputs.force }}" = "true" ]; then
-            FORCE="--preview-force"
-          fi
-          python scripts/run_ncaam.py --preview $FORCE
 
       - name: Commit preview artifacts
         if: always() && github.event.inputs.demo != 'true'

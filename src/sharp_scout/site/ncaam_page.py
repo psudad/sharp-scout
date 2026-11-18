@@ -305,12 +305,13 @@ def _render_preview(ledger: dict[str, Any], *, now: datetime | None = None) -> s
     picks = list(data.get("picks") or [])
     if not picks:
         return ""
-    generated = _fmt_et(data.get("generated_at"))
+    last_scan = data.get("last_scan_at_et") or _fmt_et(data.get("generated_at"))
     intro = (
         '<div class="ncaam-preview-disclaimer">'
         "<p><b>Morning preview — likely plays, NOT official.</b> "
         "Final call comes 25–90 min before tip at the then-current line.</p>"
-        f'<p class="phase-note">Preview generated {generated} (ET)</p>'
+        f'<p class="phase-note">Last preview scan {last_scan} (ET). '
+        "Updates when the lock runner takes an odds snapshot — no extra API cost.</p>"
         "</div>"
     )
     rows = []
@@ -327,11 +328,18 @@ def _render_preview(ledger: dict[str, Any], *, now: datetime | None = None) -> s
             ev_s = f"{100.0 * float(ev):.1f}%"
         except (TypeError, ValueError):
             ev_s = "—"
+        added_et = _esc(p.get("added_at_et") or "—")
+        updated_et = _esc(p.get("updated_at_et") or added_et)
+        timing = f"Added {added_et}<br/>Updated {updated_et}"
+        preview_st = str(p.get("preview_state") or "active").lower()
         if overlay == "locked":
             status = '<span class="preview-status locked">Locked</span>'
             play_cell = f'<s class="preview-superseded">{play_lbl}</s>'
         elif overlay == "passed_at_lock":
             status = '<span class="preview-status passed">Passed at lock</span>'
+            play_cell = f'<s class="preview-superseded">{play_lbl}</s>'
+        elif preview_st == "no_longer_qualifies":
+            status = '<span class="preview-status dropped">No longer qualifies</span>'
             play_cell = f'<s class="preview-superseded">{play_lbl}</s>'
         else:
             status = '<span class="preview-status open">Preview</span>'
@@ -343,13 +351,14 @@ def _render_preview(ledger: dict[str, Any], *, now: datetime | None = None) -> s
             f'<td data-label="Play">{play_cell}</td>'
             f'<td data-label="Book">{book}</td>'
             f'<td data-label="Edge">{_esc(ev_s)}</td>'
+            f'<td data-label="Added/updated (ET)">{timing}</td>'
             f'<td data-label="Status">{status}</td>'
             f"</tr>"
         )
     table = (
         '<div class="table-wrap ncaam-preview-table"><table class="export-table">'
-        "<thead><tr><th>Tip (ET)</th><th>Game</th><th>Morning line</th>"
-        "<th>Book</th><th>Edge</th><th>Status</th></tr></thead>"
+        "<thead><tr><th>Tip (ET)</th><th>Game</th><th>Line</th>"
+        "<th>Book</th><th>Edge</th><th>Added/updated (ET)</th><th>Status</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
     return f'<section class="ncaam-preview">{intro}{table}</section>'
@@ -603,6 +612,7 @@ NCAAM_PAGE_TEMPLATE = """<!DOCTYPE html>
   .preview-status.locked {{ color: #15803d; }}
   .preview-status.passed {{ color: var(--color-text-muted); }}
   .preview-status.open {{ color: #b45309; }}
+  .preview-status.dropped {{ color: #6b7280; }}
   .preview-superseded {{ opacity: 0.65; }}
 </style>
 </head>

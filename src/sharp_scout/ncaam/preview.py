@@ -1,4 +1,4 @@
-"""NCAAM morning preview — one daily Odds snapshot, no ledger writes."""
+"""NCAAM likely-play preview — reuses runner Odds snapshots; never touches the ledger."""
 
 from __future__ import annotations
 
@@ -7,41 +7,36 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sharp_scout.config import get_settings
-from sharp_scout.ncaam.preview_store import (
-    NCAAM_PREVIEW_DIR,
-    PREVIEW_LATEST_PATH,
-    preview_already_ran,
-    preview_path_for_day,
-)
-from sharp_scout.data import line_store
+from sharp_scout.copy.explain import format_display_datetime_et
 from sharp_scout.ncaam.candidates import evaluate_game, pick_best_per_game
 from sharp_scout.ncaam.certification_gates import filter_day_picks_for_certification
-from sharp_scout.ncaam.credits import (
-    CREDITS_PER_ODDS_CALL,
-    record_spend,
-    should_skip_snapshot,
-)
-from sharp_scout.ncaam.espn import et_dates_for_runner, fetch_scoreboard_et_day
 from sharp_scout.ncaam.lock import LEDGER_PATH, LockWindow, lock_window
 from sharp_scout.ncaam.price_edge import filter_day_picks_for_price_edge
 from sharp_scout.ncaam.price_edge_diagnostics import record_price_edge_batch
-from sharp_scout.ncaam.ratings import ensure_daily_ratings, load_ratings
-from sharp_scout.ncaam.rules import apply_daily_cap
-from sharp_scout.ncaam.runner import (
-    DEMO_ODDS_FIXTURE,
-    DEMO_SLATE_FIXTURE,
-    NCAAM_LINE_HISTORY_PATH,
-    _locked_today,
-    fetch_odds_snapshot,
+from sharp_scout.ncaam.preview_store import (
+    NCAAM_PREVIEW_DIR,
+    PREVIEW_LATEST_PATH,
+    load_preview,
+    preview_path_for_day,
 )
-from sharp_scout.ncaam.slate import build_slate, load_demo_slate, save_slate
+from sharp_scout.ncaam.rules import apply_daily_cap
+
 logger = logging.getLogger(__name__)
 
-from zoneinfo import ZoneInfo
-
 ET = ZoneInfo("America/New_York")
+PREVIEW_STATE_ACTIVE = "active"
+PREVIEW_STATE_DROPPED = "no_longer_qualifies"
+
+
+def _et_display(now: datetime) -> str:
+    return format_display_datetime_et(now.isoformat())
+
+
+def _pick_id(play: dict[str, Any]) -> str:
+    return str(play.get("espn_id") or play.get("event_id") or "")
 
 
 def _serialize_pick(play: dict[str, Any], *, now: datetime) -> dict[str, Any]:
@@ -71,84 +66,29 @@ def _serialize_pick(play: dict[str, Any], *, now: datetime) -> dict[str, Any]:
     }
 
 
-def _write_preview(payload: dict[str, Any], et_day: date) -> None:
-    NCAAM_PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
-    preview_path_for_day(et_day).write_text(json.dumps(payload, indent=2, default=str) + "\n")
-    PREVIEW_LATEST_PATH.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+def _preview_eligible(now: datetime, tip: datetime) -> bool:
+    return lock_window(now, tip) == LockWindow.TOO_EARLY
 
 
-def run_morning_preview(
+def _qualifying_preview_picks(
+    all_slate: list[dict[str, Any]],
+    odds_by_id: dict[str, dict[str, Any]],
+    ratings: dict[str, dict[str, float]],
     *,
-    demo: bool = False,
-    now: datetime | None = None,
-    force: bool = False,
-    manual: bool = False,
-    ledger_path: Path | None = None,
-    build_site: bool = True,
-) -> dict[str, Any]:
-    """Evaluate today's full slate once; never append to the official ledger."""
-    now = now or datetime.now(timezone.utc)
-    ledger_path = ledger_path or LEDGER_PATH
+    now: datetime,
+    ledger_path: Path,
+    demo: bool,
+) -> list[dict[str, Any]]:
+    from sharp_scout.ncaam.runner import _locked_today
+
     et_today = now.astimezone(ET).date()
-
-    if not force and preview_already_ran(et_today):
-        logger.info("NCAAM morning preview already ran for %s; skipping", et_today)
-        return {"skipped": True, "reason": "already_ran_today", "picks": 0}
-
-    ratings_path = ensure_daily_ratings(demo=demo)
-    ratings = load_ratings(ratings_path)
-    et_days = et_dates_for_runner(now)
-    espn_by_day: dict[Any, list[dict[str, Any]]] = {}
-    if not demo:
-        for d in et_days:
-            espn_by_day[d] = fetch_scoreboard_et_day(d)
-
-    skip, reason = should_skip_snapshot(remaining_header=None)
-    odds_events: list[dict[str, Any]] = []
-    odds_cost: int | None = None
-    if demo or not skip:
-        odds_events, remaining, cost = fetch_odds_snapshot(demo=demo)
-        if not demo and (odds_events or (cost or 0) > 0):
-            spent = cost if cost is not None else CREDITS_PER_ODDS_CALL
-            odds_cost = int(spent)
-            record_spend(spent, remaining_header=remaining)
-            logger.info("NCAAM preview odds snapshot cost=%s remaining=%s", spent, remaining)
-        if not demo and odds_events:
-            line_store.record_snapshot(odds_events, sharp_only=False, path=NCAAM_LINE_HISTORY_PATH)
-    elif skip:
-        logger.warning("NCAAM preview skipping odds snapshot: %s", reason)
-        return {"skipped": True, "reason": reason, "picks": 0}
-
-    demo_shift: timedelta | None = None
-    if demo and odds_events:
-        first = min(e["commence_time"] for e in odds_events if isinstance(e.get("commence_time"), datetime))
-        demo_shift = (now + timedelta(minutes=60)) - first
-        for e in odds_events:
-            if isinstance(e.get("commence_time"), datetime):
-                e["commence_time"] = e["commence_time"] + demo_shift
-
-    all_slate: list[dict[str, Any]] = []
-    for d in et_days:
-        if demo and DEMO_SLATE_FIXTURE.exists():
-            slate = load_demo_slate(DEMO_SLATE_FIXTURE)
-            if demo_shift is not None:
-                for r in slate:
-                    if isinstance(r.get("commence_time"), datetime):
-                        r["commence_time"] = r["commence_time"] + demo_shift
-        else:
-            espn = espn_by_day.get(d) or []
-            slate = build_slate(et_day=d, odds_events=odds_events, espn_rows=espn)
-            if not demo:
-                save_slate(slate, et_day=d)
-        all_slate.extend(slate)
-
-    odds_by_id = {str(e.get("event_id")): e for e in odds_events}
     candidates: list[dict[str, Any]] = []
+    odds_events_stub: list[dict[str, Any]] = list(odds_by_id.values())
     for game in all_slate:
         tip = game.get("commence_time")
         if not isinstance(tip, datetime):
             continue
-        if lock_window(now, tip) == LockWindow.POST_TIP:
+        if not _preview_eligible(now, tip):
             continue
         if tip.astimezone(ET).date() != et_today:
             continue
@@ -162,8 +102,8 @@ def run_morning_preview(
             and (ev.get("home_team"), ev.get("away_team")) != (game.get("home_team"), game.get("away_team"))
         ):
             ev = None
-        if not ev and demo:
-            ev = odds_events[0] if odds_events else None
+        if not ev and demo and odds_events_stub:
+            ev = odds_events_stub[0]
         if not ev:
             continue
         for c in evaluate_game(game, ev, ratings, now=now):
@@ -187,17 +127,98 @@ def run_morning_preview(
     )
     if diag_rows:
         record_price_edge_batch(diag_rows, gate_enabled=gate_on, min_edge=min_edge)
-
     day_picks, _cert_blocked = filter_day_picks_for_certification(day_picks)
+    return day_picks
 
-    picks = [_serialize_pick(p, now=now) for p in day_picks]
+
+def merge_preview_picks(
+    existing: list[dict[str, Any]],
+    fresh_models: list[dict[str, Any]],
+    *,
+    now: datetime,
+) -> list[dict[str, Any]]:
+    """Keep prior rows; refresh active picks; mark gate drops; never delete."""
+    et_now = _et_display(now)
+    fresh_serialized = [_serialize_pick(p, now=now) for p in fresh_models]
+    for row in fresh_serialized:
+        row["preview_state"] = PREVIEW_STATE_ACTIVE
+
+    fresh_by_id = {_pick_id(row): row for row in fresh_serialized}
+    prior_by_id = {_pick_id(row): row for row in existing if _pick_id(row)}
+
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for pid, row in fresh_by_id.items():
+        seen.add(pid)
+        prev = prior_by_id.get(pid)
+        row["updated_at_et"] = et_now
+        row["added_at_et"] = (prev or {}).get("added_at_et") or (prev or {}).get("updated_at_et") or et_now
+        merged.append(row)
+
+    for pid, prev in prior_by_id.items():
+        if pid in seen:
+            continue
+        row = dict(prev)
+        tip_raw = row.get("tip")
+        try:
+            tip = datetime.fromisoformat(str(tip_raw).replace("Z", "+00:00"))
+        except ValueError:
+            tip = None
+        if tip and _preview_eligible(now, tip):
+            if row.get("preview_state") != PREVIEW_STATE_DROPPED:
+                row["preview_state"] = PREVIEW_STATE_DROPPED
+                row["updated_at_et"] = et_now
+        merged.append(row)
+
+    def _sort_key(item: dict[str, Any]) -> tuple:
+        active = 0 if item.get("preview_state") == PREVIEW_STATE_ACTIVE else 1
+        return (active, str(item.get("tip") or ""))
+
+    merged.sort(key=_sort_key)
+    return merged
+
+
+def _write_preview(payload: dict[str, Any], et_day: date) -> None:
+    NCAAM_PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+    preview_path_for_day(et_day).write_text(json.dumps(payload, indent=2, default=str) + "\n")
+    PREVIEW_LATEST_PATH.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+
+
+def refresh_preview_from_snapshot(
+    odds_events: list[dict[str, Any]],
+    all_slate: list[dict[str, Any]],
+    *,
+    ratings: dict[str, dict[str, float]],
+    now: datetime | None = None,
+    ledger_path: Path | None = None,
+    demo: bool = False,
+    build_site: bool = False,
+) -> dict[str, Any]:
+    """Merge likely plays from an existing odds snapshot (no Odds API calls)."""
+    if not odds_events:
+        return {"skipped": True, "reason": "no_odds_events", "picks": 0}
+
+    now = now or datetime.now(timezone.utc)
+    ledger_path = ledger_path or LEDGER_PATH
+    et_today = now.astimezone(ET).date()
+    odds_by_id = {str(e.get("event_id")): e for e in odds_events}
+
+    fresh_models = _qualifying_preview_picks(
+        all_slate, odds_by_id, ratings, now=now, ledger_path=ledger_path, demo=demo
+    )
+    existing_doc = load_preview(et_day=et_today)
+    existing_rows = list(existing_doc.get("picks") or [])
+    merged = merge_preview_picks(existing_rows, fresh_models, now=now)
+    active_n = sum(1 for p in merged if p.get("preview_state") == PREVIEW_STATE_ACTIVE)
+
     payload = {
         "generated_at": now.isoformat(),
         "et_day": et_today.isoformat(),
-        "manual": manual or force,
-        "odds_cost": odds_cost if odds_cost is not None else (0 if demo else CREDITS_PER_ODDS_CALL),
-        "picks": picks,
-        "candidates_n": len(candidates),
+        "last_scan_at_et": _et_display(now),
+        "picks": merged,
+        "active_n": active_n,
+        "candidates_n": len(fresh_models),
     }
     _write_preview(payload, et_today)
 
@@ -209,9 +230,90 @@ def run_morning_preview(
         else:
             build_ncaam_page()
 
+    logger.info(
+        "NCAAM preview refresh: active=%s total_rows=%s (no extra Odds API)",
+        active_n,
+        len(merged),
+    )
     return {
         "skipped": False,
-        "picks": len(picks),
-        "candidates": len(candidates),
-        "odds_cost": payload["odds_cost"],
+        "picks": active_n,
+        "rows": len(merged),
+        "candidates": len(fresh_models),
+        "odds_cost": 0,
     }
+
+
+def run_morning_preview(
+    *,
+    demo: bool = False,
+    now: datetime | None = None,
+    force: bool = False,
+    manual: bool = False,
+    ledger_path: Path | None = None,
+    build_site: bool = True,
+) -> dict[str, Any]:
+    """Demo/offline preview exercise, or rebuild the board from existing preview JSON (live)."""
+    now = now or datetime.now(timezone.utc)
+    ledger_path = ledger_path or LEDGER_PATH
+
+    if not demo:
+        if build_site:
+            from sharp_scout.site.ncaam_page import build_ncaam_page
+
+            build_ncaam_page()
+        doc = load_preview(et_day=now.astimezone(ET).date())
+        return {
+            "skipped": False,
+            "picks": int(doc.get("active_n") or 0),
+            "rebuild_only": True,
+            "odds_cost": 0,
+        }
+
+    from sharp_scout.ncaam.espn import et_dates_for_runner
+    from sharp_scout.ncaam.ratings import ensure_daily_ratings, load_ratings
+    from sharp_scout.ncaam.runner import (
+        DEMO_ODDS_FIXTURE,
+        DEMO_SLATE_FIXTURE,
+        fetch_odds_snapshot,
+    )
+    from sharp_scout.ncaam.slate import build_slate, load_demo_slate
+
+    ratings = load_ratings(ensure_daily_ratings(demo=True))
+    odds_events, _, _ = fetch_odds_snapshot(demo=True)
+    demo_shift: timedelta | None = None
+    if odds_events:
+        first = min(e["commence_time"] for e in odds_events if isinstance(e.get("commence_time"), datetime))
+        demo_shift = (now + timedelta(hours=3)) - first
+        for e in odds_events:
+            if isinstance(e.get("commence_time"), datetime):
+                e["commence_time"] = e["commence_time"] + demo_shift
+
+    et_days = et_dates_for_runner(now)
+    all_slate: list[dict[str, Any]] = []
+    for d in et_days:
+        if DEMO_SLATE_FIXTURE.exists():
+            slate = load_demo_slate(DEMO_SLATE_FIXTURE)
+            if demo_shift is not None:
+                for r in slate:
+                    if isinstance(r.get("commence_time"), datetime):
+                        r["commence_time"] = r["commence_time"] + demo_shift
+        else:
+            slate = build_slate(et_day=d, odds_events=odds_events, espn_rows=[])
+        all_slate.extend(slate)
+
+    return refresh_preview_from_snapshot(
+        odds_events,
+        all_slate,
+        ratings=ratings,
+        now=now,
+        ledger_path=ledger_path,
+        demo=True,
+        build_site=build_site,
+    )
+
+
+def rebuild_ncaam_page_from_preview() -> None:
+    from sharp_scout.site.ncaam_page import build_ncaam_page
+
+    build_ncaam_page()

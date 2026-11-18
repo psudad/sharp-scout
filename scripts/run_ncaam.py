@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from sharp_scout.config import DATA_DIR  # noqa: E402
 from sharp_scout.ncaam.lock import LEDGER_PATH  # noqa: E402
+from sharp_scout.ncaam.preview import run_morning_preview  # noqa: E402
 from sharp_scout.ncaam.runner import (  # noqa: E402
     _git_commit_push,
     restore_from_backup,
@@ -33,6 +34,16 @@ def main() -> int:
     parser.add_argument("--budget-min", type=int, default=340)
     parser.add_argument("--commit", action="store_true", help="Git commit after locks (live only)")
     parser.add_argument("--commit-only", action="store_true", help="Commit + push NCAAM files and exit")
+    parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="Morning preview only (one Odds snapshot; does not lock picks)",
+    )
+    parser.add_argument(
+        "--preview-force",
+        action="store_true",
+        help="Re-run morning preview even if today's file already exists",
+    )
     parser.add_argument("--restore-from", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
@@ -54,6 +65,17 @@ def main() -> int:
         ledger_path.write_text(
             '{"updated_at":"1970-01-01T00:00:00+00:00","starting_units":100,"plays":[],"stage_cards":[],"disagreements":[]}\n'
         )
+
+    if args.preview:
+        summary = run_morning_preview(
+            demo=args.demo,
+            force=args.preview_force,
+            manual=args.preview_force,
+            ledger_path=ledger_path,
+            build_site=True,
+        )
+        print(summary)
+        return 0 if not summary.get("skipped") or summary.get("reason") == "already_ran_today" else 0
 
     if args.loop and not args.demo:
         return run_loop(

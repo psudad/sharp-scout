@@ -9,6 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT, get_settings
+from sharp_scout.ncaam.preview_store import ledger_overlay_status, load_preview
 
 NCAAM_LINE_HISTORY_PATH = DATA_DIR / "ncaam" / "line_history.json"
 from sharp_scout.copy.explain import format_display_datetime_et
@@ -299,6 +300,61 @@ def _render_play_card(
       </div>"""
 
 
+def _render_preview(ledger: dict[str, Any], *, now: datetime | None = None) -> str:
+    data = load_preview()
+    picks = list(data.get("picks") or [])
+    if not picks:
+        return ""
+    generated = _fmt_et(data.get("generated_at"))
+    intro = (
+        '<div class="ncaam-preview-disclaimer">'
+        "<p><b>Morning preview — likely plays, NOT official.</b> "
+        "Final call comes 25–90 min before tip at the then-current line.</p>"
+        f'<p class="phase-note">Preview generated {generated} (ET)</p>'
+        "</div>"
+    )
+    rows = []
+    for p in picks:
+        eid = str(p.get("espn_id") or p.get("event_id") or "")
+        overlay = ledger_overlay_status(ledger, eid) if eid else None
+        away = _esc(p.get("away_team") or "")
+        home = _esc(p.get("home_team") or "")
+        tip = _fmt_et(p.get("tip"))
+        play_lbl = _esc(ncaam_play_label(p))
+        book = _esc(ncaam_book_label(p.get("book")))
+        ev = p.get("ev")
+        try:
+            ev_s = f"{100.0 * float(ev):.1f}%"
+        except (TypeError, ValueError):
+            ev_s = "—"
+        if overlay == "locked":
+            status = '<span class="preview-status locked">Locked</span>'
+            play_cell = f'<s class="preview-superseded">{play_lbl}</s>'
+        elif overlay == "passed_at_lock":
+            status = '<span class="preview-status passed">Passed at lock</span>'
+            play_cell = f'<s class="preview-superseded">{play_lbl}</s>'
+        else:
+            status = '<span class="preview-status open">Preview</span>'
+            play_cell = f"<b>{play_lbl}</b>"
+        rows.append(
+            f"<tr>"
+            f'<td data-label="Tip (ET)">{tip}</td>'
+            f'<td data-label="Game">{away} @ {home}</td>'
+            f'<td data-label="Play">{play_cell}</td>'
+            f'<td data-label="Book">{book}</td>'
+            f'<td data-label="Edge">{_esc(ev_s)}</td>'
+            f'<td data-label="Status">{status}</td>'
+            f"</tr>"
+        )
+    table = (
+        '<div class="table-wrap ncaam-preview-table"><table class="export-table">'
+        "<thead><tr><th>Tip (ET)</th><th>Game</th><th>Morning line</th>"
+        "<th>Book</th><th>Edge</th><th>Status</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></div>"
+    )
+    return f'<section class="ncaam-preview">{intro}{table}</section>'
+
+
 def _render_locks(signals: dict[str, Any]) -> str:
     locks = [p for p in (signals.get("locks") or []) if _is_official_play(p)]
     if not locks:
@@ -421,6 +477,7 @@ def render_ncaam_page_html(
     analytics_head: str,
     site_css: str,
     updated: str,
+    preview_html: str | None = None,
 ) -> str:
     rec = ncaam_record(ledger, path=NCAAM_LEDGER_PATH)
     last_scan = _format_last_scan(signals)
@@ -436,6 +493,7 @@ def render_ncaam_page_html(
         updated=_esc(updated),
         last_scan=last_scan_html,
         record_block=_render_record(rec, ledger),
+        preview_html=preview_html if preview_html is not None else _render_preview(ledger),
         plays_html=_render_locks(signals),
         ledger_html=_ledger_rows(ledger),
         tracking_html=_render_tracking(ledger, signals),
@@ -532,6 +590,20 @@ NCAAM_PAGE_TEMPLATE = """<!DOCTYPE html>
   .ncaam-tracking > summary::-webkit-details-marker {{ display: none; }}
   .ncaam-tracking-note {{ font-size: 13px; margin: 8px 0 12px; }}
   .ncaam-tracking table {{ opacity: 0.72; }}
+  .ncaam-preview {{
+    margin: 20px 0 24px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: linear-gradient(180deg, rgba(255,251,235,.55), transparent);
+  }}
+  .ncaam-preview-disclaimer p {{ margin: 0 0 8px; font-size: 14px; line-height: 1.45; }}
+  .ncaam-preview-disclaimer .phase-note {{ margin: 0; font-size: 12px; }}
+  .preview-status {{ font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }}
+  .preview-status.locked {{ color: #15803d; }}
+  .preview-status.passed {{ color: var(--color-text-muted); }}
+  .preview-status.open {{ color: #b45309; }}
+  .preview-superseded {{ opacity: 0.65; }}
 </style>
 </head>
 <body class="ss-bottom-bar">
@@ -544,6 +616,7 @@ NCAAM_PAGE_TEMPLATE = """<!DOCTYPE html>
     {last_scan}
     {record_block}
   </div>
+  {preview_html}
   <div class="plays-heading">
     <div class="plays-heading-main">TODAY&apos;S PLAYS — BET THESE</div>
     <div class="plays-heading-sub">Official locked picks. If we posted a play, it appears here and stays here after the game with the result.</div>

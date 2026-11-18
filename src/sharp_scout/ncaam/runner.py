@@ -53,6 +53,7 @@ NCAAM_COMMIT_PATHS = [
     "data/ncaam/",
     "data/ncaam_ledger.json",
     "data/ncaam_latest_signals.json",
+    "data/ncaam_preview_latest.json",
     "docs/ncaam.html",
     "docs/ncaam_ledger.json",
     "docs/ncaam_record.json",

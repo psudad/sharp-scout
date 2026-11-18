@@ -165,6 +165,25 @@ def test_refresh_preview_zero_odds_cost_no_fetch(preview_env, monkeypatch):
     assert out["odds_cost"] == 0
 
 
+def test_preview_leaves_price_edge_diagnostics_unchanged(preview_env, monkeypatch):
+    from sharp_scout.ncaam import price_edge_diagnostics as diag_mod
+
+    _, data, _, _, ledger = preview_env
+    shadow = data / "shadow" / "ncaam_price_edge_diagnostics.json"
+    shadow.parent.mkdir(parents=True, exist_ok=True)
+    marker = '{"updated_at":"fixture","entries":[{"espn_id":"official-only"}]}\n'
+    shadow.write_text(marker)
+    monkeypatch.setattr(diag_mod, "SHADOW_PATH", shadow)
+
+    def _forbid(*_a, **_k):
+        raise AssertionError("preview must not record price-edge diagnostics")
+
+    monkeypatch.setattr(diag_mod, "record_price_edge_batch", _forbid)
+    now = datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc)
+    run_morning_preview(demo=True, now=now, ledger_path=ledger, build_site=False)
+    assert shadow.read_text() == marker
+
+
 def test_run_pass_refreshes_preview_when_snapshot(preview_env, monkeypatch):
     _, data, _, _, ledger = preview_env
     refreshes: list[int] = []

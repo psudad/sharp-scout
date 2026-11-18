@@ -15,7 +15,6 @@ from sharp_scout.ncaam.candidates import evaluate_game, pick_best_per_game
 from sharp_scout.ncaam.certification_gates import filter_day_picks_for_certification
 from sharp_scout.ncaam.lock import LEDGER_PATH, LockWindow, lock_window
 from sharp_scout.ncaam.price_edge import filter_day_picks_for_price_edge
-from sharp_scout.ncaam.price_edge_diagnostics import record_price_edge_batch
 from sharp_scout.ncaam.preview_store import (
     NCAAM_PREVIEW_DIR,
     PREVIEW_LATEST_PATH,
@@ -122,11 +121,9 @@ def _qualifying_preview_picks(
     settings = get_settings()
     min_edge = float(settings.ncaam_price_edge_min)
     gate_on = bool(settings.ncaam_price_edge_gate_enabled)
-    day_picks, diag_rows = filter_day_picks_for_price_edge(
+    day_picks, _diag_rows = filter_day_picks_for_price_edge(
         day_picks, gate_enabled=gate_on, min_edge=min_edge
     )
-    if diag_rows:
-        record_price_edge_batch(diag_rows, gate_enabled=gate_on, min_edge=min_edge)
     day_picks, _cert_blocked = filter_day_picks_for_certification(day_picks)
     return day_picks
 

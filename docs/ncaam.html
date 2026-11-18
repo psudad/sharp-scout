@@ -9,13 +9,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-1PT74LM4LF"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-1PT74LM4LF', { anonymize_ip: true });
-</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inconsolata:wght@400;500;600&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -847,6 +841,21 @@
   .ncaam-tracking > summary::-webkit-details-marker { display: none; }
   .ncaam-tracking-note { font-size: 13px; margin: 8px 0 12px; }
   .ncaam-tracking table { opacity: 0.72; }
+  .ncaam-preview {
+    margin: 20px 0 24px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: linear-gradient(180deg, rgba(255,251,235,.55), transparent);
+  }
+  .ncaam-preview-disclaimer p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; }
+  .ncaam-preview-disclaimer .phase-note { margin: 0; font-size: 12px; }
+  .preview-status { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .preview-status.locked { color: #15803d; }
+  .preview-status.passed { color: var(--color-text-muted); }
+  .preview-status.open { color: #b45309; }
+  .preview-status.dropped { color: #6b7280; }
+  .preview-superseded { opacity: 0.65; }
 </style>
 </head>
 <body class="ss-bottom-bar">
@@ -855,10 +864,11 @@
   <div class="ncaam-hero">
     <h1>College Basketball</h1>
     <p>Automated NCAAM picks. Locks are timestamped before tip; results settle from ESPN finals.</p>
-    <p class="phase-note">Updated Nov 18, 2026 at 1:41 PM EST</p>
+    <p class="phase-note">Updated Nov 18, 2026 at 2:34 PM EST</p>
     <p class="phase-note last-scan">Last scan: 58 games checked, 0 with odds matched, 0 candidates, 0 locks.</p>
     <div class="summary-grid summary-grid-5 ncaam-record"><div class="stat-card"><div class="stat-val pos">—</div><div class="stat-label">Yesterday · Tue Nov 17</div></div><div class="stat-card"><div class="stat-val">45-40</div><div class="stat-label">Season record</div></div><div class="stat-card"><div class="stat-val pos">+3.83u</div><div class="stat-label">Units P&amp;L</div></div><div class="stat-card"><div class="stat-val">—</div><div class="stat-label">ROI</div></div><div class="stat-card"><div class="stat-val">64%</div><div class="stat-label">Beat close (price-aware) · n=85</div><div class="stat-sub" style="font-size:11px;color:var(--color-text-muted);margin-top:4px">Line vs close only: 78% (n=73)</div></div></div>
   </div>
+  
   <div class="plays-heading">
     <div class="plays-heading-main">TODAY&apos;S PLAYS — BET THESE</div>
     <div class="plays-heading-sub">Official locked picks. If we posted a play, it appears here and stays here after the game with the result.</div>

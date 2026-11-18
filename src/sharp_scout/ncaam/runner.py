@@ -53,6 +53,7 @@ NCAAM_COMMIT_PATHS = [
     "data/ncaam/",
     "data/ncaam_ledger.json",
     "data/ncaam_latest_signals.json",
+    "data/ncaam_preview_latest.json",
     "docs/ncaam.html",
     "docs/ncaam_ledger.json",
     "docs/ncaam_record.json",
@@ -239,6 +240,22 @@ def run_pass(
             if not demo:
                 save_slate(slate, et_day=d)
         all_slate.extend(slate)
+
+    if odds_events:
+        try:
+            from sharp_scout.ncaam.preview import refresh_preview_from_snapshot
+
+            refresh_preview_from_snapshot(
+                odds_events,
+                all_slate,
+                ratings=ratings,
+                now=now,
+                ledger_path=ledger_path,
+                demo=demo,
+                build_site=False,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("NCAAM preview refresh failed")
 
     odds_by_id = {str(e.get("event_id")): e for e in odds_events}
     candidates: list[dict[str, Any]] = []

@@ -1,0 +1,84 @@
+name: NCAAM morning preview
+
+# Rebuilds the NCAAM board preview section from committed JSON (zero Odds API credits).
+# Intraday preview rows are refreshed by the lock runner when it already fetched odds.
+# Scheduled 10:00 AM America/New_York (15:00 UTC during EST; 11:00 AM during EDT).
+
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+    inputs:
+      demo:
+        description: "Offline demo preview (fixtures only)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ncaam-preview
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Rebuild preview section (no Odds API)
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "${{ github.event.inputs.demo }}" = "true" ]; then
+            python scripts/run_ncaam.py --demo --preview
+          else
+            python scripts/run_ncaam.py --preview
+          fi
+
+      - name: Commit preview artifacts
+        if: always() && github.event.inputs.demo != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "sharp-scout-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          chmod +x scripts/ci_git_push_retry.sh scripts/ci_git_add_paths.sh
+          python scripts/run_ncaam.py --commit-only
+
+      - name: Upload Pages artifact
+        if: always() && github.event.inputs.demo != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: preview
+    if: always() && github.ref == 'refs/heads/main' && github.event.inputs.demo != 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Retry Pages deploy once
+        if: steps.deployment.outcome == 'failure'
+        id: deployment_retry
+        uses: actions/deploy-pages@v4

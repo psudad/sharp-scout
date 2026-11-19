@@ -120602,7 +120602,27 @@
           "source": "injury_refresh"
         }
       },
-      "graded": null
+      "graded": {
+        "graded_at": "2026-11-19T02:51:50.265981+00:00",
+        "actual_margin": -30,
+        "actual_total": 244,
+        "close_spread_home": -2.5,
+        "close_total": 239.5,
+        "close_spread_home_true": null,
+        "close_total_true": null,
+        "close_captured_at": null,
+        "mae_margin_model": 33.39,
+        "mae_total_model": 9.819999999999993,
+        "mae_margin_injury": 35.97,
+        "mae_total_injury": 10.780000000000001,
+        "mae_margin_close": 32.5,
+        "mae_total_close": 4.5,
+        "mae_margin_close_true": null,
+        "mae_total_close_true": null,
+        "mae_margin_blend": 33.301,
+        "mae_total_blend": 9.288000000000011,
+        "clv_line_move_toward_model_margin": null
+      }
     },
     {
       "event_id": "5896e4ed2ed41ce673e882b6529078b8",
@@ -124658,7 +124678,79 @@
           "after_tip": false
         }
       ],
-      "frozen": null,
+      "frozen": {
+        "frozen_at": "2026-11-19T02:51:50.149546+00:00",
+        "snapshot": {
+          "at": "2026-11-19T02:29:24.882216+00:00",
+          "home_pts": 108.31,
+          "away_pts": 111.75,
+          "margin": -3.44,
+          "total": 221.16,
+          "injury_home_pts": 108.31,
+          "injury_away_pts": 111.75,
+          "injury_margin": -3.44,
+          "injury_total": 220.06,
+          "home_absences": [],
+          "away_absences": [],
+          "home_excluded": [
+            {
+              "player": "Julian Strawther",
+              "team": "DEN",
+              "status": "out",
+              "status_label": "Out",
+              "kind": "excluded_season",
+              "reason": "out all season"
+            }
+          ],
+          "away_excluded": [],
+          "lines": {
+            "consensus_spread_home": 2.5,
+            "consensus_total": 219.5,
+            "pinnacle_spread_home": 2.5,
+            "pinnacle_total": 220.0
+          },
+          "injury_news_after_line": false,
+          "p_cover_home_consensus": 0.4661,
+          "p_cover_home_consensus_injury": 0.466,
+          "p_over_consensus": 0.56,
+          "p_over_consensus_injury": 0.5203,
+          "p_cover_home_pinnacle": 0.4661,
+          "p_over_pinnacle": 0.542,
+          "after_tip": false
+        },
+        "first_snapshot": {
+          "at": "2026-11-17T23:43:25.760661+00:00",
+          "home_pts": 108.53,
+          "away_pts": 111.61,
+          "margin": -3.08,
+          "total": 221.24,
+          "injury_home_pts": 108.53,
+          "injury_away_pts": 111.61,
+          "injury_margin": -3.08,
+          "injury_total": 220.14,
+          "home_absences": [],
+          "away_absences": [],
+          "home_excluded": [
+            {
+              "player": "Julian Strawther",
+              "team": "DEN",
+              "status": "out",
+              "status_label": "Out",
+              "kind": "excluded_season",
+              "reason": "out all season"
+            }
+          ],
+          "away_excluded": [],
+          "lines": {},
+          "injury_news_after_line": false,
+          "source": "injury_refresh"
+        },
+        "close_captured_at": "2026-11-19T02:29:24.882216+00:00",
+        "close_spread_home_true": 2.5,
+        "close_total_true": 219.5,
+        "close_pinnacle_spread_home_true": 2.5,
+        "close_pinnacle_total_true": 220.0
+      },
       "graded": null
     },
     {
@@ -126671,13 +126763,13 @@
     }
   ],
   "summary": {
-    "n_graded": 177,
-    "mae_margin_model": 12.48,
-    "mae_margin_close": 11.737,
-    "mae_margin_blend": 12.489,
-    "mae_total_model": 14.779,
-    "mae_total_close": 14.079,
-    "mae_total_blend": 14.591,
+    "n_graded": 178,
+    "mae_margin_model": 12.597,
+    "mae_margin_close": 11.856,
+    "mae_margin_blend": 12.608,
+    "mae_total_model": 14.751,
+    "mae_total_close": 14.024,
+    "mae_total_blend": 14.56,
     "ats_vs_close": {
       "ge_1": {
         "wins": 64,
@@ -126701,15 +126793,55 @@
     "ou_vs_close": {
       "ge_1": {
         "wins": 71,
-        "losses": 70,
+        "losses": 71,
         "pushes": 1,
-        "units_at_110": -5.45
+        "units_at_110": -6.45
       },
       "ge_2": {
         "wins": 52,
-        "losses": 60,
+        "losses": 61,
         "pushes": 1,
-        "units_at_110": -12.73
+        "units_at_110": -13.73
+      },
+      "ge_3": {
+        "wins": 39,
+        "losses": 51,
+        "pushes": 0,
+        "units_at_110": -15.55
+      }
+    },
+    "ats_vs_close_injury": {
+      "ge_1": {
+        "wins": 57,
+        "losses": 80,
+        "pushes": 2,
+        "units_at_110": -28.18
+      },
+      "ge_2": {
+        "wins": 45,
+        "losses": 62,
+        "pushes": 1,
+        "units_at_110": -21.09
+      },
+      "ge_3": {
+        "wins": 34,
+        "losses": 48,
+        "pushes": 0,
+        "units_at_110": -17.09
+      }
+    },
+    "ou_vs_close_injury": {
+      "ge_1": {
+        "wins": 70,
+        "losses": 73,
+        "pushes": 1,
+        "units_at_110": -9.36
+      },
+      "ge_2": {
+        "wins": 55,
+        "losses": 61,
+        "pushes": 1,
+        "units_at_110": -11.0
       },
       "ge_3": {
         "wins": 39,
@@ -126718,52 +126850,12 @@
         "units_at_110": -14.55
       }
     },
-    "ats_vs_close_injury": {
-      "ge_1": {
-        "wins": 57,
-        "losses": 79,
-        "pushes": 2,
-        "units_at_110": -27.18
-      },
-      "ge_2": {
-        "wins": 45,
-        "losses": 61,
-        "pushes": 1,
-        "units_at_110": -20.09
-      },
-      "ge_3": {
-        "wins": 34,
-        "losses": 47,
-        "pushes": 0,
-        "units_at_110": -16.09
-      }
-    },
-    "ou_vs_close_injury": {
-      "ge_1": {
-        "wins": 70,
-        "losses": 72,
-        "pushes": 1,
-        "units_at_110": -8.36
-      },
-      "ge_2": {
-        "wins": 55,
-        "losses": 60,
-        "pushes": 1,
-        "units_at_110": -10.0
-      },
-      "ge_3": {
-        "wins": 39,
-        "losses": 49,
-        "pushes": 0,
-        "units_at_110": -13.55
-      }
-    },
-    "mae_margin_injury": 12.594,
-    "mae_total_injury": 14.851,
+    "mae_margin_injury": 12.73,
+    "mae_total_injury": 14.827,
     "clv_margin_move_toward_model_pct": 0.1452,
     "clv_margin_n": 62
   },
-  "updated_at": "2026-11-19T02:38:12.472174+00:00",
+  "updated_at": "2026-11-19T02:51:50.267435+00:00",
   "manual_lines": {
     "source": "FanDuel (manual)",
     "as_of_et": "6:20 PM ET Oct 28, 2026",

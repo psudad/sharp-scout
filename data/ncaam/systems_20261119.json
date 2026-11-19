@@ -6,11 +6,11 @@
    "home_team": "Butler",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.855,
-    "edge": 33.12,
+    "conf": 0.85,
+    "edge": 32.62,
     "first_tier": "DIAMOND",
     "flags": [],
-    "gap": 27.0,
+    "gap": 26.0,
     "line": 15.5,
     "line_source": "actionnetwork",
     "market": "spreads",
@@ -67,7 +67,7 @@
     },
     "sim_rec": "proj 5579-4421/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 29.0,
+    "ticket_pct": 30.0,
     "tier": "DIAMOND",
     "units": 4.0
    },
@@ -75,7 +75,7 @@
     "flags": [
      "WHALE_GAP"
     ],
-    "gap": 27.0,
+    "gap": 26.0,
     "market": "spreads",
     "money_pct": 56.0,
     "reason": "Fewer than 2 signals",
@@ -88,7 +88,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 29.0
+    "ticket_pct": 30.0
    },
    "tip": "2026-11-20T00:00:00+00:00"
   },
@@ -98,19 +98,19 @@
    "home_team": "Texas",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.85,
-    "edge": 28.48,
+    "conf": 0.865,
+    "edge": 29.98,
     "first_tier": "DIAMOND",
     "flags": [
      "BUY_POINT"
     ],
-    "gap": 16.0,
+    "gap": 19.0,
     "line": -38.0,
     "line_source": "actionnetwork",
     "market": "spreads",
-    "money_pct": 78.0,
+    "money_pct": 79.0,
     "orig_line": -38.5,
-    "orig_price": -110.0,
+    "orig_price": -111.0,
     "price": -130.0,
     "price_estimated": true,
     "result": "play",
@@ -161,13 +161,103 @@
     },
     "sim_rec": "proj 1092-8908/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 62.0,
+    "ticket_pct": 60.0,
     "tier": "DIAMOND",
     "units": 4.0
    },
    "sharp35": {
     "flags": [],
-    "gap": 16.0,
+    "gap": 19.0,
+    "market": "spreads",
+    "money_pct": 79.0,
+    "reason": "Fewer than 2 signals",
+    "result": "not_shortlisted",
+    "side": "home",
+    "signals": {
+     "away": [],
+     "home": []
+    },
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 60.0
+   },
+   "tip": "2026-11-20T01:00:00+00:00"
+  },
+  "401911021": {
+   "away_team": "Buffalo",
+   "has_splits": true,
+   "home_team": "St. Bonaventure",
+   "sharp3": {
+    "book": "actionnetwork",
+    "conf": 0.835,
+    "edge": 26.98,
+    "first_tier": "DIAMOND",
+    "flags": [
+     "BUY_POINT"
+    ],
+    "gap": 13.0,
+    "line": -11.0,
+    "line_source": "actionnetwork",
+    "market": "spreads",
+    "money_pct": 78.0,
+    "orig_line": -11.5,
+    "orig_price": -108.0,
+    "price": -130.0,
+    "price_estimated": true,
+    "result": "play",
+    "side": "home",
+    "sim_projection": {
+     "hfa": 3.0,
+     "inputs": {
+      "espn_id": "401911021",
+      "line": -11.0,
+      "market": "spreads",
+      "neutral_site": false,
+      "note": "Juice/price not used; spread/ML result vs locked line only.",
+      "side": "home"
+     },
+     "kind": "projection",
+     "losses": 5197,
+     "margin_model": 10.39,
+     "margin_sd": 10.5,
+     "model": "torvik-efficiency-mc-v1",
+     "n": 10000,
+     "p_cover_or_ml": 0.4803,
+     "pushes": 0,
+     "ratings_display_max_acquisition_age_days": 1,
+     "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
+     "ratings_display_policy_note": "Sharp 3 MC display requires retrieval_verified (successful fetch meta + SHA-256 match). Freshness window: retrieved_at ET within today or yesterday. Publisher ratings snapshot date remains unknown. Failed fetch does not renew freshness.",
+     "ratings_provenance": {
+      "cache_date_et": "2026-11-19",
+      "cache_date_note": "Filename label only; not used for retrieval freshness",
+      "cache_path": "/home/runner/work/sharp-scout/sharp-scout/data/ncaam/ratings_20261119.csv",
+      "content_sha256": "20348b4ce22e63051fe3465ef9f7f6922db3e2e75e311f6239e06227ca2d1a16",
+      "ratings_snapshot_as_of": null,
+      "ratings_snapshot_as_of_note": "unknown: Barttorvik team_results CSV has no publisher snapshot/as-of field",
+      "retrieval_unavailable_reason": null,
+      "retrieval_verified": true,
+      "retrieved_at_utc": "2026-11-19T11:30:25.282839+00:00",
+      "source": "barttorvik",
+      "source_url": "https://barttorvik.com/2027_team_results.csv",
+      "upstream_http_last_modified_note": "Optional HTTP Last-Modified from response; file revision time only \u2014 not ratings snapshot date",
+      "upstream_http_last_modified_utc": "2026-11-19T11:22:14+00:00"
+     },
+     "reproducibility": {
+      "rng": "numpy.random.Generator",
+      "seed": 65992389647796,
+      "seed_inputs": "sharp3-sim|401911021|home|spreads|-11.0"
+     },
+     "status": "ok",
+     "wins": 4803
+    },
+    "sim_rec": "proj 4803-5197/10000 MC",
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 65.0,
+    "tier": "DIAMOND",
+    "units": 4.0
+   },
+   "sharp35": {
+    "flags": [],
+    "gap": 13.0,
     "market": "spreads",
     "money_pct": 78.0,
     "reason": "Fewer than 2 signals",
@@ -178,22 +268,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 62.0
-   },
-   "tip": "2026-11-20T01:00:00+00:00"
-  },
-  "401911021": {
-   "away_team": "Buffalo",
-   "has_splits": false,
-   "home_team": "St. Bonaventure",
-   "sharp3": {
-    "reason": "No splits data",
-    "result": "no_splits"
-   },
-   "sharp35": {
-    "market": "spreads",
-    "reason": "No splits data",
-    "result": "no_splits"
+    "ticket_pct": 65.0
    },
    "tip": "2026-11-20T00:00:00+00:00"
   },
@@ -214,16 +289,89 @@
   },
   "401916318": {
    "away_team": "UMBC",
-   "has_splits": false,
+   "has_splits": true,
    "home_team": "Ohio St.",
    "sharp3": {
-    "reason": "No splits data",
-    "result": "no_splits"
+    "book": "actionnetwork",
+    "conf": 0.745,
+    "edge": 22.12,
+    "first_tier": "GOLD",
+    "flags": [],
+    "gap": 5.0,
+    "line": 31.5,
+    "line_source": "actionnetwork",
+    "market": "spreads",
+    "money_pct": 55.0,
+    "orig_line": 31.5,
+    "orig_price": -110.0,
+    "price": -110.0,
+    "price_estimated": false,
+    "result": "play",
+    "side": "away",
+    "sim_projection": {
+     "hfa": 3.0,
+     "inputs": {
+      "espn_id": "401916318",
+      "line": 31.5,
+      "market": "spreads",
+      "neutral_site": false,
+      "note": "Juice/price not used; spread/ML result vs locked line only.",
+      "side": "away"
+     },
+     "kind": "projection",
+     "losses": 2532,
+     "margin_model": 24.44,
+     "margin_sd": 10.5,
+     "model": "torvik-efficiency-mc-v1",
+     "n": 10000,
+     "p_cover_or_ml": 0.7468,
+     "pushes": 0,
+     "ratings_display_max_acquisition_age_days": 1,
+     "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
+     "ratings_display_policy_note": "Sharp 3 MC display requires retrieval_verified (successful fetch meta + SHA-256 match). Freshness window: retrieved_at ET within today or yesterday. Publisher ratings snapshot date remains unknown. Failed fetch does not renew freshness.",
+     "ratings_provenance": {
+      "cache_date_et": "2026-11-19",
+      "cache_date_note": "Filename label only; not used for retrieval freshness",
+      "cache_path": "/home/runner/work/sharp-scout/sharp-scout/data/ncaam/ratings_20261119.csv",
+      "content_sha256": "20348b4ce22e63051fe3465ef9f7f6922db3e2e75e311f6239e06227ca2d1a16",
+      "ratings_snapshot_as_of": null,
+      "ratings_snapshot_as_of_note": "unknown: Barttorvik team_results CSV has no publisher snapshot/as-of field",
+      "retrieval_unavailable_reason": null,
+      "retrieval_verified": true,
+      "retrieved_at_utc": "2026-11-19T11:30:25.282839+00:00",
+      "source": "barttorvik",
+      "source_url": "https://barttorvik.com/2027_team_results.csv",
+      "upstream_http_last_modified_note": "Optional HTTP Last-Modified from response; file revision time only \u2014 not ratings snapshot date",
+      "upstream_http_last_modified_utc": "2026-11-19T11:22:14+00:00"
+     },
+     "reproducibility": {
+      "rng": "numpy.random.Generator",
+      "seed": 220470628987270,
+      "seed_inputs": "sharp3-sim|401916318|away|spreads|31.5"
+     },
+     "status": "ok",
+     "wins": 7468
+    },
+    "sim_rec": "proj 7468-2532/10000 MC",
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 50.0,
+    "tier": "GOLD",
+    "units": 2.0
    },
    "sharp35": {
+    "flags": [],
+    "gap": 5.0,
     "market": "spreads",
-    "reason": "No splits data",
-    "result": "no_splits"
+    "money_pct": 55.0,
+    "reason": "Fewer than 2 signals",
+    "result": "not_shortlisted",
+    "side": "away",
+    "signals": {
+     "away": [],
+     "home": []
+    },
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 50.0
    },
    "tip": "2026-11-20T00:00:00+00:00"
   },
@@ -263,13 +411,13 @@
    "home_team": "Louisville",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.775,
-    "edge": 20.98,
+    "conf": 0.805,
+    "edge": 23.98,
     "first_tier": "GOLD",
     "flags": [
      "BUY_POINT"
     ],
-    "gap": 1.0,
+    "gap": 7.0,
     "line": -35.0,
     "line_source": "actionnetwork",
     "market": "spreads",
@@ -326,15 +474,15 @@
     },
     "sim_rec": "proj 1943-8057/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 68.0,
-    "tier": "GOLD",
-    "units": 2.0
+    "ticket_pct": 62.0,
+    "tier": "DIAMOND",
+    "units": 4.0
    },
    "sharp35": {
     "flags": [
      "BOUNCE_BACK"
     ],
-    "gap": 1.0,
+    "gap": 7.0,
     "market": "spreads",
     "money_pct": 69.0,
     "reason": "Fewer than 2 signals",
@@ -347,7 +495,7 @@
      ]
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 68.0
+    "ticket_pct": 62.0
    },
    "tip": "2026-11-20T01:00:00+00:00"
   },
@@ -357,15 +505,15 @@
    "home_team": "Murray St.",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.75,
-    "edge": 22.62,
+    "conf": 0.73,
+    "edge": 20.62,
     "first_tier": "GOLD",
     "flags": [],
-    "gap": 6.0,
+    "gap": 2.0,
     "line": 4.5,
     "line_source": "actionnetwork",
     "market": "spreads",
-    "money_pct": 43.0,
+    "money_pct": 38.0,
     "orig_line": 4.5,
     "orig_price": -110.0,
     "price": -110.0,
@@ -418,15 +566,15 @@
     },
     "sim_rec": "proj 3813-6187/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 37.0,
+    "ticket_pct": 36.0,
     "tier": "GOLD",
     "units": 2.0
    },
    "sharp35": {
     "flags": [],
-    "gap": 6.0,
+    "gap": 2.0,
     "market": "spreads",
-    "money_pct": 43.0,
+    "money_pct": 38.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "home",
@@ -435,7 +583,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 37.0
+    "ticket_pct": 36.0
    },
    "tip": "2026-11-19T23:00:00+00:00"
   },
@@ -599,12 +747,12 @@
     "flags": [
      "PIVOT_TO_ML"
     ],
-    "gap": 20.0,
+    "gap": 3.0,
     "line_source": "actionnetwork",
     "market": "h2h",
-    "money_pct": 80.0,
+    "money_pct": 81.0,
     "orig_line": -2.5,
-    "orig_price": -110.0,
+    "orig_price": -109.0,
     "price": -135.0,
     "price_estimated": false,
     "result": "play",
@@ -660,23 +808,19 @@
     "units": 2.0
    },
    "sharp35": {
-    "flags": [
-     "WHALE_GAP"
-    ],
-    "gap": 20.0,
+    "flags": [],
+    "gap": 3.0,
     "market": "spreads",
-    "money_pct": 83.0,
+    "money_pct": 71.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "away",
     "signals": {
-     "away": [
-      "WHALE_GAP"
-     ],
+     "away": [],
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 63.0
+    "ticket_pct": 68.0
    },
    "tip": "2026-11-20T04:00:00+00:00"
   },
@@ -742,16 +886,93 @@
   },
   "401920888": {
    "away_team": "Seton Hall",
-   "has_splits": false,
+   "has_splits": true,
    "home_team": "Wisconsin",
    "sharp3": {
-    "reason": "No splits data",
-    "result": "no_splits"
+    "book": "actionnetwork",
+    "conf": 0.92,
+    "edge": 38.51,
+    "first_tier": "DOUBLE_DIAMOND",
+    "flags": [],
+    "gap": 30.0,
+    "line": 4.5,
+    "line_source": "actionnetwork",
+    "market": "spreads",
+    "money_pct": 80.0,
+    "orig_line": 4.5,
+    "orig_price": -115.0,
+    "price": -115.0,
+    "price_estimated": false,
+    "result": "play",
+    "side": "away",
+    "sim_projection": {
+     "hfa": 0.0,
+     "inputs": {
+      "espn_id": "401920888",
+      "line": 4.5,
+      "market": "spreads",
+      "neutral_site": true,
+      "note": "Juice/price not used; spread/ML result vs locked line only.",
+      "side": "away"
+     },
+     "kind": "projection",
+     "losses": 4010,
+     "margin_model": 1.87,
+     "margin_sd": 10.5,
+     "model": "torvik-efficiency-mc-v1",
+     "n": 10000,
+     "p_cover_or_ml": 0.599,
+     "pushes": 0,
+     "ratings_display_max_acquisition_age_days": 1,
+     "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
+     "ratings_display_policy_note": "Sharp 3 MC display requires retrieval_verified (successful fetch meta + SHA-256 match). Freshness window: retrieved_at ET within today or yesterday. Publisher ratings snapshot date remains unknown. Failed fetch does not renew freshness.",
+     "ratings_provenance": {
+      "cache_date_et": "2026-11-19",
+      "cache_date_note": "Filename label only; not used for retrieval freshness",
+      "cache_path": "/home/runner/work/sharp-scout/sharp-scout/data/ncaam/ratings_20261119.csv",
+      "content_sha256": "20348b4ce22e63051fe3465ef9f7f6922db3e2e75e311f6239e06227ca2d1a16",
+      "ratings_snapshot_as_of": null,
+      "ratings_snapshot_as_of_note": "unknown: Barttorvik team_results CSV has no publisher snapshot/as-of field",
+      "retrieval_unavailable_reason": null,
+      "retrieval_verified": true,
+      "retrieved_at_utc": "2026-11-19T11:30:25.282839+00:00",
+      "source": "barttorvik",
+      "source_url": "https://barttorvik.com/2027_team_results.csv",
+      "upstream_http_last_modified_note": "Optional HTTP Last-Modified from response; file revision time only \u2014 not ratings snapshot date",
+      "upstream_http_last_modified_utc": "2026-11-19T11:22:14+00:00"
+     },
+     "reproducibility": {
+      "rng": "numpy.random.Generator",
+      "seed": 169555829104169,
+      "seed_inputs": "sharp3-sim|401920888|away|spreads|4.5"
+     },
+     "status": "ok",
+     "wins": 5990
+    },
+    "sim_rec": "proj 5990-4010/10000 MC",
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 50.0,
+    "tier": "DOUBLE_DIAMOND",
+    "units": 4.0
    },
    "sharp35": {
+    "flags": [
+     "WHALE_GAP"
+    ],
+    "gap": 30.0,
     "market": "spreads",
-    "reason": "No splits data",
-    "result": "no_splits"
+    "money_pct": 80.0,
+    "reason": "Fewer than 2 signals",
+    "result": "not_shortlisted",
+    "side": "away",
+    "signals": {
+     "away": [
+      "WHALE_GAP"
+     ],
+     "home": []
+    },
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 50.0
    },
    "tip": "2026-11-20T01:30:00+00:00"
   },
@@ -806,18 +1027,18 @@
    "home_team": "USC",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.76,
-    "edge": 23.85,
+    "conf": 0.745,
+    "edge": 22.12,
     "first_tier": "GOLD",
     "flags": [],
-    "gap": 8.0,
-    "line": 26.5,
+    "gap": 5.0,
+    "line": 27.0,
     "line_source": "actionnetwork",
     "market": "spreads",
-    "money_pct": 48.0,
-    "orig_line": 26.5,
-    "orig_price": -109.0,
-    "price": -109.0,
+    "money_pct": 43.0,
+    "orig_line": 27.0,
+    "orig_price": -110.0,
+    "price": -110.0,
     "price_estimated": false,
     "result": "play",
     "side": "away",
@@ -825,19 +1046,19 @@
      "hfa": 3.0,
      "inputs": {
       "espn_id": "401926773",
-      "line": 26.5,
+      "line": 27.0,
       "market": "spreads",
       "neutral_site": false,
       "note": "Juice/price not used; spread/ML result vs locked line only.",
       "side": "away"
      },
      "kind": "projection",
-     "losses": 1931,
+     "losses": 1775,
      "margin_model": 17.22,
      "margin_sd": 10.5,
      "model": "torvik-efficiency-mc-v1",
      "n": 10000,
-     "p_cover_or_ml": 0.8069,
+     "p_cover_or_ml": 0.8225,
      "pushes": 0,
      "ratings_display_max_acquisition_age_days": 1,
      "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
@@ -859,23 +1080,23 @@
      },
      "reproducibility": {
       "rng": "numpy.random.Generator",
-      "seed": 251508355430623,
-      "seed_inputs": "sharp3-sim|401926773|away|spreads|26.5"
+      "seed": 129239651023647,
+      "seed_inputs": "sharp3-sim|401926773|away|spreads|27.0"
      },
      "status": "ok",
-     "wins": 8069
+     "wins": 8225
     },
-    "sim_rec": "proj 8069-1931/10000 MC",
+    "sim_rec": "proj 8225-1775/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 40.0,
+    "ticket_pct": 38.0,
     "tier": "GOLD",
     "units": 2.0
    },
    "sharp35": {
     "flags": [],
-    "gap": 8.0,
+    "gap": 5.0,
     "market": "spreads",
-    "money_pct": 48.0,
+    "money_pct": 43.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "away",
@@ -884,7 +1105,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 40.0
+    "ticket_pct": 38.0
    },
    "tip": "2026-11-20T04:00:00+00:00"
   },
@@ -966,10 +1187,10 @@
  },
  "splits": {
   "auth_mode": "token",
-  "coverage": "7/29",
+  "coverage": "10/29",
   "n_games": 29,
-  "n_with_money": 7,
+  "n_with_money": 10,
   "status": 200
  },
- "updated_at": "2026-11-19T11:59:51.785752+00:00"
+ "updated_at": "2026-11-19T13:00:24.974717+00:00"
 }

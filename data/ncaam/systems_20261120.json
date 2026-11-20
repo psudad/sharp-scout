@@ -633,7 +633,7 @@
     "splits_source": "actionnetwork:book15",
     "ticket_pct": 65.0
    },
-   "tip": "2026-11-20T20:00:00+00:00"
+   "tip": "2026-11-20T20:10:00+00:00"
   },
   "401916125": {
    "away_team": "East Carolina",
@@ -819,6 +819,7 @@
      "PIVOT_TO_ML"
     ],
     "gap": 12.0,
+    "line": null,
     "line_source": "odds_api",
     "locked": true,
     "locked_at": "2026-11-20T20:07:28.970026+00:00",
@@ -883,9 +884,9 @@
    },
    "sharp35": {
     "flags": [],
-    "gap": 12.0,
+    "gap": 11.0,
     "market": "spreads",
-    "money_pct": 61.0,
+    "money_pct": 62.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "home",
@@ -894,7 +895,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 49.0
+    "ticket_pct": 51.0
    },
    "tip": "2026-11-20T21:30:00+00:00"
   },
@@ -959,9 +960,9 @@
    "tip": "2026-11-21T00:00:00+00:00"
   },
   "401920380": {
-   "away_team": "Northwestern",
+   "away_team": "Virginia Tech",
    "has_splits": true,
-   "home_team": "Virginia Tech",
+   "home_team": "Northwestern",
    "sharp3": {
     "book": "draftkings",
     "conf": 0.73,
@@ -1054,7 +1055,7 @@
     "splits_source": "actionnetwork:book68",
     "ticket_pct": 49.0
    },
-   "tip": "2026-11-20T20:00:00+00:00"
+   "tip": "2026-11-20T20:06:00+00:00"
   },
   "401920707": {
    "away_team": "Lipscomb",
@@ -1424,39 +1425,43 @@
    "home_team": "Idaho St.",
    "sharp3": {
     "book": "draftkings",
-    "conf": 0.725,
-    "edge": 21.28,
+    "conf": 0.81,
+    "edge": 24.48,
     "first_tier": "GOLD",
-    "flags": [],
-    "gap": 1.0,
-    "line": 5.5,
+    "flags": [
+     "BUY_POINT"
+    ],
+    "gap": 8.0,
+    "line": -5.0,
     "line_source": "odds_api",
+    "locked": true,
+    "locked_at": "2026-11-20T20:38:17.587947+00:00",
     "market": "spreads",
-    "money_pct": 28.0,
-    "orig_line": 5.5,
-    "orig_price": -105.0,
-    "price": -105.0,
-    "price_estimated": false,
-    "reason": "Volume (not played)",
+    "money_pct": 87.0,
+    "orig_line": -5.5,
+    "orig_price": -115.0,
+    "pick_status": "UPGRD",
+    "price": -130.0,
+    "price_estimated": true,
     "result": "play",
-    "side": "home",
+    "side": "away",
     "sim_projection": {
      "hfa": 3.0,
      "inputs": {
       "espn_id": "401922022",
-      "line": 5.5,
+      "line": -5.0,
       "market": "spreads",
       "neutral_site": false,
       "note": "Juice/price not used; spread/ML result vs locked line only.",
-      "side": "home"
+      "side": "away"
      },
      "kind": "projection",
-     "losses": 4622,
+     "losses": 5283,
      "margin_model": -4.38,
      "margin_sd": 10.5,
      "model": "torvik-efficiency-mc-v1",
      "n": 10000,
-     "p_cover_or_ml": 0.5378,
+     "p_cover_or_ml": 0.4717,
      "pushes": 0,
      "ratings_display_max_acquisition_age_days": 1,
      "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
@@ -1478,40 +1483,39 @@
      },
      "reproducibility": {
       "rng": "numpy.random.Generator",
-      "seed": 66283305993287,
-      "seed_inputs": "sharp3-sim|401922022|home|spreads|5.5"
+      "seed": 195756286536792,
+      "seed_inputs": "sharp3-sim|401922022|away|spreads|-5.0"
      },
      "status": "ok",
-     "wins": 5378
+     "wins": 4717
     },
-    "sim_rec": "proj 5378-4622/10000 MC",
+    "sim_rec": "proj 4717-5283/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 27.0,
-    "tier": "GOLD",
-    "units": 2.0,
-    "volume": true
+    "ticket_pct": 79.0,
+    "tier": "DIAMOND",
+    "units": 4.0
    },
    "sharp35": {
     "book": "fanduel",
-    "conf": 0.685,
-    "edge": 18.05,
+    "conf": 0.315,
+    "edge": -18.5,
     "flags": [
      "HOME_DOG_SLUMP",
      "RLM",
      "HOSTILE_ENV"
     ],
-    "gap": 1.0,
-    "line": 5.5,
+    "gap": 8.0,
+    "line": -5.5,
     "line_source": "odds_api",
     "margin_model": -0.68,
     "market": "spreads",
-    "money_pct": 28.0,
-    "novig": 0.5045,
-    "price": -112.0,
+    "money_pct": 87.0,
+    "novig": 0.5,
+    "price": -110.0,
     "price_estimated": false,
-    "reason": "Data anomaly (edge above 15%)",
-    "result": "anomaly",
-    "side": "home",
+    "reason": "System lean (edge below 2.5%)",
+    "result": "lean",
+    "side": "away",
     "signals": {
      "away": [],
      "home": [
@@ -1519,10 +1523,10 @@
       "HOME_DOG_SLUMP"
      ]
     },
-    "sim_rec": "685-315",
+    "sim_rec": "315-685",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 27.0,
-    "tier": "ANOMALY",
+    "ticket_pct": 79.0,
+    "tier": "LEAN",
     "units": 0.0
    },
    "tip": "2026-11-20T21:00:00+00:00"
@@ -1745,5 +1749,5 @@
   "n_with_money": 14,
   "status": 200
  },
- "updated_at": "2026-11-20T20:07:16.407671+00:00"
+ "updated_at": "2026-11-20T20:38:06.580765+00:00"
 }

@@ -28,11 +28,11 @@
      "BUY_POINT"
     ],
     "gap": 15.0,
-    "line": -27.0,
+    "line": -26.0,
     "line_source": "odds_api",
     "market": "spreads",
     "money_pct": 81.0,
-    "orig_line": -27.5,
+    "orig_line": -26.5,
     "orig_price": -115.0,
     "price": -130.0,
     "price_estimated": true,
@@ -42,19 +42,19 @@
      "hfa": 3.0,
      "inputs": {
       "espn_id": "401906852",
-      "line": -27.0,
+      "line": -26.0,
       "market": "spreads",
       "neutral_site": false,
       "note": "Juice/price not used; spread/ML result vs locked line only.",
       "side": "home"
      },
      "kind": "projection",
-     "losses": 7023,
+     "losses": 6671,
      "margin_model": 21.36,
      "margin_sd": 10.5,
      "model": "torvik-efficiency-mc-v1",
      "n": 10000,
-     "p_cover_or_ml": 0.2977,
+     "p_cover_or_ml": 0.3329,
      "pushes": 0,
      "ratings_display_max_acquisition_age_days": 1,
      "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
@@ -76,13 +76,13 @@
      },
      "reproducibility": {
       "rng": "numpy.random.Generator",
-      "seed": 213016141575727,
-      "seed_inputs": "sharp3-sim|401906852|home|spreads|-27.0"
+      "seed": 150767411445242,
+      "seed_inputs": "sharp3-sim|401906852|home|spreads|-26.0"
      },
      "status": "ok",
-     "wins": 2977
+     "wins": 3329
     },
-    "sim_rec": "proj 2977-7023/10000 MC",
+    "sim_rec": "proj 3329-6671/10000 MC",
     "splits_source": "actionnetwork:book15",
     "ticket_pct": 66.0,
     "tier": "DIAMOND",
@@ -201,6 +201,7 @@
     "units": 2.0
    },
    "sharp35": {
+    "final": true,
     "flags": [
      "RLM"
     ],
@@ -216,7 +217,7 @@
      ],
      "home": []
     },
-    "splits_source": "actionnetwork:book15",
+    "splits_source": "actionnetwork:book69",
     "ticket_pct": 64.0
    },
    "tip": "2026-11-20T17:00:00+00:00"
@@ -371,10 +372,11 @@
     "units": 2.0
    },
    "sharp35": {
+    "final": true,
     "flags": [],
-    "gap": 4.0,
+    "gap": 1.0,
     "market": "spreads",
-    "money_pct": 24.0,
+    "money_pct": 27.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "away",
@@ -383,7 +385,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 20.0
+    "ticket_pct": 26.0
    },
    "tip": "2026-11-20T17:30:00+00:00"
   },
@@ -463,19 +465,20 @@
    "home_team": "George Washington",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.725,
-    "edge": 18.37,
+    "conf": 0.745,
+    "edge": 20.37,
     "first_tier": "GOLD",
     "flags": [],
-    "gap": 1.0,
+    "gap": 5.0,
     "line": 9.5,
     "line_source": "actionnetwork",
     "market": "spreads",
-    "money_pct": 50.0,
+    "money_pct": 38.0,
     "orig_line": 9.5,
     "orig_price": -118.0,
     "price": -118.0,
     "price_estimated": false,
+    "reason": "Waiting for a live sportsbook line",
     "result": "play",
     "side": "away",
     "sim_projection": {
@@ -524,24 +527,28 @@
     },
     "sim_rec": "proj 5655-4345/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 49.0,
+    "ticket_pct": 33.0,
     "tier": "GOLD",
     "units": 2.0
    },
    "sharp35": {
-    "flags": [],
-    "gap": 1.0,
+    "flags": [
+     "RLM"
+    ],
+    "gap": 5.0,
     "market": "spreads",
-    "money_pct": 50.0,
+    "money_pct": 38.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "away",
     "signals": {
-     "away": [],
+     "away": [
+      "RLM"
+     ],
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 49.0
+    "ticket_pct": 33.0
    },
    "tip": "2026-11-20T19:00:00+00:00"
   },
@@ -581,8 +588,8 @@
    "home_team": "Liberty",
    "sharp3": {
     "book": "draftkings",
-    "conf": 0.825,
-    "edge": 29.67,
+    "conf": 0.84,
+    "edge": 31.17,
     "first_tier": "DIAMOND",
     "flags": [
      "PIVOT_TO_ML"
@@ -590,7 +597,7 @@
     "gap": 15.0,
     "line_source": "odds_api",
     "market": "h2h",
-    "money_pct": 50.0,
+    "money_pct": 54.0,
     "orig_line": -1.5,
     "orig_price": -108.0,
     "price": -112.0,
@@ -643,7 +650,7 @@
     },
     "sim_rec": "proj 4386-5614/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 29.0,
+    "ticket_pct": 30.0,
     "tier": "GOLD",
     "units": 2.0
    },
@@ -957,10 +964,11 @@
     "units": 2.0
    },
    "sharp35": {
+    "final": true,
     "flags": [],
-    "gap": 4.0,
+    "gap": 6.0,
     "market": "spreads",
-    "money_pct": 54.0,
+    "money_pct": 60.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "away",
@@ -968,8 +976,8 @@
      "away": [],
      "home": []
     },
-    "splits_source": "actionnetwork:book15",
-    "ticket_pct": 50.0
+    "splits_source": "actionnetwork:book68",
+    "ticket_pct": 54.0
    },
    "tip": "2026-11-20T17:30:00+00:00"
   },
@@ -1281,19 +1289,19 @@
    "home_team": "Arkansas",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.81,
-    "edge": 24.48,
+    "conf": 0.805,
+    "edge": 23.98,
     "first_tier": "GOLD",
     "flags": [
      "BUY_POINT"
     ],
-    "gap": 8.0,
+    "gap": 7.0,
     "line": -38.0,
     "line_source": "actionnetwork",
     "market": "spreads",
-    "money_pct": 70.0,
+    "money_pct": 71.0,
     "orig_line": -38.5,
-    "orig_price": -110.0,
+    "orig_price": -105.0,
     "price": -130.0,
     "price_estimated": true,
     "result": "play",
@@ -1344,7 +1352,7 @@
     },
     "sim_rec": "proj 1935-8065/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 62.0,
+    "ticket_pct": 64.0,
     "tier": "DIAMOND",
     "units": 4.0
    },
@@ -1352,9 +1360,9 @@
     "flags": [
      "RLM"
     ],
-    "gap": 8.0,
+    "gap": 7.0,
     "market": "spreads",
-    "money_pct": 70.0,
+    "money_pct": 71.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "home",
@@ -1365,7 +1373,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 62.0
+    "ticket_pct": 64.0
    },
    "tip": "2026-11-21T01:00:00+00:00"
   },
@@ -1497,5 +1505,5 @@
   "n_with_money": 11,
   "status": 200
  },
- "updated_at": "2026-11-20T16:38:04.539752+00:00"
+ "updated_at": "2026-11-20T17:38:59.440270+00:00"
 }

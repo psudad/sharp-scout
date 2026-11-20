@@ -31,7 +31,7 @@
     "line": -29.0,
     "line_source": "actionnetwork",
     "market": "spreads",
-    "money_pct": 73.0,
+    "money_pct": 72.0,
     "orig_line": -29.5,
     "orig_price": -110.0,
     "price": -130.0,
@@ -84,7 +84,7 @@
     },
     "sim_rec": "proj 2380-7620/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 69.0,
+    "ticket_pct": 68.0,
     "tier": "GOLD",
     "units": 2.0
    },
@@ -92,7 +92,7 @@
     "flags": [],
     "gap": 4.0,
     "market": "spreads",
-    "money_pct": 73.0,
+    "money_pct": 72.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "home",
@@ -101,7 +101,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 69.0
+    "ticket_pct": 68.0
    },
    "tip": "2026-11-21T00:00:00+00:00"
   },
@@ -126,17 +126,17 @@
    "home_team": "Florida St.",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.82,
-    "edge": 25.48,
+    "conf": 0.83,
+    "edge": 26.48,
     "first_tier": "DIAMOND",
     "flags": [
      "BUY_POINT"
     ],
-    "gap": 10.0,
+    "gap": 12.0,
     "line": -22.0,
     "line_source": "actionnetwork",
     "market": "spreads",
-    "money_pct": 82.0,
+    "money_pct": 83.0,
     "orig_line": -22.5,
     "orig_price": -115.0,
     "price": -130.0,
@@ -189,7 +189,7 @@
     },
     "sim_rec": "proj 3029-6971/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 72.0,
+    "ticket_pct": 71.0,
     "tier": "DIAMOND",
     "units": 4.0
    },
@@ -197,9 +197,9 @@
     "flags": [
      "RLM"
     ],
-    "gap": 10.0,
+    "gap": 12.0,
     "market": "spreads",
-    "money_pct": 82.0,
+    "money_pct": 83.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "home",
@@ -210,7 +210,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 72.0
+    "ticket_pct": 71.0
    },
    "tip": "2026-11-20T17:00:00+00:00"
   },
@@ -561,16 +561,89 @@
   },
   "401921418": {
    "away_team": "Oklahoma St.",
-   "has_splits": false,
+   "has_splits": true,
    "home_team": "Minnesota",
    "sharp3": {
-    "reason": "No splits data",
-    "result": "no_splits"
+    "book": "actionnetwork",
+    "conf": 0.775,
+    "edge": 23.8,
+    "first_tier": "GOLD",
+    "flags": [],
+    "gap": 1.0,
+    "line": 1.5,
+    "line_source": "actionnetwork",
+    "market": "spreads",
+    "money_pct": 62.0,
+    "orig_line": 1.5,
+    "orig_price": -116.0,
+    "price": -116.0,
+    "price_estimated": false,
+    "result": "play",
+    "side": "away",
+    "sim_projection": {
+     "hfa": 0.0,
+     "inputs": {
+      "espn_id": "401921418",
+      "line": 1.5,
+      "market": "spreads",
+      "neutral_site": true,
+      "note": "Juice/price not used; spread/ML result vs locked line only.",
+      "side": "away"
+     },
+     "kind": "projection",
+     "losses": 3835,
+     "margin_model": -1.67,
+     "margin_sd": 10.5,
+     "model": "torvik-efficiency-mc-v1",
+     "n": 10000,
+     "p_cover_or_ml": 0.6165,
+     "pushes": 0,
+     "ratings_display_max_acquisition_age_days": 1,
+     "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
+     "ratings_display_policy_note": "Sharp 3 MC display requires retrieval_verified (successful fetch meta + SHA-256 match). Freshness window: retrieved_at ET within today or yesterday. Publisher ratings snapshot date remains unknown. Failed fetch does not renew freshness.",
+     "ratings_provenance": {
+      "cache_date_et": "2026-11-19",
+      "cache_date_note": "Filename label only; not used for retrieval freshness",
+      "cache_path": "/home/runner/work/sharp-scout/sharp-scout/data/ncaam/ratings_20261119.csv",
+      "content_sha256": "20348b4ce22e63051fe3465ef9f7f6922db3e2e75e311f6239e06227ca2d1a16",
+      "ratings_snapshot_as_of": null,
+      "ratings_snapshot_as_of_note": "unknown: Barttorvik team_results CSV has no publisher snapshot/as-of field",
+      "retrieval_unavailable_reason": null,
+      "retrieval_verified": true,
+      "retrieved_at_utc": "2026-11-19T11:30:25.282839+00:00",
+      "source": "barttorvik",
+      "source_url": "https://barttorvik.com/2027_team_results.csv",
+      "upstream_http_last_modified_note": "Optional HTTP Last-Modified from response; file revision time only \u2014 not ratings snapshot date",
+      "upstream_http_last_modified_utc": "2026-11-19T11:22:14+00:00"
+     },
+     "reproducibility": {
+      "rng": "numpy.random.Generator",
+      "seed": 11597568428783,
+      "seed_inputs": "sharp3-sim|401921418|away|spreads|1.5"
+     },
+     "status": "ok",
+     "wins": 6165
+    },
+    "sim_rec": "proj 6165-3835/10000 MC",
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 61.0,
+    "tier": "GOLD",
+    "units": 2.0
    },
    "sharp35": {
+    "flags": [],
+    "gap": 1.0,
     "market": "spreads",
-    "reason": "No splits data",
-    "result": "no_splits"
+    "money_pct": 62.0,
+    "reason": "Fewer than 2 signals",
+    "result": "not_shortlisted",
+    "side": "away",
+    "signals": {
+     "away": [],
+     "home": []
+    },
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 61.0
    },
    "tip": "2026-11-20T17:30:00+00:00"
   },
@@ -625,15 +698,15 @@
    "home_team": "Vanderbilt",
    "sharp3": {
     "book": "actionnetwork",
-    "conf": 0.835,
-    "edge": 31.35,
+    "conf": 0.845,
+    "edge": 32.35,
     "first_tier": "DIAMOND",
     "flags": [],
-    "gap": 13.0,
+    "gap": 15.0,
     "line": -18.0,
     "line_source": "actionnetwork",
     "market": "spreads",
-    "money_pct": 68.0,
+    "money_pct": 69.0,
     "orig_line": -18.0,
     "orig_price": -109.0,
     "price": -109.0,
@@ -686,15 +759,15 @@
     },
     "sim_rec": "proj 2608-7392/10000 MC",
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 55.0,
+    "ticket_pct": 54.0,
     "tier": "DIAMOND",
     "units": 4.0
    },
    "sharp35": {
     "flags": [],
-    "gap": 13.0,
+    "gap": 15.0,
     "market": "spreads",
-    "money_pct": 68.0,
+    "money_pct": 69.0,
     "reason": "Fewer than 2 signals",
     "result": "not_shortlisted",
     "side": "home",
@@ -703,7 +776,7 @@
      "home": []
     },
     "splits_source": "actionnetwork:book15",
-    "ticket_pct": 55.0
+    "ticket_pct": 54.0
    },
    "tip": "2026-11-21T01:00:00+00:00"
   },
@@ -920,10 +993,10 @@
  },
  "splits": {
   "auth_mode": "token",
-  "coverage": "3/46",
+  "coverage": "4/46",
   "n_games": 46,
-  "n_with_money": 3,
+  "n_with_money": 4,
   "status": 200
  },
- "updated_at": "2026-11-20T08:06:47.246312+00:00"
+ "updated_at": "2026-11-20T09:07:13.034723+00:00"
 }

@@ -83,10 +83,38 @@ def test_merge_marks_dropped_and_keeps_row():
             "price": -110,
         }
     ]
-    merged = merge_preview_picks(existing, [], now=now)
+    merged = merge_preview_picks(existing, [], now=now, considered_ids={"g1"})
     assert len(merged) == 1
     assert merged[0]["preview_state"] == PREVIEW_STATE_DROPPED
     assert merged[0]["added_at_et"] == "Nov 18, 9:00 AM"
+
+
+def test_merge_keeps_active_when_not_reemitted():
+    """A later 0-candidate / partial snapshot must not drop a still-TOO_EARLY pick."""
+    now = datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc)
+    tip = (now + timedelta(hours=4)).isoformat()
+    existing = [
+        {
+            "espn_id": "g1",
+            "event_id": "g1",
+            "tip": tip,
+            "preview_state": PREVIEW_STATE_ACTIVE,
+            "added_at_et": "Nov 18, 9:00 AM",
+            "updated_at_et": "Nov 18, 9:00 AM",
+            "side": "away",
+            "market": "spreads",
+            "line": -2.5,
+            "price": -110,
+        }
+    ]
+    # Empty fresh list and empty considered set = missed re-emit, not a gate failure.
+    merged = merge_preview_picks(existing, [], now=now, considered_ids=set())
+    assert len(merged) == 1
+    assert merged[0]["preview_state"] == PREVIEW_STATE_ACTIVE
+    assert merged[0]["added_at_et"] == "Nov 18, 9:00 AM"
+    # Default (no considered_ids) is also a missed re-emit, not a drop.
+    merged_default = merge_preview_picks(existing, [], now=now)
+    assert merged_default[0]["preview_state"] == PREVIEW_STATE_ACTIVE
 
 
 def test_merge_refreshes_active_pick_line():
@@ -236,8 +264,17 @@ def test_open_preview_visible_filter_cases():
     open_pick = _base_pick(now=now, espn_id="open1")
     assert is_open_preview_pick(open_pick, ledger, now=now)
 
-    dropped = {**open_pick, "espn_id": "drop1", "preview_state": PREVIEW_STATE_DROPPED}
-    assert not is_open_preview_pick(dropped, ledger, now=now)
+    # Missed re-emit (no_longer_qualifies) still shows if today and T-90+.
+    dropped_but_open = {**open_pick, "espn_id": "drop1", "preview_state": PREVIEW_STATE_DROPPED}
+    assert is_open_preview_pick(dropped_but_open, ledger, now=now)
+    # Inside T-90, dropped or not, GTL-24 still hides it.
+    dropped_in_window = {
+        **open_pick,
+        "espn_id": "dropwin",
+        "preview_state": PREVIEW_STATE_DROPPED,
+        "tip": (now + timedelta(minutes=30)).isoformat(),
+    }
+    assert not is_open_preview_pick(dropped_in_window, ledger, now=now)
 
     yesterday_tip = datetime(2026, 11, 17, 23, 0, tzinfo=timezone.utc)
     old_day = {**open_pick, "espn_id": "old1", "tip": yesterday_tip.isoformat()}
@@ -282,10 +319,12 @@ def test_page_renders_only_open_previews(preview_env):
     tmp_path, data, ncaam_dir, docs, ledger = preview_env
     now = datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc)
     open_pick = _base_pick(now=now, espn_id="visible")
-    closed_pick = {**_base_pick(now=now, espn_id="closed"), "preview_state": PREVIEW_STATE_DROPPED}
+    # Missed re-emit of a later today game should still appear.
+    missed_reemit = {**_base_pick(now=now, espn_id="missed"), "preview_state": PREVIEW_STATE_DROPPED}
     yesterday = {**_base_pick(now=now, espn_id="yesterday"), "tip": (now - timedelta(days=1)).isoformat()}
+    inside_window = {**_base_pick(now=now, espn_id="window"), "tip": (now + timedelta(minutes=30)).isoformat()}
     payload = {
-        "picks": [open_pick, closed_pick, yesterday],
+        "picks": [open_pick, missed_reemit, yesterday, inside_window],
         "last_scan_at_et": "Nov 18, 10:00 AM ET",
     }
     (data / "ncaam_preview_latest.json").write_text(json.dumps(payload))
@@ -312,9 +351,9 @@ def test_page_renders_only_open_previews(preview_env):
 
     assert "Morning preview" in html
     assert "Away @ Home" in html
-    assert html.count('preview-status open">Preview</span>') == 1
+    assert html.count('preview-status open">Preview</span>') == 2
     assert "No longer qualifies" not in html
-    assert open_preview_picks(payload["picks"], {"plays": []}, now=now) == [open_pick]
+    assert open_preview_picks(payload["picks"], {"plays": []}, now=now) == [open_pick, missed_reemit]
 
 
 def test_page_hides_preview_when_locked_pick_exists(preview_env):

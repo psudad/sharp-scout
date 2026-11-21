@@ -77,11 +77,12 @@ def _qualifying_preview_picks(
     now: datetime,
     ledger_path: Path,
     demo: bool,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], set[str]]:
     from sharp_scout.ncaam.runner import _locked_today
 
     et_today = now.astimezone(ET).date()
     candidates: list[dict[str, Any]] = []
+    considered_ids: set[str] = set()
     odds_events_stub: list[dict[str, Any]] = list(odds_by_id.values())
     for game in all_slate:
         tip = game.get("commence_time")
@@ -105,6 +106,9 @@ def _qualifying_preview_picks(
             ev = odds_events_stub[0]
         if not ev:
             continue
+        eid = str(game.get("espn_id") or game.get("event_id") or "")
+        if eid:
+            considered_ids.add(eid)
         for c in evaluate_game(game, ev, ratings, now=now):
             c["et_day"] = tip.astimezone(ET).date().isoformat()
             candidates.append(c)
@@ -125,7 +129,7 @@ def _qualifying_preview_picks(
         day_picks, gate_enabled=gate_on, min_edge=min_edge
     )
     day_picks, _cert_blocked = filter_day_picks_for_certification(day_picks)
-    return day_picks
+    return day_picks, considered_ids
 
 
 def merge_preview_picks(
@@ -133,8 +137,14 @@ def merge_preview_picks(
     fresh_models: list[dict[str, Any]],
     *,
     now: datetime,
+    considered_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Keep prior rows; refresh active picks; mark gate drops; never delete."""
+    """Keep prior rows; refresh active picks; mark gate drops; never delete.
+
+    A still-TOO_EARLY pick is marked no_longer_qualifies only when that game was
+    in this pass's snapshot/evaluation set (`considered_ids`) and did not qualify.
+    Absence from a later 0-candidate or partial snapshot is not a drop.
+    """
     et_now = _et_display(now)
     fresh_serialized = [_serialize_pick(p, now=now) for p in fresh_models]
     for row in fresh_serialized:
@@ -142,6 +152,7 @@ def merge_preview_picks(
 
     fresh_by_id = {_pick_id(row): row for row in fresh_serialized}
     prior_by_id = {_pick_id(row): row for row in existing if _pick_id(row)}
+    considered = {str(i) for i in (considered_ids or set()) if str(i)}
 
     merged: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -162,7 +173,8 @@ def merge_preview_picks(
             tip = datetime.fromisoformat(str(tip_raw).replace("Z", "+00:00"))
         except ValueError:
             tip = None
-        if tip and _preview_eligible(now, tip):
+        # Only drop if this game was evaluated this pass and failed to qualify.
+        if tip and _preview_eligible(now, tip) and pid in considered:
             if row.get("preview_state") != PREVIEW_STATE_DROPPED:
                 row["preview_state"] = PREVIEW_STATE_DROPPED
                 row["updated_at_et"] = et_now
@@ -201,12 +213,14 @@ def refresh_preview_from_snapshot(
     et_today = now.astimezone(ET).date()
     odds_by_id = {str(e.get("event_id")): e for e in odds_events}
 
-    fresh_models = _qualifying_preview_picks(
+    fresh_models, considered_ids = _qualifying_preview_picks(
         all_slate, odds_by_id, ratings, now=now, ledger_path=ledger_path, demo=demo
     )
     existing_doc = load_preview(et_day=et_today)
     existing_rows = list(existing_doc.get("picks") or [])
-    merged = merge_preview_picks(existing_rows, fresh_models, now=now)
+    merged = merge_preview_picks(
+        existing_rows, fresh_models, now=now, considered_ids=considered_ids
+    )
     active_n = sum(1 for p in merged if p.get("preview_state") == PREVIEW_STATE_ACTIVE)
 
     payload = {

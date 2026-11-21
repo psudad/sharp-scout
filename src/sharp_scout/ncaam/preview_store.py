@@ -71,7 +71,13 @@ def is_open_preview_pick(
     *,
     now: datetime | None = None,
 ) -> bool:
-    """True when a stored preview row should appear in the public Preview section."""
+    """True when a stored preview row should appear in the public Preview section.
+
+    GTL-24: hide past days, games that have started, anything inside the T-90
+    lock window, and official locked / passed-at-lock plays. Do not hide a
+    today, still-TOO_EARLY pick solely because a later 0-candidate scan marked
+    it no_longer_qualifies (missed re-emit).
+    """
     now = now or datetime.now(ET)
     if now.tzinfo is None:
         now = now.replace(tzinfo=ET)
@@ -79,8 +85,6 @@ def is_open_preview_pick(
         now = now.astimezone(ET)
     today = now.date()
     if _tip_et_date(pick) != today:
-        return False
-    if str(pick.get("preview_state") or PREVIEW_STATE_ACTIVE).lower() != PREVIEW_STATE_ACTIVE:
         return False
     eid = str(pick.get("espn_id") or pick.get("event_id") or "")
     if eid and ledger_overlay_status(ledger, eid):

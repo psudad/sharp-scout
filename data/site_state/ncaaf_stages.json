@@ -2329,7 +2329,7 @@
         "team": "NAVY",
         "line": 2.5,
         "confidence": 0.5293,
-        "reason": "validated play EV=5.9% @ hardrockbet",
+        "reason": "validated play EV=5.9% @ fanatics",
         "available": true
       }
     },
@@ -4939,8 +4939,8 @@
         "side": "home",
         "team": "MSST",
         "line": null,
-        "confidence": 0.9259,
-        "reason": "betfair_ex_eu no-vig 92.6% @ -2500",
+        "confidence": 0.9285,
+        "reason": "betfair_ex_eu no-vig 92.8% @ -2500",
         "available": true
       },
       "public": {
@@ -11876,19 +11876,19 @@
         "market": "spread",
         "side": "away",
         "team": "GEORGIA STATE",
-        "line": 2.5,
+        "line": 3.0,
         "confidence": 0.515,
-        "reason": "S_mod=-2.07 vs mkt -2.50 (home persp) \u2192 GEORGIA STATE covers",
+        "reason": "S_mod=-2.07 vs mkt -3.00 (home persp) \u2192 GEORGIA STATE covers",
         "available": true
       },
       "sharp": {
         "stage": "sharp",
         "market": "spread",
-        "side": "home",
-        "team": "MARSHALL",
-        "line": -2.5,
-        "confidence": 0.5213,
-        "reason": "pinnacle no-vig 52.1% @ -117",
+        "side": "away",
+        "team": "GEORGIA STATE",
+        "line": 3.0,
+        "confidence": 0.5045,
+        "reason": "pinnacle no-vig 50.5% @ -109",
         "available": true
       },
       "public": {
@@ -11936,20 +11936,21 @@
         "market": "spread",
         "side": "away",
         "team": "GEORGIA STATE",
-        "line": 2.5,
-        "confidence": 0.412,
-        "reason": "model lean only \u2014 no confirming market stage",
+        "line": 3.0,
+        "confidence": 0.515,
+        "reason": "model aligned with sharp (no validated edge)",
         "available": true
       }
     },
     "agreement": {
       "n_available": 5,
-      "home_votes": 3,
-      "away_votes": 1,
+      "home_votes": 2,
+      "away_votes": 2,
       "unanimous": false,
       "sharp_vs_public": {
-        "fade_public": false,
-        "side": "MARSHALL"
+        "sharp": "GEORGIA STATE",
+        "public": "MARSHALL",
+        "fade_public": true
       },
       "money_vs_public": {
         "aligned": true,
@@ -11958,13 +11959,13 @@
       },
       "rlm_active": false
     },
-    "consensus_side": "home",
-    "consensus_team": "MARSHALL",
+    "consensus_side": null,
+    "consensus_team": null,
     "hybrid_agrees_with": [
-      "model"
+      "model",
+      "sharp"
     ],
     "conflict_stages": [
-      "sharp",
       "public",
       "money"
     ],
@@ -11994,8 +11995,8 @@
         "side": "home",
         "team": "MARSHALL",
         "line": null,
-        "confidence": 0.562,
-        "reason": "pinnacle no-vig 56.2% @ -137",
+        "confidence": 0.5665,
+        "reason": "pinnacle no-vig 56.6% @ -140",
         "available": true
       },
       "public": {
@@ -13178,8 +13179,8 @@
         "side": "home",
         "team": "USC",
         "line": -17.5,
-        "confidence": 0.5045,
-        "reason": "pinnacle no-vig 50.5% @ -109",
+        "confidence": 0.5023,
+        "reason": "pinnacle no-vig 50.2% @ -108",
         "available": true
       },
       "public": {
@@ -13286,8 +13287,8 @@
         "side": "home",
         "team": "USC",
         "line": null,
-        "confidence": 0.8709,
-        "reason": "pinnacle no-vig 87.1% @ -941",
+        "confidence": 0.8703,
+        "reason": "pinnacle no-vig 87.0% @ -935",
         "available": true
       },
       "public": {
@@ -13391,11 +13392,11 @@
       "sharp": {
         "stage": "sharp",
         "market": "total",
-        "side": "over",
-        "team": "Over",
+        "side": "under",
+        "team": "Under",
         "line": 57.5,
-        "confidence": 0.5045,
-        "reason": "pinnacle no-vig 50.4% @ -110",
+        "confidence": 0.5122,
+        "reason": "pinnacle no-vig 51.2% @ -114",
         "available": true
       },
       "public": {
@@ -13445,19 +13446,18 @@
         "team": "Under",
         "line": 57.5,
         "confidence": 0.5944,
-        "reason": "model aligned with money (no validated edge)",
+        "reason": "model aligned with money+sharp (no validated edge)",
         "available": true
       }
     },
     "agreement": {
       "n_available": 6,
-      "home_votes": 1,
-      "away_votes": 4,
-      "unanimous": false,
+      "home_votes": 0,
+      "away_votes": 5,
+      "unanimous": true,
       "sharp_vs_public": {
-        "sharp": "Over",
-        "public": "Under",
-        "fade_public": true
+        "fade_public": false,
+        "side": "Under"
       },
       "money_vs_public": {
         "aligned": true,
@@ -13470,13 +13470,12 @@
     "consensus_team": "Under",
     "hybrid_agrees_with": [
       "model",
+      "sharp",
       "public",
       "money",
       "sharp_edge"
     ],
-    "conflict_stages": [
-      "sharp"
-    ],
+    "conflict_stages": [],
     "line_perspective": "team",
     "kickoff": "2026-11-21 23:15:00+00:00",
     "commence_time": "2026-11-21 23:15:00+00:00"
@@ -17067,7 +17066,7 @@
         "market": "spread",
         "side": "away",
         "team": "UTAH",
-        "line": -7.5,
+        "line": -8.0,
         "confidence": 0.84,
         "reason": "tickets home=16% away=84%",
         "available": true
@@ -17077,7 +17076,7 @@
         "market": "spread",
         "side": "away",
         "team": "UTAH",
-        "line": -7.5,
+        "line": -8.0,
         "confidence": 0.84,
         "reason": "money home=16% away=84% (gap vs tickets +0% on away)",
         "available": true
@@ -17099,7 +17098,7 @@
         "team": null,
         "line": null,
         "confidence": null,
-        "reason": "no RLM (public=away, line 7.0\u21927.5)",
+        "reason": "no RLM (public=away, line 7.0\u21928.0)",
         "available": false
       },
       "hybrid": {

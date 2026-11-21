@@ -482,16 +482,110 @@
   },
   "401921811": {
    "away_team": "Queens",
-   "has_splits": false,
+   "has_splits": true,
    "home_team": "LSU",
    "sharp3": {
-    "reason": "No splits data",
-    "result": "no_splits"
+    "book": "draftkings",
+    "conf": 0.795,
+    "edge": 28.28,
+    "first_tier": "GOLD",
+    "flags": [],
+    "gap": 15.0,
+    "line": 25.5,
+    "line_source": "odds_api",
+    "locked": true,
+    "locked_at": "2026-11-21T17:29:10.326601+00:00",
+    "market": "spreads",
+    "money_pct": 39.0,
+    "orig_line": 25.5,
+    "orig_price": -105.0,
+    "pick_status": "NEW",
+    "price": -105.0,
+    "price_estimated": false,
+    "result": "play",
+    "side": "away",
+    "sim_projection": {
+     "hfa": 3.0,
+     "inputs": {
+      "espn_id": "401921811",
+      "line": 25.5,
+      "market": "spreads",
+      "neutral_site": false,
+      "note": "Juice/price not used; spread/ML result vs locked line only.",
+      "side": "away"
+     },
+     "kind": "projection",
+     "losses": 3144,
+     "margin_model": 20.32,
+     "margin_sd": 10.5,
+     "model": "torvik-efficiency-mc-v1",
+     "n": 10000,
+     "p_cover_or_ml": 0.6856,
+     "pushes": 0,
+     "ratings_display_max_acquisition_age_days": 1,
+     "ratings_display_policy": "sharp3-display-acquisition-freshness-v1",
+     "ratings_display_policy_note": "Sharp 3 MC display requires retrieval_verified (successful fetch meta + SHA-256 match). Freshness window: retrieved_at ET within today or yesterday. Publisher ratings snapshot date remains unknown. Failed fetch does not renew freshness.",
+     "ratings_provenance": {
+      "cache_date_et": "2026-11-21",
+      "cache_date_note": "Filename label only; not used for retrieval freshness",
+      "cache_path": "/home/runner/work/sharp-scout/sharp-scout/data/ncaam/ratings_20261121.csv",
+      "content_sha256": "6611193717c09c0cadde07456ec3c1638d36be08e8407a7c6e40223511a93863",
+      "ratings_snapshot_as_of": null,
+      "ratings_snapshot_as_of_note": "unknown: Barttorvik team_results CSV has no publisher snapshot/as-of field",
+      "retrieval_unavailable_reason": null,
+      "retrieval_verified": true,
+      "retrieved_at_utc": "2026-11-21T11:30:15.870008+00:00",
+      "source": "barttorvik",
+      "source_url": "https://barttorvik.com/2027_team_results.csv",
+      "upstream_http_last_modified_note": "Optional HTTP Last-Modified from response; file revision time only \u2014 not ratings snapshot date",
+      "upstream_http_last_modified_utc": "2026-11-21T11:17:09+00:00"
+     },
+     "reproducibility": {
+      "rng": "numpy.random.Generator",
+      "seed": 159943209143783,
+      "seed_inputs": "sharp3-sim|401921811|away|spreads|25.5"
+     },
+     "status": "ok",
+     "wins": 6856
+    },
+    "sim_rec": "proj 6856-3144/10000 MC",
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 24.0,
+    "tier": "GOLD",
+    "units": 2.0
    },
    "sharp35": {
+    "book": "fanduel",
+    "conf": 0.639,
+    "edge": 15.93,
+    "flags": [
+     "RLM",
+     "WHALE_GAP"
+    ],
+    "gap": 15.0,
+    "line": 24.5,
+    "line_source": "odds_api",
+    "margin_model": 20.32,
     "market": "spreads",
-    "reason": "No splits data",
-    "result": "no_splits"
+    "money_pct": 39.0,
+    "novig": 0.4797,
+    "price": -102.0,
+    "price_estimated": false,
+    "reason": "Data anomaly (edge above 15%)",
+    "result": "anomaly",
+    "side": "away",
+    "signals": {
+     "away": [
+      "WHALE_GAP",
+      "RLM"
+     ],
+     "home": []
+    },
+    "sim_rec": "639-361",
+    "splits_source": "actionnetwork:book15",
+    "ticket_pct": 24.0,
+    "tier": "ANOMALY",
+    "units": 0.0
    },
    "tip": "2026-11-21T18:00:00+00:00"
   },
@@ -562,10 +656,12 @@
    "has_splits": false,
    "home_team": "Boston University",
    "sharp3": {
+    "final": true,
     "reason": "No splits data",
     "result": "no_splits"
    },
    "sharp35": {
+    "final": true,
     "market": "spreads",
     "reason": "No splits data",
     "result": "no_splits"
@@ -739,6 +835,7 @@
     "units": 2.0
    },
    "sharp35": {
+    "final": true,
     "flags": [],
     "gap": 4.0,
     "market": "spreads",
@@ -753,7 +850,7 @@
     "splits_source": "actionnetwork:book15",
     "ticket_pct": 46.0
    },
-   "tip": "2026-11-21T17:00:00+00:00"
+   "tip": "2026-11-21T17:01:52+00:00"
   },
   "401925897": {
    "away_team": "UNC Wilmington",
@@ -833,10 +930,10 @@
  },
  "splits": {
   "auth_mode": "token",
-  "coverage": "1/50",
+  "coverage": "2/50",
   "n_games": 50,
-  "n_with_money": 1,
+  "n_with_money": 2,
   "status": 200
  },
- "updated_at": "2026-11-21T16:43:04.436230+00:00"
+ "updated_at": "2026-11-21T17:28:58.332689+00:00"
 }

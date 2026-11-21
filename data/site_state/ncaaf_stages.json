@@ -10,19 +10,19 @@
         "market": "spread",
         "side": "away",
         "team": "UTEP",
-        "line": 22.0,
-        "confidence": 0.662,
-        "reason": "S_mod=-16.19 vs mkt -22.00 (home persp) \u2192 UTEP covers",
+        "line": 23.0,
+        "confidence": 0.6834,
+        "reason": "S_mod=-16.19 vs mkt -23.00 (home persp) \u2192 UTEP covers",
         "available": true
       },
       "sharp": {
         "stage": "sharp",
         "market": "spread",
-        "side": "away",
-        "team": "UTEP",
-        "line": 22.0,
-        "confidence": 0.5057,
-        "reason": "pinnacle no-vig 50.6% @ -109",
+        "side": "home",
+        "team": "AIR FORCE",
+        "line": -23.0,
+        "confidence": 0.5023,
+        "reason": "pinnacle no-vig 50.2% @ -107",
         "available": true
       },
       "public": {
@@ -71,20 +71,19 @@
         "side": "away",
         "team": "UTEP",
         "line": 23.0,
-        "confidence": 0.5349,
-        "reason": "validated play EV=6.0% @ lowvig",
+        "confidence": 0.6834,
+        "reason": "model aligned with rlm (no validated edge)",
         "available": true
       }
     },
     "agreement": {
       "n_available": 7,
-      "home_votes": 2,
-      "away_votes": 4,
+      "home_votes": 3,
+      "away_votes": 3,
       "unanimous": false,
       "sharp_vs_public": {
-        "sharp": "UTEP",
-        "public": "AIR FORCE",
-        "fade_public": true
+        "fade_public": false,
+        "side": "AIR FORCE"
       },
       "money_vs_public": {
         "aligned": true,
@@ -93,15 +92,15 @@
       },
       "rlm_active": true
     },
-    "consensus_side": "away",
-    "consensus_team": "UTEP",
+    "consensus_side": null,
+    "consensus_team": null,
     "hybrid_agrees_with": [
       "model",
-      "sharp",
       "sharp_edge",
       "rlm"
     ],
     "conflict_stages": [
+      "sharp",
       "public",
       "money"
     ],
@@ -131,8 +130,8 @@
         "side": "home",
         "team": "AIR FORCE",
         "line": null,
-        "confidence": 0.9213,
-        "reason": "pinnacle no-vig 92.1% @ -1800",
+        "confidence": 0.9246,
+        "reason": "pinnacle no-vig 92.5% @ -1917",
         "available": true
       },
       "public": {
@@ -239,8 +238,8 @@
         "side": "under",
         "team": "Under",
         "line": 49.0,
-        "confidence": 0.5188,
-        "reason": "pinnacle no-vig 51.9% @ -117",
+        "confidence": 0.5134,
+        "reason": "pinnacle no-vig 51.3% @ -114",
         "available": true
       },
       "public": {
@@ -336,102 +335,102 @@
         "market": "spread",
         "side": "home",
         "team": "MSU",
-        "line": 18.5,
-        "confidence": 0.588,
-        "reason": "S_mod=+16.44 vs mkt +18.50 (home persp) \u2192 MSU covers",
+        "line": 19.5,
+        "confidence": 0.6084,
+        "reason": "S_mod=+16.44 vs mkt +19.50 (home persp) \u2192 MSU covers",
         "available": true
       },
       "sharp": {
         "stage": "sharp",
         "market": "spread",
-        "side": "away",
-        "team": "ORE",
-        "line": -18.5,
-        "confidence": 0.5125,
-        "reason": "pinnacle no-vig 51.3% @ -112",
+        "side": "home",
+        "team": "MSU",
+        "line": 19.5,
+        "confidence": 0.5046,
+        "reason": "pinnacle no-vig 50.5% @ -108",
         "available": true
       },
       "public": {
         "stage": "public",
         "market": "spread",
-        "side": "away",
-        "team": "ORE",
-        "line": -18.5,
-        "confidence": 0.63,
-        "reason": "tickets home=37% away=63%",
+        "side": "home",
+        "team": "MSU",
+        "line": 19.5,
+        "confidence": 0.0,
+        "reason": "tickets home=0% away=0%",
         "available": true
       },
       "money": {
         "stage": "money",
         "market": "spread",
-        "side": "away",
-        "team": "ORE",
-        "line": -18.5,
-        "confidence": 0.73,
-        "reason": "money home=27% away=73% (gap vs tickets +10% on away)",
+        "side": "home",
+        "team": "MSU",
+        "line": 19.5,
+        "confidence": 0.0,
+        "reason": "money home=0% away=0% (gap vs tickets +0% on home)",
         "available": true
       },
       "sharp_edge": {
         "stage": "sharp_edge",
         "market": "spread",
-        "side": "away",
-        "team": "ORE",
-        "line": -18.5,
-        "confidence": 0.6,
-        "reason": "+10% money vs tickets on ORE",
-        "available": true
-      },
-      "rlm": {
-        "stage": "rlm",
-        "market": "spread",
         "side": null,
         "team": null,
         "line": null,
         "confidence": null,
-        "reason": "no RLM (public=away, line 14.5\u219218.5)",
+        "reason": "no positive money-ticket diff",
         "available": false
+      },
+      "rlm": {
+        "stage": "rlm",
+        "market": "spread",
+        "side": "away",
+        "team": "ORE",
+        "line": -19.5,
+        "confidence": 0.6,
+        "reason": "RLM: public 0% home but line 14.5\u219219.5 toward away",
+        "available": true
       },
       "hybrid": {
         "stage": "hybrid",
         "market": "spread",
         "side": "home",
         "team": "MSU",
-        "line": 18.5,
-        "confidence": 0.4704,
-        "reason": "model lean only \u2014 no confirming market stage",
+        "line": 19.5,
+        "confidence": 0.6084,
+        "reason": "model aligned with money+sharp (no validated edge)",
         "available": true
       }
     },
     "agreement": {
       "n_available": 6,
-      "home_votes": 1,
-      "away_votes": 4,
+      "home_votes": 4,
+      "away_votes": 1,
       "unanimous": false,
       "sharp_vs_public": {
         "fade_public": false,
-        "side": "ORE"
+        "side": "MSU"
       },
       "money_vs_public": {
         "aligned": true,
-        "money": "ORE",
-        "public": "ORE"
+        "money": "MSU",
+        "public": "MSU"
       },
-      "rlm_active": false
+      "rlm_active": true
     },
-    "consensus_side": "away",
-    "consensus_team": "ORE",
+    "consensus_side": "home",
+    "consensus_team": "MSU",
     "hybrid_agrees_with": [
-      "model"
-    ],
-    "conflict_stages": [
+      "model",
       "sharp",
       "public",
-      "money",
-      "sharp_edge"
+      "money"
+    ],
+    "conflict_stages": [
+      "rlm"
     ],
     "line_perspective": "team",
-    "kickoff": "2026-11-21 01:05:00+00:00",
-    "commence_time": "2026-11-21 01:05:00+00:00"
+    "kickoff": "2026-11-21 01:05:57+00:00",
+    "commence_time": "2026-11-21 01:05:57+00:00"
   },
   {
     "event_id": "59cb6c9beeb879b864784348e3803ff8",
@@ -455,8 +454,8 @@
         "side": "away",
         "team": "ORE",
         "line": null,
-        "confidence": 0.893,
-        "reason": "pinnacle no-vig 89.3% @ -1159",
+        "confidence": 0.8956,
+        "reason": "pinnacle no-vig 89.6% @ -1198",
         "available": true
       },
       "public": {
@@ -466,7 +465,7 @@
         "team": "ORE",
         "line": null,
         "confidence": 0.97,
-        "reason": "tickets home=3% away=97%",
+        "reason": "tickets home=0% away=97%",
         "available": true
       },
       "money": {
@@ -476,18 +475,18 @@
         "team": "ORE",
         "line": null,
         "confidence": 0.96,
-        "reason": "money home=4% away=96% (gap vs tickets -1% on away)",
+        "reason": "money home=0% away=96% (gap vs tickets -1% on away)",
         "available": true
       },
       "sharp_edge": {
         "stage": "sharp_edge",
         "market": "h2h",
-        "side": "home",
-        "team": "MSU",
+        "side": null,
+        "team": null,
         "line": null,
-        "confidence": 0.51,
-        "reason": "+1% money vs tickets on MSU",
-        "available": true
+        "confidence": null,
+        "reason": "no positive money-ticket diff",
+        "available": false
       },
       "rlm": {
         "stage": "rlm",
@@ -511,10 +510,10 @@
       }
     },
     "agreement": {
-      "n_available": 6,
-      "home_votes": 1,
+      "n_available": 5,
+      "home_votes": 0,
       "away_votes": 4,
-      "unanimous": false,
+      "unanimous": true,
       "sharp_vs_public": {
         "fade_public": false,
         "side": "ORE"
@@ -534,12 +533,10 @@
       "public",
       "money"
     ],
-    "conflict_stages": [
-      "sharp_edge"
-    ],
+    "conflict_stages": [],
     "line_perspective": "team",
-    "kickoff": "2026-11-21 01:05:00+00:00",
-    "commence_time": "2026-11-21 01:05:00+00:00"
+    "kickoff": "2026-11-21 01:05:57+00:00",
+    "commence_time": "2026-11-21 01:05:57+00:00"
   },
   {
     "event_id": "59cb6c9beeb879b864784348e3803ff8",
@@ -563,8 +560,8 @@
         "side": "under",
         "team": "Under",
         "line": 43.0,
-        "confidence": 0.5111,
-        "reason": "pinnacle no-vig 51.1% @ -113",
+        "confidence": 0.5188,
+        "reason": "pinnacle no-vig 51.9% @ -117",
         "available": true
       },
       "public": {
@@ -640,8 +637,8 @@
     "hybrid_agrees_with": [],
     "conflict_stages": [],
     "line_perspective": "team",
-    "kickoff": "2026-11-21 01:05:00+00:00",
-    "commence_time": "2026-11-21 01:05:00+00:00"
+    "kickoff": "2026-11-21 01:05:57+00:00",
+    "commence_time": "2026-11-21 01:05:57+00:00"
   },
   {
     "event_id": "e497245c3311ac853201a67404dc82ea",
@@ -665,8 +662,8 @@
         "side": "away",
         "team": "NEW MEXICO",
         "line": -9.5,
-        "confidence": 0.5046,
-        "reason": "pinnacle no-vig 50.5% @ -108",
+        "confidence": 0.5183,
+        "reason": "pinnacle no-vig 51.8% @ -114",
         "available": true
       },
       "public": {
@@ -775,8 +772,8 @@
         "side": "away",
         "team": "NEW MEXICO",
         "line": null,
-        "confidence": 0.7561,
-        "reason": "pinnacle no-vig 75.6% @ -352",
+        "confidence": 0.7622,
+        "reason": "pinnacle no-vig 76.2% @ -366",
         "available": true
       },
       "public": {
@@ -1625,11 +1622,11 @@
       "sharp": {
         "stage": "sharp",
         "market": "spread",
-        "side": "away",
-        "team": "BYU",
-        "line": -5.5,
-        "confidence": 0.5068,
-        "reason": "pinnacle no-vig 50.7% @ -110",
+        "side": "home",
+        "team": "KU",
+        "line": 5.5,
+        "confidence": 0.5181,
+        "reason": "pinnacle no-vig 51.8% @ -115",
         "available": true
       },
       "public": {
@@ -1678,19 +1675,20 @@
         "side": "home",
         "team": "KU",
         "line": 5.5,
-        "confidence": 0.4629,
-        "reason": "model lean only \u2014 no confirming market stage",
+        "confidence": 0.5786,
+        "reason": "model aligned with sharp (no validated edge)",
         "available": true
       }
     },
     "agreement": {
       "n_available": 6,
-      "home_votes": 2,
-      "away_votes": 3,
+      "home_votes": 3,
+      "away_votes": 2,
       "unanimous": false,
       "sharp_vs_public": {
-        "fade_public": false,
-        "side": "BYU"
+        "sharp": "KU",
+        "public": "BYU",
+        "fade_public": true
       },
       "money_vs_public": {
         "aligned": true,
@@ -1699,14 +1697,14 @@
       },
       "rlm_active": false
     },
-    "consensus_side": "away",
-    "consensus_team": "BYU",
+    "consensus_side": "home",
+    "consensus_team": "KU",
     "hybrid_agrees_with": [
       "model",
+      "sharp",
       "sharp_edge"
     ],
     "conflict_stages": [
-      "sharp",
       "public",
       "money"
     ],
@@ -1736,8 +1734,8 @@
         "side": "away",
         "team": "BYU",
         "line": null,
-        "confidence": 0.659,
-        "reason": "pinnacle no-vig 65.9% @ -213",
+        "confidence": 0.6421,
+        "reason": "pinnacle no-vig 64.2% @ -196",
         "available": true
       },
       "public": {

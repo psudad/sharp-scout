@@ -9,7 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from sharp_scout.config import DATA_DIR, ROOT, get_settings
-from sharp_scout.ncaam.preview_store import ledger_overlay_status, load_preview
+from sharp_scout.ncaam.preview_store import load_preview, open_preview_picks
 
 NCAAM_LINE_HISTORY_PATH = DATA_DIR / "ncaam" / "line_history.json"
 from sharp_scout.copy.explain import format_display_datetime_et
@@ -302,7 +302,7 @@ def _render_play_card(
 
 def _render_preview(ledger: dict[str, Any], *, now: datetime | None = None) -> str:
     data = load_preview()
-    picks = list(data.get("picks") or [])
+    picks = open_preview_picks(list(data.get("picks") or []), ledger, now=now)
     if not picks:
         return ""
     last_scan = data.get("last_scan_at_et") or _fmt_et(data.get("generated_at"))
@@ -316,8 +316,6 @@ def _render_preview(ledger: dict[str, Any], *, now: datetime | None = None) -> s
     )
     rows = []
     for p in picks:
-        eid = str(p.get("espn_id") or p.get("event_id") or "")
-        overlay = ledger_overlay_status(ledger, eid) if eid else None
         away = _esc(p.get("away_team") or "")
         home = _esc(p.get("home_team") or "")
         tip = _fmt_et(p.get("tip"))
@@ -331,19 +329,8 @@ def _render_preview(ledger: dict[str, Any], *, now: datetime | None = None) -> s
         added_et = _esc(p.get("added_at_et") or "—")
         updated_et = _esc(p.get("updated_at_et") or added_et)
         timing = f"Added {added_et}<br/>Updated {updated_et}"
-        preview_st = str(p.get("preview_state") or "active").lower()
-        if overlay == "locked":
-            status = '<span class="preview-status locked">Locked</span>'
-            play_cell = f'<s class="preview-superseded">{play_lbl}</s>'
-        elif overlay == "passed_at_lock":
-            status = '<span class="preview-status passed">Passed at lock</span>'
-            play_cell = f'<s class="preview-superseded">{play_lbl}</s>'
-        elif preview_st == "no_longer_qualifies":
-            status = '<span class="preview-status dropped">No longer qualifies</span>'
-            play_cell = f'<s class="preview-superseded">{play_lbl}</s>'
-        else:
-            status = '<span class="preview-status open">Preview</span>'
-            play_cell = f"<b>{play_lbl}</b>"
+        status = '<span class="preview-status open">Preview</span>'
+        play_cell = f"<b>{play_lbl}</b>"
         rows.append(
             f"<tr>"
             f'<td data-label="Tip (ET)">{tip}</td>'
@@ -487,6 +474,7 @@ def render_ncaam_page_html(
     site_css: str,
     updated: str,
     preview_html: str | None = None,
+    now: datetime | None = None,
 ) -> str:
     rec = ncaam_record(ledger, path=NCAAM_LEDGER_PATH)
     last_scan = _format_last_scan(signals)
@@ -502,7 +490,7 @@ def render_ncaam_page_html(
         updated=_esc(updated),
         last_scan=last_scan_html,
         record_block=_render_record(rec, ledger),
-        preview_html=preview_html if preview_html is not None else _render_preview(ledger),
+        preview_html=preview_html if preview_html is not None else _render_preview(ledger, now=now),
         plays_html=_render_locks(signals),
         ledger_html=_ledger_rows(ledger),
         tracking_html=_render_tracking(ledger, signals),

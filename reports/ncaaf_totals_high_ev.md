@@ -2,7 +2,7 @@
 
 Private paper ledger for totals candidates above the LOCKED card EV ceiling (12%). Not linked from the public GitHub Pages board.
 
-_Generated: 2026-11-21T16:22:45.431467+00:00_
+_Generated: 2026-11-21T16:59:09.530859+00:00_
 
 ## High-EV buckets combined (12%+)
 

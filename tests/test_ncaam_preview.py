@@ -21,7 +21,12 @@ from sharp_scout.ncaam.preview import (
     refresh_preview_from_snapshot,
     run_morning_preview,
 )
-from sharp_scout.ncaam.preview_store import ledger_overlay_status, preview_path_for_day
+from sharp_scout.ncaam.preview_store import (
+    is_open_preview_pick,
+    ledger_overlay_status,
+    open_preview_picks,
+    preview_path_for_day,
+)
 from sharp_scout.ncaam.runner import fetch_odds_snapshot, run_pass
 from sharp_scout.site.ncaam_page import render_ncaam_page_html
 
@@ -206,7 +211,113 @@ def test_live_morning_preview_rebuild_only_no_fetch(preview_env, monkeypatch):
     assert out.get("odds_cost", 0) == 0
 
 
-def test_page_renders_preview_and_status(preview_env):
+def _base_pick(*, now: datetime, espn_id: str = "g1", hours_ahead: float = 5) -> dict:
+    tip = now + timedelta(hours=hours_ahead)
+    return {
+        "espn_id": espn_id,
+        "event_id": espn_id,
+        "away_team": "Away",
+        "home_team": "Home",
+        "tip": tip.isoformat(),
+        "preview_state": PREVIEW_STATE_ACTIVE,
+        "added_at_et": "Nov 18, 8:00 AM",
+        "updated_at_et": "Nov 18, 10:00 AM",
+        "side": "away",
+        "market": "spreads",
+        "line": -1,
+        "price": -110,
+        "ev": 0.04,
+    }
+
+
+def test_open_preview_visible_filter_cases():
+    now = datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc)
+    ledger = {"plays": []}
+    open_pick = _base_pick(now=now, espn_id="open1")
+    assert is_open_preview_pick(open_pick, ledger, now=now)
+
+    dropped = {**open_pick, "espn_id": "drop1", "preview_state": PREVIEW_STATE_DROPPED}
+    assert not is_open_preview_pick(dropped, ledger, now=now)
+
+    yesterday_tip = datetime(2026, 11, 17, 23, 0, tzinfo=timezone.utc)
+    old_day = {**open_pick, "espn_id": "old1", "tip": yesterday_tip.isoformat()}
+    assert not is_open_preview_pick(old_day, ledger, now=now)
+
+    locked_tip = datetime.fromisoformat(open_pick["tip"].replace("Z", "+00:00"))
+    ledger_locked = {
+        "plays": [
+            {
+                "espn_id": "lock1",
+                "side": "away",
+                "status": "pending",
+                "market": "spreads",
+                "locked_at": now.isoformat(),
+            }
+        ]
+    }
+    locked_pick = {**open_pick, "espn_id": "lock1", "event_id": "lock1", "tip": locked_tip.isoformat()}
+    assert not is_open_preview_pick(locked_pick, ledger_locked, now=now)
+
+    ledger_pass = {
+        "plays": [
+            {
+                "espn_id": "pass1",
+                "side": "",
+                "status": "no_play",
+                "market": "spreads",
+                "locked_at": now.isoformat(),
+            }
+        ]
+    }
+    passed_pick = {**open_pick, "espn_id": "pass1", "event_id": "pass1"}
+    assert not is_open_preview_pick(passed_pick, ledger_pass, now=now)
+
+    # Inside lock window (T-30) preview section should hide even if state is still active in JSON.
+    near_tip = now + timedelta(minutes=30)
+    in_window = {**open_pick, "espn_id": "win1", "tip": near_tip.isoformat()}
+    assert not is_open_preview_pick(in_window, ledger, now=now)
+
+
+def test_page_renders_only_open_previews(preview_env):
+    tmp_path, data, ncaam_dir, docs, ledger = preview_env
+    now = datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc)
+    open_pick = _base_pick(now=now, espn_id="visible")
+    closed_pick = {**_base_pick(now=now, espn_id="closed"), "preview_state": PREVIEW_STATE_DROPPED}
+    yesterday = {**_base_pick(now=now, espn_id="yesterday"), "tip": (now - timedelta(days=1)).isoformat()}
+    payload = {
+        "picks": [open_pick, closed_pick, yesterday],
+        "last_scan_at_et": "Nov 18, 10:00 AM ET",
+    }
+    (data / "ncaam_preview_latest.json").write_text(json.dumps(payload))
+
+    def _fake_load(*, et_day=None):
+        return payload
+
+    import sharp_scout.site.ncaam_page as page_mod
+
+    original = page_mod.load_preview
+    page_mod.load_preview = _fake_load  # type: ignore[method-assign]
+    try:
+        html = render_ncaam_page_html(
+            ledger={"plays": []},
+            signals={},
+            analytics_head="",
+            site_css="",
+            updated="Nov 18",
+            preview_html=None,
+            now=now,
+        )
+    finally:
+        page_mod.load_preview = original
+
+    assert "Morning preview" in html
+    assert "Away @ Home" in html
+    assert html.count('preview-status open">Preview</span>') == 1
+    assert "No longer qualifies" not in html
+    assert open_preview_picks(payload["picks"], {"plays": []}, now=now) == [open_pick]
+
+
+def test_page_hides_preview_when_locked_pick_exists(preview_env):
     tmp_path, data, ncaam_dir, docs, ledger = preview_env
     now = datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc)
     run_morning_preview(demo=True, now=now, ledger_path=ledger, build_site=False)
@@ -238,52 +349,12 @@ def test_page_renders_preview_and_status(preview_env):
         analytics_head="",
         site_css="",
         updated="Nov 18",
+        preview_html=None,
+        now=now,
     )
-    assert "Morning preview" in html
-    assert "NOT official" in html
-    assert "Locked" in html
     assert ledger_overlay_status(ledger_data, eid) == "locked"
-
-
-def test_page_shows_no_longer_qualifies():
-    now = datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc)
-    ledger = {"plays": []}
-    picks = [
-        {
-            "espn_id": "g9",
-            "away_team": "Away",
-            "home_team": "Home",
-            "tip": (now + timedelta(hours=5)).isoformat(),
-            "preview_state": PREVIEW_STATE_DROPPED,
-            "added_at_et": "Nov 18, 8:00 AM",
-            "updated_at_et": "Nov 18, 10:00 AM",
-            "side": "away",
-            "market": "spreads",
-            "line": -1,
-            "price": -110,
-            "ev": 0.04,
-        }
-    ]
-
-    def _fake_load(*, et_day=None):
-        return {"picks": picks, "last_scan_at_et": "Nov 18, 10:00 AM ET"}
-
-    import sharp_scout.site.ncaam_page as page_mod
-
-    original = page_mod.load_preview
-    page_mod.load_preview = _fake_load  # type: ignore[method-assign]
-    try:
-        html = render_ncaam_page_html(
-            ledger=ledger,
-            signals={},
-            analytics_head="",
-            site_css="",
-            updated="Nov 18",
-        )
-    finally:
-        page_mod.load_preview = original
-    assert "No longer qualifies" in html
-    assert "Added Nov 18, 8:00 AM" in html
+    assert "ncaam-preview" not in html or "Morning preview" not in html
+    assert "LOCKED" in html
 
 
 def test_official_lock_windows_unchanged():
